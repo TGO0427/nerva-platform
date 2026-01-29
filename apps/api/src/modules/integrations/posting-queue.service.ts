@@ -82,9 +82,9 @@ export class PostingQueueService {
     // Dispatch to appropriate handler based on type
     switch (connection.type) {
       case 'xero':
-        return this.postToXero(connection, docType, payload);
+        return this.postToXero(connection as unknown as Record<string, unknown>, docType, payload);
       case 'sage':
-        return this.postToSage(connection, docType, payload);
+        return this.postToSage(connection as unknown as Record<string, unknown>, docType, payload);
       default:
         return { success: false, error: `Unknown integration type: ${connection.type}` };
     }

@@ -19,6 +19,7 @@ describe('AuthService', () => {
     displayName: 'Test User',
     passwordHash: 'hashed_password',
     isActive: true,
+    lastLoginAt: null as Date | null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
