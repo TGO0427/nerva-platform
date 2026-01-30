@@ -20,7 +20,7 @@ import { CreateSupplierDto } from './dto';
 @ApiTags('master-data')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('suppliers')
+@Controller('masterdata/suppliers')
 export class SuppliersController {
   constructor(private readonly service: MasterDataService) {}
 

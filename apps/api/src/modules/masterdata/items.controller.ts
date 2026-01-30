@@ -21,7 +21,7 @@ import { CreateItemDto, UpdateItemDto } from './dto';
 @ApiTags('master-data')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('items')
+@Controller('masterdata/items')
 export class ItemsController {
   constructor(private readonly service: MasterDataService) {}
 

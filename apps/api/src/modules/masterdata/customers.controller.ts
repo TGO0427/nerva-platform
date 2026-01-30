@@ -20,7 +20,7 @@ import { CreateCustomerDto } from './dto';
 @ApiTags('master-data')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('customers')
+@Controller('masterdata/customers')
 export class CustomersController {
   constructor(private readonly service: MasterDataService) {}
 

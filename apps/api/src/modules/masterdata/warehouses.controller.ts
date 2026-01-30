@@ -19,7 +19,7 @@ import { CreateWarehouseDto, CreateBinDto } from './dto';
 @ApiTags('master-data')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('warehouses')
+@Controller('masterdata/warehouses')
 export class WarehousesController {
   constructor(private readonly service: MasterDataService) {}
 
