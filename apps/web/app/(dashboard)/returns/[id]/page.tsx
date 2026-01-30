@@ -74,7 +74,7 @@ export default function RmaDetailPage() {
       header: 'Disposition',
       render: (row) => (
         <Badge variant={getDispositionVariant(row.disposition)}>
-          {row.disposition.replace(/_/g, ' ')}
+          {row.disposition?.replace(/_/g, ' ')}
         </Badge>
       ),
     },
@@ -150,7 +150,7 @@ export default function RmaDetailPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{rma.rmaNo}</h1>
             <Badge variant={getStatusVariant(rma.status)}>
-              {rma.status.replace(/_/g, ' ')}
+              {rma.status?.replace(/_/g, ' ')}
             </Badge>
             <Badge variant="default">{rma.returnType}</Badge>
           </div>

@@ -50,7 +50,7 @@ export default function ReturnsPage() {
       width: '160px',
       render: (row) => (
         <Badge variant={getStatusVariant(row.status)}>
-          {row.status.replace(/_/g, ' ')}
+          {row.status?.replace(/_/g, ' ')}
         </Badge>
       ),
     },

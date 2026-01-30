@@ -187,7 +187,7 @@ export default function TripDetailPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{trip.tripNo}</h1>
             <Badge variant={getTripStatusVariant(trip.status)}>
-              {trip.status.replace(/_/g, ' ')}
+              {trip.status?.replace(/_/g, ' ') || trip.status}
             </Badge>
           </div>
           <p className="text-gray-500 mt-1">

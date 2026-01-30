@@ -45,7 +45,7 @@ export default function CreditNotesPage() {
       width: '140px',
       render: (row) => (
         <Badge variant={getStatusVariant(row.status)}>
-          {row.status.replace(/_/g, ' ')}
+          {row.status?.replace(/_/g, ' ')}
         </Badge>
       ),
     },

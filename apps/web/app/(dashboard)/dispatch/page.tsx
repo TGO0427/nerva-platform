@@ -69,7 +69,7 @@ export default function DispatchPage() {
       header: 'Status',
       width: '130px',
       render: (row) => (
-        <Badge variant={getTripStatusVariant(row.status)}>{row.status.replace(/_/g, ' ')}</Badge>
+        <Badge variant={getTripStatusVariant(row.status)}>{row.status?.replace(/_/g, ' ') || row.status}</Badge>
       ),
     },
     {
@@ -154,7 +154,7 @@ export default function DispatchPage() {
       key: 'status',
       header: 'Status',
       render: (row) => (
-        <Badge variant="warning">{row.status.replace(/_/g, ' ')}</Badge>
+        <Badge variant="warning">{row.status?.replace(/_/g, ' ') || row.status}</Badge>
       ),
     },
     {

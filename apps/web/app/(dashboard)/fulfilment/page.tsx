@@ -97,7 +97,7 @@ export default function FulfilmentPage() {
       width: '140px',
       render: (row) => (
         <Badge variant={getShipmentStatusVariant(row.status)}>
-          {row.status.replace(/_/g, ' ')}
+          {row.status?.replace(/_/g, ' ')}
         </Badge>
       ),
     },

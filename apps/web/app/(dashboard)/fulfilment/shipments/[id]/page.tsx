@@ -104,7 +104,7 @@ export default function ShipmentDetailPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{shipment.shipmentNo}</h1>
             <Badge variant={getStatusVariant(shipment.status)}>
-              {shipment.status.replace(/_/g, ' ')}
+              {shipment.status?.replace(/_/g, ' ')}
             </Badge>
           </div>
           <p className="text-gray-500 mt-1">
