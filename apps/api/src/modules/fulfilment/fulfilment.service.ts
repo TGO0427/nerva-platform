@@ -28,13 +28,13 @@ export class FulfilmentService {
 
     // Create pick tasks for each order
     for (const orderId of data.orderIds) {
-      const { order, lines } = await this.salesService.getOrderWithLines(orderId);
+      const orderData = await this.salesService.getOrderWithLines(orderId);
 
-      if (order.status !== 'ALLOCATED') {
+      if (orderData.status !== 'ALLOCATED') {
         continue; // Skip non-allocated orders
       }
 
-      for (const line of lines) {
+      for (const line of orderData.lines) {
         if (line.qtyAllocated > line.qtyPicked) {
           const qtyToPick = line.qtyAllocated - line.qtyPicked;
 
