@@ -13,7 +13,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "db:seed": "ts-node scripts/seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.500.0",

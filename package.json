@@ -12,6 +12,8 @@
     "db:up": "docker compose -f infra/docker-compose.yml up -d",
     "db:down": "docker compose -f infra/docker-compose.yml down",
     "db:reset": "docker compose -f infra/docker-compose.yml down -v && docker compose -f infra/docker-compose.yml up -d",
+    "db:seed": "docker exec -i nerva_postgres psql -U nerva -d nerva < infra/db/seed.sql",
+    "db:seed:remote": "echo 'Run: psql $DATABASE_URL < infra/db/seed.sql'",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

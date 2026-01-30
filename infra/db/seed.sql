@@ -1,0 +1,330 @@
+-- Nerva Sample Data Seed
+-- Run this after schema.sql to populate the database with demo data
+
+BEGIN;
+
+-- ================
+-- Demo Tenant
+-- ================
+INSERT INTO tenants (id, name, code) VALUES
+  ('11111111-1111-1111-1111-111111111111', 'Demo Company', 'DEMO')
+ON CONFLICT (code) DO NOTHING;
+
+-- ================
+-- Site
+-- ================
+INSERT INTO sites (id, tenant_id, name, code) VALUES
+  ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'Johannesburg HQ', 'JHB')
+ON CONFLICT (tenant_id, code) DO NOTHING;
+
+-- ================
+-- Roles
+-- ================
+INSERT INTO roles (id, tenant_id, name, description) VALUES
+  ('33333333-3333-3333-3333-333333333301', '11111111-1111-1111-1111-111111111111', 'Admin', 'Full system access'),
+  ('33333333-3333-3333-3333-333333333302', '11111111-1111-1111-1111-111111111111', 'Warehouse Manager', 'Manage warehouse operations'),
+  ('33333333-3333-3333-3333-333333333303', '11111111-1111-1111-1111-111111111111', 'Picker', 'Execute pick tasks'),
+  ('33333333-3333-3333-3333-333333333304', '11111111-1111-1111-1111-111111111111', 'Driver', 'Execute deliveries')
+ON CONFLICT (tenant_id, name) DO NOTHING;
+
+-- Assign all permissions to Admin role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT '33333333-3333-3333-3333-333333333301', id FROM permissions
+ON CONFLICT DO NOTHING;
+
+-- ================
+-- Users (password is 'demo123' hashed with bcrypt)
+-- ================
+INSERT INTO users (id, tenant_id, email, display_name, password_hash) VALUES
+  ('44444444-4444-4444-4444-444444444401', '11111111-1111-1111-1111-111111111111', 'admin@demo.com', 'Admin User', '$2b$10$rQEY7BXM6kNGqQx7c.FzXOoLXGP8rGJQz3QFzPQlFPXBFGPXBFGPX'),
+  ('44444444-4444-4444-4444-444444444402', '11111111-1111-1111-1111-111111111111', 'warehouse@demo.com', 'Warehouse Manager', '$2b$10$rQEY7BXM6kNGqQx7c.FzXOoLXGP8rGJQz3QFzPQlFPXBFGPXBFGPX'),
+  ('44444444-4444-4444-4444-444444444403', '11111111-1111-1111-1111-111111111111', 'picker@demo.com', 'John Picker', '$2b$10$rQEY7BXM6kNGqQx7c.FzXOoLXGP8rGJQz3QFzPQlFPXBFGPXBFGPX'),
+  ('44444444-4444-4444-4444-444444444404', '11111111-1111-1111-1111-111111111111', 'driver@demo.com', 'Mike Driver', '$2b$10$rQEY7BXM6kNGqQx7c.FzXOoLXGP8rGJQz3QFzPQlFPXBFGPXBFGPX')
+ON CONFLICT (tenant_id, email) DO NOTHING;
+
+-- Assign roles to users
+INSERT INTO user_roles (user_id, role_id) VALUES
+  ('44444444-4444-4444-4444-444444444401', '33333333-3333-3333-3333-333333333301'),
+  ('44444444-4444-4444-4444-444444444402', '33333333-3333-3333-3333-333333333302'),
+  ('44444444-4444-4444-4444-444444444403', '33333333-3333-3333-3333-333333333303'),
+  ('44444444-4444-4444-4444-444444444404', '33333333-3333-3333-3333-333333333304')
+ON CONFLICT DO NOTHING;
+
+-- ================
+-- Warehouse
+-- ================
+INSERT INTO warehouses (id, tenant_id, site_id, name, code) VALUES
+  ('55555555-5555-5555-5555-555555555501', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 'Main Warehouse', 'WH-JHB-01')
+ON CONFLICT (tenant_id, code) DO NOTHING;
+
+-- ================
+-- Bins
+-- ================
+INSERT INTO bins (id, tenant_id, warehouse_id, code, bin_type, aisle, rack, level) VALUES
+  -- Receiving bins
+  ('66666666-6666-6666-6666-666666666601', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'RCV-01', 'RECEIVING', null, null, null),
+  ('66666666-6666-6666-6666-666666666602', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'RCV-02', 'RECEIVING', null, null, null),
+  -- Storage bins
+  ('66666666-6666-6666-6666-666666666610', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'A-01-01', 'STORAGE', 'A', '01', '01'),
+  ('66666666-6666-6666-6666-666666666611', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'A-01-02', 'STORAGE', 'A', '01', '02'),
+  ('66666666-6666-6666-6666-666666666612', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'A-01-03', 'STORAGE', 'A', '01', '03'),
+  ('66666666-6666-6666-6666-666666666613', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'A-02-01', 'STORAGE', 'A', '02', '01'),
+  ('66666666-6666-6666-6666-666666666614', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'A-02-02', 'STORAGE', 'A', '02', '02'),
+  ('66666666-6666-6666-6666-666666666615', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'B-01-01', 'STORAGE', 'B', '01', '01'),
+  ('66666666-6666-6666-6666-666666666616', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'B-01-02', 'STORAGE', 'B', '01', '02'),
+  ('66666666-6666-6666-6666-666666666617', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'B-02-01', 'STORAGE', 'B', '02', '01'),
+  -- Picking bins
+  ('66666666-6666-6666-6666-666666666620', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'PICK-01', 'PICKING', null, null, null),
+  ('66666666-6666-6666-6666-666666666621', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'PICK-02', 'PICKING', null, null, null),
+  -- Shipping bin
+  ('66666666-6666-6666-6666-666666666630', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'SHIP-01', 'SHIPPING', null, null, null),
+  -- Quarantine bin
+  ('66666666-6666-6666-6666-666666666640', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'QC-01', 'QUARANTINE', null, null, null)
+ON CONFLICT (tenant_id, warehouse_id, code) DO NOTHING;
+
+-- ================
+-- Items
+-- ================
+INSERT INTO items (id, tenant_id, sku, description, uom, weight_kg) VALUES
+  ('77777777-7777-7777-7777-777777777701', '11111111-1111-1111-1111-111111111111', 'WIDGET-001', 'Standard Widget', 'EA', 0.5),
+  ('77777777-7777-7777-7777-777777777702', '11111111-1111-1111-1111-111111111111', 'WIDGET-002', 'Premium Widget', 'EA', 0.75),
+  ('77777777-7777-7777-7777-777777777703', '11111111-1111-1111-1111-111111111111', 'GADGET-001', 'Mini Gadget', 'EA', 0.25),
+  ('77777777-7777-7777-7777-777777777704', '11111111-1111-1111-1111-111111111111', 'GADGET-002', 'Super Gadget', 'EA', 1.0),
+  ('77777777-7777-7777-7777-777777777705', '11111111-1111-1111-1111-111111111111', 'PART-001', 'Replacement Part A', 'EA', 0.1),
+  ('77777777-7777-7777-7777-777777777706', '11111111-1111-1111-1111-111111111111', 'PART-002', 'Replacement Part B', 'EA', 0.15),
+  ('77777777-7777-7777-7777-777777777707', '11111111-1111-1111-1111-111111111111', 'CABLE-USB', 'USB-C Cable 2m', 'EA', 0.05),
+  ('77777777-7777-7777-7777-777777777708', '11111111-1111-1111-1111-111111111111', 'CABLE-HDMI', 'HDMI Cable 3m', 'EA', 0.08),
+  ('77777777-7777-7777-7777-777777777709', '11111111-1111-1111-1111-111111111111', 'BOX-SML', 'Small Shipping Box', 'EA', 0.2),
+  ('77777777-7777-7777-7777-777777777710', '11111111-1111-1111-1111-111111111111', 'BOX-LRG', 'Large Shipping Box', 'EA', 0.4)
+ON CONFLICT (tenant_id, sku) DO NOTHING;
+
+-- ================
+-- Customers
+-- ================
+INSERT INTO customers (id, tenant_id, code, name, email, phone, shipping_address_line1, shipping_city, shipping_postal_code, shipping_country) VALUES
+  ('88888888-8888-8888-8888-888888888801', '11111111-1111-1111-1111-111111111111', 'CUST001', 'Acme Corporation', 'orders@acme.co.za', '+27 11 123 4567', '123 Business Park', 'Johannesburg', '2000', 'South Africa'),
+  ('88888888-8888-8888-8888-888888888802', '11111111-1111-1111-1111-111111111111', 'CUST002', 'TechStart Solutions', 'purchasing@techstart.co.za', '+27 21 234 5678', '456 Innovation Hub', 'Cape Town', '8001', 'South Africa'),
+  ('88888888-8888-8888-8888-888888888803', '11111111-1111-1111-1111-111111111111', 'CUST003', 'Retail World', 'supply@retailworld.co.za', '+27 31 345 6789', '789 Commerce Street', 'Durban', '4001', 'South Africa'),
+  ('88888888-8888-8888-8888-888888888804', '11111111-1111-1111-1111-111111111111', 'CUST004', 'BuildRight Construction', 'orders@buildright.co.za', '+27 12 456 7890', '321 Industrial Road', 'Pretoria', '0001', 'South Africa'),
+  ('88888888-8888-8888-8888-888888888805', '11111111-1111-1111-1111-111111111111', 'CUST005', 'Green Energy Co', 'procurement@greenenergy.co.za', '+27 41 567 8901', '555 Eco Park', 'Port Elizabeth', '6001', 'South Africa')
+ON CONFLICT (tenant_id, code) DO NOTHING;
+
+-- ================
+-- Suppliers
+-- ================
+INSERT INTO suppliers (id, tenant_id, code, name, email, phone) VALUES
+  ('99999999-9999-9999-9999-999999999901', '11111111-1111-1111-1111-111111111111', 'SUP001', 'Global Parts Inc', 'sales@globalparts.com', '+1 555 123 4567'),
+  ('99999999-9999-9999-9999-999999999902', '11111111-1111-1111-1111-111111111111', 'SUP002', 'China Electronics Ltd', 'export@chinaelec.cn', '+86 21 1234 5678'),
+  ('99999999-9999-9999-9999-999999999903', '11111111-1111-1111-1111-111111111111', 'SUP003', 'Local Supplies SA', 'orders@localsupplies.co.za', '+27 11 999 8888')
+ON CONFLICT (tenant_id, code) DO NOTHING;
+
+-- ================
+-- Stock Snapshot (Inventory on hand)
+-- ================
+INSERT INTO stock_snapshot (tenant_id, bin_id, item_id, batch_no, qty_on_hand, qty_reserved) VALUES
+  -- Widget-001 in multiple bins
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666610', '77777777-7777-7777-7777-777777777701', '', 100, 20),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666611', '77777777-7777-7777-7777-777777777701', '', 50, 0),
+  -- Widget-002
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666612', '77777777-7777-7777-7777-777777777702', '', 75, 15),
+  -- Gadget-001
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666613', '77777777-7777-7777-7777-777777777703', '', 200, 30),
+  -- Gadget-002
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666614', '77777777-7777-7777-7777-777777777704', '', 45, 10),
+  -- Parts
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666615', '77777777-7777-7777-7777-777777777705', '', 500, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666616', '77777777-7777-7777-7777-777777777706', '', 350, 50),
+  -- Cables
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666617', '77777777-7777-7777-7777-777777777707', '', 1000, 100),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666617', '77777777-7777-7777-7777-777777777708', '', 500, 50),
+  -- Boxes
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666610', '77777777-7777-7777-7777-777777777709', '', 200, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666611', '77777777-7777-7777-7777-777777777710', '', 100, 0)
+ON CONFLICT (tenant_id, bin_id, item_id, batch_no) DO UPDATE SET
+  qty_on_hand = EXCLUDED.qty_on_hand,
+  qty_reserved = EXCLUDED.qty_reserved;
+
+-- ================
+-- Sales Orders
+-- ================
+-- Order 1: Draft
+INSERT INTO sales_orders (id, tenant_id, site_id, warehouse_id, customer_id, order_no, status, priority, requested_ship_date, shipping_address_line1, shipping_city, notes, created_by) VALUES
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa001', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', '88888888-8888-8888-8888-888888888801', 'SO-2024-0001', 'DRAFT', 5, CURRENT_DATE + INTERVAL '7 days', '123 Business Park', 'Johannesburg', 'New customer order', '44444444-4444-4444-4444-444444444401')
+ON CONFLICT (tenant_id, order_no) DO NOTHING;
+
+INSERT INTO sales_order_lines (id, tenant_id, sales_order_id, line_no, item_id, qty_ordered, unit_price) VALUES
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb001', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa001', 1, '77777777-7777-7777-7777-777777777701', 10, 99.99),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb002', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa001', 2, '77777777-7777-7777-7777-777777777703', 5, 49.99)
+ON CONFLICT DO NOTHING;
+
+-- Order 2: Confirmed
+INSERT INTO sales_orders (id, tenant_id, site_id, warehouse_id, customer_id, order_no, status, priority, requested_ship_date, shipping_address_line1, shipping_city, created_by) VALUES
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa002', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', '88888888-8888-8888-8888-888888888802', 'SO-2024-0002', 'CONFIRMED', 3, CURRENT_DATE + INTERVAL '3 days', '456 Innovation Hub', 'Cape Town', '44444444-4444-4444-4444-444444444401')
+ON CONFLICT (tenant_id, order_no) DO NOTHING;
+
+INSERT INTO sales_order_lines (id, tenant_id, sales_order_id, line_no, item_id, qty_ordered, unit_price) VALUES
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb003', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa002', 1, '77777777-7777-7777-7777-777777777702', 20, 149.99),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb004', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa002', 2, '77777777-7777-7777-7777-777777777707', 50, 19.99)
+ON CONFLICT DO NOTHING;
+
+-- Order 3: Allocated (ready for picking)
+INSERT INTO sales_orders (id, tenant_id, site_id, warehouse_id, customer_id, order_no, status, priority, requested_ship_date, shipping_address_line1, shipping_city, created_by) VALUES
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa003', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', '88888888-8888-8888-8888-888888888803', 'SO-2024-0003', 'ALLOCATED', 1, CURRENT_DATE + INTERVAL '1 day', '789 Commerce Street', 'Durban', '44444444-4444-4444-4444-444444444401')
+ON CONFLICT (tenant_id, order_no) DO NOTHING;
+
+INSERT INTO sales_order_lines (id, tenant_id, sales_order_id, line_no, item_id, qty_ordered, qty_allocated, unit_price) VALUES
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb005', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa003', 1, '77777777-7777-7777-7777-777777777704', 5, 5, 299.99),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb006', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa003', 2, '77777777-7777-7777-7777-777777777705', 100, 100, 9.99)
+ON CONFLICT DO NOTHING;
+
+-- Order 4: Picking in progress
+INSERT INTO sales_orders (id, tenant_id, site_id, warehouse_id, customer_id, order_no, status, priority, requested_ship_date, shipping_address_line1, shipping_city, created_by) VALUES
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa004', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', '88888888-8888-8888-8888-888888888804', 'SO-2024-0004', 'PICKING', 2, CURRENT_DATE, '321 Industrial Road', 'Pretoria', '44444444-4444-4444-4444-444444444401')
+ON CONFLICT (tenant_id, order_no) DO NOTHING;
+
+INSERT INTO sales_order_lines (id, tenant_id, sales_order_id, line_no, item_id, qty_ordered, qty_allocated, qty_picked, unit_price) VALUES
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb007', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa004', 1, '77777777-7777-7777-7777-777777777701', 15, 15, 10, 99.99),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb008', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa004', 2, '77777777-7777-7777-7777-777777777706', 30, 30, 30, 14.99)
+ON CONFLICT DO NOTHING;
+
+-- Order 5: Shipped
+INSERT INTO sales_orders (id, tenant_id, site_id, warehouse_id, customer_id, order_no, status, priority, requested_ship_date, shipping_address_line1, shipping_city, created_by) VALUES
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa005', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', '88888888-8888-8888-8888-888888888805', 'SO-2024-0005', 'SHIPPED', 5, CURRENT_DATE - INTERVAL '2 days', '555 Eco Park', 'Port Elizabeth', '44444444-4444-4444-4444-444444444401')
+ON CONFLICT (tenant_id, order_no) DO NOTHING;
+
+INSERT INTO sales_order_lines (id, tenant_id, sales_order_id, line_no, item_id, qty_ordered, qty_allocated, qty_picked, qty_packed, qty_shipped, unit_price) VALUES
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb009', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa005', 1, '77777777-7777-7777-7777-777777777708', 25, 25, 25, 25, 25, 29.99)
+ON CONFLICT DO NOTHING;
+
+-- ================
+-- Pick Waves
+-- ================
+INSERT INTO pick_waves (id, tenant_id, warehouse_id, wave_no, status, created_by) VALUES
+  ('cccccccc-cccc-cccc-cccc-ccccccccc001', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'WAVE-2024-0001', 'IN_PROGRESS', '44444444-4444-4444-4444-444444444402'),
+  ('cccccccc-cccc-cccc-cccc-ccccccccc002', '11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555501', 'WAVE-2024-0002', 'COMPLETE', '44444444-4444-4444-4444-444444444402')
+ON CONFLICT (tenant_id, wave_no) DO NOTHING;
+
+-- Pick tasks for wave 1 (in progress)
+INSERT INTO pick_tasks (id, tenant_id, pick_wave_id, sales_order_id, sales_order_line_id, item_id, from_bin_id, qty_to_pick, qty_picked, status, assigned_to) VALUES
+  ('dddddddd-dddd-dddd-dddd-ddddddddd001', '11111111-1111-1111-1111-111111111111', 'cccccccc-cccc-cccc-cccc-ccccccccc001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa004', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb007', '77777777-7777-7777-7777-777777777701', '66666666-6666-6666-6666-666666666610', 15, 10, 'IN_PROGRESS', '44444444-4444-4444-4444-444444444403'),
+  ('dddddddd-dddd-dddd-dddd-ddddddddd002', '11111111-1111-1111-1111-111111111111', 'cccccccc-cccc-cccc-cccc-ccccccccc001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa004', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb008', '77777777-7777-7777-7777-777777777706', '66666666-6666-6666-6666-666666666616', 30, 30, 'PICKED', '44444444-4444-4444-4444-444444444403')
+ON CONFLICT DO NOTHING;
+
+-- ================
+-- Shipments
+-- ================
+-- Shipped shipment
+INSERT INTO shipments (id, tenant_id, site_id, warehouse_id, sales_order_id, shipment_no, status, total_weight_kg, carrier, tracking_no, shipped_at, created_by) VALUES
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeee001', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa005', 'SHIP-2024-0001', 'SHIPPED', 2.0, 'DHL Express', 'DHL123456789', CURRENT_TIMESTAMP - INTERVAL '1 day', '44444444-4444-4444-4444-444444444402')
+ON CONFLICT (tenant_id, shipment_no) DO NOTHING;
+
+-- Ready for dispatch shipments
+INSERT INTO shipments (id, tenant_id, site_id, warehouse_id, sales_order_id, shipment_no, status, total_weight_kg, created_by) VALUES
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeee002', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa003', 'SHIP-2024-0002', 'READY_FOR_DISPATCH', 5.5, '44444444-4444-4444-4444-444444444402'),
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeee003', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa002', 'SHIP-2024-0003', 'READY_FOR_DISPATCH', 3.2, '44444444-4444-4444-4444-444444444402')
+ON CONFLICT (tenant_id, shipment_no) DO NOTHING;
+
+-- Pending shipment
+INSERT INTO shipments (id, tenant_id, site_id, warehouse_id, sales_order_id, shipment_no, status, total_weight_kg, created_by) VALUES
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeee004', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa004', 'SHIP-2024-0004', 'PENDING', 1.8, '44444444-4444-4444-4444-444444444402')
+ON CONFLICT (tenant_id, shipment_no) DO NOTHING;
+
+-- ================
+-- Vehicles
+-- ================
+INSERT INTO vehicles (id, tenant_id, site_id, reg_no, make, model, capacity_kg, capacity_cbm) VALUES
+  ('ffffffff-ffff-ffff-ffff-ffffffffffff01', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 'GP 123 ABC', 'Toyota', 'Hilux', 1000, 3.5),
+  ('ffffffff-ffff-ffff-ffff-ffffffffffff02', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 'GP 456 DEF', 'Isuzu', 'NPR 400', 3500, 12),
+  ('ffffffff-ffff-ffff-ffff-ffffffffffff03', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 'GP 789 GHI', 'Mercedes', 'Sprinter', 2000, 8)
+ON CONFLICT (tenant_id, reg_no) DO NOTHING;
+
+-- ================
+-- Drivers
+-- ================
+INSERT INTO drivers (id, tenant_id, site_id, user_id, name, phone, license_no) VALUES
+  ('11111111-dddd-dddd-dddd-dddddddddd01', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '44444444-4444-4444-4444-444444444404', 'Mike Driver', '+27 82 111 2222', 'DL123456'),
+  ('11111111-dddd-dddd-dddd-dddddddddd02', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', null, 'Sarah Wheels', '+27 82 333 4444', 'DL789012'),
+  ('11111111-dddd-dddd-dddd-dddddddddd03', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', null, 'John Roads', '+27 82 555 6666', 'DL345678')
+ON CONFLICT DO NOTHING;
+
+-- ================
+-- Dispatch Trips
+-- ================
+-- Completed trip
+INSERT INTO dispatch_trips (id, tenant_id, site_id, warehouse_id, trip_no, status, vehicle_id, driver_id, planned_date, actual_start, actual_end, total_stops, total_weight_kg, created_by) VALUES
+  ('22222222-tttt-tttt-tttt-tttttttttt01', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', 'TRIP-2024-0001', 'COMPLETE', 'ffffffff-ffff-ffff-ffff-ffffffffffff01', '11111111-dddd-dddd-dddd-dddddddddd01', CURRENT_DATE - INTERVAL '1 day', CURRENT_TIMESTAMP - INTERVAL '1 day 8 hours', CURRENT_TIMESTAMP - INTERVAL '1 day 2 hours', 1, 2.0, '44444444-4444-4444-4444-444444444402')
+ON CONFLICT (tenant_id, trip_no) DO NOTHING;
+
+-- Planned trip
+INSERT INTO dispatch_trips (id, tenant_id, site_id, warehouse_id, trip_no, status, planned_date, total_stops, created_by) VALUES
+  ('22222222-tttt-tttt-tttt-tttttttttt02', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', 'TRIP-2024-0002', 'PLANNED', CURRENT_DATE + INTERVAL '1 day', 0, '44444444-4444-4444-4444-444444444402')
+ON CONFLICT (tenant_id, trip_no) DO NOTHING;
+
+-- In progress trip
+INSERT INTO dispatch_trips (id, tenant_id, site_id, warehouse_id, trip_no, status, vehicle_id, driver_id, planned_date, actual_start, total_stops, total_weight_kg, created_by) VALUES
+  ('22222222-tttt-tttt-tttt-tttttttttt03', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', 'TRIP-2024-0003', 'IN_PROGRESS', 'ffffffff-ffff-ffff-ffff-ffffffffffff02', '11111111-dddd-dddd-dddd-dddddddddd02', CURRENT_DATE, CURRENT_TIMESTAMP - INTERVAL '3 hours', 3, 8.7, '44444444-4444-4444-4444-444444444402')
+ON CONFLICT (tenant_id, trip_no) DO NOTHING;
+
+-- ================
+-- Dispatch Stops
+-- ================
+-- Stop for completed trip
+INSERT INTO dispatch_stops (id, tenant_id, trip_id, sequence, customer_id, address_line1, city, postal_code, status, arrived_at, completed_at) VALUES
+  ('33333333-ssss-ssss-ssss-ssssssssss01', '11111111-1111-1111-1111-111111111111', '22222222-tttt-tttt-tttt-tttttttttt01', 1, '88888888-8888-8888-8888-888888888805', '555 Eco Park', 'Port Elizabeth', '6001', 'DELIVERED', CURRENT_TIMESTAMP - INTERVAL '1 day 4 hours', CURRENT_TIMESTAMP - INTERVAL '1 day 3 hours')
+ON CONFLICT (tenant_id, trip_id, sequence) DO NOTHING;
+
+-- Stops for in-progress trip
+INSERT INTO dispatch_stops (id, tenant_id, trip_id, sequence, customer_id, address_line1, city, postal_code, status, arrived_at, completed_at) VALUES
+  ('33333333-ssss-ssss-ssss-ssssssssss02', '11111111-1111-1111-1111-111111111111', '22222222-tttt-tttt-tttt-tttttttttt03', 1, '88888888-8888-8888-8888-888888888801', '123 Business Park', 'Johannesburg', '2000', 'DELIVERED', CURRENT_TIMESTAMP - INTERVAL '2 hours', CURRENT_TIMESTAMP - INTERVAL '1 hour 45 minutes'),
+  ('33333333-ssss-ssss-ssss-ssssssssss03', '11111111-1111-1111-1111-111111111111', '22222222-tttt-tttt-tttt-tttttttttt03', 2, '88888888-8888-8888-8888-888888888804', '321 Industrial Road', 'Pretoria', '0001', 'EN_ROUTE', null, null),
+  ('33333333-ssss-ssss-ssss-ssssssssss04', '11111111-1111-1111-1111-111111111111', '22222222-tttt-tttt-tttt-tttttttttt03', 3, '88888888-8888-8888-8888-888888888803', '789 Commerce Street', 'Durban', '4001', 'PENDING', null, null)
+ON CONFLICT (tenant_id, trip_id, sequence) DO NOTHING;
+
+-- ================
+-- RMAs (Returns)
+-- ================
+INSERT INTO rmas (id, tenant_id, site_id, warehouse_id, customer_id, rma_no, status, return_type, notes, created_by) VALUES
+  ('44444444-rrrr-rrrr-rrrr-rrrrrrrrrr01', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', '88888888-8888-8888-8888-888888888801', 'RMA-2024-0001', 'OPEN', 'CUSTOMER', 'Customer requested return - wrong size ordered', '44444444-4444-4444-4444-444444444401'),
+  ('44444444-rrrr-rrrr-rrrr-rrrrrrrrrr02', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', '88888888-8888-8888-8888-888888888802', 'RMA-2024-0002', 'RECEIVED', 'CUSTOMER', 'Defective product', '44444444-4444-4444-4444-444444444401')
+ON CONFLICT (tenant_id, rma_no) DO NOTHING;
+
+INSERT INTO rma_lines (id, tenant_id, rma_id, item_id, qty_expected, qty_received, reason_code, disposition) VALUES
+  ('55555555-rlll-rlll-rlll-rllllllll001', '11111111-1111-1111-1111-111111111111', '44444444-rrrr-rrrr-rrrr-rrrrrrrrrr01', '77777777-7777-7777-7777-777777777701', 5, 0, 'WRONG_ITEM', 'PENDING'),
+  ('55555555-rlll-rlll-rlll-rllllllll002', '11111111-1111-1111-1111-111111111111', '44444444-rrrr-rrrr-rrrr-rrrrrrrrrr02', '77777777-7777-7777-7777-777777777702', 3, 3, 'DEFECTIVE', 'QUARANTINE')
+ON CONFLICT DO NOTHING;
+
+-- ================
+-- GRNs (Goods Received)
+-- ================
+INSERT INTO grns (id, tenant_id, site_id, warehouse_id, supplier_id, grn_no, status, received_at, notes, created_by) VALUES
+  ('66666666-gggg-gggg-gggg-gggggggggg01', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', '99999999-9999-9999-9999-999999999901', 'GRN-2024-0001', 'COMPLETE', CURRENT_TIMESTAMP - INTERVAL '7 days', 'Regular stock replenishment', '44444444-4444-4444-4444-444444444402'),
+  ('66666666-gggg-gggg-gggg-gggggggggg02', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555501', '99999999-9999-9999-9999-999999999902', 'GRN-2024-0002', 'PUTAWAY_PENDING', CURRENT_TIMESTAMP - INTERVAL '1 day', 'Urgent order', '44444444-4444-4444-4444-444444444402')
+ON CONFLICT (tenant_id, grn_no) DO NOTHING;
+
+INSERT INTO grn_lines (id, tenant_id, grn_id, item_id, qty_expected, qty_received, receiving_bin_id) VALUES
+  ('77777777-glll-glll-glll-gllllllll001', '11111111-1111-1111-1111-111111111111', '66666666-gggg-gggg-gggg-gggggggggg01', '77777777-7777-7777-7777-777777777701', 100, 100, '66666666-6666-6666-6666-666666666601'),
+  ('77777777-glll-glll-glll-gllllllll002', '11111111-1111-1111-1111-111111111111', '66666666-gggg-gggg-gggg-gggggggggg01', '77777777-7777-7777-7777-777777777703', 200, 200, '66666666-6666-6666-6666-666666666601'),
+  ('77777777-glll-glll-glll-gllllllll003', '11111111-1111-1111-1111-111111111111', '66666666-gggg-gggg-gggg-gggggggggg02', '77777777-7777-7777-7777-777777777707', 500, 500, '66666666-6666-6666-6666-666666666602'),
+  ('77777777-glll-glll-glll-gllllllll004', '11111111-1111-1111-1111-111111111111', '66666666-gggg-gggg-gggg-gggggggggg02', '77777777-7777-7777-7777-777777777708', 250, 250, '66666666-6666-6666-6666-666666666602')
+ON CONFLICT DO NOTHING;
+
+COMMIT;
+
+-- Summary of seeded data:
+-- 1 Tenant (Demo Company)
+-- 1 Site (Johannesburg HQ)
+-- 4 Users (Admin, Warehouse Manager, Picker, Driver)
+-- 4 Roles with permissions
+-- 1 Warehouse with 14 bins
+-- 10 Items
+-- 5 Customers
+-- 3 Suppliers
+-- Inventory in stock_snapshot
+-- 5 Sales Orders (various statuses)
+-- 2 Pick Waves with tasks
+-- 4 Shipments (various statuses)
+-- 3 Vehicles
+-- 3 Drivers
+-- 3 Dispatch Trips with stops
+-- 2 RMAs
+-- 2 GRNs
