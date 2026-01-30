@@ -150,68 +150,74 @@ export default function ExpiryAlertsPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <Card
-          className={`cursor-pointer border-2 transition-colors ${
+        <div
+          className={`cursor-pointer rounded-lg border-2 transition-colors ${
             filterStatus === 'EXPIRED' ? 'border-red-500' : 'border-transparent hover:border-red-200'
           }`}
           onClick={() => setFilterStatus(filterStatus === 'EXPIRED' ? 'all' : 'EXPIRED')}
         >
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold text-red-600">
-                  {summary?.expired || 0}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-3xl font-bold text-red-600">
+                    {summary?.expired || 0}
+                  </div>
+                  <p className="text-sm text-gray-500">Expired</p>
                 </div>
-                <p className="text-sm text-gray-500">Expired</p>
+                <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                  <ExpiredIcon />
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                <ExpiredIcon />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card
-          className={`cursor-pointer border-2 transition-colors ${
+        <div
+          className={`cursor-pointer rounded-lg border-2 transition-colors ${
             filterStatus === 'CRITICAL' ? 'border-orange-500' : 'border-transparent hover:border-orange-200'
           }`}
           onClick={() => setFilterStatus(filterStatus === 'CRITICAL' ? 'all' : 'CRITICAL')}
         >
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold text-orange-600">
-                  {summary?.critical || 0}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-3xl font-bold text-orange-600">
+                    {summary?.critical || 0}
+                  </div>
+                  <p className="text-sm text-gray-500">Critical (7 days)</p>
                 </div>
-                <p className="text-sm text-gray-500">Critical (7 days)</p>
+                <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
+                  <CriticalIcon />
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
-                <CriticalIcon />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card
-          className={`cursor-pointer border-2 transition-colors ${
+        <div
+          className={`cursor-pointer rounded-lg border-2 transition-colors ${
             filterStatus === 'WARNING' ? 'border-yellow-500' : 'border-transparent hover:border-yellow-200'
           }`}
           onClick={() => setFilterStatus(filterStatus === 'WARNING' ? 'all' : 'WARNING')}
         >
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold text-yellow-600">
-                  {summary?.warning || 0}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-3xl font-bold text-yellow-600">
+                    {summary?.warning || 0}
+                  </div>
+                  <p className="text-sm text-gray-500">Warning (30 days)</p>
                 </div>
-                <p className="text-sm text-gray-500">Warning (30 days)</p>
+                <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                  <WarningIcon />
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                <WarningIcon />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Stock table */}
