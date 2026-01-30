@@ -1,17 +1,19 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { SalesRepository, SalesOrder, SalesOrderLine } from './sales.repository';
 import { StockLedgerService } from '../inventory/stock-ledger.service';
+import { MasterDataService } from '../masterdata/masterdata.service';
 
 @Injectable()
 export class SalesService {
   constructor(
     private readonly repository: SalesRepository,
     private readonly stockLedger: StockLedgerService,
+    private readonly masterDataService: MasterDataService,
   ) {}
 
   async createOrder(data: {
     tenantId: string;
-    siteId: string;
+    siteId?: string;
     warehouseId: string;
     customerId: string;
     externalRef?: string;
@@ -27,11 +29,21 @@ export class SalesService {
       unitPrice?: number;
     }>;
   }): Promise<SalesOrder> {
+    // Get siteId from warehouse if not provided
+    let siteId = data.siteId;
+    if (!siteId) {
+      const warehouse = await this.masterDataService.getWarehouse(data.warehouseId);
+      if (!warehouse) {
+        throw new NotFoundException('Warehouse not found');
+      }
+      siteId = warehouse.siteId;
+    }
+
     const orderNo = await this.repository.generateOrderNo(data.tenantId);
 
     const order = await this.repository.createOrder({
       tenantId: data.tenantId,
-      siteId: data.siteId,
+      siteId,
       warehouseId: data.warehouseId,
       customerId: data.customerId,
       orderNo,
