@@ -78,10 +78,10 @@ export class SalesService {
     return order;
   }
 
-  async getOrderWithLines(id: string): Promise<{ order: SalesOrder; lines: SalesOrderLine[] }> {
+  async getOrderWithLines(id: string): Promise<SalesOrder & { lines: SalesOrderLine[] }> {
     const order = await this.getOrder(id);
     const lines = await this.repository.getOrderLines(id);
-    return { order, lines };
+    return { ...order, lines };
   }
 
   async listOrders(

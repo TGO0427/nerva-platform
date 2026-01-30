@@ -108,7 +108,7 @@ export default function SalesOrderDetailPage() {
       header: 'Status',
       render: (row) => (
         <Badge variant={getShipmentStatusVariant(row.status)}>
-          {row.status.replace(/_/g, ' ')}
+          {row.status?.replace(/_/g, ' ') || row.status}
         </Badge>
       ),
     },
@@ -465,7 +465,7 @@ function getShipmentStatusVariant(status: string): 'default' | 'success' | 'warn
 }
 
 function formatStatus(status: SalesOrderStatus): string {
-  return status.replace(/_/g, ' ');
+  return status?.replace(/_/g, ' ') || status || '';
 }
 
 function getPriorityVariant(priority: number): 'default' | 'success' | 'warning' | 'danger' | 'info' {

@@ -198,7 +198,7 @@ function getStatusVariant(status: SalesOrderStatus): 'default' | 'success' | 'wa
 }
 
 function formatStatus(status: SalesOrderStatus): string {
-  return status.replace(/_/g, ' ');
+  return status?.replace(/_/g, ' ') || status || '';
 }
 
 function getPriorityVariant(priority: number): 'default' | 'success' | 'warning' | 'danger' | 'info' {
