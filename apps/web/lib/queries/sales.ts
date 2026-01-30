@@ -12,6 +12,8 @@ export interface SalesOrderWithCustomer extends SalesOrder {
 }
 
 export interface SalesOrderDetail extends SalesOrder {
+  siteId: string;
+  warehouseId: string;
   customer?: {
     id: string;
     code: string | null;

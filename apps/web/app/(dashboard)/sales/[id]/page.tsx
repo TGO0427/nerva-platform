@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,10 @@ import {
   useConfirmOrder,
   useAllocateOrder,
   useCancelOrder,
+  useCreateShipment,
+  useOrderShipments,
   SalesOrderLineWithItem,
+  Shipment,
 } from '@/lib/queries';
 import type { SalesOrderStatus } from '@nerva/shared';
 
@@ -22,9 +26,11 @@ export default function SalesOrderDetailPage() {
   const orderId = params.id as string;
 
   const { data: order, isLoading } = useOrder(orderId);
+  const { data: shipments, isLoading: shipmentsLoading } = useOrderShipments(orderId);
   const confirmOrder = useConfirmOrder();
   const allocateOrder = useAllocateOrder();
   const cancelOrder = useCancelOrder();
+  const createShipment = useCreateShipment();
 
   const lineColumns: Column<SalesOrderLineWithItem>[] = [
     {
@@ -87,6 +93,42 @@ export default function SalesOrderDetailPage() {
     },
   ];
 
+  const shipmentColumns: Column<Shipment>[] = [
+    {
+      key: 'shipmentNo',
+      header: 'Shipment No.',
+      render: (row) => (
+        <Link href={`/fulfilment/shipments/${row.id}`} className="text-primary-600 hover:underline font-medium">
+          {row.shipmentNo}
+        </Link>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (row) => (
+        <Badge variant={getShipmentStatusVariant(row.status)}>
+          {row.status.replace(/_/g, ' ')}
+        </Badge>
+      ),
+    },
+    {
+      key: 'carrier',
+      header: 'Carrier',
+      render: (row) => row.carrier || '-',
+    },
+    {
+      key: 'trackingNo',
+      header: 'Tracking',
+      render: (row) => row.trackingNo || '-',
+    },
+    {
+      key: 'createdAt',
+      header: 'Created',
+      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+    },
+  ];
+
   const handleConfirm = async () => {
     if (confirm('Are you sure you want to confirm this order?')) {
       try {
@@ -118,6 +160,23 @@ export default function SalesOrderDetailPage() {
     }
   };
 
+  const handleCreateShipment = async () => {
+    if (!order) return;
+
+    if (confirm('Create a shipment for this order?')) {
+      try {
+        const shipment = await createShipment.mutateAsync({
+          siteId: order.siteId,
+          warehouseId: order.warehouseId,
+          salesOrderId: orderId,
+        });
+        router.push(`/fulfilment/shipments/${shipment.id}`);
+      } catch (error) {
+        console.error('Failed to create shipment:', error);
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -144,6 +203,14 @@ export default function SalesOrderDetailPage() {
   const canAllocate = order.status === 'CONFIRMED';
   const canCancel = ['DRAFT', 'CONFIRMED'].includes(order.status);
 
+  // Can create shipment when picking is complete (all items picked) or in packing status
+  const allPicked = totalPicked >= totalOrdered && totalOrdered > 0;
+  const canCreateShipment = ['PICKING', 'PACKING', 'ALLOCATED'].includes(order.status) &&
+    (allPicked || order.status === 'PACKING') &&
+    totalShipped < totalOrdered;
+
+  const hasShipments = shipments && shipments.length > 0;
+
   return (
     <div>
       <Breadcrumbs />
@@ -159,7 +226,7 @@ export default function SalesOrderDetailPage() {
             Created {new Date(order.createdAt).toLocaleDateString()}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {canConfirm && (
             <Button onClick={handleConfirm} isLoading={confirmOrder.isPending}>
               <CheckIcon />
@@ -170,6 +237,12 @@ export default function SalesOrderDetailPage() {
             <Button onClick={handleAllocate} isLoading={allocateOrder.isPending}>
               <BoxIcon />
               Allocate Stock
+            </Button>
+          )}
+          {canCreateShipment && (
+            <Button onClick={handleCreateShipment} isLoading={createShipment.isPending}>
+              <TruckIcon />
+              Create Shipment
             </Button>
           )}
           {canCancel && (
@@ -199,13 +272,17 @@ export default function SalesOrderDetailPage() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">{totalPicked}</div>
+            <div className={`text-2xl font-bold ${totalPicked >= totalOrdered ? 'text-green-600' : 'text-blue-600'}`}>
+              {totalPicked}
+            </div>
             <p className="text-sm text-gray-500">Qty Picked</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">{totalShipped}</div>
+            <div className={`text-2xl font-bold ${totalShipped >= totalOrdered ? 'text-green-600' : 'text-gray-900'}`}>
+              {totalShipped}
+            </div>
             <p className="text-sm text-gray-500">Qty Shipped</p>
           </CardContent>
         </Card>
@@ -271,6 +348,46 @@ export default function SalesOrderDetailPage() {
         </Card>
       </div>
 
+      {/* Shipments section */}
+      {(hasShipments || canCreateShipment) && (
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Shipments</CardTitle>
+              {canCreateShipment && !hasShipments && (
+                <Button size="sm" onClick={handleCreateShipment} isLoading={createShipment.isPending}>
+                  <TruckIcon />
+                  Create Shipment
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {shipmentsLoading ? (
+              <div className="flex justify-center py-4">
+                <Spinner size="sm" />
+              </div>
+            ) : hasShipments ? (
+              <DataTable
+                columns={shipmentColumns}
+                data={shipments}
+                keyField="id"
+              />
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <TruckIconLarge className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+                <p>No shipments yet</p>
+                {allPicked && (
+                  <p className="text-sm text-gray-400 mt-1">
+                    All items picked. Ready to create shipment.
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Line items */}
       <Card>
         <CardHeader>
@@ -334,6 +451,19 @@ function getStatusVariant(status: SalesOrderStatus): 'default' | 'success' | 'wa
   }
 }
 
+function getShipmentStatusVariant(status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' {
+  switch (status) {
+    case 'DELIVERED':
+      return 'success';
+    case 'SHIPPED':
+      return 'info';
+    case 'READY_FOR_DISPATCH':
+      return 'warning';
+    default:
+      return 'default';
+  }
+}
+
 function formatStatus(status: SalesOrderStatus): string {
   return status.replace(/_/g, ' ');
 }
@@ -363,6 +493,22 @@ function BoxIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+    </svg>
+  );
+}
+
+function TruckIcon() {
+  return (
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+    </svg>
+  );
+}
+
+function TruckIconLarge({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
     </svg>
   );
 }
