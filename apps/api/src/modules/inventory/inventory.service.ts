@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InventoryRepository, Grn, GrnLine, Adjustment } from './inventory.repository';
 import { StockLedgerService } from './stock-ledger.service';
+import { BatchRepository } from './batch.repository';
 
 @Injectable()
 export class InventoryService {
   constructor(
     private readonly repository: InventoryRepository,
     private readonly stockLedger: StockLedgerService,
+    private readonly batchRepository: BatchRepository,
   ) {}
 
   // GRN operations
@@ -52,10 +54,25 @@ export class InventoryService {
       throw new BadRequestException('GRN is already complete or cancelled');
     }
 
-    // Add GRN line
+    // Create or find batch record if batch info provided
+    let batchId: string | undefined;
+    if (data.batchNo && data.expiryDate) {
+      const batch = await this.batchRepository.findOrCreateBatch({
+        tenantId: data.tenantId,
+        itemId: data.itemId,
+        batchNo: data.batchNo,
+        expiryDate: data.expiryDate,
+        supplierId: grn.supplierId || undefined,
+        grnId,
+      });
+      batchId = batch.id;
+    }
+
+    // Add GRN line with batch reference
     const line = await this.repository.addGrnLine({
       ...data,
       grnId,
+      batchId,
     });
 
     // Record stock movement

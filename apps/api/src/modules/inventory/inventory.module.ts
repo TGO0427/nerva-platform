@@ -5,10 +5,11 @@ import { AdjustmentsController } from './adjustments.controller';
 import { InventoryService } from './inventory.service';
 import { StockLedgerService } from './stock-ledger.service';
 import { InventoryRepository } from './inventory.repository';
+import { BatchRepository } from './batch.repository';
 
 @Module({
   controllers: [InventoryController, GrnController, AdjustmentsController],
-  providers: [InventoryService, StockLedgerService, InventoryRepository],
-  exports: [InventoryService, StockLedgerService],
+  providers: [InventoryService, StockLedgerService, InventoryRepository, BatchRepository],
+  exports: [InventoryService, StockLedgerService, BatchRepository],
 })
 export class InventoryModule {}

@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { InventoryService } from './inventory.service';
+import { BatchRepository } from './batch.repository';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -22,7 +23,10 @@ import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('inventory')
 export class InventoryController {
-  constructor(private readonly service: InventoryService) {}
+  constructor(
+    private readonly service: InventoryService,
+    private readonly batchRepository: BatchRepository,
+  ) {}
 
   @Get('stock-on-hand')
   @RequirePermissions('inventory.read')
@@ -42,6 +46,38 @@ export class InventoryController {
     @Query('binId', UuidValidationPipe) binId: string,
   ) {
     return this.service.getStockInBin(tenantId, binId);
+  }
+
+  @Get('expiry-alerts')
+  @RequirePermissions('inventory.read')
+  @ApiOperation({ summary: 'Get expiry alerts summary (counts by status)' })
+  async getExpiryAlertsSummary(@TenantId() tenantId: string) {
+    return this.batchRepository.getExpiryAlertsSummary(tenantId);
+  }
+
+  @Get('expiring-stock')
+  @RequirePermissions('inventory.read')
+  @ApiOperation({ summary: 'Get stock expiring within specified days' })
+  async getExpiringStock(
+    @TenantId() tenantId: string,
+    @Query('daysAhead') daysAhead?: number,
+    @Query('warehouseId') warehouseId?: string,
+  ) {
+    return this.batchRepository.getExpiringStock(
+      tenantId,
+      daysAhead || 30,
+      warehouseId,
+    );
+  }
+
+  @Get('expired-stock')
+  @RequirePermissions('inventory.read')
+  @ApiOperation({ summary: 'Get already expired stock' })
+  async getExpiredStock(
+    @TenantId() tenantId: string,
+    @Query('warehouseId') warehouseId?: string,
+  ) {
+    return this.batchRepository.getExpiredStock(tenantId, warehouseId);
   }
 
   @Get('ledger')

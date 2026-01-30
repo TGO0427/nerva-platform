@@ -5,6 +5,7 @@ import type { QueryParams } from './use-query-params';
 
 const INVENTORY_KEY = 'inventory';
 const GRN_KEY = 'grn';
+const EXPIRY_KEY = 'expiry-alerts';
 
 // Types for inventory
 export interface StockSnapshot {
@@ -60,6 +61,27 @@ export interface GrnLine {
   expiryDate: string | null;
   binId: string | null;
   binCode?: string;
+}
+
+export interface ExpiryAlertsSummary {
+  expired: number;
+  critical: number;
+  warning: number;
+}
+
+export interface ExpiringStock {
+  tenantId: string;
+  binId: string;
+  binCode: string;
+  itemId: string;
+  itemSku: string;
+  itemDescription: string;
+  batchNo: string;
+  expiryDate: string;
+  qtyOnHand: number;
+  qtyAvailable: number;
+  expiryStatus: 'EXPIRED' | 'CRITICAL' | 'WARNING' | 'OK';
+  daysUntilExpiry: number;
 }
 
 // Stock queries
@@ -231,6 +253,48 @@ export function useCompleteGrn() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [GRN_KEY] });
+    },
+  });
+}
+
+// Expiry alerts queries
+export function useExpiryAlertsSummary() {
+  return useQuery({
+    queryKey: [EXPIRY_KEY, 'summary'],
+    queryFn: async () => {
+      const response = await api.get<ExpiryAlertsSummary>('/inventory/expiry-alerts');
+      return response.data;
+    },
+  });
+}
+
+export function useExpiringStock(daysAhead?: number, warehouseId?: string) {
+  return useQuery({
+    queryKey: [EXPIRY_KEY, 'expiring', daysAhead, warehouseId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (daysAhead) params.set('daysAhead', String(daysAhead));
+      if (warehouseId) params.set('warehouseId', warehouseId);
+
+      const response = await api.get<ExpiringStock[]>(
+        `/inventory/expiring-stock?${params.toString()}`
+      );
+      return response.data;
+    },
+  });
+}
+
+export function useExpiredStock(warehouseId?: string) {
+  return useQuery({
+    queryKey: [EXPIRY_KEY, 'expired', warehouseId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (warehouseId) params.set('warehouseId', warehouseId);
+
+      const response = await api.get<ExpiringStock[]>(
+        `/inventory/expired-stock?${params.toString()}`
+      );
+      return response.data;
     },
   });
 }

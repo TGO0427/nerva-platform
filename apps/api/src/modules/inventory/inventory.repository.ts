@@ -27,6 +27,7 @@ export interface GrnLine {
   qtyReceived: number;
   batchNo: string | null;
   expiryDate: Date | null;
+  batchId: string | null;
   receivingBinId: string | null;
   createdAt: Date;
 }
@@ -125,11 +126,12 @@ export class InventoryRepository extends BaseRepository {
     qtyReceived: number;
     batchNo?: string;
     expiryDate?: Date;
+    batchId?: string;
     receivingBinId?: string;
   }): Promise<GrnLine> {
     const row = await this.queryOne<Record<string, unknown>>(
-      `INSERT INTO grn_lines (tenant_id, grn_id, purchase_order_line_id, item_id, qty_expected, qty_received, batch_no, expiry_date, receiving_bin_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO grn_lines (tenant_id, grn_id, purchase_order_line_id, item_id, qty_expected, qty_received, batch_no, expiry_date, batch_id, receiving_bin_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
         data.tenantId,
@@ -140,6 +142,7 @@ export class InventoryRepository extends BaseRepository {
         data.qtyReceived,
         data.batchNo || null,
         data.expiryDate || null,
+        data.batchId || null,
         data.receivingBinId || null,
       ],
     );
@@ -267,6 +270,7 @@ export class InventoryRepository extends BaseRepository {
       qtyReceived: parseFloat(row.qty_received as string),
       batchNo: row.batch_no as string | null,
       expiryDate: row.expiry_date as Date | null,
+      batchId: row.batch_id as string | null,
       receivingBinId: row.receiving_bin_id as string | null,
       createdAt: row.created_at as Date,
     };

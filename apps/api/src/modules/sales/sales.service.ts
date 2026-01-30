@@ -112,26 +112,28 @@ export class SalesService {
 
     const lines = await this.repository.getOrderLines(id);
 
-    // Check and allocate stock for each line
+    // Check and allocate stock for each line using FEFO
     for (const line of lines) {
       const available = await this.stockLedger.getTotalAvailable(order.tenantId, line.itemId);
       const toAllocate = Math.min(line.qtyOrdered - line.qtyAllocated, available);
 
       if (toAllocate > 0) {
-        // Get stock from bins and reserve
-        const stock = await this.stockLedger.getStockOnHand(order.tenantId, line.itemId);
+        // Get stock from bins in FEFO order (First Expired, First Out)
+        const stock = await this.stockLedger.getAvailableStockFEFO(order.tenantId, line.itemId);
 
         let remaining = toAllocate;
         for (const s of stock) {
           if (remaining <= 0) break;
           const reserveQty = Math.min(remaining, s.qtyAvailable);
           if (reserveQty > 0) {
-            await this.stockLedger.reserveStock(
+            // Reserve stock with batch/expiry info for FEFO tracking
+            await this.stockLedger.reserveStockWithBatch(
               order.tenantId,
               s.binId,
               line.itemId,
               reserveQty,
-              s.batchNo || undefined,
+              s.batchNo,
+              s.expiryDate,
             );
             remaining -= reserveQty;
           }

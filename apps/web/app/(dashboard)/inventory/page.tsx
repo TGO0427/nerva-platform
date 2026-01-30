@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { useItems, useQueryParams, useWarehouses, StockSnapshot } from '@/lib/queries';
+import { useExpiryAlertsSummary } from '@/lib/queries/inventory';
 import type { Item } from '@nerva/shared';
 
 export default function InventoryPage() {
@@ -18,6 +19,7 @@ export default function InventoryPage() {
   const { params, setPage, setSearch } = useQueryParams();
   const { data: itemsData, isLoading } = useItems(params);
   const { data: warehouses } = useWarehouses();
+  const { data: expiryAlerts } = useExpiryAlertsSummary();
 
   const columns: Column<Item>[] = [
     {
@@ -64,6 +66,17 @@ export default function InventoryPage() {
           <p className="text-gray-500 mt-1">View and manage stock levels</p>
         </div>
         <div className="flex gap-2">
+          <Link href="/inventory/expiry-alerts">
+            <Button variant="secondary">
+              <ExpiryIcon />
+              Expiry Alerts
+              {(expiryAlerts?.expired || 0) > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full">
+                  {expiryAlerts?.expired}
+                </span>
+              )}
+            </Button>
+          </Link>
           <Link href="/inventory/grn">
             <Button variant="secondary">
               <ReceiveIcon />
@@ -97,15 +110,24 @@ export default function InventoryPage() {
             <p className="text-sm text-gray-500">Active Items</p>
           </CardContent>
         </Card>
+        <Link href="/inventory/expiry-alerts">
+          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold text-red-600">
+                  {expiryAlerts?.expired || 0}
+                </span>
+                <span className="text-lg text-orange-600">
+                  +{expiryAlerts?.critical || 0}
+                </span>
+              </div>
+              <p className="text-sm text-gray-500">Expiry Alerts</p>
+            </CardContent>
+          </Card>
+        </Link>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-yellow-600">3</div>
-            <p className="text-sm text-gray-500">Low Stock Alerts</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">5</div>
+            <div className="text-2xl font-bold text-blue-600">-</div>
             <p className="text-sm text-gray-500">Pending GRNs</p>
           </CardContent>
         </Card>
@@ -148,6 +170,14 @@ export default function InventoryPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function ExpiryIcon() {
+  return (
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
   );
 }
 

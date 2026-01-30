@@ -22,6 +22,7 @@ export interface StockOnHand {
   itemId: string;
   binId: string;
   batchNo: string | null;
+  expiryDate: Date | null;
   qtyOnHand: number;
   qtyReserved: number;
   qtyAvailable: number;
@@ -76,6 +77,7 @@ export class StockLedgerService {
           movement.batchNo || null,
           -movement.qty,
           0,
+          movement.expiryDate,
         );
       }
 
@@ -88,6 +90,7 @@ export class StockLedgerService {
           movement.batchNo || null,
           movement.qty,
           0,
+          movement.expiryDate,
         );
       }
 
@@ -144,21 +147,22 @@ export class StockLedgerService {
   }
 
   /**
-   * Get stock on hand for an item across all bins
+   * Get stock on hand for an item across all bins (FEFO ordered)
    */
   async getStockOnHand(tenantId: string, itemId: string): Promise<StockOnHand[]> {
     const result = await this.pool.query<{
       item_id: string;
       bin_id: string;
       batch_no: string | null;
+      expiry_date: Date | null;
       qty_on_hand: string;
       qty_reserved: string;
       qty_available: string;
     }>(
-      `SELECT item_id, bin_id, batch_no, qty_on_hand, qty_reserved, qty_available
+      `SELECT item_id, bin_id, batch_no, expiry_date, qty_on_hand, qty_reserved, qty_available
        FROM stock_snapshot
        WHERE tenant_id = $1 AND item_id = $2 AND qty_on_hand != 0
-       ORDER BY batch_no NULLS LAST`,
+       ORDER BY expiry_date ASC NULLS LAST, created_at ASC`,
       [tenantId, itemId],
     );
 
@@ -166,6 +170,7 @@ export class StockLedgerService {
       itemId: row.item_id,
       binId: row.bin_id,
       batchNo: row.batch_no,
+      expiryDate: row.expiry_date,
       qtyOnHand: parseFloat(row.qty_on_hand),
       qtyReserved: parseFloat(row.qty_reserved),
       qtyAvailable: parseFloat(row.qty_available),
@@ -173,21 +178,53 @@ export class StockLedgerService {
   }
 
   /**
-   * Get stock in a specific bin
+   * Get available stock for allocation (FEFO ordered, only available qty)
+   */
+  async getAvailableStockFEFO(tenantId: string, itemId: string): Promise<StockOnHand[]> {
+    const result = await this.pool.query<{
+      item_id: string;
+      bin_id: string;
+      batch_no: string | null;
+      expiry_date: Date | null;
+      qty_on_hand: string;
+      qty_reserved: string;
+      qty_available: string;
+    }>(
+      `SELECT item_id, bin_id, batch_no, expiry_date, qty_on_hand, qty_reserved, qty_available
+       FROM stock_snapshot
+       WHERE tenant_id = $1 AND item_id = $2 AND qty_available > 0
+       ORDER BY expiry_date ASC NULLS LAST, created_at ASC`,
+      [tenantId, itemId],
+    );
+
+    return result.rows.map((row) => ({
+      itemId: row.item_id,
+      binId: row.bin_id,
+      batchNo: row.batch_no,
+      expiryDate: row.expiry_date,
+      qtyOnHand: parseFloat(row.qty_on_hand),
+      qtyReserved: parseFloat(row.qty_reserved),
+      qtyAvailable: parseFloat(row.qty_available),
+    }));
+  }
+
+  /**
+   * Get stock in a specific bin (FEFO ordered)
    */
   async getStockInBin(tenantId: string, binId: string): Promise<StockOnHand[]> {
     const result = await this.pool.query<{
       item_id: string;
       bin_id: string;
       batch_no: string | null;
+      expiry_date: Date | null;
       qty_on_hand: string;
       qty_reserved: string;
       qty_available: string;
     }>(
-      `SELECT item_id, bin_id, batch_no, qty_on_hand, qty_reserved, qty_available
+      `SELECT item_id, bin_id, batch_no, expiry_date, qty_on_hand, qty_reserved, qty_available
        FROM stock_snapshot
        WHERE tenant_id = $1 AND bin_id = $2 AND qty_on_hand != 0
-       ORDER BY item_id, batch_no NULLS LAST`,
+       ORDER BY item_id, expiry_date ASC NULLS LAST`,
       [tenantId, binId],
     );
 
@@ -195,6 +232,7 @@ export class StockLedgerService {
       itemId: row.item_id,
       binId: row.bin_id,
       batchNo: row.batch_no,
+      expiryDate: row.expiry_date,
       qtyOnHand: parseFloat(row.qty_on_hand),
       qtyReserved: parseFloat(row.qty_reserved),
       qtyAvailable: parseFloat(row.qty_available),
@@ -248,16 +286,41 @@ export class StockLedgerService {
     batchNo: string | null,
     qtyDelta: number,
     reservedDelta: number,
+    expiryDate?: Date | null,
   ): Promise<void> {
     await client.query(
-      `INSERT INTO stock_snapshot (tenant_id, bin_id, item_id, batch_no, qty_on_hand, qty_reserved)
-       VALUES ($1, $2, $3, COALESCE($4, ''), $5, $6)
-       ON CONFLICT (tenant_id, bin_id, item_id, COALESCE(batch_no, ''))
+      `INSERT INTO stock_snapshot (tenant_id, bin_id, item_id, batch_no, qty_on_hand, qty_reserved, expiry_date)
+       VALUES ($1, $2, $3, COALESCE($4, ''), $5, $6, $7)
+       ON CONFLICT (tenant_id, bin_id, item_id, batch_no)
        DO UPDATE SET
          qty_on_hand = stock_snapshot.qty_on_hand + $5,
          qty_reserved = stock_snapshot.qty_reserved + $6,
+         expiry_date = COALESCE($7, stock_snapshot.expiry_date),
          updated_at = NOW()`,
-      [tenantId, binId, itemId, batchNo, qtyDelta, reservedDelta],
+      [tenantId, binId, itemId, batchNo, qtyDelta, reservedDelta, expiryDate || null],
+    );
+  }
+
+  /**
+   * Reserve stock with batch info (for FEFO allocation)
+   */
+  async reserveStockWithBatch(
+    tenantId: string,
+    binId: string,
+    itemId: string,
+    qty: number,
+    batchNo: string | null,
+    expiryDate: Date | null,
+  ): Promise<void> {
+    await this.updateSnapshot(
+      this.pool,
+      tenantId,
+      binId,
+      itemId,
+      batchNo,
+      0,
+      qty,
+      expiryDate,
     );
   }
 }
