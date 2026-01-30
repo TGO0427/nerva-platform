@@ -265,7 +265,7 @@ export default function NewSalesOrderPage() {
                   placeholder="Search customers by name or code..."
                   className="w-full"
                 />
-                {showCustomerDropdown && (customerSearch || customersLoading) && (
+                {showCustomerDropdown && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-auto">
                     {customersLoading ? (
                       <div className="p-4 text-center">
@@ -367,7 +367,7 @@ export default function NewSalesOrderPage() {
                 placeholder="Search items by SKU or description..."
                 className="w-full"
               />
-              {showItemDropdown && (itemSearch || itemsLoading) && (
+              {showItemDropdown && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-auto">
                   {itemsLoading ? (
                     <div className="p-4 text-center">
