@@ -299,12 +299,12 @@ CREATE TABLE IF NOT EXISTS stock_snapshot (
   tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   bin_id uuid NOT NULL REFERENCES bins(id) ON DELETE CASCADE,
   item_id uuid NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-  batch_no text,
+  batch_no text NOT NULL DEFAULT '',
   qty_on_hand numeric(18,6) NOT NULL DEFAULT 0,
   qty_reserved numeric(18,6) NOT NULL DEFAULT 0,
   qty_available numeric(18,6) GENERATED ALWAYS AS (qty_on_hand - qty_reserved) STORED,
   updated_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (tenant_id, bin_id, item_id, COALESCE(batch_no, ''))
+  PRIMARY KEY (tenant_id, bin_id, item_id, batch_no)
 );
 
 CREATE INDEX IF NOT EXISTS idx_snapshot_item ON stock_snapshot(tenant_id, item_id);
