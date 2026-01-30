@@ -317,3 +317,14 @@ export function useDeliverShipment() {
     },
   });
 }
+
+// Fetch shipments ready for dispatch (not yet assigned to a trip)
+export function useReadyForDispatchShipments() {
+  return useQuery({
+    queryKey: [SHIPMENTS_KEY, 'ready-for-dispatch'],
+    queryFn: async () => {
+      const response = await api.get<Shipment[]>('/fulfilment/shipments?status=READY_FOR_DISPATCH');
+      return response.data;
+    },
+  });
+}
