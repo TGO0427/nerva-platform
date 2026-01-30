@@ -35,6 +35,7 @@ describe('InventoryService', () => {
     qtyReceived: 10,
     batchNo: 'BATCH001',
     expiryDate: null,
+    batchId: null,
     receivingBinId: 'bin-123',
     createdAt: new Date(),
   };

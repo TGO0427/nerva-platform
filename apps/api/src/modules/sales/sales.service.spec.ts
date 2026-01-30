@@ -3,11 +3,13 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { SalesService } from './sales.service';
 import { SalesRepository, SalesOrder, SalesOrderLine } from './sales.repository';
 import { StockLedgerService } from '../inventory/stock-ledger.service';
+import { MasterDataService } from '../masterdata/masterdata.service';
 
 describe('SalesService', () => {
   let service: SalesService;
   let repository: jest.Mocked<SalesRepository>;
   let stockLedger: jest.Mocked<StockLedgerService>;
+  let masterDataService: jest.Mocked<MasterDataService>;
 
   const mockOrder: SalesOrder = {
     id: 'order-123',
@@ -65,8 +67,16 @@ describe('SalesService', () => {
           useValue: {
             getTotalAvailable: jest.fn(),
             getStockOnHand: jest.fn(),
+            getAvailableStockFEFO: jest.fn(),
             reserveStock: jest.fn(),
+            reserveStockWithBatch: jest.fn(),
             releaseReservation: jest.fn(),
+          },
+        },
+        {
+          provide: MasterDataService,
+          useValue: {
+            getWarehouse: jest.fn(),
           },
         },
       ],
@@ -75,6 +85,7 @@ describe('SalesService', () => {
     service = module.get<SalesService>(SalesService);
     repository = module.get(SalesRepository);
     stockLedger = module.get(StockLedgerService);
+    masterDataService = module.get(MasterDataService);
   });
 
   afterEach(() => {
@@ -244,22 +255,23 @@ describe('SalesService', () => {
       repository.findOrderById.mockResolvedValue(confirmedOrder);
       repository.getOrderLines.mockResolvedValue([mockOrderLine]);
       stockLedger.getTotalAvailable.mockResolvedValue(20);
-      stockLedger.getStockOnHand.mockResolvedValue([
-        { itemId: 'item-123', binId: 'bin-1', qtyOnHand: 20, qtyReserved: 0, qtyAvailable: 20, batchNo: null },
+      stockLedger.getAvailableStockFEFO.mockResolvedValue([
+        { itemId: 'item-123', binId: 'bin-1', qtyOnHand: 20, qtyReserved: 0, qtyAvailable: 20, batchNo: null, expiryDate: null },
       ]);
-      stockLedger.reserveStock.mockResolvedValue(undefined);
+      stockLedger.reserveStockWithBatch.mockResolvedValue(undefined);
       repository.updateOrderLineQty.mockResolvedValue(undefined);
       repository.updateOrderStatus.mockResolvedValue(allocatedOrder);
 
       const result = await service.allocateOrder('order-123');
 
       expect(result).toEqual(allocatedOrder);
-      expect(stockLedger.reserveStock).toHaveBeenCalledWith(
+      expect(stockLedger.reserveStockWithBatch).toHaveBeenCalledWith(
         'tenant-123',
         'bin-1',
         'item-123',
         10,
-        undefined,
+        null,
+        null,
       );
       expect(repository.updateOrderLineQty).toHaveBeenCalledWith('line-123', 'qty_allocated', 10);
     });
@@ -268,21 +280,22 @@ describe('SalesService', () => {
       repository.findOrderById.mockResolvedValue(confirmedOrder);
       repository.getOrderLines.mockResolvedValue([mockOrderLine]); // needs 10
       stockLedger.getTotalAvailable.mockResolvedValue(5); // only 5 available
-      stockLedger.getStockOnHand.mockResolvedValue([
-        { itemId: 'item-123', binId: 'bin-1', qtyOnHand: 5, qtyReserved: 0, qtyAvailable: 5, batchNo: null },
+      stockLedger.getAvailableStockFEFO.mockResolvedValue([
+        { itemId: 'item-123', binId: 'bin-1', qtyOnHand: 5, qtyReserved: 0, qtyAvailable: 5, batchNo: null, expiryDate: null },
       ]);
-      stockLedger.reserveStock.mockResolvedValue(undefined);
+      stockLedger.reserveStockWithBatch.mockResolvedValue(undefined);
       repository.updateOrderLineQty.mockResolvedValue(undefined);
       repository.updateOrderStatus.mockResolvedValue(allocatedOrder);
 
       await service.allocateOrder('order-123');
 
-      expect(stockLedger.reserveStock).toHaveBeenCalledWith(
+      expect(stockLedger.reserveStockWithBatch).toHaveBeenCalledWith(
         'tenant-123',
         'bin-1',
         'item-123',
         5,
-        undefined,
+        null,
+        null,
       );
       expect(repository.updateOrderLineQty).toHaveBeenCalledWith('line-123', 'qty_allocated', 5);
     });
@@ -291,32 +304,34 @@ describe('SalesService', () => {
       repository.findOrderById.mockResolvedValue(confirmedOrder);
       repository.getOrderLines.mockResolvedValue([mockOrderLine]); // needs 10
       stockLedger.getTotalAvailable.mockResolvedValue(10);
-      stockLedger.getStockOnHand.mockResolvedValue([
-        { itemId: 'item-123', binId: 'bin-1', qtyOnHand: 6, qtyReserved: 0, qtyAvailable: 6, batchNo: null },
-        { itemId: 'item-123', binId: 'bin-2', qtyOnHand: 4, qtyReserved: 0, qtyAvailable: 4, batchNo: 'BATCH1' },
+      stockLedger.getAvailableStockFEFO.mockResolvedValue([
+        { itemId: 'item-123', binId: 'bin-1', qtyOnHand: 6, qtyReserved: 0, qtyAvailable: 6, batchNo: null, expiryDate: null },
+        { itemId: 'item-123', binId: 'bin-2', qtyOnHand: 4, qtyReserved: 0, qtyAvailable: 4, batchNo: 'BATCH1', expiryDate: null },
       ]);
-      stockLedger.reserveStock.mockResolvedValue(undefined);
+      stockLedger.reserveStockWithBatch.mockResolvedValue(undefined);
       repository.updateOrderLineQty.mockResolvedValue(undefined);
       repository.updateOrderStatus.mockResolvedValue(allocatedOrder);
 
       await service.allocateOrder('order-123');
 
-      expect(stockLedger.reserveStock).toHaveBeenCalledTimes(2);
-      expect(stockLedger.reserveStock).toHaveBeenNthCalledWith(
+      expect(stockLedger.reserveStockWithBatch).toHaveBeenCalledTimes(2);
+      expect(stockLedger.reserveStockWithBatch).toHaveBeenNthCalledWith(
         1,
         'tenant-123',
         'bin-1',
         'item-123',
         6,
-        undefined,
+        null,
+        null,
       );
-      expect(stockLedger.reserveStock).toHaveBeenNthCalledWith(
+      expect(stockLedger.reserveStockWithBatch).toHaveBeenNthCalledWith(
         2,
         'tenant-123',
         'bin-2',
         'item-123',
         4,
         'BATCH1',
+        null,
       );
     });
 
@@ -351,7 +366,7 @@ describe('SalesService', () => {
       repository.findOrderById.mockResolvedValue(allocatedOrder);
       repository.getOrderLines.mockResolvedValue([allocatedLine]);
       stockLedger.getStockOnHand.mockResolvedValue([
-        { itemId: 'item-123', binId: 'bin-1', qtyOnHand: 10, qtyReserved: 10, qtyAvailable: 0, batchNo: null },
+        { itemId: 'item-123', binId: 'bin-1', qtyOnHand: 10, qtyReserved: 10, qtyAvailable: 0, batchNo: null, expiryDate: null },
       ]);
       stockLedger.releaseReservation.mockResolvedValue(undefined);
       repository.updateOrderStatus.mockResolvedValue(cancelledOrder);

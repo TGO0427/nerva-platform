@@ -100,7 +100,7 @@ export class BatchRepository extends BaseRepository {
   }
 
   async findBatchesByItem(tenantId: string, itemId: string): Promise<Batch[]> {
-    const rows = await this.query<Record<string, unknown>>(
+    const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT * FROM batches
        WHERE tenant_id = $1 AND item_id = $2 AND is_active = true
        ORDER BY expiry_date ASC`,
@@ -151,7 +151,7 @@ export class BatchRepository extends BaseRepository {
 
     sql += ` ORDER BY ss.expiry_date ASC, i.sku`;
 
-    const rows = await this.query<Record<string, unknown>>(sql, params);
+    const rows = await this.queryMany<Record<string, unknown>>(sql, params);
     return rows.map((r) => this.mapExpiringStock(r));
   }
 
@@ -188,7 +188,7 @@ export class BatchRepository extends BaseRepository {
 
     sql += ` ORDER BY ss.expiry_date ASC, i.sku`;
 
-    const rows = await this.query<Record<string, unknown>>(sql, params);
+    const rows = await this.queryMany<Record<string, unknown>>(sql, params);
     return rows.map((r) => this.mapExpiringStock(r));
   }
 
