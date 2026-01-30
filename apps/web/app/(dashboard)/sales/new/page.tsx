@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
+import { Spinner } from '@/components/ui/spinner';
 import {
   useCustomers,
   useItems,
@@ -15,151 +15,181 @@ import {
   useCreateOrder,
   CreateOrderData,
 } from '@/lib/queries';
+import { useDebounce } from '@/lib/hooks/use-debounce';
+import type { Customer, Item } from '@nerva/shared';
 
 interface OrderLine {
-  id: string;
-  itemId: string;
+  tempId: string;
+  itemId?: string;
   itemSku?: string;
   itemDescription?: string;
   qtyOrdered: number;
-  unitPrice: number;
+  unitPrice?: number;
 }
 
-const PRIORITY_OPTIONS = [
-  { value: '1', label: 'Low (1)' },
-  { value: '3', label: 'Normal (3)' },
-  { value: '5', label: 'High (5)' },
-  { value: '8', label: 'Urgent (8)' },
-];
+function uid() {
+  return Math.random().toString(36).slice(2);
+}
 
 export default function NewSalesOrderPage() {
   const router = useRouter();
   const createOrder = useCreateOrder();
 
   // Form state
-  const [customerId, setCustomerId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
-  const [externalRef, setExternalRef] = useState('');
-  const [priority, setPriority] = useState('3');
   const [requestedShipDate, setRequestedShipDate] = useState('');
   const [notes, setNotes] = useState('');
-  const [lines, setLines] = useState<OrderLine[]>([]);
   const [error, setError] = useState('');
 
-  // For adding new line
-  const [selectedItemId, setSelectedItemId] = useState('');
-  const [lineQty, setLineQty] = useState('1');
-  const [linePrice, setLinePrice] = useState('');
+  // Customer search
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const debouncedCustomerSearch = useDebounce(customerSearch, 300);
 
-  // Fetch data for dropdowns
-  const { data: customersData, isLoading: customersLoading } = useCustomers({ page: 1, limit: 100 });
-  const { data: itemsData, isLoading: itemsLoading } = useItems({ page: 1, limit: 100 });
+  // Item search
+  const [itemSearch, setItemSearch] = useState('');
+  const [showItemDropdown, setShowItemDropdown] = useState(false);
+  const debouncedItemSearch = useDebounce(itemSearch, 300);
+
+  // Lines
+  const [lines, setLines] = useState<OrderLine[]>([]);
+
+  // Fetch data
+  const { data: customersData, isLoading: customersLoading } = useCustomers({
+    page: 1,
+    limit: 20,
+    search: debouncedCustomerSearch || undefined,
+  });
+
+  const { data: itemsData, isLoading: itemsLoading } = useItems({
+    page: 1,
+    limit: 20,
+    search: debouncedItemSearch || undefined,
+  });
+
   const { data: warehouses, isLoading: warehousesLoading } = useWarehouses();
 
   const customers = customersData?.data || [];
   const items = itemsData?.data || [];
 
-  const customerOptions = [
-    { value: '', label: 'Select a customer...' },
-    ...customers.map((c) => ({ value: c.id, label: `${c.code || ''} - ${c.name}`.trim().replace(/^- /, '') })),
-  ];
+  // Auto-select first warehouse if only one exists
+  if (warehouses && warehouses.length === 1 && !warehouseId) {
+    setWarehouseId(warehouses[0].id);
+  }
 
-  const warehouseOptions = [
-    { value: '', label: 'Select a warehouse...' },
-    ...(warehouses || []).map((w) => ({ value: w.id, label: w.name })),
-  ];
-
-  const itemOptions = [
-    { value: '', label: 'Select an item...' },
-    ...items.map((i) => ({ value: i.id, label: `${i.sku} - ${i.description}` })),
-  ];
-
-  const handleAddLine = () => {
-    if (!selectedItemId) {
-      setError('Please select an item');
-      return;
+  // Totals
+  const totals = useMemo(() => {
+    let totalQty = 0;
+    let totalValue = 0;
+    for (const l of lines) {
+      totalQty += l.qtyOrdered || 0;
+      totalValue += (l.qtyOrdered || 0) * (l.unitPrice || 0);
     }
+    return { lineCount: lines.length, totalQty, totalValue };
+  }, [lines]);
 
-    const qty = parseFloat(lineQty);
-    if (isNaN(qty) || qty <= 0) {
-      setError('Please enter a valid quantity');
-      return;
-    }
-
-    const item = items.find((i) => i.id === selectedItemId);
-    if (!item) return;
-
-    // Check if item already exists in lines
-    const existingLine = lines.find((l) => l.itemId === selectedItemId);
-    if (existingLine) {
-      setError('This item is already in the order. Update the existing line instead.');
-      return;
-    }
-
-    const newLine: OrderLine = {
-      id: crypto.randomUUID(),
-      itemId: selectedItemId,
-      itemSku: item.sku,
-      itemDescription: item.description,
-      qtyOrdered: qty,
-      unitPrice: linePrice ? parseFloat(linePrice) : 0,
-    };
-
-    setLines([...lines, newLine]);
-    setSelectedItemId('');
-    setLineQty('1');
-    setLinePrice('');
+  // Select customer
+  const handleSelectCustomer = useCallback((customer: Customer) => {
+    setSelectedCustomer(customer);
+    setCustomerSearch('');
+    setShowCustomerDropdown(false);
     setError('');
-  };
+  }, []);
 
-  const handleRemoveLine = (lineId: string) => {
-    setLines(lines.filter((l) => l.id !== lineId));
-  };
+  // Clear customer
+  const handleClearCustomer = useCallback(() => {
+    setSelectedCustomer(null);
+    setCustomerSearch('');
+  }, []);
 
-  const handleUpdateLineQty = (lineId: string, qty: string) => {
-    const qtyNum = parseFloat(qty);
-    if (isNaN(qtyNum) || qtyNum < 0) return;
-
-    setLines(lines.map((l) => (l.id === lineId ? { ...l, qtyOrdered: qtyNum } : l)));
-  };
-
-  const handleUpdateLinePrice = (lineId: string, price: string) => {
-    const priceNum = parseFloat(price);
-    if (isNaN(priceNum) || priceNum < 0) return;
-
-    setLines(lines.map((l) => (l.id === lineId ? { ...l, unitPrice: priceNum } : l)));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Add item to lines (auto-merge if exists)
+  const handleAddItem = useCallback((item: Item) => {
+    setLines((prev) => {
+      const existing = prev.find((l) => l.itemId === item.id);
+      if (existing) {
+        // Auto-merge: increment quantity
+        return prev.map((l) =>
+          l.itemId === item.id
+            ? { ...l, qtyOrdered: l.qtyOrdered + 1 }
+            : l
+        );
+      }
+      // Add new line
+      return [
+        ...prev,
+        {
+          tempId: uid(),
+          itemId: item.id,
+          itemSku: item.sku,
+          itemDescription: item.description,
+          qtyOrdered: 1,
+          unitPrice: undefined,
+        },
+      ];
+    });
+    setItemSearch('');
+    setShowItemDropdown(false);
     setError('');
+  }, []);
 
-    if (!customerId) {
-      setError('Please select a customer');
-      return;
+  // Update line
+  const handleUpdateLine = useCallback((tempId: string, field: 'qtyOrdered' | 'unitPrice', value: string) => {
+    const numValue = parseFloat(value);
+    if (isNaN(numValue) || numValue < 0) return;
+
+    setLines((prev) =>
+      prev.map((l) =>
+        l.tempId === tempId ? { ...l, [field]: numValue } : l
+      )
+    );
+  }, []);
+
+  // Remove line
+  const handleRemoveLine = useCallback((tempId: string) => {
+    setLines((prev) => prev.filter((l) => l.tempId !== tempId));
+  }, []);
+
+  // Validate form
+  const validate = (): string | null => {
+    if (!selectedCustomer) {
+      return 'Please select a customer';
     }
-
     if (!warehouseId) {
-      setError('Please select a warehouse');
-      return;
+      return 'Please select a warehouse';
     }
-
     if (lines.length === 0) {
-      setError('Please add at least one line item');
+      return 'Please add at least 1 line item';
+    }
+    for (const line of lines) {
+      if (!line.qtyOrdered || line.qtyOrdered <= 0) {
+        return `Quantity must be greater than 0 for ${line.itemSku}`;
+      }
+    }
+    return null;
+  };
+
+  // Submit order
+  const handleSubmit = async (asDraft = false) => {
+    setError('');
+
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
+    // For now, we don't have a draft status, so both buttons create the order
     const orderData: CreateOrderData = {
-      customerId,
+      customerId: selectedCustomer!.id,
       warehouseId,
-      externalRef: externalRef || undefined,
-      priority: parseInt(priority),
+      priority: 5,
       requestedShipDate: requestedShipDate || undefined,
       notes: notes || undefined,
       lines: lines.map((l) => ({
-        itemId: l.itemId,
+        itemId: l.itemId!,
         qtyOrdered: l.qtyOrdered,
-        unitPrice: l.unitPrice || undefined,
+        unitPrice: l.unitPrice,
       })),
     };
 
@@ -171,18 +201,31 @@ export default function NewSalesOrderPage() {
     }
   };
 
-  const totalQty = lines.reduce((sum, l) => sum + l.qtyOrdered, 0);
-  const totalValue = lines.reduce((sum, l) => sum + l.qtyOrdered * l.unitPrice, 0);
-
-  const isLoading = customersLoading || itemsLoading || warehousesLoading;
-
   return (
-    <div>
+    <div className="max-w-5xl mx-auto">
       <Breadcrumbs />
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Create Sales Order</h1>
-        <p className="text-gray-500 mt-1">Create a new customer order</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">New Sales Order</h1>
+          <p className="text-gray-500 mt-1">Create an order and add line items</p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => handleSubmit(true)}
+            disabled={createOrder.isPending}
+          >
+            Save Draft
+          </Button>
+          <Button
+            onClick={() => handleSubmit(false)}
+            isLoading={createOrder.isPending}
+          >
+            <CheckIcon />
+            Create Order
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -191,269 +234,308 @@ export default function NewSalesOrderPage() {
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Order Details */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Order Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Customer <span className="text-red-500">*</span>
-                    </label>
-                    <Select
-                      value={customerId}
-                      onChange={(e) => setCustomerId(e.target.value)}
-                      options={customerOptions}
-                      disabled={isLoading}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Warehouse <span className="text-red-500">*</span>
-                    </label>
-                    <Select
-                      value={warehouseId}
-                      onChange={(e) => setWarehouseId(e.target.value)}
-                      options={warehouseOptions}
-                      disabled={isLoading}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      External Reference
-                    </label>
-                    <Input
-                      value={externalRef}
-                      onChange={(e) => setExternalRef(e.target.value)}
-                      placeholder="Customer PO number"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Priority
-                    </label>
-                    <Select
-                      value={priority}
-                      onChange={(e) => setPriority(e.target.value)}
-                      options={PRIORITY_OPTIONS}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Requested Ship Date
-                    </label>
-                    <Input
-                      type="date"
-                      value={requestedShipDate}
-                      onChange={(e) => setRequestedShipDate(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Notes
-                    </label>
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="Order notes..."
-                    />
-                  </div>
+      <div className="space-y-6">
+        {/* Customer Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {selectedCustomer ? (
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <div className="font-medium text-gray-900">{selectedCustomer.name}</div>
+                  {selectedCustomer.code && (
+                    <div className="text-sm text-gray-500">{selectedCustomer.code}</div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Line Items */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Line Items</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* Add line form */}
-                <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b">
-                  <div className="flex-1 min-w-[200px]">
-                    <Select
-                      value={selectedItemId}
-                      onChange={(e) => setSelectedItemId(e.target.value)}
-                      options={itemOptions}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="w-24">
-                    <Input
-                      type="number"
-                      value={lineQty}
-                      onChange={(e) => setLineQty(e.target.value)}
-                      placeholder="Qty"
-                      min="0.01"
-                      step="0.01"
-                    />
-                  </div>
-                  <div className="w-28">
-                    <Input
-                      type="number"
-                      value={linePrice}
-                      onChange={(e) => setLinePrice(e.target.value)}
-                      placeholder="Price"
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                  <Button type="button" onClick={handleAddLine}>
-                    <PlusIcon />
-                    Add
-                  </Button>
-                </div>
-
-                {/* Line items table */}
-                {lines.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <BoxIcon className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-                    <p>No items added yet</p>
-                    <p className="text-sm">Select an item above and click Add</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Item
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Description
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-28">
-                            Qty
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-32">
-                            Unit Price
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-32">
-                            Total
-                          </th>
-                          <th className="px-4 py-3 w-16"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {lines.map((line) => (
-                          <tr key={line.id}>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                              {line.itemSku}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-600">
-                              {line.itemDescription}
-                            </td>
-                            <td className="px-4 py-3">
-                              <Input
-                                type="number"
-                                value={line.qtyOrdered}
-                                onChange={(e) => handleUpdateLineQty(line.id, e.target.value)}
-                                className="w-24 text-right"
-                                min="0.01"
-                                step="0.01"
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <Input
-                                type="number"
-                                value={line.unitPrice}
-                                onChange={(e) => handleUpdateLinePrice(line.id, e.target.value)}
-                                className="w-28 text-right"
-                                min="0"
-                                step="0.01"
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-sm text-right font-medium">
-                              ${(line.qtyOrdered * line.unitPrice).toFixed(2)}
-                            </td>
-                            <td className="px-4 py-3">
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveLine(line.id)}
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                <TrashIcon />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                <Button variant="secondary" size="sm" onClick={handleClearCustomer}>
+                  Change
+                </Button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Input
+                  value={customerSearch}
+                  onChange={(e) => {
+                    setCustomerSearch(e.target.value);
+                    setShowCustomerDropdown(true);
+                  }}
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  placeholder="Search customers by name or code..."
+                  className="w-full"
+                />
+                {showCustomerDropdown && (customerSearch || customersLoading) && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-auto">
+                    {customersLoading ? (
+                      <div className="p-4 text-center">
+                        <Spinner size="sm" />
+                      </div>
+                    ) : customers.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500 text-sm">
+                        No customers found
+                      </div>
+                    ) : (
+                      customers.map((customer) => (
+                        <button
+                          key={customer.id}
+                          type="button"
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b last:border-b-0"
+                          onClick={() => handleSelectCustomer(customer)}
+                        >
+                          <div className="font-medium text-gray-900">{customer.name}</div>
+                          {customer.code && (
+                            <div className="text-sm text-gray-500">{customer.code}</div>
+                          )}
+                        </button>
+                      ))
+                    )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Summary Sidebar */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="space-y-3">
-                  <div className="flex justify-between">
-                    <dt className="text-gray-600">Line Items</dt>
-                    <dd className="font-medium">{lines.length}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-gray-600">Total Qty</dt>
-                    <dd className="font-medium">{totalQty}</dd>
-                  </div>
-                  <div className="flex justify-between border-t pt-3">
-                    <dt className="text-gray-900 font-medium">Total Value</dt>
-                    <dd className="text-lg font-bold text-primary-600">
-                      ${totalValue.toFixed(2)}
-                    </dd>
-                  </div>
-                </dl>
-              </CardContent>
-            </Card>
-
-            <div className="flex flex-col gap-2">
-              <Button
-                type="submit"
-                className="w-full"
-                isLoading={createOrder.isPending}
-                disabled={lines.length === 0 || !customerId || !warehouseId}
-              >
-                <CheckIcon />
-                Create Order
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full"
-                onClick={() => router.push('/sales')}
-              >
-                Cancel
-              </Button>
+        {/* Order Header Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Warehouse <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={warehouseId}
+                  onChange={(e) => setWarehouseId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  disabled={warehousesLoading}
+                >
+                  <option value="">Select warehouse...</option>
+                  {warehouses?.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Requested Ship Date
+                </label>
+                <Input
+                  type="date"
+                  value={requestedShipDate}
+                  onChange={(e) => setRequestedShipDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes
+                </label>
+                <Input
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Optional order notes..."
+                />
+              </div>
             </div>
-          </div>
-        </div>
-      </form>
-    </div>
-  );
-}
+          </CardContent>
+        </Card>
 
-function PlusIcon() {
-  return (
-    <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-    </svg>
+        {/* Lines Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Line Items</CardTitle>
+              <span className="text-sm text-gray-500">{totals.lineCount} items</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Item Search */}
+            <div className="relative mb-4">
+              <Input
+                value={itemSearch}
+                onChange={(e) => {
+                  setItemSearch(e.target.value);
+                  setShowItemDropdown(true);
+                }}
+                onFocus={() => setShowItemDropdown(true)}
+                placeholder="Search items by SKU or description..."
+                className="w-full"
+              />
+              {showItemDropdown && (itemSearch || itemsLoading) && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-auto">
+                  {itemsLoading ? (
+                    <div className="p-4 text-center">
+                      <Spinner size="sm" />
+                    </div>
+                  ) : items.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500 text-sm">
+                      No items found
+                    </div>
+                  ) : (
+                    items.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b last:border-b-0"
+                        onClick={() => handleAddItem(item)}
+                      >
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-900">{item.sku}</span>
+                          <span className="text-sm text-gray-500">{item.uom}</span>
+                        </div>
+                        <div className="text-sm text-gray-600">{item.description}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Lines Table */}
+            {lines.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
+                <BoxIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                <p className="text-gray-500">No items added yet</p>
+                <p className="text-sm text-gray-400">Search and select items above</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase">
+                        Item
+                      </th>
+                      <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase">
+                        Description
+                      </th>
+                      <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-28">
+                        Qty
+                      </th>
+                      <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-32">
+                        Unit Price
+                      </th>
+                      <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-32">
+                        Total
+                      </th>
+                      <th className="w-12"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line) => (
+                      <tr key={line.tempId} className="border-b">
+                        <td className="py-3 px-2">
+                          <span className="font-medium">{line.itemSku}</span>
+                        </td>
+                        <td className="py-3 px-2 text-gray-600">
+                          {line.itemDescription}
+                        </td>
+                        <td className="py-3 px-2">
+                          <Input
+                            type="number"
+                            value={line.qtyOrdered}
+                            onChange={(e) => handleUpdateLine(line.tempId, 'qtyOrdered', e.target.value)}
+                            className="w-24 text-right"
+                            min="0.01"
+                            step="1"
+                          />
+                        </td>
+                        <td className="py-3 px-2">
+                          <Input
+                            type="number"
+                            value={line.unitPrice ?? ''}
+                            onChange={(e) => handleUpdateLine(line.tempId, 'unitPrice', e.target.value)}
+                            className="w-28 text-right"
+                            placeholder="0.00"
+                            min="0"
+                            step="0.01"
+                          />
+                        </td>
+                        <td className="py-3 px-2 text-right font-medium">
+                          ${((line.qtyOrdered || 0) * (line.unitPrice || 0)).toFixed(2)}
+                        </td>
+                        <td className="py-3 px-2">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLine(line.tempId)}
+                            className="text-gray-400 hover:text-red-600 transition-colors"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Summary Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between items-center">
+              <div className="space-y-1">
+                <div className="text-sm text-gray-500">
+                  <span className="font-medium text-gray-900">{totals.lineCount}</span> line items
+                </div>
+                <div className="text-sm text-gray-500">
+                  <span className="font-medium text-gray-900">{totals.totalQty}</span> total quantity
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-gray-500">Total Value</div>
+                <div className="text-2xl font-bold text-primary-600">
+                  ${totals.totalValue.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Bottom Actions */}
+        <div className="flex justify-end gap-3 pb-6">
+          <Button variant="secondary" onClick={() => router.push('/sales')}>
+            Cancel
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => handleSubmit(true)}
+            disabled={createOrder.isPending}
+          >
+            Save Draft
+          </Button>
+          <Button
+            onClick={() => handleSubmit(false)}
+            isLoading={createOrder.isPending}
+          >
+            <CheckIcon />
+            Create Order
+          </Button>
+        </div>
+      </div>
+
+      {/* Click outside handler */}
+      {(showCustomerDropdown || showItemDropdown) && (
+        <div
+          className="fixed inset-0 z-0"
+          onClick={() => {
+            setShowCustomerDropdown(false);
+            setShowItemDropdown(false);
+          }}
+        />
+      )}
+    </div>
   );
 }
 
