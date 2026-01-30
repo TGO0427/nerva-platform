@@ -323,8 +323,10 @@ export function useReadyForDispatchShipments() {
   return useQuery({
     queryKey: [SHIPMENTS_KEY, 'ready-for-dispatch'],
     queryFn: async () => {
-      const response = await api.get<Shipment[]>('/fulfilment/shipments?status=READY_FOR_DISPATCH');
-      return response.data;
+      const response = await api.get<{ data: Shipment[]; meta: { page: number; limit: number } }>(
+        '/fulfilment/shipments?status=READY_FOR_DISPATCH'
+      );
+      return response.data.data; // Extract the array from paginated response
     },
   });
 }
