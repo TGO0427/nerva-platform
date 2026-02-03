@@ -172,6 +172,51 @@ export class DispatchRepository extends BaseRepository {
     return row ? this.mapTrip(row) : null;
   }
 
+  async cancelTrip(tripId: string, reason: string): Promise<DispatchTrip | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE dispatch_trips SET status = 'CANCELLED', notes = COALESCE(notes || ' | ', '') || $1
+       WHERE id = $2 RETURNING *`,
+      [`Cancelled: ${reason}`, tripId],
+    );
+    return row ? this.mapTrip(row) : null;
+  }
+
+  async findVehicles(tenantId: string) {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT * FROM vehicles WHERE tenant_id = $1 AND is_active = true ORDER BY plate_no`,
+      [tenantId],
+    );
+    return rows.map((r) => ({
+      id: r.id as string,
+      tenantId: r.tenant_id as string,
+      plateNo: r.plate_no as string,
+      type: r.type as string,
+      capacityKg: parseFloat(r.capacity_kg as string) || 0,
+      capacityCbm: parseFloat(r.capacity_cbm as string) || 0,
+      isActive: r.is_active as boolean,
+    }));
+  }
+
+  async findDrivers(tenantId: string) {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT d.*, u.display_name as name
+       FROM drivers d
+       JOIN users u ON d.user_id = u.id
+       WHERE d.tenant_id = $1 AND d.is_active = true
+       ORDER BY u.display_name`,
+      [tenantId],
+    );
+    return rows.map((r) => ({
+      id: r.id as string,
+      tenantId: r.tenant_id as string,
+      userId: r.user_id as string,
+      name: r.name as string,
+      licenseNo: r.license_no as string,
+      phone: r.phone as string | null,
+      isActive: r.is_active as boolean,
+    }));
+  }
+
   // Stops
   async addStop(data: {
     tenantId: string;

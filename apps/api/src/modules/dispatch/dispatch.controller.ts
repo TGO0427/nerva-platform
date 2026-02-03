@@ -70,9 +70,17 @@ export class DispatchController {
 
   @Get('trips/:id')
   @RequirePermissions('dispatch.plan')
-  @ApiOperation({ summary: 'Get trip with stops' })
+  @ApiOperation({ summary: 'Get trip by ID' })
   async getTrip(@Param('id', UuidValidationPipe) id: string) {
-    return this.service.getTripWithStops(id);
+    return this.service.getTrip(id);
+  }
+
+  @Get('trips/:id/stops')
+  @RequirePermissions('dispatch.plan')
+  @ApiOperation({ summary: 'Get trip stops' })
+  async getTripStops(@Param('id', UuidValidationPipe) id: string) {
+    const { stops } = await this.service.getTripWithStops(id);
+    return stops;
   }
 
   @Post('trips/:id/add-shipment')
@@ -94,14 +102,38 @@ export class DispatchController {
     return this.service.addStop({ tenantId, tripId, ...data });
   }
 
-  @Post('trips/:id/assign-driver')
+  @Post('trips/:id/assign')
   @RequirePermissions('dispatch.assign')
-  @ApiOperation({ summary: 'Assign driver to trip' })
-  async assignDriver(
+  @ApiOperation({ summary: 'Assign vehicle and driver to trip' })
+  async assignTrip(
     @Param('id', UuidValidationPipe) tripId: string,
-    @Body() data: { driverId: string; vehicleId?: string },
+    @Body() data: { vehicleId: string; driverId: string },
   ) {
     return this.service.assignDriver(tripId, data.driverId, data.vehicleId);
+  }
+
+  @Post('trips/:id/start')
+  @RequirePermissions('dispatch.execute')
+  @ApiOperation({ summary: 'Start trip' })
+  async startTrip(@Param('id', UuidValidationPipe) tripId: string) {
+    return this.service.startTrip(tripId);
+  }
+
+  @Post('trips/:id/complete')
+  @RequirePermissions('dispatch.execute')
+  @ApiOperation({ summary: 'Complete trip' })
+  async completeTrip(@Param('id', UuidValidationPipe) tripId: string) {
+    return this.service.completeTrip(tripId);
+  }
+
+  @Post('trips/:id/cancel')
+  @RequirePermissions('dispatch.plan')
+  @ApiOperation({ summary: 'Cancel trip' })
+  async cancelTrip(
+    @Param('id', UuidValidationPipe) tripId: string,
+    @Body() data: { reason: string },
+  ) {
+    return this.service.cancelTrip(tripId, data.reason);
   }
 
   @Post('trips/:id/resequence-stops')
@@ -112,5 +144,19 @@ export class DispatchController {
     @Body() data: { stopIds: string[] },
   ) {
     return this.service.resequenceStops(tripId, data.stopIds);
+  }
+
+  @Get('vehicles')
+  @RequirePermissions('dispatch.plan')
+  @ApiOperation({ summary: 'List vehicles' })
+  async listVehicles(@TenantId() tenantId: string) {
+    return this.service.listVehicles(tenantId);
+  }
+
+  @Get('drivers')
+  @RequirePermissions('dispatch.plan')
+  @ApiOperation({ summary: 'List drivers' })
+  async listDrivers(@TenantId() tenantId: string) {
+    return this.service.listDrivers(tenantId);
   }
 }

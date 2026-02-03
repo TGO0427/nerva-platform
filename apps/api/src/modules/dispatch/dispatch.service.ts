@@ -97,6 +97,23 @@ export class DispatchService {
     return updated!;
   }
 
+  async cancelTrip(tripId: string, reason: string): Promise<DispatchTrip> {
+    const trip = await this.getTrip(tripId);
+    if (['COMPLETE', 'CANCELLED'].includes(trip.status)) {
+      throw new BadRequestException('Cannot cancel a completed or already cancelled trip');
+    }
+    const updated = await this.repository.cancelTrip(tripId, reason);
+    return updated!;
+  }
+
+  async listVehicles(tenantId: string) {
+    return this.repository.findVehicles(tenantId);
+  }
+
+  async listDrivers(tenantId: string) {
+    return this.repository.findDrivers(tenantId);
+  }
+
   // POD capture
   async capturesPod(data: {
     tenantId: string;
