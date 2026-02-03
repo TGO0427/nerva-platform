@@ -85,13 +85,17 @@ export class GrnController {
       itemId: string;
       qtyReceived: number;
       batchNo?: string;
-      expiryDate?: Date;
+      expiryDate?: string;
       receivingBinId: string;
     },
   ) {
     return this.service.receiveGrnLine(grnId, {
       tenantId,
-      ...data,
+      itemId: data.itemId,
+      qtyReceived: data.qtyReceived,
+      batchNo: data.batchNo,
+      expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
+      receivingBinId: data.receivingBinId,
       createdBy: user.id,
     });
   }

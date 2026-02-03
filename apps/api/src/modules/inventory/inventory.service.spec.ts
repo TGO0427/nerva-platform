@@ -3,11 +3,15 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { InventoryRepository, Grn, GrnLine, Adjustment } from './inventory.repository';
 import { StockLedgerService } from './stock-ledger.service';
+import { BatchRepository } from './batch.repository';
+import { MasterDataService } from '../masterdata/masterdata.service';
 
 describe('InventoryService', () => {
   let service: InventoryService;
   let repository: jest.Mocked<InventoryRepository>;
   let stockLedger: jest.Mocked<StockLedgerService>;
+  let batchRepository: jest.Mocked<BatchRepository>;
+  let masterDataService: jest.Mocked<MasterDataService>;
 
   const mockGrn: Grn = {
     id: 'grn-123',
@@ -87,12 +91,30 @@ describe('InventoryService', () => {
             getTotalAvailable: jest.fn(),
           },
         },
+        {
+          provide: BatchRepository,
+          useValue: {
+            findOrCreateBatch: jest.fn(),
+            createBatch: jest.fn(),
+            findBatchById: jest.fn(),
+            findBatchByNo: jest.fn(),
+            findBatchesByItem: jest.fn(),
+          },
+        },
+        {
+          provide: MasterDataService,
+          useValue: {
+            getWarehouse: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<InventoryService>(InventoryService);
     repository = module.get(InventoryRepository);
     stockLedger = module.get(StockLedgerService);
+    batchRepository = module.get(BatchRepository);
+    masterDataService = module.get(MasterDataService);
   });
 
   afterEach(() => {
@@ -100,7 +122,7 @@ describe('InventoryService', () => {
   });
 
   describe('createGrn', () => {
-    it('should create a GRN with generated number', async () => {
+    it('should create a GRN with generated number when siteId is provided', async () => {
       const createData = {
         tenantId: 'tenant-123',
         siteId: 'site-123',
@@ -119,6 +141,52 @@ describe('InventoryService', () => {
         ...createData,
         grnNo: 'GRN-000001',
       });
+    });
+
+    it('should fetch siteId from warehouse when not provided', async () => {
+      const createData = {
+        tenantId: 'tenant-123',
+        warehouseId: 'warehouse-123',
+        createdBy: 'user-123',
+      };
+
+      masterDataService.getWarehouse.mockResolvedValue({
+        id: 'warehouse-123',
+        tenantId: 'tenant-123',
+        siteId: 'site-123',
+        name: 'Main Warehouse',
+        code: 'WH1',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      repository.generateGrnNo.mockResolvedValue('GRN-000001');
+      repository.createGrn.mockResolvedValue(mockGrn);
+
+      const result = await service.createGrn(createData);
+
+      expect(result).toEqual(mockGrn);
+      expect(masterDataService.getWarehouse).toHaveBeenCalledWith('warehouse-123');
+      expect(repository.createGrn).toHaveBeenCalledWith({
+        tenantId: 'tenant-123',
+        siteId: 'site-123',
+        warehouseId: 'warehouse-123',
+        createdBy: 'user-123',
+        grnNo: 'GRN-000001',
+      });
+    });
+
+    it('should throw NotFoundException when warehouse not found', async () => {
+      const createData = {
+        tenantId: 'tenant-123',
+        warehouseId: 'warehouse-123',
+        createdBy: 'user-123',
+      };
+
+      masterDataService.getWarehouse.mockResolvedValue(null as any);
+
+      await expect(service.createGrn(createData)).rejects.toThrow(NotFoundException);
+      await expect(service.createGrn(createData)).rejects.toThrow('Warehouse not found');
     });
   });
 
@@ -195,6 +263,11 @@ describe('InventoryService', () => {
       createdBy: 'user-123',
     };
 
+    const receiveDataWithExpiry = {
+      ...receiveData,
+      expiryDate: new Date('2025-12-31'),
+    };
+
     it('should receive items and record stock movement', async () => {
       repository.findGrnById.mockResolvedValue(mockGrn);
       repository.addGrnLine.mockResolvedValue(mockGrnLine);
@@ -216,6 +289,40 @@ describe('InventoryService', () => {
         batchNo: 'BATCH001',
         expiryDate: undefined,
         createdBy: 'user-123',
+      });
+    });
+
+    it('should create batch when batchNo and expiryDate are provided', async () => {
+      const mockBatch = {
+        id: 'batch-123',
+        tenantId: 'tenant-123',
+        itemId: 'item-123',
+        batchNo: 'BATCH001',
+        expiryDate: new Date('2025-12-31'),
+        manufacturedDate: null,
+        supplierId: null,
+        grnId: 'grn-123',
+        notes: null,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      repository.findGrnById.mockResolvedValue(mockGrn);
+      batchRepository.findOrCreateBatch.mockResolvedValue(mockBatch);
+      repository.addGrnLine.mockResolvedValue({ ...mockGrnLine, batchId: 'batch-123' });
+      repository.updateGrnStatus.mockResolvedValue({ ...mockGrn, status: 'RECEIVED' });
+      stockLedger.recordMovement.mockResolvedValue('ledger-123');
+
+      await service.receiveGrnLine('grn-123', receiveDataWithExpiry);
+
+      expect(batchRepository.findOrCreateBatch).toHaveBeenCalledWith({
+        tenantId: 'tenant-123',
+        itemId: 'item-123',
+        batchNo: 'BATCH001',
+        expiryDate: new Date('2025-12-31'),
+        supplierId: undefined,
+        grnId: 'grn-123',
       });
     });
 
