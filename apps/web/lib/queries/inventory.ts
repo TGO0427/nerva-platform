@@ -17,6 +17,7 @@ export interface StockSnapshot {
   warehouseId: string;
   warehouseName: string;
   batchNo: string | null;
+  expiryDate: string | null;
   qtyOnHand: number;
   qtyReserved: number;
   qtyAvailable: number;

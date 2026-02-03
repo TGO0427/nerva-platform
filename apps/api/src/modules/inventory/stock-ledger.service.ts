@@ -20,7 +20,12 @@ export interface StockMovement {
 
 export interface StockOnHand {
   itemId: string;
+  itemSku?: string;
+  itemDescription?: string;
   binId: string;
+  binCode?: string;
+  warehouseId?: string;
+  warehouseName?: string;
   batchNo: string | null;
   expiryDate: Date | null;
   qtyOnHand: number;
@@ -152,23 +157,48 @@ export class StockLedgerService {
   async getStockOnHand(tenantId: string, itemId: string): Promise<StockOnHand[]> {
     const result = await this.pool.query<{
       item_id: string;
+      item_sku: string;
+      item_description: string;
       bin_id: string;
+      bin_code: string;
+      warehouse_id: string;
+      warehouse_name: string;
       batch_no: string | null;
       expiry_date: Date | null;
       qty_on_hand: string;
       qty_reserved: string;
       qty_available: string;
     }>(
-      `SELECT item_id, bin_id, batch_no, expiry_date, qty_on_hand, qty_reserved, qty_available
-       FROM stock_snapshot
-       WHERE tenant_id = $1 AND item_id = $2 AND qty_on_hand != 0
-       ORDER BY expiry_date ASC NULLS LAST, created_at ASC`,
+      `SELECT
+        ss.item_id,
+        i.sku as item_sku,
+        i.description as item_description,
+        ss.bin_id,
+        b.code as bin_code,
+        w.id as warehouse_id,
+        w.name as warehouse_name,
+        ss.batch_no,
+        ss.expiry_date,
+        ss.qty_on_hand,
+        ss.qty_reserved,
+        ss.qty_available
+       FROM stock_snapshot ss
+       JOIN items i ON i.id = ss.item_id
+       JOIN bins b ON b.id = ss.bin_id
+       JOIN warehouses w ON w.id = b.warehouse_id
+       WHERE ss.tenant_id = $1 AND ss.item_id = $2 AND ss.qty_on_hand != 0
+       ORDER BY ss.expiry_date ASC NULLS LAST, ss.created_at ASC`,
       [tenantId, itemId],
     );
 
     return result.rows.map((row) => ({
       itemId: row.item_id,
+      itemSku: row.item_sku,
+      itemDescription: row.item_description,
       binId: row.bin_id,
+      binCode: row.bin_code,
+      warehouseId: row.warehouse_id,
+      warehouseName: row.warehouse_name,
       batchNo: row.batch_no,
       expiryDate: row.expiry_date,
       qtyOnHand: parseFloat(row.qty_on_hand),

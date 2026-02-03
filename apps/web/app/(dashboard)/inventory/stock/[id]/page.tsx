@@ -37,6 +37,31 @@ export default function StockDetailPage() {
       render: (row) => row.batchNo || '-',
     },
     {
+      key: 'expiryDate',
+      header: 'Expiry Date',
+      render: (row) => {
+        if (!row.expiryDate) return '-';
+        const expiry = new Date(row.expiryDate);
+        const today = new Date();
+        const daysUntil = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const isExpired = daysUntil < 0;
+        const isCritical = daysUntil >= 0 && daysUntil <= 7;
+        const isWarning = daysUntil > 7 && daysUntil <= 30;
+
+        return (
+          <span className={
+            isExpired ? 'text-red-600 font-medium' :
+            isCritical ? 'text-orange-600 font-medium' :
+            isWarning ? 'text-yellow-600' : ''
+          }>
+            {expiry.toLocaleDateString()}
+            {isExpired && ' (Expired)'}
+            {isCritical && !isExpired && ` (${daysUntil}d)`}
+          </span>
+        );
+      },
+    },
+    {
       key: 'qtyOnHand',
       header: 'On Hand',
       className: 'text-right',
