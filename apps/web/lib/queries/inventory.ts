@@ -43,7 +43,7 @@ export interface Grn {
   warehouseId: string;
   supplierId: string | null;
   purchaseOrderId: string | null;
-  status: 'OPEN' | 'PARTIAL' | 'COMPLETE' | 'CANCELLED';
+  status: 'DRAFT' | 'OPEN' | 'PARTIAL' | 'RECEIVED' | 'COMPLETE' | 'CANCELLED';
   notes: string | null;
   createdAt: string;
   createdBy: string;

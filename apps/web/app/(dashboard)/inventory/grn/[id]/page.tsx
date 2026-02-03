@@ -188,8 +188,12 @@ function getStatusVariant(status: string): 'default' | 'success' | 'warning' | '
   switch (status) {
     case 'COMPLETE':
       return 'success';
+    case 'RECEIVED':
+      return 'success';
     case 'PARTIAL':
       return 'warning';
+    case 'DRAFT':
+      return 'default';
     case 'OPEN':
       return 'info';
     case 'CANCELLED':
