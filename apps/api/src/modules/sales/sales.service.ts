@@ -179,4 +179,31 @@ export class SalesService {
     const updated = await this.repository.updateOrderStatus(id, 'CANCELLED');
     return updated!;
   }
+
+  // Generic status update for internal use (e.g., from fulfilment service)
+  async updateOrderStatus(id: string, status: string): Promise<SalesOrder> {
+    const order = await this.getOrder(id);
+    const validTransitions: Record<string, string[]> = {
+      DRAFT: ['CONFIRMED', 'CANCELLED'],
+      CONFIRMED: ['ALLOCATED', 'CANCELLED'],
+      ALLOCATED: ['PICKING', 'CANCELLED'],
+      PICKING: ['PICKED', 'CANCELLED'],
+      PICKED: ['PACKING', 'CANCELLED'],
+      PACKING: ['PACKED', 'CANCELLED'],
+      PACKED: ['SHIPPED', 'CANCELLED'],
+      SHIPPED: ['DELIVERED'],
+      DELIVERED: [],
+      CANCELLED: [],
+    };
+
+    const allowed = validTransitions[order.status] || [];
+    if (!allowed.includes(status)) {
+      throw new BadRequestException(
+        `Cannot transition order from ${order.status} to ${status}`,
+      );
+    }
+
+    const updated = await this.repository.updateOrderStatus(id, status);
+    return updated!;
+  }
 }

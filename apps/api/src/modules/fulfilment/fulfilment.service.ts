@@ -38,7 +38,7 @@ export class FulfilmentService {
         if (line.qtyAllocated > line.qtyPicked) {
           const qtyToPick = line.qtyAllocated - line.qtyPicked;
 
-          // Get stock locations
+          // Get stock locations (FEFO ordered)
           const stock = await this.stockLedger.getStockOnHand(data.tenantId, line.itemId);
           let remaining = qtyToPick;
 
@@ -61,9 +61,17 @@ export class FulfilmentService {
           }
         }
       }
+
+      // Update order status to PICKING
+      await this.salesService.updateOrderStatus(orderId, 'PICKING');
     }
 
     return wave;
+  }
+
+  // Get allocated orders ready for picking
+  async getAllocatedOrders(tenantId: string) {
+    return this.salesService.listOrders(tenantId, { status: 'ALLOCATED' }, 1, 100);
   }
 
   async getPickWave(id: string): Promise<PickWave> {

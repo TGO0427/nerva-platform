@@ -26,6 +26,14 @@ import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 export class FulfilmentController {
   constructor(private readonly service: FulfilmentService) {}
 
+  // Allocated orders ready for picking
+  @Get('allocated-orders')
+  @RequirePermissions('pick_wave.create')
+  @ApiOperation({ summary: 'Get allocated orders ready for picking' })
+  async getAllocatedOrders(@TenantId() tenantId: string) {
+    return this.service.getAllocatedOrders(tenantId);
+  }
+
   // Pick Waves
   @Get('pick-waves')
   @RequirePermissions('pick_wave.create')
