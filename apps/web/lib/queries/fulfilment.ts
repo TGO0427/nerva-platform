@@ -5,6 +5,7 @@ import type { QueryParams } from './use-query-params';
 
 const PICK_WAVES_KEY = 'pick-waves';
 const SHIPMENTS_KEY = 'shipments';
+const ALLOCATED_ORDERS_KEY = 'allocated-orders';
 
 // Types
 export interface PickWave {
@@ -327,6 +328,34 @@ export function useReadyForDispatchShipments() {
         '/fulfilment/shipments?status=READY_FOR_DISPATCH'
       );
       return response.data.data; // Extract the array from paginated response
+    },
+  });
+}
+
+// Allocated orders ready for picking
+export interface AllocatedOrder {
+  id: string;
+  tenantId: string;
+  orderNo: string;
+  customerId: string;
+  customerName?: string;
+  status: string;
+  priority: number;
+  warehouseId: string;
+  warehouseName?: string;
+  totalLines: number;
+  totalQty: number;
+  createdAt: string;
+}
+
+export function useAllocatedOrders() {
+  return useQuery({
+    queryKey: [ALLOCATED_ORDERS_KEY],
+    queryFn: async () => {
+      const response = await api.get<{ data: AllocatedOrder[]; meta: { page: number; limit: number } }>(
+        '/fulfilment/allocated-orders'
+      );
+      return response.data.data;
     },
   });
 }

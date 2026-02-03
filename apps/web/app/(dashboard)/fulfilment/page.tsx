@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -8,13 +8,21 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { Alert } from '@/components/ui/alert';
+import { Spinner } from '@/components/ui/spinner';
 import {
   usePickWaves,
   useShipments,
   useQueryParams,
+  useWarehouses,
   PickWave,
   Shipment,
 } from '@/lib/queries';
+import {
+  useAllocatedOrders,
+  useCreatePickWave,
+  AllocatedOrder,
+} from '@/lib/queries/fulfilment';
 
 const WAVE_STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -33,13 +41,15 @@ const SHIPMENT_STATUS_OPTIONS = [
   { value: 'DELIVERED', label: 'Delivered' },
 ];
 
-type Tab = 'pick-waves' | 'shipments';
+type Tab = 'allocated-orders' | 'pick-waves' | 'shipments';
 
 export default function FulfilmentPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>('pick-waves');
+  const [activeTab, setActiveTab] = useState<Tab>('allocated-orders');
   const [waveStatus, setWaveStatus] = useState('');
   const [shipmentStatus, setShipmentStatus] = useState('');
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  const [error, setError] = useState('');
   const { params, setPage } = useQueryParams();
 
   const { data: wavesData, isLoading: wavesLoading } = usePickWaves({
@@ -51,6 +61,110 @@ export default function FulfilmentPage() {
     ...params,
     status: shipmentStatus || undefined,
   });
+
+  const { data: allocatedOrders, isLoading: allocatedLoading } = useAllocatedOrders();
+  const { data: warehouses } = useWarehouses();
+  const createPickWave = useCreatePickWave();
+
+  // Get the default warehouse for creating pick waves
+  const defaultWarehouse = warehouses?.[0];
+
+  const handleCreatePickWave = async () => {
+    if (selectedOrders.size === 0) {
+      setError('Please select at least one order');
+      return;
+    }
+    if (!defaultWarehouse) {
+      setError('No warehouse available');
+      return;
+    }
+
+    setError('');
+    try {
+      const wave = await createPickWave.mutateAsync({
+        warehouseId: defaultWarehouse.id,
+        orderIds: Array.from(selectedOrders),
+      });
+      setSelectedOrders(new Set());
+      router.push(`/fulfilment/pick-waves/${wave.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create pick wave');
+    }
+  };
+
+  const allocatedOrderColumns: Column<AllocatedOrder>[] = [
+    {
+      key: 'select',
+      header: (
+        <input
+          type="checkbox"
+          checked={allocatedOrders && allocatedOrders.length > 0 && selectedOrders.size === allocatedOrders.length}
+          onChange={(e) => {
+            if (e.target.checked && allocatedOrders) {
+              setSelectedOrders(new Set(allocatedOrders.map(o => o.id)));
+            } else {
+              setSelectedOrders(new Set());
+            }
+          }}
+          className="h-4 w-4 rounded border-gray-300"
+        />
+      ),
+      width: '50px',
+      render: (row) => (
+        <input
+          type="checkbox"
+          checked={selectedOrders.has(row.id)}
+          onChange={(e) => {
+            const newSelected = new Set(selectedOrders);
+            if (e.target.checked) {
+              newSelected.add(row.id);
+            } else {
+              newSelected.delete(row.id);
+            }
+            setSelectedOrders(newSelected);
+          }}
+          className="h-4 w-4 rounded border-gray-300"
+        />
+      ),
+    },
+    {
+      key: 'orderNo',
+      header: 'Order No.',
+      sortable: true,
+      render: (row) => (
+        <span className="font-medium text-primary-600">{row.orderNo}</span>
+      ),
+    },
+    {
+      key: 'customerName',
+      header: 'Customer',
+      render: (row) => row.customerName || row.customerId?.slice(0, 8) || '-',
+    },
+    {
+      key: 'priority',
+      header: 'Priority',
+      width: '100px',
+      render: (row) => (
+        <Badge variant={row.priority <= 3 ? 'danger' : row.priority <= 5 ? 'warning' : 'default'}>
+          {row.priority <= 3 ? 'High' : row.priority <= 5 ? 'Medium' : 'Low'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '120px',
+      render: (row) => (
+        <Badge variant="info">{row.status}</Badge>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: 'Order Date',
+      sortable: true,
+      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+    },
+  ];
 
   const waveColumns: Column<PickWave>[] = [
     {
@@ -144,7 +258,15 @@ export default function FulfilmentPage() {
       </div>
 
       {/* Quick stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-6">
+        <Card className={allocatedOrders && allocatedOrders.length > 0 ? 'border-orange-200 bg-orange-50' : ''}>
+          <CardContent className="pt-6">
+            <div className={`text-2xl font-bold ${allocatedOrders && allocatedOrders.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
+              {allocatedOrders?.length || 0}
+            </div>
+            <p className="text-sm text-gray-500">Ready to Pick</p>
+          </CardContent>
+        </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-blue-600">
@@ -163,7 +285,7 @@ export default function FulfilmentPage() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-2xl font-bold text-purple-600">
               {shipmentsData?.data?.filter(s => s.status === 'READY_FOR_DISPATCH').length || 0}
             </div>
             <p className="text-sm text-gray-500">Ready to Ship</p>
@@ -182,6 +304,21 @@ export default function FulfilmentPage() {
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-4">
         <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('allocated-orders')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+              activeTab === 'allocated-orders'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Allocated Orders
+            {allocatedOrders && allocatedOrders.length > 0 && (
+              <span className="bg-orange-100 text-orange-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                {allocatedOrders.length}
+              </span>
+            )}
+          </button>
           <button
             onClick={() => setActiveTab('pick-waves')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -204,6 +341,83 @@ export default function FulfilmentPage() {
           </button>
         </nav>
       </div>
+
+      {activeTab === 'allocated-orders' && (
+        <>
+          {error && (
+            <Alert variant="error" className="mb-4">
+              {error}
+            </Alert>
+          )}
+
+          {/* Create Pick Wave Panel */}
+          {selectedOrders.size > 0 && (
+            <Card className="mb-4 border-primary-200 bg-primary-50">
+              <CardHeader>
+                <CardTitle className="text-lg">Create Pick Wave</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Selected Orders
+                    </label>
+                    <div className="text-2xl font-bold text-primary-600">
+                      {selectedOrders.size}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Warehouse
+                    </label>
+                    <div className="text-lg font-medium">
+                      {defaultWarehouse?.name || 'Default'}
+                    </div>
+                  </div>
+                  <div className="flex-1" />
+                  <Button
+                    onClick={handleCreatePickWave}
+                    isLoading={createPickWave.isPending}
+                  >
+                    <PlusIcon />
+                    Create Pick Wave
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setSelectedOrders(new Set())}
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {allocatedLoading ? (
+            <div className="flex justify-center py-12">
+              <Spinner size="lg" />
+            </div>
+          ) : allocatedOrders && allocatedOrders.length > 0 ? (
+            <DataTable
+              columns={allocatedOrderColumns}
+              data={allocatedOrders}
+              keyField="id"
+              emptyState={{
+                title: 'No allocated orders',
+                description: 'Orders will appear here when stock is allocated',
+              }}
+            />
+          ) : (
+            <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
+              <CheckCircleIcon className="mx-auto h-12 w-12 text-green-400 mb-3" />
+              <h3 className="text-lg font-medium text-gray-900">All caught up!</h3>
+              <p className="text-gray-500 mt-1">
+                No orders waiting for picking. Allocate stock to orders in the Sales module.
+              </p>
+            </div>
+          )}
+        </>
+      )}
 
       {activeTab === 'pick-waves' && (
         <>
@@ -320,6 +534,22 @@ function ShipIcon() {
   return (
     <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }
