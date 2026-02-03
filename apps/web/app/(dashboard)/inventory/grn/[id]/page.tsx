@@ -103,7 +103,7 @@ export default function GrnDetailPage() {
             Created {new Date(grn.createdAt).toLocaleDateString()}
           </p>
         </div>
-        {grn.status === 'OPEN' || grn.status === 'PARTIAL' ? (
+        {grn.status === 'DRAFT' || grn.status === 'OPEN' || grn.status === 'PARTIAL' || grn.status === 'RECEIVED' ? (
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => router.push(`/inventory/grn/${grnId}/receive`)}>
               <ScanIcon />
