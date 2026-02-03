@@ -38,13 +38,17 @@ export class FulfilmentService {
         if (line.qtyAllocated > line.qtyPicked) {
           const qtyToPick = line.qtyAllocated - line.qtyPicked;
 
-          // Get stock locations (FEFO ordered)
+          // Get stock locations (FEFO ordered by expiry date)
           const stock = await this.stockLedger.getStockOnHand(data.tenantId, line.itemId);
           let remaining = qtyToPick;
 
           for (const s of stock) {
             if (remaining <= 0) break;
-            const pickQty = Math.min(remaining, s.qtyReserved);
+            // Pick from available stock in each bin (FEFO order)
+            const availableInBin = s.qtyOnHand;
+            if (availableInBin <= 0) continue;
+
+            const pickQty = Math.min(remaining, availableInBin);
             if (pickQty > 0) {
               await this.repository.createPickTask({
                 tenantId: data.tenantId,
@@ -58,6 +62,11 @@ export class FulfilmentService {
               });
               remaining -= pickQty;
             }
+          }
+
+          // Log warning if we couldn't allocate all qty
+          if (remaining > 0) {
+            console.warn(`Could not allocate full qty for order line ${line.id}: ${remaining} units remaining`);
           }
         }
       }
