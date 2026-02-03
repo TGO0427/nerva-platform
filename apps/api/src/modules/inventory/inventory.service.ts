@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InventoryRepository, Grn, GrnLine, Adjustment } from './inventory.repository';
 import { StockLedgerService } from './stock-ledger.service';
 import { BatchRepository } from './batch.repository';
+import { MasterDataService } from '../masterdata/masterdata.service';
 
 @Injectable()
 export class InventoryService {
@@ -9,20 +10,31 @@ export class InventoryService {
     private readonly repository: InventoryRepository,
     private readonly stockLedger: StockLedgerService,
     private readonly batchRepository: BatchRepository,
+    private readonly masterDataService: MasterDataService,
   ) {}
 
   // GRN operations
   async createGrn(data: {
     tenantId: string;
-    siteId: string;
+    siteId?: string;
     warehouseId: string;
     purchaseOrderId?: string;
     supplierId?: string;
     notes?: string;
     createdBy?: string;
   }): Promise<Grn> {
+    // Get siteId from warehouse if not provided
+    let siteId = data.siteId;
+    if (!siteId) {
+      const warehouse = await this.masterDataService.getWarehouse(data.warehouseId);
+      if (!warehouse) {
+        throw new NotFoundException('Warehouse not found');
+      }
+      siteId = warehouse.siteId;
+    }
+
     const grnNo = await this.repository.generateGrnNo(data.tenantId);
-    return this.repository.createGrn({ ...data, grnNo });
+    return this.repository.createGrn({ ...data, siteId, grnNo });
   }
 
   async getGrn(id: string): Promise<Grn> {

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { InventoryController } from './inventory.controller';
 import { GrnController } from './grn.controller';
 import { AdjustmentsController } from './adjustments.controller';
@@ -6,8 +6,10 @@ import { InventoryService } from './inventory.service';
 import { StockLedgerService } from './stock-ledger.service';
 import { InventoryRepository } from './inventory.repository';
 import { BatchRepository } from './batch.repository';
+import { MasterDataModule } from '../masterdata/masterdata.module';
 
 @Module({
+  imports: [forwardRef(() => MasterDataModule)],
   controllers: [InventoryController, GrnController, AdjustmentsController],
   providers: [InventoryService, StockLedgerService, InventoryRepository, BatchRepository],
   exports: [InventoryService, StockLedgerService, BatchRepository],
