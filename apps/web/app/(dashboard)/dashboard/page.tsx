@@ -4,32 +4,35 @@ import Link from 'next/link';
 import { useAuth, hasPermission } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Breadcrumbs } from '@/components/layout';
+import { Spinner } from '@/components/ui/spinner';
+import { useDashboardStats, useRecentActivity } from '@/lib/queries';
 import { PERMISSIONS } from '@nerva/shared';
 
 interface KpiCardProps {
   title: string;
   value: string | number;
-  change?: string;
+  subtitle?: string;
   changeType?: 'positive' | 'negative' | 'neutral';
   icon: React.ReactNode;
+  href?: string;
 }
 
-function KpiCard({ title, value, change, changeType = 'neutral', icon }: KpiCardProps) {
-  const changeColors = {
+function KpiCard({ title, value, subtitle, changeType = 'neutral', icon, href }: KpiCardProps) {
+  const subtitleColors = {
     positive: 'text-green-600',
     negative: 'text-red-600',
     neutral: 'text-gray-500',
   };
 
-  return (
-    <Card>
-      <CardContent className="flex items-center justify-between">
+  const content = (
+    <Card className={href ? 'hover:shadow-md transition-shadow cursor-pointer' : ''}>
+      <CardContent className="flex items-center justify-between pt-4">
         <div>
           <p className="text-sm font-medium text-gray-500">{title}</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-          {change && (
-            <p className={`text-sm mt-1 ${changeColors[changeType]}`}>
-              {change}
+          {subtitle && (
+            <p className={`text-sm mt-1 ${subtitleColors[changeType]}`}>
+              {subtitle}
             </p>
           )}
         </div>
@@ -39,6 +42,11 @@ function KpiCard({ title, value, change, changeType = 'neutral', icon }: KpiCard
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return <Link href={href}>{content}</Link>;
+  }
+  return content;
 }
 
 interface QuickActionProps {
@@ -65,40 +73,24 @@ function QuickAction({ title, description, href, icon }: QuickActionProps) {
   );
 }
 
+function getTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
-
-  // Placeholder data - will be replaced with real API calls
-  const kpis = [
-    {
-      title: 'Pending Orders',
-      value: 24,
-      change: '+3 from yesterday',
-      changeType: 'neutral' as const,
-      icon: <ClipboardIcon />,
-    },
-    {
-      title: 'Ready to Ship',
-      value: 12,
-      change: '5 dispatching today',
-      changeType: 'positive' as const,
-      icon: <TruckIcon />,
-    },
-    {
-      title: 'Open Returns',
-      value: 7,
-      change: '2 awaiting inspection',
-      changeType: 'neutral' as const,
-      icon: <RefreshIcon />,
-    },
-    {
-      title: 'Stock Alerts',
-      value: 3,
-      change: 'Low stock items',
-      changeType: 'negative' as const,
-      icon: <AlertIcon />,
-    },
-  ];
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: activity, isLoading: activityLoading } = useRecentActivity(8);
 
   const quickActions = [
     {
@@ -109,35 +101,27 @@ export default function DashboardPage() {
       permission: PERMISSIONS.SALES_ORDER_CREATE,
     },
     {
-      title: 'Receive Stock',
-      description: 'Create a new GRN',
-      href: '/inventory/grn/new',
+      title: 'View Fulfilment',
+      description: 'Manage pick waves and tasks',
+      href: '/fulfilment',
       icon: <BoxIcon />,
-      permission: PERMISSIONS.GRN_CREATE,
+      permission: PERMISSIONS.PICK_WAVE_CREATE,
     },
     {
-      title: 'Plan Dispatch',
-      description: 'Create delivery trips',
-      href: '/dispatch/trips/new',
-      icon: <MapIcon />,
-      permission: PERMISSIONS.DISPATCH_PLAN,
+      title: 'Create Purchase Order',
+      description: 'Order from suppliers',
+      href: '/procurement/purchase-orders/new',
+      icon: <ShoppingCartIcon />,
+      permission: PERMISSIONS.PURCHASE_ORDER_WRITE,
     },
     {
-      title: 'Process Return',
-      description: 'Create new RMA',
-      href: '/returns/new',
-      icon: <RefreshIcon />,
-      permission: PERMISSIONS.RMA_CREATE,
+      title: 'View Inventory',
+      description: 'Check stock levels',
+      href: '/inventory',
+      icon: <InventoryIcon />,
+      permission: PERMISSIONS.INVENTORY_READ,
     },
   ].filter(action => hasPermission(user, action.permission));
-
-  const recentActivity = [
-    { id: 1, type: 'order', message: 'Sales Order SO-2024-0156 confirmed', time: '5 min ago' },
-    { id: 2, type: 'shipment', message: 'Shipment SH-2024-0089 dispatched', time: '15 min ago' },
-    { id: 3, type: 'grn', message: 'GRN-2024-0234 received from Supplier ABC', time: '1 hour ago' },
-    { id: 4, type: 'return', message: 'RMA-2024-0045 inspection complete', time: '2 hours ago' },
-    { id: 5, type: 'adjustment', message: 'Stock adjustment ADJ-0012 approved', time: '3 hours ago' },
-  ];
 
   return (
     <div>
@@ -153,10 +137,90 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {kpis.map((kpi) => (
-          <KpiCard key={kpi.title} {...kpi} />
-        ))}
+      {statsLoading ? (
+        <div className="flex justify-center py-8">
+          <Spinner />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <KpiCard
+            title="Pending Orders"
+            value={stats?.pendingOrders ?? 0}
+            subtitle={`${stats?.allocatedOrders ?? 0} allocated`}
+            changeType="neutral"
+            icon={<ClipboardIcon />}
+            href="/sales"
+          />
+          <KpiCard
+            title="Ready to Pick"
+            value={stats?.activePickWaves ?? 0}
+            subtitle={`${stats?.pendingPickTasks ?? 0} pick tasks`}
+            changeType="positive"
+            icon={<BoxIcon />}
+            href="/fulfilment"
+          />
+          <KpiCard
+            title="Open Returns"
+            value={stats?.openReturns ?? 0}
+            subtitle="Awaiting processing"
+            changeType="neutral"
+            icon={<RefreshIcon />}
+            href="/returns"
+          />
+          <KpiCard
+            title="Stock Alerts"
+            value={(stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)}
+            subtitle={stats?.lowStockItems ? `${stats.lowStockItems} low stock` : undefined}
+            changeType={(stats?.lowStockItems ?? 0) > 0 ? 'negative' : 'neutral'}
+            icon={<AlertIcon />}
+            href="/inventory"
+          />
+        </div>
+      )}
+
+      {/* Weekly Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Weekly Sales</p>
+                <p className="text-xl font-bold text-gray-900">
+                  R {(stats?.weeklySalesValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
+                <CurrencyIcon />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Weekly Orders</p>
+                <p className="text-xl font-bold text-gray-900">{stats?.weeklyOrdersCount ?? 0}</p>
+              </div>
+              <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                <TrendingIcon />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Open NCRs</p>
+                <p className="text-xl font-bold text-gray-900">{stats?.openNCRs ?? 0}</p>
+              </div>
+              <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${(stats?.openNCRs ?? 0) > 0 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
+                <WarningIcon />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -188,22 +252,43 @@ export default function DashboardPage() {
               <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start">
-                    <div className="h-2 w-2 mt-2 rounded-full bg-primary-500 mr-3 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900">{activity.message}</p>
-                      <p className="text-xs text-gray-500">{activity.time}</p>
+              {activityLoading ? (
+                <div className="flex justify-center py-8">
+                  <Spinner />
+                </div>
+              ) : activity && activity.length > 0 ? (
+                <div className="space-y-4">
+                  {activity.map((item) => (
+                    <div key={`${item.type}-${item.id}`} className="flex items-start">
+                      <ActivityIcon type={item.type} />
+                      <div className="flex-1 min-w-0 ml-3">
+                        <p className="text-sm text-gray-900">{item.message}</p>
+                        <p className="text-xs text-gray-500">{getTimeAgo(item.createdAt)}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No recent activity.</p>
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
     </div>
+  );
+}
+
+function ActivityIcon({ type }: { type: string }) {
+  const colors: Record<string, string> = {
+    sales_order: 'bg-blue-500',
+    purchase_order: 'bg-purple-500',
+    grn: 'bg-green-500',
+    pick_wave: 'bg-orange-500',
+    shipment: 'bg-teal-500',
+  };
+  return (
+    <div className={`h-2 w-2 mt-2 rounded-full ${colors[type] || 'bg-gray-400'} flex-shrink-0`} />
   );
 }
 
@@ -216,10 +301,10 @@ function ClipboardIcon() {
   );
 }
 
-function TruckIcon() {
+function BoxIcon() {
   return (
     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-3a2.25 2.25 0 00-2.25-2.25h-1.5v-3.75a.75.75 0 00-.75-.75H9.75a.75.75 0 00-.75.75v7.5H3.375c-.621 0-1.125.504-1.125 1.125v.75M8.25 18.75h6" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
     </svg>
   );
 }
@@ -248,18 +333,42 @@ function PlusIcon() {
   );
 }
 
-function BoxIcon() {
+function ShoppingCartIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
     </svg>
   );
 }
 
-function MapIcon() {
+function InventoryIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934a1.12 1.12 0 01-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689A1.125 1.125 0 003 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934a1.12 1.12 0 011.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+    </svg>
+  );
+}
+
+function CurrencyIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function TrendingIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+    </svg>
+  );
+}
+
+function WarningIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
     </svg>
   );
 }

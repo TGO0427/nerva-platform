@@ -301,4 +301,50 @@ export class SuppliersController {
       totalValue: data.totalValue,
     });
   }
+
+  // Analytics
+  @Get('analytics/summary')
+  @RequirePermissions('supplier.read')
+  @ApiOperation({ summary: 'Get supplier dashboard summary' })
+  async getAnalyticsSummary(@TenantId() tenantId: string) {
+    return this.service.getSupplierDashboardSummary(tenantId);
+  }
+
+  @Get('analytics/performance')
+  @RequirePermissions('supplier.read')
+  @ApiOperation({ summary: 'Get supplier performance statistics' })
+  async getAnalyticsPerformance(
+    @TenantId() tenantId: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+  ) {
+    return this.service.getSupplierPerformanceStats(tenantId, {
+      page: page || 1,
+      limit: limit || 10,
+      sortBy: sortBy || 'totalPOValue',
+      sortOrder: sortOrder || 'desc',
+    });
+  }
+
+  @Get('analytics/ncr-trends')
+  @RequirePermissions('supplier.read')
+  @ApiOperation({ summary: 'Get NCR trends by month' })
+  async getNcrTrends(
+    @TenantId() tenantId: string,
+    @Query('months') months?: number,
+  ) {
+    return this.service.getNcrTrendsByMonth(tenantId, months || 12);
+  }
+
+  @Get('analytics/po-trends')
+  @RequirePermissions('supplier.read')
+  @ApiOperation({ summary: 'Get purchase order trends by month' })
+  async getPoTrends(
+    @TenantId() tenantId: string,
+    @Query('months') months?: number,
+  ) {
+    return this.service.getPurchaseOrderTrendsByMonth(tenantId, months || 12);
+  }
 }

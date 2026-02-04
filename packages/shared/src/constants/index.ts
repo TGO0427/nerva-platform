@@ -14,6 +14,10 @@ export const PERMISSIONS = {
   SUPPLIER_READ: 'supplier.read',
   SUPPLIER_WRITE: 'supplier.write',
 
+  // Procurement
+  PURCHASE_ORDER_READ: 'purchase_order.read',
+  PURCHASE_ORDER_WRITE: 'purchase_order.write',
+
   // Warehouse
   WAREHOUSE_MANAGE: 'warehouse.manage',
   GRN_CREATE: 'grn.create',

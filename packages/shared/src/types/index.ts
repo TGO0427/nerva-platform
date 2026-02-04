@@ -66,9 +66,42 @@ export interface Customer {
   email: string | null;
   phone: string | null;
   vatNo: string | null;
+  // Billing Address
+  billingAddressLine1: string | null;
+  billingAddressLine2: string | null;
+  billingCity: string | null;
+  billingPostalCode: string | null;
+  billingCountry: string | null;
+  // Shipping Address
+  shippingAddressLine1: string | null;
+  shippingAddressLine2: string | null;
+  shippingCity: string | null;
+  shippingPostalCode: string | null;
+  shippingCountry: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CustomerContact {
+  id: string;
+  customerId: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  title: string | null;
+  isPrimary: boolean;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface CustomerNote {
+  id: string;
+  customerId: string;
+  content: string;
+  createdBy: string | null;
+  createdByName?: string;
+  createdAt: string;
 }
 
 export interface Supplier {
@@ -171,6 +204,51 @@ export interface AuditEntry {
   beforeJson: Record<string, unknown> | null;
   afterJson: Record<string, unknown> | null;
   createdAt: string;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  tenantId: string;
+  poNo: string;
+  supplierId: string;
+  status: PurchaseOrderStatus;
+  orderDate: string;
+  expectedDate: string | null;
+  shipToWarehouseId: string | null;
+  subtotal: number;
+  taxAmount: number;
+  totalAmount: number;
+  notes: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Joined fields
+  supplierName?: string;
+  warehouseName?: string;
+  createdByName?: string;
+  lineCount?: number;
+}
+
+export type PurchaseOrderStatus =
+  | 'DRAFT'
+  | 'SENT'
+  | 'CONFIRMED'
+  | 'PARTIAL'
+  | 'RECEIVED'
+  | 'CANCELLED';
+
+export interface PurchaseOrderLine {
+  id: string;
+  purchaseOrderId: string;
+  itemId: string;
+  qtyOrdered: number;
+  qtyReceived: number;
+  unitCost: number | null;
+  lineTotal: number | null;
+  createdAt: string;
+  // Joined fields
+  itemSku?: string;
+  itemDescription?: string;
 }
 
 export interface Warehouse {

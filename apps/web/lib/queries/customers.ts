@@ -1,9 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { Customer, PaginatedResult } from '@nerva/shared';
+import type { Customer, CustomerContact, CustomerNote, PaginatedResult, AuditEntry } from '@nerva/shared';
 import type { QueryParams } from './use-query-params';
 
 const CUSTOMERS_KEY = 'customers';
+const CUSTOMER_CONTACTS_KEY = 'customer-contacts';
+const CUSTOMER_NOTES_KEY = 'customer-notes';
+const CUSTOMER_ACTIVITY_KEY = 'customer-activity';
 
 interface CreateCustomerData {
   code?: string;
@@ -102,6 +105,122 @@ export function useDeleteCustomer() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CUSTOMERS_KEY] });
+    },
+  });
+}
+
+// Activity Log
+export function useCustomerActivity(customerId: string | undefined) {
+  return useQuery({
+    queryKey: [CUSTOMER_ACTIVITY_KEY, customerId],
+    queryFn: async () => {
+      const response = await api.get<AuditEntry[]>(`/masterdata/customers/${customerId}/activity`);
+      return response.data;
+    },
+    enabled: !!customerId,
+  });
+}
+
+// Contacts
+export function useCustomerContacts(customerId: string | undefined) {
+  return useQuery({
+    queryKey: [CUSTOMER_CONTACTS_KEY, customerId],
+    queryFn: async () => {
+      const response = await api.get<CustomerContact[]>(`/masterdata/customers/${customerId}/contacts`);
+      return response.data;
+    },
+    enabled: !!customerId,
+  });
+}
+
+interface CreateContactData {
+  name: string;
+  email?: string;
+  phone?: string;
+  title?: string;
+  isPrimary?: boolean;
+}
+
+export function useCreateCustomerContact(customerId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateContactData) => {
+      const response = await api.post<CustomerContact>(`/masterdata/customers/${customerId}/contacts`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CUSTOMER_CONTACTS_KEY, customerId] });
+    },
+  });
+}
+
+interface UpdateContactData extends Partial<CreateContactData> {
+  isActive?: boolean;
+}
+
+export function useUpdateCustomerContact(customerId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ contactId, data }: { contactId: string; data: UpdateContactData }) => {
+      const response = await api.patch<CustomerContact>(`/masterdata/customers/contacts/${contactId}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CUSTOMER_CONTACTS_KEY, customerId] });
+    },
+  });
+}
+
+export function useDeleteCustomerContact(customerId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (contactId: string) => {
+      await api.delete(`/masterdata/customers/contacts/${contactId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CUSTOMER_CONTACTS_KEY, customerId] });
+    },
+  });
+}
+
+// Notes
+export function useCustomerNotes(customerId: string | undefined) {
+  return useQuery({
+    queryKey: [CUSTOMER_NOTES_KEY, customerId],
+    queryFn: async () => {
+      const response = await api.get<CustomerNote[]>(`/masterdata/customers/${customerId}/notes`);
+      return response.data;
+    },
+    enabled: !!customerId,
+  });
+}
+
+export function useCreateCustomerNote(customerId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (content: string) => {
+      const response = await api.post<CustomerNote>(`/masterdata/customers/${customerId}/notes`, { content });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CUSTOMER_NOTES_KEY, customerId] });
+    },
+  });
+}
+
+export function useDeleteCustomerNote(customerId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (noteId: string) => {
+      await api.delete(`/masterdata/customers/notes/${noteId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CUSTOMER_NOTES_KEY, customerId] });
     },
   });
 }

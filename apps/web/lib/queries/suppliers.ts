@@ -418,3 +418,106 @@ export function useUpdateSupplierContract() {
     },
   });
 }
+
+// === ANALYTICS ===
+
+export interface SupplierDashboardSummary {
+  totalSuppliers: number;
+  activeSuppliers: number;
+  totalPOValue: number;
+  avgPOValue: number;
+  openNCRs: number;
+  activeContracts: number;
+  topSuppliersByPO: Array<{
+    id: string;
+    name: string;
+    totalValue: number;
+    poCount: number;
+  }>;
+  recentNCRs: Array<{
+    id: string;
+    ncrNo: string;
+    supplierName: string;
+    ncrType: string;
+    status: string;
+    createdAt: string;
+  }>;
+}
+
+export interface SupplierPerformanceStats {
+  id: string;
+  code: string | null;
+  name: string;
+  totalPOs: number;
+  totalPOValue: number;
+  avgPOValue: number;
+  openNCRs: number;
+  closedNCRs: number;
+  totalNCRs: number;
+  ncrRate: number;
+  activeContracts: number;
+  lastPODate: string | null;
+}
+
+export interface MonthlyTrend {
+  month: string;
+  count: number;
+  value?: number;
+}
+
+// Fetch supplier dashboard summary
+export function useSupplierDashboardSummary() {
+  return useQuery({
+    queryKey: [SUPPLIERS_KEY, 'analytics', 'summary'],
+    queryFn: async () => {
+      const response = await api.get<SupplierDashboardSummary>('/masterdata/suppliers/analytics/summary');
+      return response.data;
+    },
+  });
+}
+
+// Fetch supplier performance stats
+export function useSupplierPerformanceStats(params: {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}) {
+  return useQuery({
+    queryKey: [SUPPLIERS_KEY, 'analytics', 'performance', params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      if (params.page) searchParams.set('page', String(params.page));
+      if (params.limit) searchParams.set('limit', String(params.limit));
+      if (params.sortBy) searchParams.set('sortBy', params.sortBy);
+      if (params.sortOrder) searchParams.set('sortOrder', params.sortOrder);
+
+      const response = await api.get<PaginatedResult<SupplierPerformanceStats>>(
+        `/masterdata/suppliers/analytics/performance?${searchParams.toString()}`
+      );
+      return response.data;
+    },
+  });
+}
+
+// Fetch NCR trends by month
+export function useNcrTrends(months: number = 12) {
+  return useQuery({
+    queryKey: [SUPPLIERS_KEY, 'analytics', 'ncr-trends', months],
+    queryFn: async () => {
+      const response = await api.get<MonthlyTrend[]>(`/masterdata/suppliers/analytics/ncr-trends?months=${months}`);
+      return response.data;
+    },
+  });
+}
+
+// Fetch purchase order trends by month
+export function usePurchaseOrderTrends(months: number = 12) {
+  return useQuery({
+    queryKey: [SUPPLIERS_KEY, 'analytics', 'po-trends', months],
+    queryFn: async () => {
+      const response = await api.get<MonthlyTrend[]>(`/masterdata/suppliers/analytics/po-trends?months=${months}`);
+      return response.data;
+    },
+  });
+}

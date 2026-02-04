@@ -11,6 +11,10 @@ import {
   SupplierContract,
   CustomerContact,
   CustomerNote,
+  PurchaseOrder,
+  PurchaseOrderLine,
+  SupplierPerformanceStats,
+  SupplierDashboardSummary,
   Warehouse,
   Bin,
 } from './masterdata.repository';
@@ -77,8 +81,44 @@ export class MasterDataService {
     email?: string;
     phone?: string;
     vatNo?: string;
+    billingAddressLine1?: string;
+    billingAddressLine2?: string;
+    billingCity?: string;
+    billingPostalCode?: string;
+    billingCountry?: string;
+    shippingAddressLine1?: string;
+    shippingAddressLine2?: string;
+    shippingCity?: string;
+    shippingPostalCode?: string;
+    shippingCountry?: string;
   }): Promise<Customer> {
     return this.repository.createCustomer(data);
+  }
+
+  async updateCustomer(
+    id: string,
+    data: Partial<{
+      code: string;
+      name: string;
+      email: string;
+      phone: string;
+      vatNo: string;
+      billingAddressLine1: string;
+      billingAddressLine2: string;
+      billingCity: string;
+      billingPostalCode: string;
+      billingCountry: string;
+      shippingAddressLine1: string;
+      shippingAddressLine2: string;
+      shippingCity: string;
+      shippingPostalCode: string;
+      shippingCountry: string;
+      isActive: boolean;
+    }>,
+  ): Promise<Customer> {
+    const customer = await this.repository.updateCustomer(id, data);
+    if (!customer) throw new NotFoundException('Customer not found');
+    return customer;
   }
 
   // Suppliers
@@ -441,5 +481,178 @@ export class MasterDataService {
   async deleteCustomerNote(id: string): Promise<void> {
     const deleted = await this.repository.deleteCustomerNote(id);
     if (!deleted) throw new NotFoundException('Note not found');
+  }
+
+  // Purchase Orders
+  async listPurchaseOrders(
+    tenantId: string,
+    params: PaginationParams & { status?: string; supplierId?: string; search?: string },
+  ) {
+    const { page, limit, offset } = normalizePagination(params);
+    const filters = { status: params.status, supplierId: params.supplierId, search: params.search };
+    const [orders, total] = await Promise.all([
+      this.repository.findPurchaseOrders(tenantId, limit, offset, filters),
+      this.repository.countPurchaseOrders(tenantId, filters),
+    ]);
+    return buildPaginatedResult(orders, total, page, limit);
+  }
+
+  async getPurchaseOrder(id: string): Promise<PurchaseOrder> {
+    const order = await this.repository.findPurchaseOrderById(id);
+    if (!order) throw new NotFoundException('Purchase order not found');
+    return order;
+  }
+
+  async createPurchaseOrder(data: {
+    tenantId: string;
+    supplierId: string;
+    orderDate?: Date;
+    expectedDate?: Date;
+    shipToWarehouseId?: string;
+    notes?: string;
+    createdBy?: string;
+  }): Promise<PurchaseOrder> {
+    const poNo = await this.repository.generatePoNo(data.tenantId);
+    return this.repository.createPurchaseOrder({ ...data, poNo });
+  }
+
+  async updatePurchaseOrder(
+    id: string,
+    data: Partial<{
+      status: string;
+      expectedDate: Date;
+      shipToWarehouseId: string;
+      subtotal: number;
+      taxAmount: number;
+      totalAmount: number;
+      notes: string;
+    }>,
+  ): Promise<PurchaseOrder> {
+    const order = await this.repository.updatePurchaseOrder(id, data);
+    if (!order) throw new NotFoundException('Purchase order not found');
+    return order;
+  }
+
+  // Purchase Order Lines
+  async listPurchaseOrderLines(purchaseOrderId: string): Promise<PurchaseOrderLine[]> {
+    return this.repository.findPurchaseOrderLines(purchaseOrderId);
+  }
+
+  async createPurchaseOrderLine(data: {
+    tenantId: string;
+    purchaseOrderId: string;
+    itemId: string;
+    qtyOrdered: number;
+    unitCost?: number;
+  }): Promise<PurchaseOrderLine> {
+    return this.repository.createPurchaseOrderLine(data);
+  }
+
+  async updatePurchaseOrderLine(
+    id: string,
+    data: Partial<{ qtyOrdered: number; qtyReceived: number; unitCost: number }>,
+  ): Promise<PurchaseOrderLine> {
+    const line = await this.repository.updatePurchaseOrderLine(id, data);
+    if (!line) throw new NotFoundException('Purchase order line not found');
+    return line;
+  }
+
+  async deletePurchaseOrderLine(id: string): Promise<void> {
+    const deleted = await this.repository.deletePurchaseOrderLine(id);
+    if (!deleted) throw new NotFoundException('Purchase order line not found');
+  }
+
+  async recalculatePurchaseOrderTotals(purchaseOrderId: string): Promise<PurchaseOrder> {
+    const lines = await this.repository.findPurchaseOrderLines(purchaseOrderId);
+    const subtotal = lines.reduce((sum, line) => sum + (line.lineTotal || 0), 0);
+    const taxAmount = subtotal * 0.15; // 15% VAT
+    const totalAmount = subtotal + taxAmount;
+
+    const order = await this.repository.updatePurchaseOrder(purchaseOrderId, {
+      subtotal,
+      taxAmount,
+      totalAmount,
+    });
+    if (!order) throw new NotFoundException('Purchase order not found');
+    return order;
+  }
+
+  // Supplier Performance Analytics
+  async getSupplierDashboardSummary(tenantId: string): Promise<SupplierDashboardSummary> {
+    return this.repository.getSupplierDashboardSummary(tenantId);
+  }
+
+  async getSupplierPerformanceStats(
+    tenantId: string,
+    options: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' }
+  ) {
+    return this.repository.getSupplierPerformanceStats(tenantId, options);
+  }
+
+  async getNcrTrendsByMonth(tenantId: string, months?: number) {
+    return this.repository.getNcrTrendsByMonth(tenantId, months);
+  }
+
+  async getPurchaseOrderTrendsByMonth(tenantId: string, months?: number) {
+    return this.repository.getPurchaseOrderTrendsByMonth(tenantId, months);
+  }
+
+  // Dashboard
+  async getDashboardStats(tenantId: string) {
+    return this.repository.getDashboardStats(tenantId);
+  }
+
+  async getRecentActivity(tenantId: string, limit?: number) {
+    return this.repository.getRecentActivity(tenantId, limit);
+  }
+
+  // Reports
+  async getSalesReport(tenantId: string, startDate: Date, endDate: Date) {
+    return this.repository.getSalesReport(tenantId, startDate, endDate);
+  }
+
+  async getInventoryReport(tenantId: string) {
+    return this.repository.getInventoryReport(tenantId);
+  }
+
+  async getProcurementReport(tenantId: string, startDate: Date, endDate: Date) {
+    return this.repository.getProcurementReport(tenantId, startDate, endDate);
+  }
+
+  // Notifications
+  async listNotifications(
+    tenantId: string,
+    userId: string,
+    options: { page?: number; limit?: number; unreadOnly?: boolean } = {}
+  ) {
+    return this.repository.listNotifications(tenantId, userId, options);
+  }
+
+  async getUnreadNotificationCount(tenantId: string, userId: string) {
+    return this.repository.getUnreadNotificationCount(tenantId, userId);
+  }
+
+  async createNotification(data: {
+    tenantId: string;
+    userId?: string;
+    type: string;
+    category: string;
+    title: string;
+    message: string;
+    link?: string;
+  }) {
+    return this.repository.createNotification(data);
+  }
+
+  async markNotificationAsRead(id: string) {
+    return this.repository.markNotificationAsRead(id);
+  }
+
+  async markAllNotificationsAsRead(tenantId: string, userId: string) {
+    return this.repository.markAllNotificationsAsRead(tenantId, userId);
+  }
+
+  async deleteNotification(id: string) {
+    return this.repository.deleteNotification(id);
   }
 }

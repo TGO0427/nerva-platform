@@ -6,6 +6,13 @@ export { UpdateItemDto } from './update-item.dto';
 export { CreateCustomerDto } from './create-customer.dto';
 export { UpdateCustomerDto } from './update-customer.dto';
 
+// Customer Contacts
+export { CreateCustomerContactDto } from './create-customer-contact.dto';
+export { UpdateCustomerContactDto } from './update-customer-contact.dto';
+
+// Customer Notes
+export { CreateCustomerNoteDto } from './create-customer-note.dto';
+
 // Suppliers
 export { CreateSupplierDto } from './create-supplier.dto';
 export { UpdateSupplierDto } from './update-supplier.dto';
@@ -36,3 +43,9 @@ export { UpdateWarehouseDto } from './update-warehouse.dto';
 // Bins
 export { CreateBinDto } from './create-bin.dto';
 export { UpdateBinDto } from './update-bin.dto';
+
+// Purchase Orders
+export { CreatePurchaseOrderDto } from './create-purchase-order.dto';
+export { UpdatePurchaseOrderDto } from './update-purchase-order.dto';
+export { CreatePurchaseOrderLineDto } from './create-purchase-order-line.dto';
+export { UpdatePurchaseOrderLineDto } from './update-purchase-order-line.dto';
