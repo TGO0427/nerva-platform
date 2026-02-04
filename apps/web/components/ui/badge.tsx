@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info';
+export type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info';
 
 interface BadgeProps {
   children: React.ReactNode;

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { Supplier, PaginatedResult, AuditEntry } from '@nerva/shared';
+import type { Supplier, SupplierContact, SupplierNote, SupplierNcr, PaginatedResult, AuditEntry } from '@nerva/shared';
 import type { QueryParams } from './use-query-params';
 
 const SUPPLIERS_KEY = 'suppliers';
@@ -102,6 +102,181 @@ export function useUpdateSupplier() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.id] });
+    },
+  });
+}
+
+// === CONTACTS ===
+
+interface CreateContactData {
+  name: string;
+  email?: string;
+  phone?: string;
+  title?: string;
+  isPrimary?: boolean;
+}
+
+interface UpdateContactData extends Partial<CreateContactData> {
+  isActive?: boolean;
+}
+
+// Fetch supplier contacts
+export function useSupplierContacts(supplierId: string | undefined) {
+  return useQuery({
+    queryKey: [SUPPLIERS_KEY, supplierId, 'contacts'],
+    queryFn: async () => {
+      const response = await api.get<SupplierContact[]>(`/masterdata/suppliers/${supplierId}/contacts`);
+      return response.data;
+    },
+    enabled: !!supplierId,
+  });
+}
+
+// Create supplier contact
+export function useCreateSupplierContact() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ supplierId, data }: { supplierId: string; data: CreateContactData }) => {
+      const response = await api.post<SupplierContact>(`/masterdata/suppliers/${supplierId}/contacts`, data);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'contacts'] });
+    },
+  });
+}
+
+// Update supplier contact
+export function useUpdateSupplierContact() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ contactId, data, supplierId }: { contactId: string; data: UpdateContactData; supplierId: string }) => {
+      const response = await api.patch<SupplierContact>(`/masterdata/suppliers/contacts/${contactId}`, data);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'contacts'] });
+    },
+  });
+}
+
+// Delete supplier contact
+export function useDeleteSupplierContact() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ contactId, supplierId }: { contactId: string; supplierId: string }) => {
+      await api.delete(`/masterdata/suppliers/contacts/${contactId}`);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'contacts'] });
+    },
+  });
+}
+
+// === NOTES ===
+
+// Fetch supplier notes
+export function useSupplierNotes(supplierId: string | undefined) {
+  return useQuery({
+    queryKey: [SUPPLIERS_KEY, supplierId, 'notes'],
+    queryFn: async () => {
+      const response = await api.get<SupplierNote[]>(`/masterdata/suppliers/${supplierId}/notes`);
+      return response.data;
+    },
+    enabled: !!supplierId,
+  });
+}
+
+// Create supplier note
+export function useCreateSupplierNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ supplierId, content }: { supplierId: string; content: string }) => {
+      const response = await api.post<SupplierNote>(`/masterdata/suppliers/${supplierId}/notes`, { content });
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'notes'] });
+    },
+  });
+}
+
+// Delete supplier note
+export function useDeleteSupplierNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ noteId, supplierId }: { noteId: string; supplierId: string }) => {
+      await api.delete(`/masterdata/suppliers/notes/${noteId}`);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'notes'] });
+    },
+  });
+}
+
+// === NCRs ===
+
+interface CreateNcrData {
+  ncrType: 'QUALITY' | 'DELIVERY' | 'QUANTITY' | 'DOCUMENTATION' | 'OTHER';
+  description: string;
+}
+
+// Fetch supplier NCRs
+export function useSupplierNcrs(supplierId: string | undefined) {
+  return useQuery({
+    queryKey: [SUPPLIERS_KEY, supplierId, 'ncrs'],
+    queryFn: async () => {
+      const response = await api.get<SupplierNcr[]>(`/masterdata/suppliers/${supplierId}/ncrs`);
+      return response.data;
+    },
+    enabled: !!supplierId,
+  });
+}
+
+// Fetch single NCR
+export function useSupplierNcr(ncrId: string | undefined) {
+  return useQuery({
+    queryKey: [SUPPLIERS_KEY, 'ncrs', ncrId],
+    queryFn: async () => {
+      const response = await api.get<SupplierNcr>(`/masterdata/suppliers/ncrs/${ncrId}`);
+      return response.data;
+    },
+    enabled: !!ncrId,
+  });
+}
+
+// Create supplier NCR
+export function useCreateSupplierNcr() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ supplierId, data }: { supplierId: string; data: CreateNcrData }) => {
+      const response = await api.post<SupplierNcr>(`/masterdata/suppliers/${supplierId}/ncrs`, data);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'ncrs'] });
+    },
+  });
+}
+
+// Resolve supplier NCR
+export function useResolveSupplierNcr() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ncrId, resolution, supplierId }: { ncrId: string; resolution: string; supplierId: string }) => {
+      const response = await api.post<SupplierNcr>(`/masterdata/suppliers/ncrs/${ncrId}/resolve`, { resolution });
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'ncrs'] });
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, 'ncrs', variables.ncrId] });
     },
   });
 }

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
   Query,
@@ -10,20 +11,33 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { MasterDataService } from './masterdata.service';
+import { AuditService } from '../audit/audit.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { TenantId } from '../../common/decorators/tenant.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
-import { CreateSupplierDto, UpdateSupplierDto } from './dto';
+import {
+  CreateSupplierDto,
+  UpdateSupplierDto,
+  CreateSupplierContactDto,
+  UpdateSupplierContactDto,
+  CreateSupplierNoteDto,
+  CreateSupplierNcrDto,
+  ResolveSupplierNcrDto,
+} from './dto';
 
 @ApiTags('master-data')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('masterdata/suppliers')
 export class SuppliersController {
-  constructor(private readonly service: MasterDataService) {}
+  constructor(
+    private readonly service: MasterDataService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Get()
   @RequirePermissions('supplier.read')
@@ -62,5 +76,134 @@ export class SuppliersController {
     @Body() data: UpdateSupplierDto,
   ) {
     return this.service.updateSupplier(id, data);
+  }
+
+  // Activity Log
+  @Get(':id/activity')
+  @RequirePermissions('supplier.read')
+  @ApiOperation({ summary: 'Get supplier activity log' })
+  async getActivity(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+    @Query('limit') limit?: number,
+  ) {
+    return this.auditService.getEntityHistory(tenantId, 'supplier', id, limit || 50, 0);
+  }
+
+  // Contacts
+  @Get(':id/contacts')
+  @RequirePermissions('supplier.read')
+  @ApiOperation({ summary: 'List supplier contacts' })
+  async listContacts(@Param('id', UuidValidationPipe) supplierId: string) {
+    return this.service.listSupplierContacts(supplierId);
+  }
+
+  @Post(':id/contacts')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Create supplier contact' })
+  async createContact(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) supplierId: string,
+    @Body() data: CreateSupplierContactDto,
+  ) {
+    return this.service.createSupplierContact({ tenantId, supplierId, ...data });
+  }
+
+  @Patch('contacts/:contactId')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Update supplier contact' })
+  async updateContact(
+    @Param('contactId', UuidValidationPipe) contactId: string,
+    @Body() data: UpdateSupplierContactDto,
+  ) {
+    return this.service.updateSupplierContact(contactId, data);
+  }
+
+  @Delete('contacts/:contactId')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Delete supplier contact' })
+  async deleteContact(@Param('contactId', UuidValidationPipe) contactId: string) {
+    await this.service.deleteSupplierContact(contactId);
+    return { success: true };
+  }
+
+  // Notes
+  @Get(':id/notes')
+  @RequirePermissions('supplier.read')
+  @ApiOperation({ summary: 'List supplier notes' })
+  async listNotes(@Param('id', UuidValidationPipe) supplierId: string) {
+    return this.service.listSupplierNotes(supplierId);
+  }
+
+  @Post(':id/notes')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Create supplier note' })
+  async createNote(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) supplierId: string,
+    @Body() data: CreateSupplierNoteDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.service.createSupplierNote({
+      tenantId,
+      supplierId,
+      content: data.content,
+      createdBy: user.id,
+    });
+  }
+
+  @Delete('notes/:noteId')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Delete supplier note' })
+  async deleteNote(@Param('noteId', UuidValidationPipe) noteId: string) {
+    await this.service.deleteSupplierNote(noteId);
+    return { success: true };
+  }
+
+  // NCRs
+  @Get(':id/ncrs')
+  @RequirePermissions('supplier.read')
+  @ApiOperation({ summary: 'List supplier NCRs' })
+  async listNcrs(@Param('id', UuidValidationPipe) supplierId: string) {
+    return this.service.listSupplierNcrs(supplierId);
+  }
+
+  @Post(':id/ncrs')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Create supplier NCR' })
+  async createNcr(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) supplierId: string,
+    @Body() data: CreateSupplierNcrDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.service.createSupplierNcr({
+      tenantId,
+      supplierId,
+      ncrType: data.ncrType,
+      description: data.description,
+      createdBy: user.id,
+    });
+  }
+
+  @Get('ncrs/:ncrId')
+  @RequirePermissions('supplier.read')
+  @ApiOperation({ summary: 'Get supplier NCR by ID' })
+  async getNcr(@Param('ncrId', UuidValidationPipe) ncrId: string) {
+    return this.service.getSupplierNcr(ncrId);
+  }
+
+  @Post('ncrs/:ncrId/resolve')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Resolve supplier NCR' })
+  async resolveNcr(
+    @Param('ncrId', UuidValidationPipe) ncrId: string,
+    @Body() data: ResolveSupplierNcrDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.service.resolveSupplierNcr(ncrId, {
+      resolution: data.resolution,
+      resolvedBy: user.id,
+    });
   }
 }

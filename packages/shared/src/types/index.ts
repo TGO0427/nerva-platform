@@ -118,6 +118,20 @@ export interface SupplierNote {
   createdAt: string;
 }
 
+export interface SupplierNcr {
+  id: string;
+  supplierId: string;
+  ncrNo: string;
+  ncrType: 'QUALITY' | 'DELIVERY' | 'QUANTITY' | 'DOCUMENTATION' | 'OTHER';
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+  description: string;
+  resolution: string | null;
+  createdBy: string | null;
+  resolvedBy: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
 export interface AuditEntry {
   id: string;
   tenantId: string;
