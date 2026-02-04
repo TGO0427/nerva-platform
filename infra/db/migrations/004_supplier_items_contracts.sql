@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS supplier_items (
 CREATE INDEX IF NOT EXISTS idx_supplier_items_supplier ON supplier_items(supplier_id);
 CREATE INDEX IF NOT EXISTS idx_supplier_items_item ON supplier_items(item_id);
 
+DROP TRIGGER IF EXISTS trg_supplier_items_updated ON supplier_items;
 CREATE TRIGGER trg_supplier_items_updated
 BEFORE UPDATE ON supplier_items
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -49,6 +50,7 @@ CREATE TABLE IF NOT EXISTS supplier_contracts (
 CREATE INDEX IF NOT EXISTS idx_supplier_contracts_supplier ON supplier_contracts(supplier_id);
 CREATE INDEX IF NOT EXISTS idx_supplier_contracts_status ON supplier_contracts(tenant_id, status);
 
+DROP TRIGGER IF EXISTS trg_supplier_contracts_updated ON supplier_contracts;
 CREATE TRIGGER trg_supplier_contracts_updated
 BEFORE UPDATE ON supplier_contracts
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -68,6 +70,7 @@ CREATE TABLE IF NOT EXISTS supplier_contract_lines (
 
 CREATE INDEX IF NOT EXISTS idx_supplier_contract_lines_contract ON supplier_contract_lines(contract_id);
 
+DROP TRIGGER IF EXISTS trg_supplier_contract_lines_updated ON supplier_contract_lines;
 CREATE TRIGGER trg_supplier_contract_lines_updated
 BEFORE UPDATE ON supplier_contract_lines
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -95,6 +98,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
 CREATE INDEX IF NOT EXISTS idx_purchase_orders_supplier ON purchase_orders(supplier_id);
 CREATE INDEX IF NOT EXISTS idx_purchase_orders_status ON purchase_orders(tenant_id, status);
 
+DROP TRIGGER IF EXISTS trg_purchase_orders_updated ON purchase_orders;
 CREATE TRIGGER trg_purchase_orders_updated
 BEFORE UPDATE ON purchase_orders
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -118,6 +122,7 @@ CREATE TABLE IF NOT EXISTS purchase_order_lines (
 
 CREATE INDEX IF NOT EXISTS idx_purchase_order_lines_po ON purchase_order_lines(purchase_order_id);
 
+DROP TRIGGER IF EXISTS trg_purchase_order_lines_updated ON purchase_order_lines;
 CREATE TRIGGER trg_purchase_order_lines_updated
 BEFORE UPDATE ON purchase_order_lines
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -139,6 +144,7 @@ CREATE TABLE IF NOT EXISTS customer_contacts (
 
 CREATE INDEX IF NOT EXISTS idx_customer_contacts_customer ON customer_contacts(customer_id);
 
+DROP TRIGGER IF EXISTS trg_customer_contacts_updated ON customer_contacts;
 CREATE TRIGGER trg_customer_contacts_updated
 BEFORE UPDATE ON customer_contacts
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -156,6 +162,7 @@ CREATE TABLE IF NOT EXISTS customer_notes (
 
 CREATE INDEX IF NOT EXISTS idx_customer_notes_customer ON customer_notes(customer_id);
 
+DROP TRIGGER IF EXISTS trg_customer_notes_updated ON customer_notes;
 CREATE TRIGGER trg_customer_notes_updated
 BEFORE UPDATE ON customer_notes
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
