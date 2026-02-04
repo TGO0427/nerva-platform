@@ -131,10 +131,10 @@ export default function NotificationsPage() {
       </Card>
 
       {/* Pagination */}
-      {data?.meta && data.meta.totalPages > 1 && (
+      {data?.meta && (data.meta.totalPages ?? 1) > 1 && (
         <div className="flex items-center justify-between mt-6">
           <p className="text-sm text-gray-500">
-            Page {page} of {data.meta.totalPages} ({data.meta.total} total)
+            Page {page} of {data.meta.totalPages ?? 1} ({data.meta.total ?? 0} total)
           </p>
           <div className="flex gap-2">
             <Button
