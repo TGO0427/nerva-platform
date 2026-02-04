@@ -94,8 +94,48 @@ export class MasterDataService {
     email?: string;
     phone?: string;
     vatNo?: string;
+    contactPerson?: string;
+    registrationNo?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    postalCode?: string;
+    country?: string;
+    tradingAddressLine1?: string;
+    tradingAddressLine2?: string;
+    tradingCity?: string;
+    tradingPostalCode?: string;
+    tradingCountry?: string;
   }): Promise<Supplier> {
     return this.repository.createSupplier(data);
+  }
+
+  async updateSupplier(
+    id: string,
+    data: Partial<{
+      code: string;
+      name: string;
+      email: string;
+      phone: string;
+      vatNo: string;
+      contactPerson: string;
+      registrationNo: string;
+      addressLine1: string;
+      addressLine2: string;
+      city: string;
+      postalCode: string;
+      country: string;
+      tradingAddressLine1: string;
+      tradingAddressLine2: string;
+      tradingCity: string;
+      tradingPostalCode: string;
+      tradingCountry: string;
+      isActive: boolean;
+    }>,
+  ): Promise<Supplier> {
+    const supplier = await this.repository.updateSupplier(id, data);
+    if (!supplier) throw new NotFoundException('Supplier not found');
+    return supplier;
   }
 
   // Warehouses

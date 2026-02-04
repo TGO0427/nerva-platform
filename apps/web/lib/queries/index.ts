@@ -1,6 +1,7 @@
 export * from './use-query-params';
 export * from './items';
 export * from './customers';
+export * from './suppliers';
 export * from './warehouses';
 export * from './inventory';
 export * from './sales';

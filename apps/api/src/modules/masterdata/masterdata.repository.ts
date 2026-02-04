@@ -34,6 +34,20 @@ export interface Supplier {
   email: string | null;
   phone: string | null;
   vatNo: string | null;
+  contactPerson: string | null;
+  registrationNo: string | null;
+  // Postal Address
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  postalCode: string | null;
+  country: string | null;
+  // Trading Address
+  tradingAddressLine1: string | null;
+  tradingAddressLine2: string | null;
+  tradingCity: string | null;
+  tradingPostalCode: string | null;
+  tradingCountry: string | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -231,14 +245,104 @@ export class MasterDataRepository extends BaseRepository {
     email?: string;
     phone?: string;
     vatNo?: string;
+    contactPerson?: string;
+    registrationNo?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    postalCode?: string;
+    country?: string;
+    tradingAddressLine1?: string;
+    tradingAddressLine2?: string;
+    tradingCity?: string;
+    tradingPostalCode?: string;
+    tradingCountry?: string;
   }): Promise<Supplier> {
     const row = await this.queryOne<Record<string, unknown>>(
-      `INSERT INTO suppliers (tenant_id, code, name, email, phone, vat_no)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO suppliers (
+        tenant_id, code, name, email, phone, vat_no, contact_person, registration_no,
+        address_line1, address_line2, city, postal_code, country,
+        trading_address_line1, trading_address_line2, trading_city, trading_postal_code, trading_country
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
        RETURNING *`,
-      [data.tenantId, data.code || null, data.name, data.email || null, data.phone || null, data.vatNo || null],
+      [
+        data.tenantId,
+        data.code || null,
+        data.name,
+        data.email || null,
+        data.phone || null,
+        data.vatNo || null,
+        data.contactPerson || null,
+        data.registrationNo || null,
+        data.addressLine1 || null,
+        data.addressLine2 || null,
+        data.city || null,
+        data.postalCode || null,
+        data.country || null,
+        data.tradingAddressLine1 || null,
+        data.tradingAddressLine2 || null,
+        data.tradingCity || null,
+        data.tradingPostalCode || null,
+        data.tradingCountry || null,
+      ],
     );
     return this.mapSupplier(row!);
+  }
+
+  async updateSupplier(
+    id: string,
+    data: Partial<{
+      code: string;
+      name: string;
+      email: string;
+      phone: string;
+      vatNo: string;
+      contactPerson: string;
+      registrationNo: string;
+      addressLine1: string;
+      addressLine2: string;
+      city: string;
+      postalCode: string;
+      country: string;
+      tradingAddressLine1: string;
+      tradingAddressLine2: string;
+      tradingCity: string;
+      tradingPostalCode: string;
+      tradingCountry: string;
+      isActive: boolean;
+    }>,
+  ): Promise<Supplier | null> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (data.code !== undefined) { fields.push(`code = $${idx++}`); values.push(data.code); }
+    if (data.name !== undefined) { fields.push(`name = $${idx++}`); values.push(data.name); }
+    if (data.email !== undefined) { fields.push(`email = $${idx++}`); values.push(data.email); }
+    if (data.phone !== undefined) { fields.push(`phone = $${idx++}`); values.push(data.phone); }
+    if (data.vatNo !== undefined) { fields.push(`vat_no = $${idx++}`); values.push(data.vatNo); }
+    if (data.contactPerson !== undefined) { fields.push(`contact_person = $${idx++}`); values.push(data.contactPerson); }
+    if (data.registrationNo !== undefined) { fields.push(`registration_no = $${idx++}`); values.push(data.registrationNo); }
+    if (data.addressLine1 !== undefined) { fields.push(`address_line1 = $${idx++}`); values.push(data.addressLine1); }
+    if (data.addressLine2 !== undefined) { fields.push(`address_line2 = $${idx++}`); values.push(data.addressLine2); }
+    if (data.city !== undefined) { fields.push(`city = $${idx++}`); values.push(data.city); }
+    if (data.postalCode !== undefined) { fields.push(`postal_code = $${idx++}`); values.push(data.postalCode); }
+    if (data.country !== undefined) { fields.push(`country = $${idx++}`); values.push(data.country); }
+    if (data.tradingAddressLine1 !== undefined) { fields.push(`trading_address_line1 = $${idx++}`); values.push(data.tradingAddressLine1); }
+    if (data.tradingAddressLine2 !== undefined) { fields.push(`trading_address_line2 = $${idx++}`); values.push(data.tradingAddressLine2); }
+    if (data.tradingCity !== undefined) { fields.push(`trading_city = $${idx++}`); values.push(data.tradingCity); }
+    if (data.tradingPostalCode !== undefined) { fields.push(`trading_postal_code = $${idx++}`); values.push(data.tradingPostalCode); }
+    if (data.tradingCountry !== undefined) { fields.push(`trading_country = $${idx++}`); values.push(data.tradingCountry); }
+    if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.isActive); }
+
+    if (fields.length === 0) return this.findSupplierById(id);
+
+    values.push(id);
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE suppliers SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      values,
+    );
+    return row ? this.mapSupplier(row) : null;
   }
 
   // Warehouses
@@ -361,6 +465,18 @@ export class MasterDataRepository extends BaseRepository {
       email: row.email as string | null,
       phone: row.phone as string | null,
       vatNo: row.vat_no as string | null,
+      contactPerson: row.contact_person as string | null,
+      registrationNo: row.registration_no as string | null,
+      addressLine1: row.address_line1 as string | null,
+      addressLine2: row.address_line2 as string | null,
+      city: row.city as string | null,
+      postalCode: row.postal_code as string | null,
+      country: row.country as string | null,
+      tradingAddressLine1: row.trading_address_line1 as string | null,
+      tradingAddressLine2: row.trading_address_line2 as string | null,
+      tradingCity: row.trading_city as string | null,
+      tradingPostalCode: row.trading_postal_code as string | null,
+      tradingCountry: row.trading_country as string | null,
       isActive: row.is_active as boolean,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,

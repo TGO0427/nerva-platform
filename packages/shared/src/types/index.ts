@@ -71,6 +71,65 @@ export interface Customer {
   updatedAt: string;
 }
 
+export interface Supplier {
+  id: string;
+  tenantId: string;
+  code: string | null;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  vatNo: string | null;
+  contactPerson: string | null;
+  registrationNo: string | null;
+  // Postal Address
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  postalCode: string | null;
+  country: string | null;
+  // Trading Address
+  tradingAddressLine1: string | null;
+  tradingAddressLine2: string | null;
+  tradingCity: string | null;
+  tradingPostalCode: string | null;
+  tradingCountry: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupplierContact {
+  id: string;
+  supplierId: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  title: string | null;
+  isPrimary: boolean;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface SupplierNote {
+  id: string;
+  supplierId: string;
+  content: string;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  tenantId: string;
+  actorUserId: string | null;
+  entityType: string;
+  entityId: string | null;
+  action: string;
+  beforeJson: Record<string, unknown> | null;
+  afterJson: Record<string, unknown> | null;
+  createdAt: string;
+}
+
 export interface Warehouse {
   id: string;
   tenantId: string;

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Param,
   Body,
   Query,
@@ -15,7 +16,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { TenantId } from '../../common/decorators/tenant.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
-import { CreateSupplierDto } from './dto';
+import { CreateSupplierDto, UpdateSupplierDto } from './dto';
 
 @ApiTags('master-data')
 @ApiBearerAuth()
@@ -51,5 +52,15 @@ export class SuppliersController {
     @Body() data: CreateSupplierDto,
   ) {
     return this.service.createSupplier({ tenantId, ...data });
+  }
+
+  @Patch(':id')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Update supplier' })
+  async update(
+    @Param('id', UuidValidationPipe) id: string,
+    @Body() data: UpdateSupplierDto,
+  ) {
+    return this.service.updateSupplier(id, data);
   }
 }
