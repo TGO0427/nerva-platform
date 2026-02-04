@@ -26,7 +26,7 @@ import {
 
 const WAVE_STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
-  { value: 'PENDING', label: 'Pending' },
+  { value: 'OPEN', label: 'Open' },
   { value: 'IN_PROGRESS', label: 'In Progress' },
   { value: 'COMPLETE', label: 'Complete' },
   { value: 'CANCELLED', label: 'Cancelled' },
@@ -278,9 +278,9 @@ export default function FulfilmentPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-yellow-600">
-              {wavesData?.data?.filter(w => w.status === 'PENDING').length || 0}
+              {wavesData?.data?.filter(w => w.status === 'OPEN').length || 0}
             </div>
-            <p className="text-sm text-gray-500">Pending Waves</p>
+            <p className="text-sm text-gray-500">Open Waves</p>
           </CardContent>
         </Card>
         <Card>
@@ -498,7 +498,7 @@ function getWaveStatusVariant(status: string): 'default' | 'success' | 'warning'
       return 'success';
     case 'IN_PROGRESS':
       return 'warning';
-    case 'PENDING':
+    case 'OPEN':
       return 'info';
     case 'CANCELLED':
       return 'danger';

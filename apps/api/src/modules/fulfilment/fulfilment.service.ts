@@ -199,8 +199,8 @@ export class FulfilmentService {
   // Release wave for execution
   async releasePickWave(id: string): Promise<PickWave> {
     const wave = await this.getPickWave(id);
-    if (wave.status !== 'PENDING') {
-      throw new BadRequestException('Wave must be in PENDING status to release');
+    if (wave.status !== 'OPEN') {
+      throw new BadRequestException('Wave must be in OPEN status to release');
     }
     const updated = await this.repository.updatePickWaveStatus(id, 'IN_PROGRESS');
     return updated!;

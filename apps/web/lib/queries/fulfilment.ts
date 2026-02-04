@@ -13,7 +13,7 @@ export interface PickWave {
   tenantId: string;
   warehouseId: string;
   waveNo: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETE' | 'CANCELLED';
+  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETE' | 'CANCELLED';
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -32,7 +32,7 @@ export interface PickTask {
   fromBinCode?: string;
   qtyToPick: number;
   qtyPicked: number;
-  status: 'PENDING' | 'IN_PROGRESS' | 'PICKED' | 'SHORT' | 'CANCELLED';
+  status: 'OPEN' | 'IN_PROGRESS' | 'PICKED' | 'SHORT' | 'CANCELLED';
   shortReason: string | null;
   assignedTo: string | null;
   assignedToName?: string;

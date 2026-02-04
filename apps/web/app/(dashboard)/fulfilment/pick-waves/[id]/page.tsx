@@ -32,6 +32,39 @@ export default function PickWaveDetailPage() {
   const assignTask = useAssignPickTask();
   const confirmTask = useConfirmPickTask();
 
+  const handleAssignTask = async (taskId: string) => {
+    try {
+      await assignTask.mutateAsync(taskId);
+    } catch (error) {
+      console.error('Failed to assign task:', error);
+    }
+  };
+
+  const handleConfirmPick = async (task: PickTask) => {
+    const qtyStr = prompt(`Enter quantity picked (max ${task.qtyToPick}):`, String(task.qtyToPick));
+    if (qtyStr === null) return;
+
+    const qtyPicked = parseInt(qtyStr, 10);
+    if (isNaN(qtyPicked) || qtyPicked < 0 || qtyPicked > task.qtyToPick) {
+      alert('Invalid quantity');
+      return;
+    }
+
+    const shortReason = qtyPicked < task.qtyToPick
+      ? prompt('Reason for short pick:')
+      : undefined;
+
+    try {
+      await confirmTask.mutateAsync({
+        taskId: task.id,
+        qtyPicked,
+        shortReason: shortReason || undefined,
+      });
+    } catch (error) {
+      console.error('Failed to confirm pick:', error);
+    }
+  };
+
   const taskColumns: Column<PickTask>[] = [
     {
       key: 'itemSku',
@@ -81,9 +114,34 @@ export default function PickWaveDetailPage() {
       ),
     },
     {
-      key: 'assignedToName',
-      header: 'Assigned To',
-      render: (row) => row.assignedToName || (row.assignedTo ? row.assignedTo.slice(0, 8) : '-'),
+      key: 'actions',
+      header: 'Actions',
+      width: '180px',
+      render: (row) => {
+        const canAssign = !row.assignedTo && row.status !== 'PICKED' && row.status !== 'CANCELLED';
+        const canPick = row.status !== 'PICKED' && row.status !== 'CANCELLED';
+
+        return (
+          <div className="flex gap-2">
+            {canAssign && (
+              <button
+                onClick={() => handleAssignTask(row.id)}
+                className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              >
+                Assign
+              </button>
+            )}
+            {canPick && (
+              <button
+                onClick={() => handleConfirmPick(row)}
+                className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
+              >
+                Pick
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -142,7 +200,7 @@ export default function PickWaveDetailPage() {
   const totalPicked = tasks?.reduce((sum, t) => sum + t.qtyPicked, 0) || 0;
   const progress = totalToPick > 0 ? Math.round((totalPicked / totalToPick) * 100) : 0;
 
-  const canRelease = wave.status === 'PENDING';
+  const canRelease = wave.status === 'OPEN';
   const canComplete = wave.status === 'IN_PROGRESS';
   const canCancel = wave.status !== 'COMPLETE' && wave.status !== 'CANCELLED';
 
@@ -250,7 +308,7 @@ function getWaveStatusVariant(status: string): 'default' | 'success' | 'warning'
       return 'success';
     case 'IN_PROGRESS':
       return 'warning';
-    case 'PENDING':
+    case 'OPEN':
       return 'info';
     case 'CANCELLED':
       return 'danger';
@@ -265,7 +323,7 @@ function getTaskStatusVariant(status: string): 'default' | 'success' | 'warning'
       return 'success';
     case 'IN_PROGRESS':
       return 'warning';
-    case 'PENDING':
+    case 'OPEN':
       return 'info';
     case 'SHORT':
       return 'warning';
