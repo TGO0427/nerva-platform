@@ -7,6 +7,10 @@ import {
   SupplierContact,
   SupplierNote,
   SupplierNcr,
+  SupplierItem,
+  SupplierContract,
+  CustomerContact,
+  CustomerNote,
   Warehouse,
   Bin,
 } from './masterdata.repository';
@@ -287,5 +291,155 @@ export class MasterDataService {
     level?: string;
   }): Promise<Bin> {
     return this.repository.createBin(data);
+  }
+
+  // Supplier Items (Products & Services)
+  async listSupplierItems(supplierId: string): Promise<SupplierItem[]> {
+    return this.repository.findSupplierItems(supplierId);
+  }
+
+  async getSupplierItem(id: string): Promise<SupplierItem> {
+    const item = await this.repository.findSupplierItemById(id);
+    if (!item) throw new NotFoundException('Supplier item not found');
+    return item;
+  }
+
+  async createSupplierItem(data: {
+    tenantId: string;
+    supplierId: string;
+    itemId: string;
+    supplierSku?: string;
+    unitCost?: number;
+    leadTimeDays?: number;
+    minOrderQty?: number;
+    isPreferred?: boolean;
+  }): Promise<SupplierItem> {
+    return this.repository.createSupplierItem(data);
+  }
+
+  async updateSupplierItem(
+    id: string,
+    data: Partial<{
+      supplierSku: string;
+      unitCost: number;
+      leadTimeDays: number;
+      minOrderQty: number;
+      isPreferred: boolean;
+      isActive: boolean;
+    }>,
+  ): Promise<SupplierItem> {
+    const item = await this.repository.updateSupplierItem(id, data);
+    if (!item) throw new NotFoundException('Supplier item not found');
+    return item;
+  }
+
+  async deleteSupplierItem(id: string): Promise<void> {
+    const deleted = await this.repository.deleteSupplierItem(id);
+    if (!deleted) throw new NotFoundException('Supplier item not found');
+  }
+
+  // Supplier Contracts
+  async listSupplierContracts(supplierId: string): Promise<SupplierContract[]> {
+    return this.repository.findSupplierContracts(supplierId);
+  }
+
+  async getSupplierContract(id: string): Promise<SupplierContract> {
+    const contract = await this.repository.findSupplierContractById(id);
+    if (!contract) throw new NotFoundException('Contract not found');
+    return contract;
+  }
+
+  async createSupplierContract(data: {
+    tenantId: string;
+    supplierId: string;
+    name: string;
+    startDate: Date;
+    endDate: Date;
+    terms?: string;
+    totalValue?: number;
+    currency?: string;
+    createdBy?: string;
+  }): Promise<SupplierContract> {
+    const contractNo = await this.repository.generateContractNo(data.tenantId);
+    return this.repository.createSupplierContract({ ...data, contractNo });
+  }
+
+  async updateSupplierContract(
+    id: string,
+    data: Partial<{
+      name: string;
+      status: string;
+      startDate: Date;
+      endDate: Date;
+      terms: string;
+      totalValue: number;
+    }>,
+  ): Promise<SupplierContract> {
+    const contract = await this.repository.updateSupplierContract(id, data);
+    if (!contract) throw new NotFoundException('Contract not found');
+    return contract;
+  }
+
+  // Customer Contacts
+  async listCustomerContacts(customerId: string): Promise<CustomerContact[]> {
+    return this.repository.findCustomerContacts(customerId);
+  }
+
+  async getCustomerContact(id: string): Promise<CustomerContact> {
+    const contact = await this.repository.findCustomerContactById(id);
+    if (!contact) throw new NotFoundException('Contact not found');
+    return contact;
+  }
+
+  async createCustomerContact(data: {
+    tenantId: string;
+    customerId: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    title?: string;
+    isPrimary?: boolean;
+  }): Promise<CustomerContact> {
+    return this.repository.createCustomerContact(data);
+  }
+
+  async updateCustomerContact(
+    id: string,
+    data: Partial<{
+      name: string;
+      email: string;
+      phone: string;
+      title: string;
+      isPrimary: boolean;
+      isActive: boolean;
+    }>,
+  ): Promise<CustomerContact> {
+    const contact = await this.repository.updateCustomerContact(id, data);
+    if (!contact) throw new NotFoundException('Contact not found');
+    return contact;
+  }
+
+  async deleteCustomerContact(id: string): Promise<void> {
+    const deleted = await this.repository.deleteCustomerContact(id);
+    if (!deleted) throw new NotFoundException('Contact not found');
+  }
+
+  // Customer Notes
+  async listCustomerNotes(customerId: string): Promise<CustomerNote[]> {
+    return this.repository.findCustomerNotes(customerId);
+  }
+
+  async createCustomerNote(data: {
+    tenantId: string;
+    customerId: string;
+    content: string;
+    createdBy?: string;
+  }): Promise<CustomerNote> {
+    return this.repository.createCustomerNote(data);
+  }
+
+  async deleteCustomerNote(id: string): Promise<void> {
+    const deleted = await this.repository.deleteCustomerNote(id);
+    if (!deleted) throw new NotFoundException('Note not found');
   }
 }

@@ -21,6 +21,14 @@ export { CreateSupplierNoteDto } from './create-supplier-note.dto';
 export { CreateSupplierNcrDto } from './create-supplier-ncr.dto';
 export { ResolveSupplierNcrDto } from './resolve-supplier-ncr.dto';
 
+// Supplier Items
+export { CreateSupplierItemDto } from './create-supplier-item.dto';
+export { UpdateSupplierItemDto } from './update-supplier-item.dto';
+
+// Supplier Contracts
+export { CreateSupplierContractDto } from './create-supplier-contract.dto';
+export { UpdateSupplierContractDto } from './update-supplier-contract.dto';
+
 // Warehouses
 export { CreateWarehouseDto } from './create-warehouse.dto';
 export { UpdateWarehouseDto } from './update-warehouse.dto';

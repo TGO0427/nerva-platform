@@ -132,6 +132,35 @@ export interface SupplierNcr {
   resolvedAt: string | null;
 }
 
+export interface SupplierItem {
+  id: string;
+  supplierId: string;
+  itemId: string;
+  supplierSku: string | null;
+  unitCost: number | null;
+  leadTimeDays: number | null;
+  minOrderQty: number;
+  isPreferred: boolean;
+  isActive: boolean;
+  createdAt: string;
+  itemSku?: string;
+  itemDescription?: string;
+}
+
+export interface SupplierContract {
+  id: string;
+  supplierId: string;
+  contractNo: string;
+  name: string;
+  status: 'DRAFT' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+  startDate: string;
+  endDate: string;
+  terms: string | null;
+  totalValue: number | null;
+  currency: string;
+  createdAt: string;
+}
+
 export interface AuditEntry {
   id: string;
   tenantId: string;

@@ -27,6 +27,10 @@ import {
   CreateSupplierNoteDto,
   CreateSupplierNcrDto,
   ResolveSupplierNcrDto,
+  CreateSupplierItemDto,
+  UpdateSupplierItemDto,
+  CreateSupplierContractDto,
+  UpdateSupplierContractDto,
 } from './dto';
 
 @ApiTags('master-data')
@@ -204,6 +208,97 @@ export class SuppliersController {
     return this.service.resolveSupplierNcr(ncrId, {
       resolution: data.resolution,
       resolvedBy: user.id,
+    });
+  }
+
+  // Supplier Items (Products & Services)
+  @Get(':id/items')
+  @RequirePermissions('supplier.read')
+  @ApiOperation({ summary: 'List supplier items' })
+  async listItems(@Param('id', UuidValidationPipe) supplierId: string) {
+    return this.service.listSupplierItems(supplierId);
+  }
+
+  @Post(':id/items')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Add item to supplier' })
+  async addItem(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) supplierId: string,
+    @Body() data: CreateSupplierItemDto,
+  ) {
+    return this.service.createSupplierItem({ tenantId, supplierId, ...data });
+  }
+
+  @Patch('items/:itemId')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Update supplier item' })
+  async updateItem(
+    @Param('itemId', UuidValidationPipe) itemId: string,
+    @Body() data: UpdateSupplierItemDto,
+  ) {
+    return this.service.updateSupplierItem(itemId, data);
+  }
+
+  @Delete('items/:itemId')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Remove item from supplier' })
+  async removeItem(@Param('itemId', UuidValidationPipe) itemId: string) {
+    await this.service.deleteSupplierItem(itemId);
+    return { success: true };
+  }
+
+  // Supplier Contracts
+  @Get(':id/contracts')
+  @RequirePermissions('supplier.read')
+  @ApiOperation({ summary: 'List supplier contracts' })
+  async listContracts(@Param('id', UuidValidationPipe) supplierId: string) {
+    return this.service.listSupplierContracts(supplierId);
+  }
+
+  @Post(':id/contracts')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Create supplier contract' })
+  async createContract(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) supplierId: string,
+    @Body() data: CreateSupplierContractDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.service.createSupplierContract({
+      tenantId,
+      supplierId,
+      name: data.name,
+      startDate: new Date(data.startDate),
+      endDate: new Date(data.endDate),
+      terms: data.terms,
+      totalValue: data.totalValue,
+      currency: data.currency,
+      createdBy: user.id,
+    });
+  }
+
+  @Get('contracts/:contractId')
+  @RequirePermissions('supplier.read')
+  @ApiOperation({ summary: 'Get supplier contract by ID' })
+  async getContract(@Param('contractId', UuidValidationPipe) contractId: string) {
+    return this.service.getSupplierContract(contractId);
+  }
+
+  @Patch('contracts/:contractId')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Update supplier contract' })
+  async updateContract(
+    @Param('contractId', UuidValidationPipe) contractId: string,
+    @Body() data: UpdateSupplierContractDto,
+  ) {
+    return this.service.updateSupplierContract(contractId, {
+      name: data.name,
+      status: data.status,
+      startDate: data.startDate ? new Date(data.startDate) : undefined,
+      endDate: data.endDate ? new Date(data.endDate) : undefined,
+      terms: data.terms,
+      totalValue: data.totalValue,
     });
   }
 }

@@ -23,10 +23,18 @@ import {
   useSupplierNcrs,
   useCreateSupplierNcr,
   useResolveSupplierNcr,
+  useSupplierItems,
+  useAddSupplierItem,
+  useUpdateSupplierItem,
+  useRemoveSupplierItem,
+  useSupplierContracts,
+  useCreateSupplierContract,
+  useUpdateSupplierContract,
+  useItems,
 } from '@/lib/queries';
-import type { Supplier, SupplierContact, SupplierNote, SupplierNcr, AuditEntry } from '@nerva/shared';
+import type { Supplier, SupplierContact, SupplierNote, SupplierNcr, SupplierItem, SupplierContract, AuditEntry } from '@nerva/shared';
 
-type Tab = 'company' | 'contacts' | 'notes' | 'ncrs';
+type Tab = 'company' | 'products' | 'contracts' | 'contacts' | 'notes' | 'ncrs';
 
 export default function SupplierDetailPage() {
   const params = useParams();
@@ -59,6 +67,8 @@ export default function SupplierDetailPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'company', label: 'Company Information' },
+    { key: 'products', label: 'Products & Services' },
+    { key: 'contracts', label: 'Volume Contracts' },
     { key: 'contacts', label: 'Contacts' },
     { key: 'notes', label: 'Notes' },
     { key: 'ncrs', label: 'NCRs' },
@@ -132,6 +142,8 @@ export default function SupplierDetailPage() {
       {activeTab === 'company' && (
         <CompanyInfoTab supplier={supplier} activityLog={activityLog || []} />
       )}
+      {activeTab === 'products' && <ProductsTab supplierId={id} />}
+      {activeTab === 'contracts' && <ContractsTab supplierId={id} />}
       {activeTab === 'contacts' && <ContactsTab supplierId={id} />}
       {activeTab === 'notes' && <NotesTab supplierId={id} />}
       {activeTab === 'ncrs' && <NcrsTab supplierId={id} />}
@@ -775,6 +787,457 @@ function NcrsTab({ supplierId }: { supplierId: string }) {
   );
 }
 
+function ProductsTab({ supplierId }: { supplierId: string }) {
+  const [showForm, setShowForm] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState('');
+  const [formData, setFormData] = useState({
+    supplierSku: '',
+    unitCost: '',
+    leadTimeDays: '',
+    minOrderQty: '1',
+    isPreferred: false,
+  });
+
+  const { data: supplierItems, isLoading } = useSupplierItems(supplierId);
+  const { data: itemsData } = useItems({ page: 1, limit: 100 });
+  const addItem = useAddSupplierItem();
+  const updateItem = useUpdateSupplierItem();
+  const removeItem = useRemoveSupplierItem();
+
+  const availableItems = itemsData?.data?.filter(
+    item => !supplierItems?.some(si => si.itemId === item.id)
+  ) || [];
+
+  const resetForm = () => {
+    setFormData({ supplierSku: '', unitCost: '', leadTimeDays: '', minOrderQty: '1', isPreferred: false });
+    setSelectedItemId('');
+    setShowForm(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedItemId) return;
+    try {
+      await addItem.mutateAsync({
+        supplierId,
+        data: {
+          itemId: selectedItemId,
+          supplierSku: formData.supplierSku || undefined,
+          unitCost: formData.unitCost ? parseFloat(formData.unitCost) : undefined,
+          leadTimeDays: formData.leadTimeDays ? parseInt(formData.leadTimeDays) : undefined,
+          minOrderQty: parseInt(formData.minOrderQty) || 1,
+          isPreferred: formData.isPreferred,
+        },
+      });
+      resetForm();
+    } catch (error) {
+      console.error('Failed to add item:', error);
+    }
+  };
+
+  const handleRemove = async (itemId: string) => {
+    if (confirm('Remove this item from supplier?')) {
+      try {
+        await removeItem.mutateAsync({ itemId, supplierId });
+      } catch (error) {
+        console.error('Failed to remove item:', error);
+      }
+    }
+  };
+
+  const togglePreferred = async (item: SupplierItem) => {
+    try {
+      await updateItem.mutateAsync({
+        itemId: item.id,
+        supplierId,
+        data: { isPreferred: !item.isPreferred },
+      });
+    } catch (error) {
+      console.error('Failed to update item:', error);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center py-12"><Spinner size="lg" /></div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Products & Services</h3>
+        {!showForm && (
+          <Button onClick={() => setShowForm(true)}>Add Product</Button>
+        )}
+      </div>
+
+      {showForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Add Product to Supplier</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="itemSelect">Select Item *</Label>
+                <select
+                  id="itemSelect"
+                  value={selectedItemId}
+                  onChange={(e) => setSelectedItemId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  required
+                >
+                  <option value="">Select an item...</option>
+                  {availableItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.sku} - {item.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="supplierSku">Supplier SKU</Label>
+                  <Input
+                    id="supplierSku"
+                    value={formData.supplierSku}
+                    onChange={(e) => setFormData({ ...formData, supplierSku: e.target.value })}
+                    placeholder="Supplier's part number"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="unitCost">Unit Cost (ZAR)</Label>
+                  <Input
+                    id="unitCost"
+                    type="number"
+                    step="0.01"
+                    value={formData.unitCost}
+                    onChange={(e) => setFormData({ ...formData, unitCost: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="leadTimeDays">Lead Time (days)</Label>
+                  <Input
+                    id="leadTimeDays"
+                    type="number"
+                    value={formData.leadTimeDays}
+                    onChange={(e) => setFormData({ ...formData, leadTimeDays: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="minOrderQty">Min Order Qty</Label>
+                  <Input
+                    id="minOrderQty"
+                    type="number"
+                    min="1"
+                    value={formData.minOrderQty}
+                    onChange={(e) => setFormData({ ...formData, minOrderQty: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isPreferred"
+                  checked={formData.isPreferred}
+                  onChange={(e) => setFormData({ ...formData, isPreferred: e.target.checked })}
+                  className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                />
+                <Label htmlFor="isPreferred" className="mb-0">Preferred Supplier for this item</Label>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={addItem.isPending || !selectedItemId}>
+                  {addItem.isPending ? 'Adding...' : 'Add Product'}
+                </Button>
+                <Button type="button" variant="secondary" onClick={resetForm}>Cancel</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {supplierItems && supplierItems.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Supplier SKU</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit Cost</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lead Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Min Qty</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Preferred</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {supplierItems.map((item) => (
+                <tr key={item.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.itemSku}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.itemDescription}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.supplierSku || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {item.unitCost ? `R ${item.unitCost.toFixed(2)}` : '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {item.leadTimeDays ? `${item.leadTimeDays} days` : '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.minOrderQty}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button onClick={() => togglePreferred(item)}>
+                      {item.isPreferred ? (
+                        <Badge variant="success">Preferred</Badge>
+                      ) : (
+                        <Badge variant="default">-</Badge>
+                      )}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <button onClick={() => handleRemove(item.id)} className="text-red-600 hover:text-red-800">
+                      <TrashIcon />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        !showForm && (
+          <Card>
+            <CardContent className="py-12">
+              <div className="text-center text-gray-500">
+                <PackageIcon />
+                <h3 className="mt-4 font-medium text-gray-900">No products linked</h3>
+                <p className="mt-1">Add products that this supplier can provide.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      )}
+    </div>
+  );
+}
+
+function ContractsTab({ supplierId }: { supplierId: string }) {
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    startDate: '',
+    endDate: '',
+    terms: '',
+    totalValue: '',
+    currency: 'ZAR',
+  });
+
+  const { data: contracts, isLoading } = useSupplierContracts(supplierId);
+  const createContract = useCreateSupplierContract();
+  const updateContract = useUpdateSupplierContract();
+
+  const resetForm = () => {
+    setFormData({ name: '', startDate: '', endDate: '', terms: '', totalValue: '', currency: 'ZAR' });
+    setShowForm(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createContract.mutateAsync({
+        supplierId,
+        data: {
+          name: formData.name,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          terms: formData.terms || undefined,
+          totalValue: formData.totalValue ? parseFloat(formData.totalValue) : undefined,
+          currency: formData.currency,
+        },
+      });
+      resetForm();
+    } catch (error) {
+      console.error('Failed to create contract:', error);
+    }
+  };
+
+  const handleActivate = async (contract: SupplierContract) => {
+    try {
+      await updateContract.mutateAsync({
+        contractId: contract.id,
+        supplierId,
+        data: { status: 'ACTIVE' },
+      });
+    } catch (error) {
+      console.error('Failed to activate contract:', error);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center py-12"><Spinner size="lg" /></div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Volume Contracts</h3>
+        {!showForm && (
+          <Button onClick={() => setShowForm(true)}>New Contract</Button>
+        )}
+      </div>
+
+      {showForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create Contract</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="contractName">Contract Name *</Label>
+                <Input
+                  id="contractName"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., Annual Supply Agreement 2026"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="startDate">Start Date *</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="endDate">End Date *</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="totalValue">Total Value</Label>
+                  <Input
+                    id="totalValue"
+                    type="number"
+                    step="0.01"
+                    value={formData.totalValue}
+                    onChange={(e) => setFormData({ ...formData, totalValue: e.target.value })}
+                    placeholder="Contract value"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="currency">Currency</Label>
+                  <select
+                    id="currency"
+                    value={formData.currency}
+                    onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="ZAR">ZAR</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="terms">Terms & Conditions</Label>
+                <textarea
+                  id="terms"
+                  value={formData.terms}
+                  onChange={(e) => setFormData({ ...formData, terms: e.target.value })}
+                  className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="Contract terms..."
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={createContract.isPending}>
+                  {createContract.isPending ? 'Creating...' : 'Create Contract'}
+                </Button>
+                <Button type="button" variant="secondary" onClick={resetForm}>Cancel</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {contracts && contracts.length > 0 ? (
+        <div className="space-y-4">
+          {contracts.map((contract) => (
+            <Card key={contract.id}>
+              <CardContent className="pt-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{contract.contractNo}</span>
+                      <Badge variant={getContractStatusVariant(contract.status)}>
+                        {contract.status}
+                      </Badge>
+                    </div>
+                    <h4 className="text-lg font-medium mt-1">{contract.name}</h4>
+                    <div className="mt-2 text-sm text-gray-600">
+                      <span>{new Date(contract.startDate).toLocaleDateString()}</span>
+                      <span className="mx-2">to</span>
+                      <span>{new Date(contract.endDate).toLocaleDateString()}</span>
+                    </div>
+                    {contract.totalValue && (
+                      <div className="mt-1 text-sm font-medium text-green-600">
+                        {contract.currency} {contract.totalValue.toLocaleString()}
+                      </div>
+                    )}
+                    {contract.terms && (
+                      <p className="mt-2 text-sm text-gray-500">{contract.terms}</p>
+                    )}
+                  </div>
+                  {contract.status === 'DRAFT' && (
+                    <Button size="sm" onClick={() => handleActivate(contract)}>
+                      Activate
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        !showForm && (
+          <Card>
+            <CardContent className="py-12">
+              <div className="text-center text-gray-500">
+                <ContractIcon />
+                <h3 className="mt-4 font-medium text-gray-900">No contracts yet</h3>
+                <p className="mt-1">Create volume contracts for pricing agreements.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      )}
+    </div>
+  );
+}
+
+function getContractStatusVariant(status: string): 'success' | 'warning' | 'danger' | 'default' {
+  switch (status) {
+    case 'ACTIVE':
+      return 'success';
+    case 'DRAFT':
+      return 'warning';
+    case 'EXPIRED':
+    case 'CANCELLED':
+      return 'danger';
+    default:
+      return 'default';
+  }
+}
+
 function getNcrStatusVariant(status: string): 'success' | 'warning' | 'danger' | 'default' {
   switch (status) {
     case 'RESOLVED':
@@ -830,6 +1293,22 @@ function AlertIcon() {
   return (
     <svg className="h-12 w-12 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+    </svg>
+  );
+}
+
+function PackageIcon() {
+  return (
+    <svg className="h-12 w-12 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    </svg>
+  );
+}
+
+function ContractIcon() {
+  return (
+    <svg className="h-12 w-12 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
     </svg>
   );
 }

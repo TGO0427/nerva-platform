@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { Supplier, SupplierContact, SupplierNote, SupplierNcr, PaginatedResult, AuditEntry } from '@nerva/shared';
+import type { Supplier, SupplierContact, SupplierNote, SupplierNcr, SupplierItem, SupplierContract, PaginatedResult, AuditEntry } from '@nerva/shared';
 import type { QueryParams } from './use-query-params';
 
 const SUPPLIERS_KEY = 'suppliers';
@@ -277,6 +277,144 @@ export function useResolveSupplierNcr() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'ncrs'] });
       queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, 'ncrs', variables.ncrId] });
+    },
+  });
+}
+
+// === SUPPLIER ITEMS (Products & Services) ===
+
+interface CreateSupplierItemData {
+  itemId: string;
+  supplierSku?: string;
+  unitCost?: number;
+  leadTimeDays?: number;
+  minOrderQty?: number;
+  isPreferred?: boolean;
+}
+
+interface UpdateSupplierItemData {
+  supplierSku?: string;
+  unitCost?: number;
+  leadTimeDays?: number;
+  minOrderQty?: number;
+  isPreferred?: boolean;
+  isActive?: boolean;
+}
+
+// Fetch supplier items
+export function useSupplierItems(supplierId: string | undefined) {
+  return useQuery({
+    queryKey: [SUPPLIERS_KEY, supplierId, 'items'],
+    queryFn: async () => {
+      const response = await api.get<SupplierItem[]>(`/masterdata/suppliers/${supplierId}/items`);
+      return response.data;
+    },
+    enabled: !!supplierId,
+  });
+}
+
+// Add item to supplier
+export function useAddSupplierItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ supplierId, data }: { supplierId: string; data: CreateSupplierItemData }) => {
+      const response = await api.post<SupplierItem>(`/masterdata/suppliers/${supplierId}/items`, data);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'items'] });
+    },
+  });
+}
+
+// Update supplier item
+export function useUpdateSupplierItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ itemId, data, supplierId }: { itemId: string; data: UpdateSupplierItemData; supplierId: string }) => {
+      const response = await api.patch<SupplierItem>(`/masterdata/suppliers/items/${itemId}`, data);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'items'] });
+    },
+  });
+}
+
+// Remove supplier item
+export function useRemoveSupplierItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ itemId, supplierId }: { itemId: string; supplierId: string }) => {
+      await api.delete(`/masterdata/suppliers/items/${itemId}`);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'items'] });
+    },
+  });
+}
+
+// === SUPPLIER CONTRACTS ===
+
+interface CreateContractData {
+  name: string;
+  startDate: string;
+  endDate: string;
+  terms?: string;
+  totalValue?: number;
+  currency?: string;
+}
+
+interface UpdateContractData {
+  name?: string;
+  status?: 'DRAFT' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+  startDate?: string;
+  endDate?: string;
+  terms?: string;
+  totalValue?: number;
+}
+
+// Fetch supplier contracts
+export function useSupplierContracts(supplierId: string | undefined) {
+  return useQuery({
+    queryKey: [SUPPLIERS_KEY, supplierId, 'contracts'],
+    queryFn: async () => {
+      const response = await api.get<SupplierContract[]>(`/masterdata/suppliers/${supplierId}/contracts`);
+      return response.data;
+    },
+    enabled: !!supplierId,
+  });
+}
+
+// Create supplier contract
+export function useCreateSupplierContract() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ supplierId, data }: { supplierId: string; data: CreateContractData }) => {
+      const response = await api.post<SupplierContract>(`/masterdata/suppliers/${supplierId}/contracts`, data);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'contracts'] });
+    },
+  });
+}
+
+// Update supplier contract
+export function useUpdateSupplierContract() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ contractId, data, supplierId }: { contractId: string; data: UpdateContractData; supplierId: string }) => {
+      const response = await api.patch<SupplierContract>(`/masterdata/suppliers/contracts/${contractId}`, data);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'contracts'] });
     },
   });
 }
