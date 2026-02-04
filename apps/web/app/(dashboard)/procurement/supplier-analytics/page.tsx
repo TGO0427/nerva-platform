@@ -297,10 +297,10 @@ export default function SupplierAnalyticsPage() {
               </div>
 
               {/* Pagination */}
-              {performance.meta && performance.meta.totalPages > 1 && (
+              {performance.meta && (performance.meta.totalPages ?? 1) > 1 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
                   <p className="text-sm text-gray-500">
-                    Page {performancePage} of {performance.meta.totalPages}
+                    Page {performancePage} of {performance.meta.totalPages ?? 1}
                   </p>
                   <div className="flex gap-2">
                     <button
