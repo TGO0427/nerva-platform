@@ -306,6 +306,37 @@ export interface AdjustmentLine {
   createdAt: string;
 }
 
+// Cycle Counts
+export type CycleCountStatus = 'OPEN' | 'IN_PROGRESS' | 'PENDING_APPROVAL' | 'CLOSED' | 'CANCELLED';
+
+export interface CycleCount {
+  id: string;
+  tenantId: string;
+  warehouseId: string;
+  countNo: string;
+  status: CycleCountStatus;
+  startedAt: string | null;
+  closedAt: string | null;
+  createdBy: string | null;
+  approvedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CycleCountLine {
+  id: string;
+  tenantId: string;
+  cycleCountId: string;
+  binId: string;
+  itemId: string;
+  systemQty: number;
+  countedQty: number | null;
+  varianceQty: number;
+  countedBy: string | null;
+  countedAt: string | null;
+  createdAt: string;
+}
+
 // Inventory
 export interface StockOnHand {
   itemId: string;

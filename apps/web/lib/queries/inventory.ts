@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { StockOnHand, PaginatedResult, Adjustment, AdjustmentLine } from '@nerva/shared';
+import type { StockOnHand, PaginatedResult, Adjustment, AdjustmentLine, CycleCount, CycleCountLine } from '@nerva/shared';
 import type { QueryParams } from './use-query-params';
 
 const INVENTORY_KEY = 'inventory';
 const GRN_KEY = 'grn';
 const EXPIRY_KEY = 'expiry-alerts';
 const ADJUSTMENT_KEY = 'adjustments';
+const CYCLE_COUNT_KEY = 'cycle-counts';
 
 // Types for inventory
 export interface StockSnapshot {
@@ -435,6 +436,212 @@ export function usePostAdjustment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADJUSTMENT_KEY] });
       queryClient.invalidateQueries({ queryKey: [INVENTORY_KEY] });
+    },
+  });
+}
+
+// Cycle Count types (extended with joined fields)
+export interface CycleCountSummary extends CycleCount {
+  warehouseName?: string;
+  lineCount?: number;
+  varianceCount?: number;
+}
+
+export interface CycleCountLineDetail extends CycleCountLine {
+  binCode?: string;
+  itemSku?: string;
+  itemDescription?: string;
+}
+
+// Cycle Count queries
+export function useCycleCounts(params: QueryParams & { status?: string }) {
+  return useQuery({
+    queryKey: [CYCLE_COUNT_KEY, params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      searchParams.set('page', String(params.page));
+      searchParams.set('limit', String(params.limit));
+      if (params.status) searchParams.set('status', params.status);
+
+      const response = await api.get<PaginatedResult<CycleCountSummary>>(
+        `/inventory/cycle-counts?${searchParams.toString()}`
+      );
+      return response.data;
+    },
+  });
+}
+
+export function useCycleCount(id: string | undefined) {
+  return useQuery({
+    queryKey: [CYCLE_COUNT_KEY, id],
+    queryFn: async () => {
+      const response = await api.get<CycleCountSummary>(`/inventory/cycle-counts/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+}
+
+export function useCycleCountLines(cycleCountId: string | undefined) {
+  return useQuery({
+    queryKey: [CYCLE_COUNT_KEY, cycleCountId, 'lines'],
+    queryFn: async () => {
+      const response = await api.get<CycleCountLineDetail[]>(
+        `/inventory/cycle-counts/${cycleCountId}/lines`
+      );
+      return response.data;
+    },
+    enabled: !!cycleCountId,
+  });
+}
+
+export function useCreateCycleCount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { warehouseId: string }) => {
+      const response = await api.post<CycleCountSummary>('/inventory/cycle-counts', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY] });
+    },
+  });
+}
+
+export function useAddCycleCountLine(cycleCountId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { binId: string; itemId: string }) => {
+      const response = await api.post<CycleCountLineDetail>(
+        `/inventory/cycle-counts/${cycleCountId}/lines`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY, cycleCountId, 'lines'] });
+    },
+  });
+}
+
+export function useAddCycleCountLinesFromBin(cycleCountId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { binId: string }) => {
+      const response = await api.post(
+        `/inventory/cycle-counts/${cycleCountId}/lines/from-bin`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY, cycleCountId, 'lines'] });
+    },
+  });
+}
+
+export function useRemoveCycleCountLine(cycleCountId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (lineId: string) => {
+      await api.delete(`/inventory/cycle-counts/${cycleCountId}/lines/${lineId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY, cycleCountId, 'lines'] });
+    },
+  });
+}
+
+export function useStartCycleCount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<CycleCountSummary>(`/inventory/cycle-counts/${id}/start`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY] });
+    },
+  });
+}
+
+export function useRecordCount(cycleCountId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ lineId, countedQty }: { lineId: string; countedQty: number }) => {
+      const response = await api.post<CycleCountLineDetail>(
+        `/inventory/cycle-counts/${cycleCountId}/lines/${lineId}/record`,
+        { countedQty }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY, cycleCountId, 'lines'] });
+    },
+  });
+}
+
+export function useCompleteCycleCount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<CycleCountSummary>(`/inventory/cycle-counts/${id}/complete`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY] });
+    },
+  });
+}
+
+export function useGenerateAdjustmentFromCycleCount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<Adjustment>(
+        `/inventory/cycle-counts/${id}/generate-adjustment`
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY] });
+      queryClient.invalidateQueries({ queryKey: [ADJUSTMENT_KEY] });
+    },
+  });
+}
+
+export function useCloseCycleCount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<CycleCountSummary>(`/inventory/cycle-counts/${id}/close`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY] });
+    },
+  });
+}
+
+export function useCancelCycleCount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<CycleCountSummary>(`/inventory/cycle-counts/${id}/cancel`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY] });
     },
   });
 }

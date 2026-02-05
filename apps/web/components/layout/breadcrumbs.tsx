@@ -24,6 +24,7 @@ const pathLabels: Record<string, string> = {
   users: 'Users',
   integrations: 'Integrations',
   adjustments: 'Stock Adjustments',
+  'cycle-counts': 'Cycle Counts',
   profile: 'Profile',
   new: 'New',
   edit: 'Edit',

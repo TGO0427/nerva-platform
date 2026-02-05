@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InventoryRepository, Grn, GrnLine, Adjustment, AdjustmentLine } from './inventory.repository';
+import { CycleCountRepository, CycleCount as CycleCountEntity, CycleCountLine as CycleCountLineEntity } from './cycle-count.repository';
 import { StockLedgerService } from './stock-ledger.service';
 import { BatchRepository } from './batch.repository';
 import { MasterDataService } from '../masterdata/masterdata.service';
@@ -8,6 +9,7 @@ import { MasterDataService } from '../masterdata/masterdata.service';
 export class InventoryService {
   constructor(
     private readonly repository: InventoryRepository,
+    private readonly cycleCountRepo: CycleCountRepository,
     private readonly stockLedger: StockLedgerService,
     private readonly batchRepository: BatchRepository,
     private readonly masterDataService: MasterDataService,
@@ -288,6 +290,191 @@ export class InventoryService {
     }
 
     const updated = await this.repository.updateAdjustmentStatus(id, 'POSTED');
+    return updated!;
+  }
+
+  // Cycle Count operations
+  async createCycleCount(data: {
+    tenantId: string;
+    warehouseId: string;
+    createdBy?: string;
+  }): Promise<CycleCountEntity> {
+    await this.masterDataService.getWarehouse(data.warehouseId);
+    const countNo = await this.cycleCountRepo.generateCountNo(data.tenantId);
+    return this.cycleCountRepo.create({ ...data, countNo });
+  }
+
+  async getCycleCount(id: string): Promise<CycleCountEntity> {
+    const cc = await this.cycleCountRepo.findById(id);
+    if (!cc) throw new NotFoundException('Cycle count not found');
+    return cc;
+  }
+
+  async listCycleCounts(tenantId: string, status?: string, page = 1, limit = 50) {
+    const offset = (page - 1) * limit;
+    const data = await this.cycleCountRepo.findByTenant(tenantId, status, limit, offset);
+    return { data, meta: { page, limit } };
+  }
+
+  async addCycleCountLine(
+    cycleCountId: string,
+    data: { tenantId: string; binId: string; itemId: string },
+  ): Promise<CycleCountLineEntity> {
+    const cc = await this.getCycleCount(cycleCountId);
+    if (cc.status !== 'OPEN') {
+      throw new BadRequestException('Can only add lines to OPEN cycle counts');
+    }
+
+    const stockInBin = await this.stockLedger.getStockInBin(data.tenantId, data.binId);
+    const match = stockInBin.find((s) => s.itemId === data.itemId);
+    const systemQty = match?.qtyOnHand ?? 0;
+
+    return this.cycleCountRepo.addLine({
+      tenantId: data.tenantId,
+      cycleCountId,
+      binId: data.binId,
+      itemId: data.itemId,
+      systemQty,
+    });
+  }
+
+  async addCycleCountLinesFromBin(
+    cycleCountId: string,
+    data: { tenantId: string; binId: string },
+  ): Promise<{ count: number }> {
+    const cc = await this.getCycleCount(cycleCountId);
+    if (cc.status !== 'OPEN') {
+      throw new BadRequestException('Can only add lines to OPEN cycle counts');
+    }
+
+    const stockInBin = await this.stockLedger.getStockInBin(data.tenantId, data.binId);
+    if (stockInBin.length === 0) {
+      throw new BadRequestException('No stock found in this bin');
+    }
+
+    const lines = stockInBin.map((s) => ({
+      tenantId: data.tenantId,
+      cycleCountId,
+      binId: data.binId,
+      itemId: s.itemId,
+      systemQty: s.qtyOnHand,
+    }));
+
+    const count = await this.cycleCountRepo.addLines(lines);
+    return { count };
+  }
+
+  async getCycleCountLines(cycleCountId: string): Promise<CycleCountLineEntity[]> {
+    return this.cycleCountRepo.getLines(cycleCountId);
+  }
+
+  async removeCycleCountLine(cycleCountId: string, lineId: string): Promise<void> {
+    const cc = await this.getCycleCount(cycleCountId);
+    if (cc.status !== 'OPEN') {
+      throw new BadRequestException('Can only remove lines from OPEN cycle counts');
+    }
+    await this.cycleCountRepo.deleteLine(lineId);
+  }
+
+  async startCycleCount(id: string): Promise<CycleCountEntity> {
+    const cc = await this.getCycleCount(id);
+    if (cc.status !== 'OPEN') {
+      throw new BadRequestException('Only OPEN cycle counts can be started');
+    }
+    const totalLines = await this.cycleCountRepo.getTotalLineCount(id);
+    if (totalLines === 0) {
+      throw new BadRequestException('Cannot start a cycle count with no lines');
+    }
+    const updated = await this.cycleCountRepo.updateStatus(id, 'IN_PROGRESS', {
+      startedAt: new Date(),
+    });
+    return updated!;
+  }
+
+  async recordCount(
+    lineId: string,
+    data: { countedQty: number; countedBy: string },
+  ): Promise<CycleCountLineEntity> {
+    const line = await this.cycleCountRepo.getLine(lineId);
+    if (!line) throw new NotFoundException('Cycle count line not found');
+
+    const cc = await this.getCycleCount(line.cycleCountId);
+    if (cc.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Can only record counts on IN_PROGRESS cycle counts');
+    }
+
+    const updated = await this.cycleCountRepo.updateLineCount(
+      lineId,
+      data.countedQty,
+      data.countedBy,
+    );
+    return updated!;
+  }
+
+  async completeCycleCount(id: string): Promise<CycleCountEntity> {
+    const cc = await this.getCycleCount(id);
+    if (cc.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Only IN_PROGRESS cycle counts can be completed');
+    }
+    const counted = await this.cycleCountRepo.getCountedLineCount(id);
+    const total = await this.cycleCountRepo.getTotalLineCount(id);
+    if (counted < total) {
+      throw new BadRequestException(`All lines must be counted (${counted}/${total} done)`);
+    }
+    const updated = await this.cycleCountRepo.updateStatus(id, 'PENDING_APPROVAL');
+    return updated!;
+  }
+
+  async generateAdjustmentFromCycleCount(id: string, userId: string): Promise<Adjustment> {
+    const cc = await this.getCycleCount(id);
+    if (cc.status !== 'PENDING_APPROVAL') {
+      throw new BadRequestException('Only PENDING_APPROVAL cycle counts can generate adjustments');
+    }
+
+    const varianceLines = await this.cycleCountRepo.getLinesWithVariance(id);
+    if (varianceLines.length === 0) {
+      throw new BadRequestException('No variances found to adjust');
+    }
+
+    const adjustment = await this.createAdjustment({
+      tenantId: cc.tenantId,
+      warehouseId: cc.warehouseId,
+      reason: 'Cycle Count Variance',
+      notes: `Generated from cycle count ${cc.countNo}`,
+      cycleCountId: id,
+      createdBy: userId,
+    });
+
+    for (const line of varianceLines) {
+      await this.addAdjustmentLine(adjustment.id, {
+        tenantId: cc.tenantId,
+        binId: line.binId,
+        itemId: line.itemId,
+        qtyAfter: line.countedQty!,
+      });
+    }
+
+    return adjustment;
+  }
+
+  async closeCycleCount(id: string, approvedBy: string): Promise<CycleCountEntity> {
+    const cc = await this.getCycleCount(id);
+    if (cc.status !== 'PENDING_APPROVAL') {
+      throw new BadRequestException('Only PENDING_APPROVAL cycle counts can be closed');
+    }
+    const updated = await this.cycleCountRepo.updateStatus(id, 'CLOSED', {
+      closedAt: new Date(),
+      approvedBy,
+    });
+    return updated!;
+  }
+
+  async cancelCycleCount(id: string): Promise<CycleCountEntity> {
+    const cc = await this.getCycleCount(id);
+    if (cc.status !== 'OPEN' && cc.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Only OPEN or IN_PROGRESS cycle counts can be cancelled');
+    }
+    const updated = await this.cycleCountRepo.updateStatus(id, 'CANCELLED');
     return updated!;
   }
 }
