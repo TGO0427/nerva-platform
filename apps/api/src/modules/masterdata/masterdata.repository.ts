@@ -1982,7 +1982,7 @@ export class MasterDataRepository extends BaseRepository {
       `SELECT
         (SELECT COUNT(*) FROM customers WHERE tenant_id = $1) as total_customers,
         (SELECT COUNT(*) FROM customers WHERE tenant_id = $1 AND is_active = true) as active_customers,
-        (SELECT COALESCE(SUM(total_amount), 0) FROM sales_orders WHERE tenant_id = $1) as total_sales_value,
+        (SELECT COALESCE(SUM(sol.qty_ordered * COALESCE(sol.unit_price, 0)), 0) FROM sales_order_lines sol JOIN sales_orders so ON sol.sales_order_id = so.id WHERE so.tenant_id = $1) as total_sales_value,
         (SELECT COUNT(*) FROM sales_orders WHERE tenant_id = $1) as total_orders,
         (SELECT COUNT(*) FROM sales_orders WHERE tenant_id = $1 AND status IN ('DRAFT', 'CONFIRMED', 'ALLOCATED')) as pending_orders
       `,
@@ -1997,9 +1997,10 @@ export class MasterDataRepository extends BaseRepository {
         c.id,
         c.name,
         COUNT(so.id) as order_count,
-        COALESCE(SUM(so.total_amount), 0) as total_value
+        COALESCE(SUM(sol.qty_ordered * COALESCE(sol.unit_price, 0)), 0) as total_value
       FROM customers c
       LEFT JOIN sales_orders so ON c.id = so.customer_id AND so.tenant_id = $1
+      LEFT JOIN sales_order_lines sol ON so.id = sol.sales_order_id
       WHERE c.tenant_id = $1 AND c.is_active = true
       GROUP BY c.id, c.name
       HAVING COUNT(so.id) > 0
@@ -2011,9 +2012,8 @@ export class MasterDataRepository extends BaseRepository {
     const recentOrders = await this.queryMany<Record<string, unknown>>(
       `SELECT
         so.id,
-        so.so_no,
+        so.order_no,
         c.name as customer_name,
-        so.total_amount,
         so.status,
         so.created_at
       FROM sales_orders so
@@ -2039,9 +2039,9 @@ export class MasterDataRepository extends BaseRepository {
       })),
       recentOrders: recentOrders.map((row) => ({
         id: row.id as string,
-        soNo: row.so_no as string,
+        soNo: row.order_no as string,
         customerName: row.customer_name as string,
-        totalAmount: parseFloat(row.total_amount as string || '0'),
+        totalAmount: 0,
         status: row.status as string,
         createdAt: (row.created_at as Date).toISOString(),
       })),
@@ -2137,9 +2137,10 @@ export class MasterDataRepository extends BaseRepository {
       SELECT
         TO_CHAR(ms.month, 'YYYY-MM') as month,
         COALESCE(COUNT(so.id), 0) as order_count,
-        COALESCE(SUM(so.total_amount), 0) as total_value
+        COALESCE(SUM(sol.qty_ordered * COALESCE(sol.unit_price, 0)), 0) as total_value
       FROM month_series ms
       LEFT JOIN sales_orders so ON DATE_TRUNC('month', so.created_at) = ms.month AND so.tenant_id = $1
+      LEFT JOIN sales_order_lines sol ON so.id = sol.sales_order_id
       GROUP BY ms.month
       ORDER BY ms.month ASC`,
       [tenantId],
@@ -2166,16 +2167,21 @@ export class MasterDataRepository extends BaseRepository {
         -- Returns
         (SELECT COUNT(*) FROM rmas WHERE tenant_id = $1 AND status IN ('PENDING', 'RECEIVED')) as open_returns,
         -- Inventory Alerts
-        (SELECT COUNT(*) FROM inventory i
-         JOIN items it ON i.item_id = it.id
-         WHERE i.tenant_id = $1 AND i.qty_on_hand <= COALESCE(it.reorder_point, 0)) as low_stock_items,
-        (SELECT COUNT(*) FROM inventory
-         WHERE tenant_id = $1 AND expiry_date IS NOT NULL AND expiry_date <= NOW() + INTERVAL '30 days') as expiring_items,
+        (SELECT COUNT(*) FROM (
+          SELECT item_id FROM stock_snapshot WHERE tenant_id = $1
+          GROUP BY item_id HAVING SUM(qty_on_hand) > 0 AND SUM(qty_on_hand) < 10
+        ) low) as low_stock_items,
+        (SELECT COUNT(DISTINCT sl.item_id) FROM stock_ledger sl
+         WHERE sl.tenant_id = $1 AND sl.expiry_date IS NOT NULL
+         AND sl.expiry_date <= NOW() + INTERVAL '30 days'
+         AND sl.expiry_date > NOW()
+         AND EXISTS (SELECT 1 FROM stock_snapshot ss WHERE ss.tenant_id = $1 AND ss.item_id = sl.item_id AND ss.qty_on_hand > 0)) as expiring_items,
         -- Open NCRs
         (SELECT COUNT(*) FROM supplier_ncrs WHERE tenant_id = $1 AND status IN ('OPEN', 'IN_PROGRESS')) as open_ncrs,
         -- Recent Transactions
-        (SELECT COALESCE(SUM(total_amount), 0) FROM sales_orders
-         WHERE tenant_id = $1 AND created_at >= NOW() - INTERVAL '7 days') as weekly_sales_value,
+        (SELECT COALESCE(SUM(sol.qty_ordered * COALESCE(sol.unit_price, 0)), 0) FROM sales_order_lines sol
+         JOIN sales_orders so ON sol.sales_order_id = so.id
+         WHERE so.tenant_id = $1 AND so.created_at >= NOW() - INTERVAL '7 days') as weekly_sales_value,
         (SELECT COUNT(*) FROM sales_orders
          WHERE tenant_id = $1 AND created_at >= NOW() - INTERVAL '7 days') as weekly_orders_count,
         -- Dispatch stats
@@ -2216,10 +2222,10 @@ export class MasterDataRepository extends BaseRepository {
         SELECT
           'sales_order' as type,
           id,
-          so_no as reference,
+          order_no as reference,
           status,
           created_at,
-          'Sales Order ' || so_no || ' created' as message
+          'Sales Order ' || order_no || ' created' as message
         FROM sales_orders
         WHERE tenant_id = $1
 
@@ -2282,8 +2288,10 @@ export class MasterDataRepository extends BaseRepository {
     const summary = await this.queryOne<Record<string, unknown>>(
       `SELECT
         COUNT(*) as total_orders,
-        COALESCE(SUM(total_amount), 0) as total_value,
-        COALESCE(AVG(total_amount), 0) as avg_order_value,
+        COALESCE((SELECT SUM(sol.qty_ordered * COALESCE(sol.unit_price, 0)) FROM sales_order_lines sol
+          JOIN sales_orders so2 ON sol.sales_order_id = so2.id
+          WHERE so2.tenant_id = $1 AND so2.created_at >= $2 AND so2.created_at <= $3), 0) as total_value,
+        0 as avg_order_value,
         COUNT(DISTINCT customer_id) as unique_customers,
         SUM(CASE WHEN status = 'SHIPPED' THEN 1 ELSE 0 END) as shipped_orders,
         SUM(CASE WHEN status = 'CANCELLED' THEN 1 ELSE 0 END) as cancelled_orders
@@ -2294,12 +2302,13 @@ export class MasterDataRepository extends BaseRepository {
 
     const byDay = await this.queryMany<Record<string, unknown>>(
       `SELECT
-        DATE(created_at) as date,
+        DATE(so.created_at) as date,
         COUNT(*) as order_count,
-        COALESCE(SUM(total_amount), 0) as daily_value
-      FROM sales_orders
-      WHERE tenant_id = $1 AND created_at >= $2 AND created_at <= $3
-      GROUP BY DATE(created_at)
+        COALESCE(SUM(sol.qty_ordered * COALESCE(sol.unit_price, 0)), 0) as daily_value
+      FROM sales_orders so
+      LEFT JOIN sales_order_lines sol ON so.id = sol.sales_order_id
+      WHERE so.tenant_id = $1 AND so.created_at >= $2 AND so.created_at <= $3
+      GROUP BY DATE(so.created_at)
       ORDER BY date ASC`,
       [tenantId, startDate, endDate],
     );
@@ -2309,9 +2318,10 @@ export class MasterDataRepository extends BaseRepository {
         c.id,
         c.name,
         COUNT(so.id) as order_count,
-        COALESCE(SUM(so.total_amount), 0) as total_value
+        COALESCE(SUM(sol.qty_ordered * COALESCE(sol.unit_price, 0)), 0) as total_value
       FROM customers c
       JOIN sales_orders so ON c.id = so.customer_id
+      LEFT JOIN sales_order_lines sol ON so.id = sol.sales_order_id
       WHERE so.tenant_id = $1 AND so.created_at >= $2 AND so.created_at <= $3
       GROUP BY c.id, c.name
       ORDER BY total_value DESC
@@ -2325,7 +2335,7 @@ export class MasterDataRepository extends BaseRepository {
         i.sku,
         i.description,
         SUM(sol.qty_ordered) as qty_sold,
-        COALESCE(SUM(sol.line_total), 0) as total_value
+        COALESCE(SUM(sol.qty_ordered * COALESCE(sol.unit_price, 0)), 0) as total_value
       FROM items i
       JOIN sales_order_lines sol ON i.id = sol.item_id
       JOIN sales_orders so ON sol.sales_order_id = so.id
@@ -2369,14 +2379,20 @@ export class MasterDataRepository extends BaseRepository {
   async getInventoryReport(tenantId: string) {
     const summary = await this.queryOne<Record<string, unknown>>(
       `SELECT
-        COUNT(DISTINCT i.item_id) as total_items,
-        COALESCE(SUM(i.qty_on_hand), 0) as total_qty,
-        COALESCE(SUM(i.qty_on_hand * COALESCE(it.unit_cost, 0)), 0) as total_value,
-        COUNT(CASE WHEN i.qty_on_hand <= COALESCE(it.reorder_point, 0) THEN 1 END) as low_stock_count,
-        COUNT(CASE WHEN i.expiry_date IS NOT NULL AND i.expiry_date <= NOW() + INTERVAL '30 days' THEN 1 END) as expiring_count
-      FROM inventory i
-      JOIN items it ON i.item_id = it.id
-      WHERE i.tenant_id = $1`,
+        COUNT(DISTINCT ss.item_id) as total_items,
+        COALESCE(SUM(ss.qty_on_hand), 0) as total_qty,
+        0 as total_value,
+        (SELECT COUNT(*) FROM (
+          SELECT item_id FROM stock_snapshot WHERE tenant_id = $1
+          GROUP BY item_id HAVING SUM(qty_on_hand) > 0 AND SUM(qty_on_hand) < 10
+        ) low) as low_stock_count,
+        (SELECT COUNT(DISTINCT sl.item_id) FROM stock_ledger sl
+         WHERE sl.tenant_id = $1 AND sl.expiry_date IS NOT NULL
+         AND sl.expiry_date <= NOW() + INTERVAL '30 days' AND sl.expiry_date > NOW()
+         AND EXISTS (SELECT 1 FROM stock_snapshot s2 WHERE s2.tenant_id = $1 AND s2.item_id = sl.item_id AND s2.qty_on_hand > 0)
+        ) as expiring_count
+      FROM stock_snapshot ss
+      WHERE ss.tenant_id = $1`,
       [tenantId],
     );
 
@@ -2385,51 +2401,56 @@ export class MasterDataRepository extends BaseRepository {
         w.id,
         w.name,
         w.code,
-        COUNT(DISTINCT i.item_id) as item_count,
-        COALESCE(SUM(i.qty_on_hand), 0) as total_qty,
-        COALESCE(SUM(i.qty_on_hand * COALESCE(it.unit_cost, 0)), 0) as total_value
+        COUNT(DISTINCT ss.item_id) as item_count,
+        COALESCE(SUM(ss.qty_on_hand), 0) as total_qty,
+        0 as total_value
       FROM warehouses w
-      LEFT JOIN inventory i ON w.id = i.warehouse_id
-      LEFT JOIN items it ON i.item_id = it.id
+      LEFT JOIN bins b ON w.id = b.warehouse_id
+      LEFT JOIN stock_snapshot ss ON b.id = ss.bin_id AND ss.tenant_id = $1
       WHERE w.tenant_id = $1 AND w.is_active = true
       GROUP BY w.id, w.name, w.code
-      ORDER BY total_value DESC`,
+      ORDER BY total_qty DESC`,
       [tenantId],
     );
 
     const lowStock = await this.queryMany<Record<string, unknown>>(
       `SELECT
-        i.id as inventory_id,
+        ss.item_id as inventory_id,
         it.id as item_id,
         it.sku,
         it.description,
         w.name as warehouse_name,
-        i.qty_on_hand,
-        COALESCE(it.reorder_point, 0) as reorder_point
-      FROM inventory i
-      JOIN items it ON i.item_id = it.id
-      JOIN warehouses w ON i.warehouse_id = w.id
-      WHERE i.tenant_id = $1 AND i.qty_on_hand <= COALESCE(it.reorder_point, 0)
-      ORDER BY i.qty_on_hand ASC
+        SUM(ss.qty_on_hand) as qty_on_hand,
+        0 as reorder_point
+      FROM stock_snapshot ss
+      JOIN items it ON ss.item_id = it.id
+      JOIN bins b ON ss.bin_id = b.id
+      JOIN warehouses w ON b.warehouse_id = w.id
+      WHERE ss.tenant_id = $1
+      GROUP BY ss.item_id, it.id, it.sku, it.description, w.name
+      HAVING SUM(ss.qty_on_hand) > 0 AND SUM(ss.qty_on_hand) < 10
+      ORDER BY SUM(ss.qty_on_hand) ASC
       LIMIT 20`,
       [tenantId],
     );
 
     const expiringSoon = await this.queryMany<Record<string, unknown>>(
       `SELECT
-        i.id as inventory_id,
+        sl.item_id as inventory_id,
         it.id as item_id,
         it.sku,
         it.description,
-        w.name as warehouse_name,
-        i.qty_on_hand,
-        i.batch_number,
-        i.expiry_date
-      FROM inventory i
-      JOIN items it ON i.item_id = it.id
-      JOIN warehouses w ON i.warehouse_id = w.id
-      WHERE i.tenant_id = $1 AND i.expiry_date IS NOT NULL AND i.expiry_date <= NOW() + INTERVAL '30 days'
-      ORDER BY i.expiry_date ASC
+        '' as warehouse_name,
+        0 as qty_on_hand,
+        sl.batch_no as batch_number,
+        sl.expiry_date
+      FROM stock_ledger sl
+      JOIN items it ON sl.item_id = it.id
+      WHERE sl.tenant_id = $1 AND sl.expiry_date IS NOT NULL
+        AND sl.expiry_date <= NOW() + INTERVAL '30 days' AND sl.expiry_date > NOW()
+        AND EXISTS (SELECT 1 FROM stock_snapshot s2 WHERE s2.tenant_id = $1 AND s2.item_id = sl.item_id AND s2.qty_on_hand > 0)
+      GROUP BY sl.item_id, it.id, it.sku, it.description, sl.batch_no, sl.expiry_date
+      ORDER BY sl.expiry_date ASC
       LIMIT 20`,
       [tenantId],
     );
