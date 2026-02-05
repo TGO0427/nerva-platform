@@ -268,7 +268,12 @@ export interface Bin {
   warehouseId: string;
   code: string;
   binType: string;
+  aisle: string | null;
+  rack: string | null;
+  level: string | null;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Inventory

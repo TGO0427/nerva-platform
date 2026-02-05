@@ -872,6 +872,36 @@ export class MasterDataRepository extends BaseRepository {
     return this.mapWarehouse(row!);
   }
 
+  async updateWarehouse(id: string, data: { name?: string; code?: string; isActive?: boolean }): Promise<Warehouse> {
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    if (data.name !== undefined) {
+      setClauses.push(`name = $${paramIndex++}`);
+      params.push(data.name);
+    }
+    if (data.code !== undefined) {
+      setClauses.push(`code = $${paramIndex++}`);
+      params.push(data.code || null);
+    }
+    if (data.isActive !== undefined) {
+      setClauses.push(`is_active = $${paramIndex++}`);
+      params.push(data.isActive);
+    }
+
+    if (setClauses.length === 0) {
+      return this.findWarehouseById(id) as Promise<Warehouse>;
+    }
+
+    params.push(id);
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE warehouses SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      params,
+    );
+    return this.mapWarehouse(row!);
+  }
+
   // Bins
   async findBins(tenantId: string, warehouseId: string): Promise<Bin[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
@@ -911,6 +941,36 @@ export class MasterDataRepository extends BaseRepository {
         data.rack || null,
         data.level || null,
       ],
+    );
+    return this.mapBin(row!);
+  }
+
+  async updateBin(id: string, data: { code?: string; binType?: string; isActive?: boolean }): Promise<Bin> {
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    if (data.code !== undefined) {
+      setClauses.push(`code = $${paramIndex++}`);
+      params.push(data.code);
+    }
+    if (data.binType !== undefined) {
+      setClauses.push(`bin_type = $${paramIndex++}`);
+      params.push(data.binType);
+    }
+    if (data.isActive !== undefined) {
+      setClauses.push(`is_active = $${paramIndex++}`);
+      params.push(data.isActive);
+    }
+
+    if (setClauses.length === 0) {
+      return this.findBinById(id) as Promise<Bin>;
+    }
+
+    params.push(id);
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE bins SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      params,
     );
     return this.mapBin(row!);
   }

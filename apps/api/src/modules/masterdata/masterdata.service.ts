@@ -310,6 +310,11 @@ export class MasterDataService {
     return this.repository.createWarehouse(data);
   }
 
+  async updateWarehouse(id: string, data: { name?: string; code?: string; isActive?: boolean }): Promise<Warehouse> {
+    await this.getWarehouse(id); // throws if not found
+    return this.repository.updateWarehouse(id, data);
+  }
+
   // Bins
   async listBins(tenantId: string, warehouseId: string): Promise<Bin[]> {
     return this.repository.findBins(tenantId, warehouseId);
@@ -331,6 +336,11 @@ export class MasterDataService {
     level?: string;
   }): Promise<Bin> {
     return this.repository.createBin(data);
+  }
+
+  async updateBin(id: string, data: { code?: string; binType?: string; isActive?: boolean }): Promise<Bin> {
+    await this.getBin(id); // throws if not found
+    return this.repository.updateBin(id, data);
   }
 
   // Supplier Items (Products & Services)

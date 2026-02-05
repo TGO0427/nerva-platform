@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Param,
   Body,
   UseGuards,
@@ -14,7 +15,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
-import { CreateWarehouseDto, CreateBinDto } from './dto';
+import { CreateWarehouseDto, UpdateWarehouseDto, CreateBinDto, UpdateBinDto } from './dto';
 
 @ApiTags('master-data')
 @ApiBearerAuth()
@@ -47,6 +48,16 @@ export class WarehousesController {
     return this.service.createWarehouse({ tenantId, ...data });
   }
 
+  @Patch(':id')
+  @RequirePermissions('warehouse.manage')
+  @ApiOperation({ summary: 'Update warehouse' })
+  async update(
+    @Param('id', UuidValidationPipe) id: string,
+    @Body() data: UpdateWarehouseDto,
+  ) {
+    return this.service.updateWarehouse(id, data);
+  }
+
   @Get(':id/bins')
   @RequirePermissions('warehouse.manage')
   @ApiOperation({ summary: 'List bins in warehouse' })
@@ -71,5 +82,15 @@ export class WarehousesController {
       code: data.code,
       binType: data.binType,
     });
+  }
+
+  @Patch('bins/:binId')
+  @RequirePermissions('warehouse.manage')
+  @ApiOperation({ summary: 'Update bin' })
+  async updateBin(
+    @Param('binId', UuidValidationPipe) binId: string,
+    @Body() data: UpdateBinDto,
+  ) {
+    return this.service.updateBin(binId, data);
   }
 }
