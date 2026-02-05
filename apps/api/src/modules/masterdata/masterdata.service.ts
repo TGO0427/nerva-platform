@@ -597,6 +597,22 @@ export class MasterDataService {
     return this.repository.getPurchaseOrderTrendsByMonth(tenantId, months);
   }
 
+  // Customer Performance Analytics
+  async getCustomerDashboardSummary(tenantId: string) {
+    return this.repository.getCustomerDashboardSummary(tenantId);
+  }
+
+  async getCustomerPerformanceStats(
+    tenantId: string,
+    options: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' }
+  ) {
+    return this.repository.getCustomerPerformanceStats(tenantId, options);
+  }
+
+  async getSalesOrderTrendsByMonth(tenantId: string, months?: number) {
+    return this.repository.getSalesOrderTrendsByMonth(tenantId, months);
+  }
+
   // Dashboard
   async getDashboardStats(tenantId: string) {
     return this.repository.getDashboardStats(tenantId);

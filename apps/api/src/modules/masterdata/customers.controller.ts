@@ -157,4 +157,40 @@ export class CustomersController {
     await this.service.deleteCustomerNote(noteId);
     return { success: true };
   }
+
+  // Analytics
+  @Get('analytics/summary')
+  @RequirePermissions('customer.read')
+  @ApiOperation({ summary: 'Get customer dashboard summary' })
+  async getAnalyticsSummary(@TenantId() tenantId: string) {
+    return this.service.getCustomerDashboardSummary(tenantId);
+  }
+
+  @Get('analytics/performance')
+  @RequirePermissions('customer.read')
+  @ApiOperation({ summary: 'Get customer performance statistics' })
+  async getAnalyticsPerformance(
+    @TenantId() tenantId: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+  ) {
+    return this.service.getCustomerPerformanceStats(tenantId, {
+      page: page || 1,
+      limit: limit || 10,
+      sortBy: sortBy || 'totalOrderValue',
+      sortOrder: sortOrder || 'desc',
+    });
+  }
+
+  @Get('analytics/sales-trends')
+  @RequirePermissions('customer.read')
+  @ApiOperation({ summary: 'Get sales order trends by month' })
+  async getSalesTrends(
+    @TenantId() tenantId: string,
+    @Query('months') months?: number,
+  ) {
+    return this.service.getSalesOrderTrendsByMonth(tenantId, months || 12);
+  }
 }

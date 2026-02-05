@@ -1916,6 +1916,182 @@ export class MasterDataRepository extends BaseRepository {
     }));
   }
 
+  // Customer Performance Analytics
+  async getCustomerDashboardSummary(tenantId: string): Promise<CustomerDashboardSummary> {
+    const result = await this.queryOne<Record<string, unknown>>(
+      `SELECT
+        (SELECT COUNT(*) FROM customers WHERE tenant_id = $1) as total_customers,
+        (SELECT COUNT(*) FROM customers WHERE tenant_id = $1 AND is_active = true) as active_customers,
+        (SELECT COALESCE(SUM(total_amount), 0) FROM sales_orders WHERE tenant_id = $1) as total_sales_value,
+        (SELECT COUNT(*) FROM sales_orders WHERE tenant_id = $1) as total_orders,
+        (SELECT COUNT(*) FROM sales_orders WHERE tenant_id = $1 AND status IN ('DRAFT', 'CONFIRMED', 'ALLOCATED')) as pending_orders
+      `,
+      [tenantId],
+    );
+
+    const totalOrders = parseInt(result?.total_orders as string || '0', 10);
+    const totalSalesValue = parseFloat(result?.total_sales_value as string || '0');
+
+    const topCustomers = await this.queryMany<Record<string, unknown>>(
+      `SELECT
+        c.id,
+        c.name,
+        COUNT(so.id) as order_count,
+        COALESCE(SUM(so.total_amount), 0) as total_value
+      FROM customers c
+      LEFT JOIN sales_orders so ON c.id = so.customer_id AND so.tenant_id = $1
+      WHERE c.tenant_id = $1 AND c.is_active = true
+      GROUP BY c.id, c.name
+      HAVING COUNT(so.id) > 0
+      ORDER BY total_value DESC
+      LIMIT 5`,
+      [tenantId],
+    );
+
+    const recentOrders = await this.queryMany<Record<string, unknown>>(
+      `SELECT
+        so.id,
+        so.so_no,
+        c.name as customer_name,
+        so.total_amount,
+        so.status,
+        so.created_at
+      FROM sales_orders so
+      JOIN customers c ON so.customer_id = c.id
+      WHERE so.tenant_id = $1
+      ORDER BY so.created_at DESC
+      LIMIT 5`,
+      [tenantId],
+    );
+
+    return {
+      totalCustomers: parseInt(result?.total_customers as string || '0', 10),
+      activeCustomers: parseInt(result?.active_customers as string || '0', 10),
+      totalSalesValue,
+      avgOrderValue: totalOrders > 0 ? totalSalesValue / totalOrders : 0,
+      totalOrders,
+      pendingOrders: parseInt(result?.pending_orders as string || '0', 10),
+      topCustomersBySales: topCustomers.map((row) => ({
+        id: row.id as string,
+        name: row.name as string,
+        totalValue: parseFloat(row.total_value as string || '0'),
+        orderCount: parseInt(row.order_count as string, 10),
+      })),
+      recentOrders: recentOrders.map((row) => ({
+        id: row.id as string,
+        soNo: row.so_no as string,
+        customerName: row.customer_name as string,
+        totalAmount: parseFloat(row.total_amount as string || '0'),
+        status: row.status as string,
+        createdAt: (row.created_at as Date).toISOString(),
+      })),
+    };
+  }
+
+  async getCustomerPerformanceStats(
+    tenantId: string,
+    options: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}
+  ) {
+    const page = options.page || 1;
+    const limit = options.limit || 10;
+    const offset = (page - 1) * limit;
+    const sortOrder = options.sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    const sortColumnMap: Record<string, string> = {
+      totalOrders: 'total_orders',
+      totalOrderValue: 'total_order_value',
+      avgOrderValue: 'avg_order_value',
+      name: 'c.name',
+    };
+    const sortColumn = sortColumnMap[options.sortBy || 'totalOrderValue'] || 'total_order_value';
+
+    const countResult = await this.queryOne<{ count: string }>(
+      `SELECT COUNT(*) as count FROM customers WHERE tenant_id = $1 AND is_active = true`,
+      [tenantId]
+    );
+    const total = parseInt(countResult?.count || '0', 10);
+
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT
+        c.id,
+        c.name,
+        c.code,
+        COALESCE(so_stats.total_orders, 0) as total_orders,
+        COALESCE(so_stats.total_value, 0) as total_order_value,
+        CASE WHEN COALESCE(so_stats.total_orders, 0) > 0
+             THEN COALESCE(so_stats.total_value, 0) / COALESCE(so_stats.total_orders, 1)
+             ELSE 0 END as avg_order_value,
+        COALESCE(so_stats.shipped_orders, 0) as shipped_orders,
+        COALESCE(so_stats.cancelled_orders, 0) as cancelled_orders,
+        so_stats.last_order_date
+      FROM customers c
+      LEFT JOIN (
+        SELECT customer_id,
+               COUNT(*) as total_orders,
+               SUM(total_amount) as total_value,
+               SUM(CASE WHEN status = 'SHIPPED' THEN 1 ELSE 0 END) as shipped_orders,
+               SUM(CASE WHEN status = 'CANCELLED' THEN 1 ELSE 0 END) as cancelled_orders,
+               MAX(created_at) as last_order_date
+        FROM sales_orders
+        WHERE tenant_id = $1
+        GROUP BY customer_id
+      ) so_stats ON c.id = so_stats.customer_id
+      WHERE c.tenant_id = $1 AND c.is_active = true
+      ORDER BY ${sortColumn} ${sortOrder} NULLS LAST
+      LIMIT $2 OFFSET $3`,
+      [tenantId, limit, offset],
+    );
+
+    const data: CustomerPerformanceStats[] = rows.map((row) => ({
+      id: row.id as string,
+      code: row.code as string | null,
+      name: row.name as string,
+      totalOrders: parseInt(row.total_orders as string, 10),
+      totalOrderValue: parseFloat(row.total_order_value as string || '0'),
+      avgOrderValue: parseFloat(row.avg_order_value as string || '0'),
+      shippedOrders: parseInt(row.shipped_orders as string, 10),
+      cancelledOrders: parseInt(row.cancelled_orders as string, 10),
+      lastOrderDate: row.last_order_date ? (row.last_order_date as Date).toISOString() : null,
+    }));
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getSalesOrderTrendsByMonth(tenantId: string, months: number = 12): Promise<{ month: string; count: number; value: number }[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `WITH month_series AS (
+        SELECT generate_series(
+          DATE_TRUNC('month', NOW() - INTERVAL '${months - 1} months'),
+          DATE_TRUNC('month', NOW()),
+          '1 month'::interval
+        ) as month
+      )
+      SELECT
+        TO_CHAR(ms.month, 'YYYY-MM') as month,
+        COALESCE(COUNT(so.id), 0) as order_count,
+        COALESCE(SUM(so.total_amount), 0) as total_value
+      FROM month_series ms
+      LEFT JOIN sales_orders so ON DATE_TRUNC('month', so.created_at) = ms.month AND so.tenant_id = $1
+      GROUP BY ms.month
+      ORDER BY ms.month ASC`,
+      [tenantId],
+    );
+
+    return rows.map((row) => ({
+      month: row.month as string,
+      count: parseInt(row.order_count as string, 10),
+      value: parseFloat(row.total_value as string || '0'),
+    }));
+  }
+
   // Dashboard Stats
   async getDashboardStats(tenantId: string): Promise<DashboardStats> {
     const result = await this.queryOne<Record<string, unknown>>(
@@ -2449,4 +2625,39 @@ export interface RecentActivity {
   status: string;
   message: string;
   createdAt: string;
+}
+
+export interface CustomerDashboardSummary {
+  totalCustomers: number;
+  activeCustomers: number;
+  totalSalesValue: number;
+  avgOrderValue: number;
+  totalOrders: number;
+  pendingOrders: number;
+  topCustomersBySales: Array<{
+    id: string;
+    name: string;
+    totalValue: number;
+    orderCount: number;
+  }>;
+  recentOrders: Array<{
+    id: string;
+    soNo: string;
+    customerName: string;
+    totalAmount: number;
+    status: string;
+    createdAt: string;
+  }>;
+}
+
+export interface CustomerPerformanceStats {
+  id: string;
+  code: string | null;
+  name: string;
+  totalOrders: number;
+  totalOrderValue: number;
+  avgOrderValue: number;
+  shippedOrders: number;
+  cancelledOrders: number;
+  lastOrderDate: string | null;
 }

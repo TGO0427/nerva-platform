@@ -51,6 +51,12 @@ const navigation: NavGroup[] = [
         permissions: [PERMISSIONS.SALES_ORDER_READ],
       },
       {
+        name: 'Customer Analytics',
+        href: '/sales/customer-analytics',
+        icon: <ChartIcon />,
+        permissions: [PERMISSIONS.CUSTOMER_READ],
+      },
+      {
         name: 'Fulfilment',
         href: '/fulfilment',
         icon: <TruckIcon />,

@@ -224,3 +224,93 @@ export function useDeleteCustomerNote(customerId: string) {
     },
   });
 }
+
+// === ANALYTICS ===
+
+export interface CustomerDashboardSummary {
+  totalCustomers: number;
+  activeCustomers: number;
+  totalSalesValue: number;
+  avgOrderValue: number;
+  totalOrders: number;
+  pendingOrders: number;
+  topCustomersBySales: Array<{
+    id: string;
+    name: string;
+    totalValue: number;
+    orderCount: number;
+  }>;
+  recentOrders: Array<{
+    id: string;
+    soNo: string;
+    customerName: string;
+    totalAmount: number;
+    status: string;
+    createdAt: string;
+  }>;
+}
+
+export interface CustomerPerformanceStats {
+  id: string;
+  code: string | null;
+  name: string;
+  totalOrders: number;
+  totalOrderValue: number;
+  avgOrderValue: number;
+  shippedOrders: number;
+  cancelledOrders: number;
+  lastOrderDate: string | null;
+}
+
+// MonthlyTrend is exported from suppliers.ts
+interface MonthlyTrend {
+  month: string;
+  count: number;
+  value?: number;
+}
+
+// Fetch customer dashboard summary
+export function useCustomerDashboardSummary() {
+  return useQuery({
+    queryKey: [CUSTOMERS_KEY, 'analytics', 'summary'],
+    queryFn: async () => {
+      const response = await api.get<CustomerDashboardSummary>('/masterdata/customers/analytics/summary');
+      return response.data;
+    },
+  });
+}
+
+// Fetch customer performance stats
+export function useCustomerPerformanceStats(params: {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}) {
+  return useQuery({
+    queryKey: [CUSTOMERS_KEY, 'analytics', 'performance', params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      if (params.page) searchParams.set('page', String(params.page));
+      if (params.limit) searchParams.set('limit', String(params.limit));
+      if (params.sortBy) searchParams.set('sortBy', params.sortBy);
+      if (params.sortOrder) searchParams.set('sortOrder', params.sortOrder);
+
+      const response = await api.get<PaginatedResult<CustomerPerformanceStats>>(
+        `/masterdata/customers/analytics/performance?${searchParams.toString()}`
+      );
+      return response.data;
+    },
+  });
+}
+
+// Fetch sales order trends by month
+export function useSalesOrderTrends(months: number = 12) {
+  return useQuery({
+    queryKey: [CUSTOMERS_KEY, 'analytics', 'sales-trends', months],
+    queryFn: async () => {
+      const response = await api.get<MonthlyTrend[]>(`/masterdata/customers/analytics/sales-trends?months=${months}`);
+      return response.data;
+    },
+  });
+}
