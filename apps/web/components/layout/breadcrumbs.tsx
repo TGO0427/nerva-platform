@@ -25,6 +25,7 @@ const pathLabels: Record<string, string> = {
   integrations: 'Integrations',
   adjustments: 'Stock Adjustments',
   'cycle-counts': 'Cycle Counts',
+  'audit-log': 'Audit Log',
   profile: 'Profile',
   new: 'New',
   edit: 'Edit',

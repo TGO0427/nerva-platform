@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { AuditRepository, AuditEntry, CreateAuditEntry } from './audit.repository';
+import {
+  AuditRepository,
+  AuditEntry,
+  AuditEntryWithActor,
+  AuditSearchFilters,
+  CreateAuditEntry,
+} from './audit.repository';
 
 @Injectable()
 export class AuditService {
@@ -115,16 +121,26 @@ export class AuditService {
 
   async search(
     tenantId: string,
-    filters: {
-      entityType?: string;
-      action?: string;
-      actorUserId?: string;
-      fromDate?: Date;
-      toDate?: Date;
-    },
+    filters: AuditSearchFilters,
     limit = 50,
     offset = 0,
   ): Promise<AuditEntry[]> {
     return this.auditRepository.findByTenant(tenantId, filters, limit, offset);
+  }
+
+  async searchWithActor(
+    tenantId: string,
+    filters: AuditSearchFilters,
+    limit = 50,
+    offset = 0,
+  ): Promise<AuditEntryWithActor[]> {
+    return this.auditRepository.findByTenantWithActor(tenantId, filters, limit, offset);
+  }
+
+  async count(
+    tenantId: string,
+    filters: AuditSearchFilters,
+  ): Promise<number> {
+    return this.auditRepository.countByTenant(tenantId, filters);
   }
 }

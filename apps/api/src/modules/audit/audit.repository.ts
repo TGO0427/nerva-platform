@@ -15,6 +15,18 @@ export interface AuditEntry {
   createdAt: Date;
 }
 
+export interface AuditEntryWithActor extends AuditEntry {
+  actorName: string | null;
+}
+
+export interface AuditSearchFilters {
+  entityType?: string;
+  action?: string;
+  actorUserId?: string;
+  fromDate?: Date;
+  toDate?: Date;
+}
+
 export interface CreateAuditEntry {
   tenantId: string;
   actorUserId?: string;
@@ -70,51 +82,93 @@ export class AuditRepository extends BaseRepository {
 
   async findByTenant(
     tenantId: string,
-    filters: {
-      entityType?: string;
-      action?: string;
-      actorUserId?: string;
-      fromDate?: Date;
-      toDate?: Date;
-    },
+    filters: AuditSearchFilters,
     limit = 50,
     offset = 0,
   ): Promise<AuditEntry[]> {
-    const conditions = ['tenant_id = $1'];
-    const values: unknown[] = [tenantId];
-    let idx = 2;
-
-    if (filters.entityType) {
-      conditions.push(`entity_type = $${idx++}`);
-      values.push(filters.entityType);
-    }
-    if (filters.action) {
-      conditions.push(`action = $${idx++}`);
-      values.push(filters.action);
-    }
-    if (filters.actorUserId) {
-      conditions.push(`actor_user_id = $${idx++}`);
-      values.push(filters.actorUserId);
-    }
-    if (filters.fromDate) {
-      conditions.push(`created_at >= $${idx++}`);
-      values.push(filters.fromDate);
-    }
-    if (filters.toDate) {
-      conditions.push(`created_at <= $${idx++}`);
-      values.push(filters.toDate);
-    }
-
+    const { conditions, values, idx } = this.buildFilterConditions(tenantId, filters);
     values.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT * FROM audit_log
        WHERE ${conditions.join(' AND ')}
        ORDER BY created_at DESC
-       LIMIT $${idx++} OFFSET $${idx}`,
+       LIMIT $${idx} OFFSET $${idx + 1}`,
       values,
     );
     return rows.map(this.mapAuditEntry);
+  }
+
+  async findByTenantWithActor(
+    tenantId: string,
+    filters: AuditSearchFilters,
+    limit = 50,
+    offset = 0,
+  ): Promise<AuditEntryWithActor[]> {
+    const { conditions, values, idx } = this.buildFilterConditions(tenantId, filters, 'a');
+    values.push(limit, offset);
+
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT a.*, u.first_name || ' ' || u.last_name AS actor_name
+       FROM audit_log a
+       LEFT JOIN users u ON u.id = a.actor_user_id
+       WHERE ${conditions.join(' AND ')}
+       ORDER BY a.created_at DESC
+       LIMIT $${idx} OFFSET $${idx + 1}`,
+      values,
+    );
+    return rows.map((row) => ({
+      ...this.mapAuditEntry(row),
+      actorName: (row.actor_name as string) || null,
+    }));
+  }
+
+  async countByTenant(
+    tenantId: string,
+    filters: AuditSearchFilters,
+  ): Promise<number> {
+    const { conditions, values } = this.buildFilterConditions(tenantId, filters);
+
+    const row = await this.queryOne<Record<string, unknown>>(
+      `SELECT COUNT(*)::int AS total FROM audit_log
+       WHERE ${conditions.join(' AND ')}`,
+      values,
+    );
+    return (row?.total as number) || 0;
+  }
+
+  private buildFilterConditions(
+    tenantId: string,
+    filters: AuditSearchFilters,
+    alias?: string,
+  ): { conditions: string[]; values: unknown[]; idx: number } {
+    const col = (name: string) => alias ? `${alias}.${name}` : name;
+    const conditions = [`${col('tenant_id')} = $1`];
+    const values: unknown[] = [tenantId];
+    let idx = 2;
+
+    if (filters.entityType) {
+      conditions.push(`${col('entity_type')} = $${idx++}`);
+      values.push(filters.entityType);
+    }
+    if (filters.action) {
+      conditions.push(`${col('action')} = $${idx++}`);
+      values.push(filters.action);
+    }
+    if (filters.actorUserId) {
+      conditions.push(`${col('actor_user_id')} = $${idx++}`);
+      values.push(filters.actorUserId);
+    }
+    if (filters.fromDate) {
+      conditions.push(`${col('created_at')} >= $${idx++}`);
+      values.push(filters.fromDate);
+    }
+    if (filters.toDate) {
+      conditions.push(`${col('created_at')} <= $${idx++}`);
+      values.push(filters.toDate);
+    }
+
+    return { conditions, values, idx };
   }
 
   private mapAuditEntry(row: Record<string, unknown>): AuditEntry {
