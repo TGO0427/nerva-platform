@@ -20,6 +20,8 @@ import {
   useCustomerNotes,
   useCreateCustomerNote,
   useDeleteCustomerNote,
+  useOrders,
+  type SalesOrderWithCustomer,
 } from '@/lib/queries';
 import type { Customer, CustomerContact, CustomerNote, AuditEntry } from '@nerva/shared';
 
@@ -567,18 +569,127 @@ function NotesTab({ customerId }: { customerId: string }) {
 }
 
 function OrdersTab({ customerId }: { customerId: string }) {
-  // Placeholder for order history - to be implemented
+  const router = useRouter();
+  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState('');
+  const { data, isLoading } = useOrders({
+    page,
+    limit: 10,
+    customerId,
+    status: (statusFilter as SalesOrderWithCustomer['status']) || undefined,
+  });
+
+  const orders = data?.data || [];
+  const total = data?.meta?.total || 0;
+  const totalPages = data?.meta?.totalPages || 0;
+
+  const orderStatusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
+    DRAFT: 'default',
+    CONFIRMED: 'info',
+    ALLOCATED: 'info',
+    PICKING: 'warning',
+    PACKING: 'warning',
+    READY_TO_SHIP: 'info',
+    SHIPPED: 'success',
+    DELIVERED: 'success',
+    CANCELLED: 'danger',
+  };
+
   return (
-    <Card>
-      <CardContent className="py-12">
-        <div className="text-center text-gray-500">
-          <OrdersIcon />
-          <h3 className="mt-4 font-medium text-gray-900">Order History</h3>
-          <p className="mt-1">View all orders placed by this customer.</p>
-          <p className="mt-2 text-sm">Coming soon...</p>
+    <div className="space-y-4">
+      {/* Summary */}
+      {total > 0 && (
+        <div className="flex items-center gap-4 text-sm text-gray-500">
+          <span>{total} order{total !== 1 ? 's' : ''}</span>
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      {/* Status filter */}
+      <div className="flex gap-2 flex-wrap">
+        {['', 'DRAFT', 'CONFIRMED', 'ALLOCATED', 'SHIPPED', 'DELIVERED', 'CANCELLED'].map((s) => (
+          <button
+            key={s}
+            onClick={() => { setStatusFilter(s); setPage(1); }}
+            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+              statusFilter === s
+                ? 'bg-blue-700 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {s || 'All'}
+          </button>
+        ))}
+      </div>
+
+      {/* Orders list */}
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Spinner /></div>
+      ) : orders.length > 0 ? (
+        <div className="space-y-3">
+          {orders.map((order) => (
+            <Card
+              key={order.id}
+              className="cursor-pointer hover:shadow-md transition-shadow"
+            >
+              <CardContent className="pt-4">
+                <div
+                  className="flex items-center justify-between"
+                  onClick={() => router.push(`/sales/${order.id}`)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <span className="font-medium text-primary-600">{order.orderNo}</span>
+                      <div className="text-sm text-gray-500 mt-0.5">
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {order.requestedShipDate && (
+                      <span className="text-xs text-gray-400">
+                        Ship by {new Date(order.requestedShipDate).toLocaleDateString()}
+                      </span>
+                    )}
+                    <Badge variant={orderStatusVariant[order.status] || 'default'}>
+                      {order.status.replace(/_/g, ' ')}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-sm text-gray-500">
+                Page {page} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                  Previous
+                </Button>
+                <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center text-gray-500">
+              <OrdersIcon />
+              <h3 className="mt-4 font-medium text-gray-900">No orders found</h3>
+              <p className="mt-1">
+                {statusFilter ? 'No orders match the selected filter.' : 'This customer has no orders yet.'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
 

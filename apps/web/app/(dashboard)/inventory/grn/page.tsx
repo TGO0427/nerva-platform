@@ -9,11 +9,14 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { useGrns, useQueryParams, Grn } from '@/lib/queries';
+import { useWarehouses } from '@/lib/queries/warehouses';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
   { value: 'OPEN', label: 'Open' },
   { value: 'PARTIAL', label: 'Partial' },
+  { value: 'RECEIVED', label: 'Received' },
+  { value: 'PUTAWAY_PENDING', label: 'Putaway Pending' },
   { value: 'COMPLETE', label: 'Complete' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
@@ -23,6 +26,8 @@ export default function GrnListPage() {
   const [status, setStatus] = useState('');
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useGrns({ ...params, status: status || undefined });
+  const { data: warehouses } = useWarehouses();
+  const warehouseMap = new Map(warehouses?.map(w => [w.id, w.name]) || []);
 
   const columns: Column<Grn>[] = [
     {
@@ -46,7 +51,7 @@ export default function GrnListPage() {
     {
       key: 'warehouseId',
       header: 'Warehouse',
-      render: () => 'Main Warehouse', // TODO: Fetch warehouse name
+      render: (row) => warehouseMap.get(row.warehouseId) || '-'
     },
     {
       key: 'supplierId',
@@ -123,9 +128,13 @@ function getStatusVariant(status: string): 'default' | 'success' | 'warning' | '
   switch (status) {
     case 'COMPLETE':
       return 'success';
+    case 'RECEIVED':
+      return 'success';
     case 'PARTIAL':
       return 'warning';
     case 'OPEN':
+      return 'info';
+    case 'PUTAWAY_PENDING':
       return 'info';
     case 'CANCELLED':
       return 'danger';
