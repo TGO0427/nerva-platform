@@ -249,7 +249,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center h-16 px-6 border-b border-gray-200">
-            <Link href="/dashboard" className="text-xl font-bold text-primary-600">
+            <Link href="/" className="text-xl font-bold text-primary-600">
               Nerva
             </Link>
           </div>
