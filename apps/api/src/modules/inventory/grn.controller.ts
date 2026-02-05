@@ -106,4 +106,21 @@ export class GrnController {
   async complete(@Param('id', UuidValidationPipe) id: string) {
     return this.service.completeGrn(id);
   }
+
+  @Post(':id/generate-putaway')
+  @RequirePermissions('grn.receive')
+  @ApiOperation({ summary: 'Generate putaway tasks from GRN lines' })
+  async generatePutaway(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+  ) {
+    return this.service.generatePutawayTasks(id, tenantId);
+  }
+
+  @Get(':id/putaway-tasks')
+  @RequirePermissions('grn.receive')
+  @ApiOperation({ summary: 'Get putaway tasks for this GRN' })
+  async getPutawayTasks(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.getPutawayTasksByGrn(id);
+  }
 }

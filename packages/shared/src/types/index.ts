@@ -337,6 +337,22 @@ export interface CycleCountLine {
   createdAt: string;
 }
 
+export type PutawayTaskStatus = 'PENDING' | 'ASSIGNED' | 'COMPLETE' | 'CANCELLED';
+
+export interface PutawayTask {
+  id: string;
+  tenantId: string;
+  grnLineId: string;
+  itemId: string;
+  fromBinId: string;
+  toBinId: string | null;
+  qty: number;
+  status: PutawayTaskStatus;
+  assignedTo: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
 // Inventory
 export interface StockOnHand {
   itemId: string;

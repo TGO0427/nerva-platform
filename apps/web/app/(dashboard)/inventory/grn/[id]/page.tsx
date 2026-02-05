@@ -7,7 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
-import { useGrn, useGrnLines, useCompleteGrn, GrnLine } from '@/lib/queries';
+import {
+  useGrn,
+  useGrnLines,
+  useCompleteGrn,
+  useGeneratePutawayTasks,
+  usePutawayTasksByGrn,
+  GrnLine,
+  PutawayTaskDetail,
+} from '@/lib/queries';
 
 export default function GrnDetailPage() {
   const params = useParams();
@@ -16,7 +24,11 @@ export default function GrnDetailPage() {
 
   const { data: grn, isLoading: grnLoading } = useGrn(grnId);
   const { data: lines, isLoading: linesLoading } = useGrnLines(grnId);
+  const { data: putawayTasks, isLoading: putawayLoading } = usePutawayTasksByGrn(
+    grn?.status === 'PUTAWAY_PENDING' ? grnId : undefined,
+  );
   const completeGrn = useCompleteGrn();
+  const generatePutaway = useGeneratePutawayTasks();
 
   const lineColumns: Column<GrnLine>[] = [
     {
@@ -57,6 +69,61 @@ export default function GrnDetailPage() {
       render: (row) => row.binCode || '-',
     },
   ];
+
+  const putawayColumns: Column<PutawayTaskDetail>[] = [
+    {
+      key: 'itemSku',
+      header: 'Item',
+      render: (t) => (
+        <div>
+          <span className="font-medium">{t.itemSku}</span>
+          <p className="text-xs text-gray-500 truncate max-w-[200px]">{t.itemDescription}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'fromBinCode',
+      header: 'From Bin',
+      render: (t) => <span className="font-mono text-sm">{t.fromBinCode}</span>,
+    },
+    {
+      key: 'toBinCode',
+      header: 'To Bin',
+      render: (t) =>
+        t.toBinCode ? (
+          <span className="font-mono text-sm">{t.toBinCode}</span>
+        ) : (
+          <span className="text-gray-400">Not set</span>
+        ),
+    },
+    { key: 'qty', header: 'Qty' },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (t) => {
+        const variant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
+          PENDING: 'warning',
+          ASSIGNED: 'info',
+          COMPLETE: 'success',
+          CANCELLED: 'danger',
+        };
+        return <Badge variant={variant[t.status] || 'default'}>{t.status}</Badge>;
+      },
+    },
+    {
+      key: 'assignedToName',
+      header: 'Assigned To',
+      render: (t) => t.assignedToName || <span className="text-gray-400">Unassigned</span>,
+    },
+  ];
+
+  const handleGeneratePutaway = async () => {
+    try {
+      await generatePutaway.mutateAsync(grnId);
+    } catch (error) {
+      console.error('Failed to generate putaway tasks:', error);
+    }
+  };
 
   const handleComplete = async () => {
     if (confirm('Are you sure you want to complete this GRN? This action cannot be undone.')) {
@@ -103,17 +170,26 @@ export default function GrnDetailPage() {
             Created {new Date(grn.createdAt).toLocaleDateString()}
           </p>
         </div>
-        {grn.status === 'DRAFT' || grn.status === 'OPEN' || grn.status === 'PARTIAL' || grn.status === 'RECEIVED' ? (
+        {['DRAFT', 'OPEN', 'PARTIAL', 'RECEIVED', 'PUTAWAY_PENDING'].includes(grn.status) && (
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => router.push(`/inventory/grn/${grnId}/receive`)}>
-              <ScanIcon />
-              Receive Items
-            </Button>
-            <Button onClick={handleComplete} isLoading={completeGrn.isPending}>
-              Complete GRN
-            </Button>
+            {grn.status !== 'PUTAWAY_PENDING' && (
+              <Button variant="secondary" onClick={() => router.push(`/inventory/grn/${grnId}/receive`)}>
+                <ScanIcon />
+                Receive Items
+              </Button>
+            )}
+            {grn.status === 'RECEIVED' && (
+              <Button onClick={handleGeneratePutaway} isLoading={generatePutaway.isPending}>
+                Generate Putaway Tasks
+              </Button>
+            )}
+            {grn.status !== 'RECEIVED' && (
+              <Button onClick={handleComplete} isLoading={completeGrn.isPending}>
+                Complete GRN
+              </Button>
+            )}
           </div>
-        ) : null}
+        )}
       </div>
 
       {/* Summary */}
@@ -180,6 +256,43 @@ export default function GrnDetailPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Putaway Tasks */}
+      {grn.status === 'PUTAWAY_PENDING' && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Putaway Tasks</CardTitle>
+              {putawayTasks && (
+                <p className="text-sm text-gray-500">
+                  {putawayTasks.filter((t) => t.status === 'COMPLETE').length} / {putawayTasks.length} completed
+                </p>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <DataTable
+              columns={putawayColumns}
+              data={putawayTasks || []}
+              keyField="id"
+              isLoading={putawayLoading}
+              emptyState={{
+                title: 'No putaway tasks',
+                description: 'Putaway tasks will appear here once generated.',
+              }}
+            />
+            {putawayTasks && putawayTasks.length > 0 && (
+              <p className="text-sm text-gray-500 mt-4">
+                Manage putaway tasks from the{' '}
+                <a href="/inventory/putaway" className="text-primary-600 hover:underline">
+                  Putaway page
+                </a>
+                .
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
@@ -190,6 +303,8 @@ function getStatusVariant(status: string): 'default' | 'success' | 'warning' | '
       return 'success';
     case 'RECEIVED':
       return 'success';
+    case 'PUTAWAY_PENDING':
+      return 'info';
     case 'PARTIAL':
       return 'warning';
     case 'DRAFT':

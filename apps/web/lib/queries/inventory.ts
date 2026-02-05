@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { StockOnHand, PaginatedResult, Adjustment, AdjustmentLine, CycleCount, CycleCountLine } from '@nerva/shared';
+import type { StockOnHand, PaginatedResult, Adjustment, AdjustmentLine, CycleCount, CycleCountLine, PutawayTask } from '@nerva/shared';
 import type { QueryParams } from './use-query-params';
 
 const INVENTORY_KEY = 'inventory';
@@ -8,6 +8,7 @@ const GRN_KEY = 'grn';
 const EXPIRY_KEY = 'expiry-alerts';
 const ADJUSTMENT_KEY = 'adjustments';
 const CYCLE_COUNT_KEY = 'cycle-counts';
+const PUTAWAY_KEY = 'putaway';
 
 // Types for inventory
 export interface StockSnapshot {
@@ -46,7 +47,7 @@ export interface Grn {
   warehouseId: string;
   supplierId: string | null;
   purchaseOrderId: string | null;
-  status: 'DRAFT' | 'OPEN' | 'PARTIAL' | 'RECEIVED' | 'COMPLETE' | 'CANCELLED';
+  status: 'DRAFT' | 'OPEN' | 'PARTIAL' | 'RECEIVED' | 'PUTAWAY_PENDING' | 'COMPLETE' | 'CANCELLED';
   notes: string | null;
   createdAt: string;
   createdBy: string;
@@ -642,6 +643,121 @@ export function useCancelCycleCount() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY] });
+    },
+  });
+}
+
+// ============ Putaway ============
+
+export interface PutawayTaskDetail extends PutawayTask {
+  itemSku: string;
+  itemDescription: string;
+  fromBinCode: string;
+  toBinCode: string | null;
+  assignedToName: string | null;
+  grnId: string;
+  batchNo: string | null;
+}
+
+export function usePutawayTasks(params: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  warehouseId?: string;
+  assignedTo?: string;
+}) {
+  return useQuery({
+    queryKey: [PUTAWAY_KEY, params],
+    queryFn: async () => {
+      const query = new URLSearchParams();
+      if (params.page) query.set('page', String(params.page));
+      if (params.limit) query.set('limit', String(params.limit));
+      if (params.status) query.set('status', params.status);
+      if (params.warehouseId) query.set('warehouseId', params.warehouseId);
+      if (params.assignedTo) query.set('assignedTo', params.assignedTo);
+      const { data } = await api.get<{ data: PutawayTaskDetail[]; total: number }>(`/inventory/putaway?${query.toString()}`);
+      return data;
+    },
+  });
+}
+
+export function usePutawayTask(id: string | undefined) {
+  return useQuery({
+    queryKey: [PUTAWAY_KEY, id],
+    queryFn: async () => {
+      const response = await api.get<PutawayTaskDetail>(`/inventory/putaway/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+}
+
+export function usePutawayTasksByGrn(grnId: string | undefined) {
+  return useQuery({
+    queryKey: [PUTAWAY_KEY, 'grn', grnId],
+    queryFn: async () => {
+      const response = await api.get<PutawayTaskDetail[]>(`/receiving/grns/${grnId}/putaway-tasks`);
+      return response.data;
+    },
+    enabled: !!grnId,
+  });
+}
+
+export function useGeneratePutawayTasks() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (grnId: string) => {
+      const response = await api.post<PutawayTaskDetail[]>(`/receiving/grns/${grnId}/generate-putaway`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PUTAWAY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GRN_KEY] });
+    },
+  });
+}
+
+export function useAssignPutawayTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
+      const response = await api.post<PutawayTaskDetail>(`/inventory/putaway/${id}/assign`, { userId });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PUTAWAY_KEY] });
+    },
+  });
+}
+
+export function useCompletePutawayTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, toBinId }: { id: string; toBinId: string }) => {
+      const response = await api.post<PutawayTaskDetail>(`/inventory/putaway/${id}/complete`, { toBinId });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PUTAWAY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GRN_KEY] });
+      queryClient.invalidateQueries({ queryKey: [INVENTORY_KEY] });
+    },
+  });
+}
+
+export function useCancelPutawayTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<PutawayTaskDetail>(`/inventory/putaway/${id}/cancel`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PUTAWAY_KEY] });
     },
   });
 }

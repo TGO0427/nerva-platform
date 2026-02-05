@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InventoryRepository, Grn, GrnLine, Adjustment, AdjustmentLine } from './inventory.repository';
 import { CycleCountRepository, CycleCount as CycleCountEntity, CycleCountLine as CycleCountLineEntity } from './cycle-count.repository';
+import { PutawayRepository, PutawayTaskDetail, PutawayFilters } from './putaway.repository';
 import { StockLedgerService } from './stock-ledger.service';
 import { BatchRepository } from './batch.repository';
 import { MasterDataService } from '../masterdata/masterdata.service';
@@ -10,6 +11,7 @@ export class InventoryService {
   constructor(
     private readonly repository: InventoryRepository,
     private readonly cycleCountRepo: CycleCountRepository,
+    private readonly putawayRepo: PutawayRepository,
     private readonly stockLedger: StockLedgerService,
     private readonly batchRepository: BatchRepository,
     private readonly masterDataService: MasterDataService,
@@ -118,8 +120,8 @@ export class InventoryService {
 
   async completeGrn(grnId: string): Promise<Grn> {
     const grn = await this.getGrn(grnId);
-    if (grn.status !== 'RECEIVED') {
-      throw new BadRequestException('GRN must be in RECEIVED status to complete');
+    if (grn.status !== 'RECEIVED' && grn.status !== 'PUTAWAY_PENDING') {
+      throw new BadRequestException('GRN must be in RECEIVED or PUTAWAY_PENDING status to complete');
     }
     const updated = await this.repository.updateGrnStatus(grnId, 'COMPLETE');
     return updated!;
@@ -476,5 +478,119 @@ export class InventoryService {
     }
     const updated = await this.cycleCountRepo.updateStatus(id, 'CANCELLED');
     return updated!;
+  }
+
+  // Putaway operations
+  async generatePutawayTasks(grnId: string, tenantId: string): Promise<PutawayTaskDetail[]> {
+    const grn = await this.getGrn(grnId);
+    if (grn.status !== 'RECEIVED') {
+      throw new BadRequestException('GRN must be in RECEIVED status to generate putaway tasks');
+    }
+
+    const lines = await this.repository.getGrnLines(grnId);
+    if (lines.length === 0) {
+      throw new BadRequestException('GRN has no received lines');
+    }
+
+    const tasks = lines.map((line: GrnLine) => ({
+      tenantId,
+      grnLineId: line.id,
+      itemId: line.itemId,
+      fromBinId: line.receivingBinId!,
+      qty: line.qtyReceived,
+    }));
+
+    const created = await this.putawayRepo.createMany(tasks);
+    await this.repository.updateGrnStatus(grnId, 'PUTAWAY_PENDING');
+
+    return this.putawayRepo.findByGrn(grnId);
+  }
+
+  async listPutawayTasks(
+    tenantId: string,
+    filters: PutawayFilters,
+    page = 1,
+    limit = 25,
+  ): Promise<{ data: PutawayTaskDetail[]; total: number }> {
+    const offset = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.putawayRepo.findByTenant(tenantId, filters, limit, offset),
+      this.putawayRepo.countByTenant(tenantId, filters),
+    ]);
+    return { data, total };
+  }
+
+  async getPutawayTask(id: string): Promise<PutawayTaskDetail> {
+    const task = await this.putawayRepo.findById(id);
+    if (!task) {
+      throw new NotFoundException('Putaway task not found');
+    }
+    return task;
+  }
+
+  async getPutawayTasksByGrn(grnId: string): Promise<PutawayTaskDetail[]> {
+    return this.putawayRepo.findByGrn(grnId);
+  }
+
+  async assignPutawayTask(id: string, userId: string): Promise<PutawayTaskDetail> {
+    const task = await this.getPutawayTask(id);
+    if (task.status !== 'PENDING') {
+      throw new BadRequestException('Only PENDING tasks can be assigned');
+    }
+    await this.putawayRepo.assignTask(id, userId);
+    return this.getPutawayTask(id);
+  }
+
+  async completePutawayTask(
+    id: string,
+    toBinId: string,
+    userId?: string,
+  ): Promise<PutawayTaskDetail> {
+    const task = await this.getPutawayTask(id);
+    if (task.status !== 'PENDING' && task.status !== 'ASSIGNED') {
+      throw new BadRequestException('Only PENDING or ASSIGNED tasks can be completed');
+    }
+
+    // Validate target bin is STORAGE or PICKING type
+    const bin = await this.masterDataService.getBin(toBinId);
+    if (!bin) {
+      throw new NotFoundException('Target bin not found');
+    }
+    if (bin.binType !== 'STORAGE' && bin.binType !== 'PICKING') {
+      throw new BadRequestException('Target bin must be a STORAGE or PICKING bin');
+    }
+
+    // Record stock movement: from receiving bin → to storage bin
+    await this.stockLedger.recordMovement({
+      tenantId: task.tenantId,
+      itemId: task.itemId,
+      fromBinId: task.fromBinId,
+      toBinId,
+      qty: task.qty,
+      reason: 'PUTAWAY',
+      refType: 'putaway_task',
+      refId: task.id,
+      batchNo: task.batchNo || undefined,
+      createdBy: userId,
+    });
+
+    await this.putawayRepo.completeTask(id, toBinId);
+
+    // Check if all tasks for this GRN are complete → auto-finalize
+    const pendingCount = await this.putawayRepo.countPendingByGrn(task.grnId);
+    if (pendingCount === 0) {
+      await this.repository.updateGrnStatus(task.grnId, 'COMPLETE');
+    }
+
+    return this.getPutawayTask(id);
+  }
+
+  async cancelPutawayTask(id: string): Promise<PutawayTaskDetail> {
+    const task = await this.getPutawayTask(id);
+    if (task.status !== 'PENDING' && task.status !== 'ASSIGNED') {
+      throw new BadRequestException('Only PENDING or ASSIGNED tasks can be cancelled');
+    }
+    await this.putawayRepo.cancelTask(id);
+    return this.getPutawayTask(id);
   }
 }
