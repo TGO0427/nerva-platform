@@ -63,6 +63,12 @@ const navigation: NavGroup[] = [
         permissions: [PERMISSIONS.PUTAWAY_EXECUTE],
       },
       {
+        name: 'Transfers',
+        href: '/inventory/ibts',
+        icon: <TransferIcon />,
+        permissions: [PERMISSIONS.IBT_CREATE],
+      },
+      {
         name: 'Sales Orders',
         href: '/sales',
         icon: <ClipboardIcon />,
@@ -425,6 +431,14 @@ function AdjustIcon() {
   return (
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+    </svg>
+  );
+}
+
+function TransferIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
     </svg>
   );
 }

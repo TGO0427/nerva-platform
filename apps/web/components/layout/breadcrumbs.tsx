@@ -27,6 +27,7 @@ const pathLabels: Record<string, string> = {
   'cycle-counts': 'Cycle Counts',
   'audit-log': 'Audit Log',
   putaway: 'Putaway',
+  ibts: 'Internal Transfers',
   grn: 'Goods Receiving',
   receive: 'Receive',
   'purchase-orders': 'Purchase Orders',

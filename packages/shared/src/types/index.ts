@@ -353,6 +353,40 @@ export interface PutawayTask {
   createdAt: string;
 }
 
+// IBT (Internal Branch Transfer)
+export type IbtStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PICKING' | 'IN_TRANSIT' | 'RECEIVED' | 'CANCELLED';
+
+export interface Ibt {
+  id: string;
+  tenantId: string;
+  ibtNo: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
+  status: IbtStatus;
+  notes: string | null;
+  createdBy: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  shippedAt: string | null;
+  receivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IbtLine {
+  id: string;
+  tenantId: string;
+  ibtId: string;
+  itemId: string;
+  qtyRequested: number;
+  qtyShipped: number;
+  qtyReceived: number;
+  fromBinId: string | null;
+  toBinId: string | null;
+  batchNo: string | null;
+  createdAt: string;
+}
+
 // Inventory
 export interface StockOnHand {
   itemId: string;
