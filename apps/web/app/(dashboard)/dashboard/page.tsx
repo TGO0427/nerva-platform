@@ -15,28 +15,33 @@ interface KpiCardProps {
   changeType?: 'positive' | 'negative' | 'neutral';
   icon: React.ReactNode;
   href?: string;
+  emptyHint?: string;
 }
 
-function KpiCard({ title, value, subtitle, changeType = 'neutral', icon, href }: KpiCardProps) {
+function KpiCard({ title, value, subtitle, changeType = 'neutral', icon, href, emptyHint }: KpiCardProps) {
   const subtitleColors = {
     positive: 'text-green-600',
     negative: 'text-red-600',
     neutral: 'text-gray-500',
   };
 
+  const showEmpty = value === 0 && emptyHint;
+
   const content = (
     <Card className={href ? 'hover:shadow-md transition-shadow cursor-pointer' : ''}>
       <CardContent className="flex items-center justify-between pt-4">
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-          {subtitle && (
+          <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+          {showEmpty ? (
+            <p className="text-xs text-gray-400 mt-1">{emptyHint}</p>
+          ) : subtitle ? (
             <p className={`text-sm mt-1 ${subtitleColors[changeType]}`}>
               {subtitle}
             </p>
-          )}
+          ) : null}
         </div>
-        <div className="h-12 w-12 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600">
+        <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">
           {icon}
         </div>
       </CardContent>
@@ -128,12 +133,12 @@ export default function DashboardPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <p className="text-sm text-gray-500">
           Welcome back, {user?.displayName?.split(' ')[0] || 'User'}
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Here&apos;s what&apos;s happening in your warehouse today.
         </p>
+        <h1 className="text-2xl font-bold text-gray-900 mt-0.5">
+          Operations Overview
+        </h1>
       </div>
 
       {/* KPI Cards */}
@@ -142,86 +147,155 @@ export default function DashboardPage() {
           <Spinner />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <KpiCard
-            title="Pending Orders"
-            value={stats?.pendingOrders ?? 0}
-            subtitle={`${stats?.allocatedOrders ?? 0} allocated`}
-            changeType="neutral"
-            icon={<ClipboardIcon />}
-            href="/sales"
-          />
-          <KpiCard
-            title="Ready to Pick"
-            value={stats?.activePickWaves ?? 0}
-            subtitle={`${stats?.pendingPickTasks ?? 0} pick tasks`}
-            changeType="positive"
-            icon={<BoxIcon />}
-            href="/fulfilment"
-          />
-          <KpiCard
-            title="Open Returns"
-            value={stats?.openReturns ?? 0}
-            subtitle="Awaiting processing"
-            changeType="neutral"
-            icon={<RefreshIcon />}
-            href="/returns"
-          />
-          <KpiCard
-            title="Stock Alerts"
-            value={(stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)}
-            subtitle={stats?.lowStockItems ? `${stats.lowStockItems} low stock` : undefined}
-            changeType={(stats?.lowStockItems ?? 0) > 0 ? 'negative' : 'neutral'}
-            icon={<AlertIcon />}
-            href="/inventory"
-          />
-        </div>
-      )}
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <KpiCard
+              title="Pending Orders"
+              value={stats?.pendingOrders ?? 0}
+              subtitle={stats?.allocatedOrders ? `${stats.allocatedOrders} allocated` : undefined}
+              changeType="neutral"
+              icon={<ClipboardIcon />}
+              href="/sales"
+              emptyHint="Create an order to start"
+            />
+            <KpiCard
+              title="Ready to Pick"
+              value={stats?.activePickWaves ?? 0}
+              subtitle={stats?.pendingPickTasks ? `${stats.pendingPickTasks} pick tasks` : undefined}
+              changeType="positive"
+              icon={<BoxIcon />}
+              href="/fulfilment"
+              emptyHint="Create a pick wave"
+            />
+            <KpiCard
+              title="Open Returns"
+              value={stats?.openReturns ?? 0}
+              subtitle="Awaiting processing"
+              changeType="neutral"
+              icon={<RefreshIcon />}
+              href="/returns"
+              emptyHint="No returns to process"
+            />
+            <KpiCard
+              title="Stock Alerts"
+              value={(stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)}
+              subtitle={stats?.lowStockItems ? `${stats.lowStockItems} low stock` : undefined}
+              changeType={(stats?.lowStockItems ?? 0) > 0 ? 'negative' : 'neutral'}
+              icon={<AlertIcon />}
+              href="/inventory/expiry-alerts"
+              emptyHint="All stock levels healthy"
+            />
+          </div>
 
-      {/* Weekly Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Weekly Sales</p>
-                <p className="text-xl font-bold text-gray-900">
-                  R {(stats?.weeklySalesValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
-                <CurrencyIcon />
-              </div>
+          {/* Today's Ops */}
+          <div className="mb-6">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Today&apos;s Ops</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Link href="/dispatch">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">Trips in Progress</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{stats?.tripsInProgress ?? 0}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {stats?.tripsCompletedToday ? `${stats.tripsCompletedToday} completed today` : 'No trips completed yet'}
+                        </p>
+                      </div>
+                      <div className="h-10 w-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-500">
+                        <TruckIcon />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/returns">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">Open NCRs</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{stats?.openNCRs ?? 0}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {(stats?.openNCRs ?? 0) > 0 ? 'Requires attention' : 'All clear'}
+                        </p>
+                      </div>
+                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${(stats?.openNCRs ?? 0) > 0 ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-400'}`}>
+                        <WarningIcon />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/sales">
+                <Card className={`hover:shadow-md transition-shadow cursor-pointer ${(stats?.lateOrders ?? 0) > 0 ? 'border-red-200' : ''}`}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">Late Orders</p>
+                        <p className={`text-2xl font-bold mt-1 ${(stats?.lateOrders ?? 0) > 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                          {stats?.lateOrders ?? 0}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {(stats?.lateOrders ?? 0) > 0 ? 'Past requested ship date' : 'All orders on track'}
+                        </p>
+                      </div>
+                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${(stats?.lateOrders ?? 0) > 0 ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-400'}`}>
+                        <ClockIcon />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Weekly Orders</p>
-                <p className="text-xl font-bold text-gray-900">{stats?.weeklyOrdersCount ?? 0}</p>
-              </div>
-              <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                <TrendingIcon />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Open NCRs</p>
-                <p className="text-xl font-bold text-gray-900">{stats?.openNCRs ?? 0}</p>
-              </div>
-              <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${(stats?.openNCRs ?? 0) > 0 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
-                <WarningIcon />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+
+          {/* Weekly Summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">Weekly Sales</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      R {(stats?.weeklySalesValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="h-10 w-10 bg-green-50 rounded-lg flex items-center justify-center text-green-500">
+                    <CurrencyIcon />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">Weekly Orders</p>
+                    <p className="text-xl font-bold text-gray-900">{stats?.weeklyOrdersCount ?? 0}</p>
+                  </div>
+                  <div className="h-10 w-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-500">
+                    <TrendingIcon />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">Shipped This Week</p>
+                    <p className="text-xl font-bold text-gray-900">{stats?.shippedOrders ?? 0}</p>
+                  </div>
+                  <div className="h-10 w-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-500">
+                    <ShipIcon />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Quick Actions */}
@@ -269,7 +343,13 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-4">No recent activity.</p>
+                <div className="text-center py-6">
+                  <div className="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
+                    <ActivityEmptyIcon />
+                  </div>
+                  <p className="text-gray-500 mt-3 text-sm">No recent activity</p>
+                  <p className="text-gray-400 text-xs mt-1">Activity will appear as you create orders and process stock.</p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -292,10 +372,10 @@ function ActivityIcon({ type }: { type: string }) {
   );
 }
 
-// Simple icons
+// Icons
 function ClipboardIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
     </svg>
   );
@@ -303,7 +383,7 @@ function ClipboardIcon() {
 
 function BoxIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
     </svg>
   );
@@ -311,7 +391,7 @@ function BoxIcon() {
 
 function RefreshIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
     </svg>
   );
@@ -319,7 +399,7 @@ function RefreshIcon() {
 
 function AlertIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
     </svg>
   );
@@ -349,6 +429,22 @@ function InventoryIcon() {
   );
 }
 
+function TruckIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-3a2.25 2.25 0 00-2.25-2.25h-1.5v-3.75a.75.75 0 00-.75-.75H9.75a.75.75 0 00-.75.75v7.5H3.375c-.621 0-1.125.504-1.125 1.125v.75M8.25 18.75h6" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
 function CurrencyIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -365,10 +461,26 @@ function TrendingIcon() {
   );
 }
 
+function ShipIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+    </svg>
+  );
+}
+
 function WarningIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+    </svg>
+  );
+}
+
+function ActivityEmptyIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }

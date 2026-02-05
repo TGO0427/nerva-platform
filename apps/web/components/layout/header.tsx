@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { useNotifications, useUnreadNotificationCount, useMarkNotificationAsRead, useMarkAllNotificationsAsRead } from '@/lib/queries';
+import { useSites } from '@/lib/queries/settings';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -16,13 +17,33 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isSiteMenuOpen, setIsSiteMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const siteMenuRef = useRef<HTMLDivElement>(null);
 
   const { data: unreadCount } = useUnreadNotificationCount();
   const { data: notificationsData } = useNotifications({ limit: 5 });
   const markAsRead = useMarkNotificationAsRead();
   const markAllAsRead = useMarkAllNotificationsAsRead();
+
+  const { data: sites } = useSites();
+  const [currentSiteId, setCurrentSiteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentSiteId(localStorage.getItem('siteId'));
+    }
+  }, []);
+
+  const currentSite = sites?.find(s => s.id === currentSiteId);
+
+  const handleSiteChange = useCallback((siteId: string) => {
+    localStorage.setItem('siteId', siteId);
+    setCurrentSiteId(siteId);
+    setIsSiteMenuOpen(false);
+    window.location.reload();
+  }, []);
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -32,6 +53,9 @@ export function Header({ onMenuClick }: HeaderProps) {
       }
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setIsNotificationsOpen(false);
+      }
+      if (siteMenuRef.current && !siteMenuRef.current.contains(event.target as Node)) {
+        setIsSiteMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -75,13 +99,57 @@ export function Header({ onMenuClick }: HeaderProps) {
 
       {/* Right side - Notifications and User menu */}
       <div className="flex items-center gap-4">
-        {/* Tenant info */}
-        {user && (
-          <div className="hidden sm:block text-right">
-            <p className="text-xs text-gray-500">Tenant</p>
-            <p className="text-sm font-medium text-gray-700 truncate max-w-[150px]">
-              {user.tenantId.slice(0, 8)}...
-            </p>
+        {/* Site selector */}
+        {user && sites && sites.length > 0 && (
+          <div className="relative hidden sm:block" ref={siteMenuRef}>
+            <button
+              type="button"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              onClick={() => setIsSiteMenuOpen(!isSiteMenuOpen)}
+            >
+              <SiteIcon />
+              <div className="text-left">
+                <p className="text-xs text-gray-500 leading-none">Site</p>
+                <p className="text-sm font-medium text-gray-700 leading-tight">
+                  {currentSite?.name || 'Select site'}
+                </p>
+              </div>
+              <svg
+                className={cn('h-3.5 w-3.5 text-gray-400 transition-transform', isSiteMenuOpen && 'rotate-180')}
+                fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {isSiteMenuOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
+                <div className="px-3 py-2 border-b border-gray-100">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Switch site</p>
+                </div>
+                {sites.filter(s => s.isActive).map((site) => (
+                  <button
+                    key={site.id}
+                    type="button"
+                    className={cn(
+                      'w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between',
+                      site.id === currentSiteId && 'bg-primary-50 text-primary-700'
+                    )}
+                    onClick={() => handleSiteChange(site.id)}
+                  >
+                    <div>
+                      <p className="font-medium">{site.name}</p>
+                      {site.code && <p className="text-xs text-gray-500">{site.code}</p>}
+                    </div>
+                    {site.id === currentSiteId && (
+                      <svg className="h-4 w-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -257,6 +325,14 @@ function BellOffIcon() {
   return (
     <svg className="h-12 w-12 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9.143 17.082a24.248 24.248 0 003.714.318 23.997 23.997 0 003.143-.318m-6.857 0a23.998 23.998 0 01-3.643-.987c.166-.23.323-.469.47-.716A8.986 8.986 0 004 9.75V9A6 6 0 0116 9v.75c0 1.89.577 3.64 1.562 5.086m-10.419 2.246a3 3 0 005.714 0M3 3l18 18" />
+    </svg>
+  );
+}
+
+function SiteIcon() {
+  return (
+    <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
     </svg>
   );
 }

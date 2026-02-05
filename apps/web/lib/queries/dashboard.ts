@@ -15,6 +15,9 @@ export interface DashboardStats {
   openNCRs: number;
   weeklySalesValue: number;
   weeklyOrdersCount: number;
+  tripsInProgress: number;
+  tripsCompletedToday: number;
+  lateOrders: number;
 }
 
 export interface RecentActivity {

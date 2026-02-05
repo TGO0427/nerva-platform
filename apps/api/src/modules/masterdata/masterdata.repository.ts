@@ -2177,7 +2177,16 @@ export class MasterDataRepository extends BaseRepository {
         (SELECT COALESCE(SUM(total_amount), 0) FROM sales_orders
          WHERE tenant_id = $1 AND created_at >= NOW() - INTERVAL '7 days') as weekly_sales_value,
         (SELECT COUNT(*) FROM sales_orders
-         WHERE tenant_id = $1 AND created_at >= NOW() - INTERVAL '7 days') as weekly_orders_count
+         WHERE tenant_id = $1 AND created_at >= NOW() - INTERVAL '7 days') as weekly_orders_count,
+        -- Dispatch stats
+        (SELECT COUNT(*) FROM trips
+         WHERE tenant_id = $1 AND status IN ('ASSIGNED', 'LOADING', 'IN_PROGRESS')) as trips_in_progress,
+        (SELECT COUNT(*) FROM trips
+         WHERE tenant_id = $1 AND status = 'COMPLETE' AND updated_at >= CURRENT_DATE) as trips_completed_today,
+        -- Late orders (past requested_ship_date, not yet shipped)
+        (SELECT COUNT(*) FROM sales_orders
+         WHERE tenant_id = $1 AND status NOT IN ('SHIPPED', 'DELIVERED', 'CANCELLED')
+         AND requested_ship_date IS NOT NULL AND requested_ship_date < CURRENT_DATE) as late_orders
       `,
       [tenantId],
     );
@@ -2194,6 +2203,9 @@ export class MasterDataRepository extends BaseRepository {
       openNCRs: parseInt(result?.open_ncrs as string || '0', 10),
       weeklySalesValue: parseFloat(result?.weekly_sales_value as string || '0'),
       weeklyOrdersCount: parseInt(result?.weekly_orders_count as string || '0', 10),
+      tripsInProgress: parseInt(result?.trips_in_progress as string || '0', 10),
+      tripsCompletedToday: parseInt(result?.trips_completed_today as string || '0', 10),
+      lateOrders: parseInt(result?.late_orders as string || '0', 10),
     };
   }
 
@@ -2676,6 +2688,9 @@ export interface DashboardStats {
   openNCRs: number;
   weeklySalesValue: number;
   weeklyOrdersCount: number;
+  tripsInProgress: number;
+  tripsCompletedToday: number;
+  lateOrders: number;
 }
 
 export interface RecentActivity {

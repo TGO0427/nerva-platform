@@ -33,52 +33,10 @@ const navigation: NavGroup[] = [
     name: 'Operations',
     items: [
       {
-        name: 'Inventory',
-        href: '/inventory',
-        icon: <BoxIcon />,
-        permissions: [PERMISSIONS.INVENTORY_READ],
-      },
-      {
-        name: 'Expiry Alerts',
-        href: '/inventory/expiry-alerts',
-        icon: <ClockIcon />,
-        permissions: [PERMISSIONS.INVENTORY_READ],
-      },
-      {
-        name: 'Stock Adjustments',
-        href: '/inventory/adjustments',
-        icon: <AdjustIcon />,
-        permissions: [PERMISSIONS.INVENTORY_ADJUST],
-      },
-      {
-        name: 'Cycle Counts',
-        href: '/inventory/cycle-counts',
-        icon: <CycleCountIcon />,
-        permissions: [PERMISSIONS.CYCLE_COUNT_MANAGE],
-      },
-      {
-        name: 'Putaway',
-        href: '/inventory/putaway',
-        icon: <PutawayIcon />,
-        permissions: [PERMISSIONS.PUTAWAY_EXECUTE],
-      },
-      {
-        name: 'Transfers',
-        href: '/inventory/ibts',
-        icon: <TransferIcon />,
-        permissions: [PERMISSIONS.IBT_CREATE],
-      },
-      {
         name: 'Sales Orders',
         href: '/sales',
         icon: <ClipboardIcon />,
         permissions: [PERMISSIONS.SALES_ORDER_READ],
-      },
-      {
-        name: 'Customer Analytics',
-        href: '/sales/customer-analytics',
-        icon: <ChartIcon />,
-        permissions: [PERMISSIONS.CUSTOMER_READ],
       },
       {
         name: 'Fulfilment',
@@ -101,6 +59,53 @@ const navigation: NavGroup[] = [
     ],
   },
   {
+    name: 'Warehouse',
+    items: [
+      {
+        name: 'Inventory',
+        href: '/inventory',
+        icon: <BoxIcon />,
+        permissions: [PERMISSIONS.INVENTORY_READ],
+      },
+      {
+        name: 'Goods Receiving',
+        href: '/inventory/grn',
+        icon: <ReceiveIcon />,
+        permissions: [PERMISSIONS.INVENTORY_READ],
+      },
+      {
+        name: 'Putaway',
+        href: '/inventory/putaway',
+        icon: <PutawayIcon />,
+        permissions: [PERMISSIONS.PUTAWAY_EXECUTE],
+      },
+      {
+        name: 'Transfers',
+        href: '/inventory/ibts',
+        icon: <TransferIcon />,
+        permissions: [PERMISSIONS.IBT_CREATE],
+      },
+      {
+        name: 'Adjustments',
+        href: '/inventory/adjustments',
+        icon: <AdjustIcon />,
+        permissions: [PERMISSIONS.INVENTORY_ADJUST],
+      },
+      {
+        name: 'Cycle Counts',
+        href: '/inventory/cycle-counts',
+        icon: <CycleCountIcon />,
+        permissions: [PERMISSIONS.CYCLE_COUNT_MANAGE],
+      },
+      {
+        name: 'Expiry Alerts',
+        href: '/inventory/expiry-alerts',
+        icon: <ClockIcon />,
+        permissions: [PERMISSIONS.INVENTORY_READ],
+      },
+    ],
+  },
+  {
     name: 'Procurement',
     items: [
       {
@@ -108,6 +113,35 @@ const navigation: NavGroup[] = [
         href: '/procurement/purchase-orders',
         icon: <ShoppingCartIcon />,
         permissions: [PERMISSIONS.PURCHASE_ORDER_READ],
+      },
+    ],
+  },
+  {
+    name: 'Reports',
+    items: [
+      {
+        name: 'Sales Reports',
+        href: '/reports/sales',
+        icon: <ReportIcon />,
+        permissions: [PERMISSIONS.SALES_ORDER_READ],
+      },
+      {
+        name: 'Inventory Reports',
+        href: '/reports/inventory',
+        icon: <ReportIcon />,
+        permissions: [PERMISSIONS.INVENTORY_READ],
+      },
+      {
+        name: 'Procurement Reports',
+        href: '/reports/procurement',
+        icon: <ReportIcon />,
+        permissions: [PERMISSIONS.PURCHASE_ORDER_READ],
+      },
+      {
+        name: 'Customer Analytics',
+        href: '/sales/customer-analytics',
+        icon: <ChartIcon />,
+        permissions: [PERMISSIONS.CUSTOMER_READ],
       },
       {
         name: 'Supplier Analytics',
@@ -143,29 +177,6 @@ const navigation: NavGroup[] = [
         href: '/master-data/warehouses',
         icon: <WarehouseIcon />,
         permissions: [PERMISSIONS.WAREHOUSE_MANAGE],
-      },
-    ],
-  },
-  {
-    name: 'Reports',
-    items: [
-      {
-        name: 'Sales Reports',
-        href: '/reports/sales',
-        icon: <ReportIcon />,
-        permissions: [PERMISSIONS.SALES_ORDER_READ],
-      },
-      {
-        name: 'Inventory Reports',
-        href: '/reports/inventory',
-        icon: <ReportIcon />,
-        permissions: [PERMISSIONS.INVENTORY_READ],
-      },
-      {
-        name: 'Procurement Reports',
-        href: '/reports/procurement',
-        icon: <ReportIcon />,
-        permissions: [PERMISSIONS.PURCHASE_ORDER_READ],
       },
     ],
   },
@@ -447,6 +458,14 @@ function PutawayIcon() {
   return (
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+    </svg>
+  );
+}
+
+function ReceiveIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
     </svg>
   );
 }
