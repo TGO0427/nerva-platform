@@ -48,6 +48,19 @@ export interface Adjustment {
   updatedAt: Date;
 }
 
+export interface AdjustmentLine {
+  id: string;
+  tenantId: string;
+  adjustmentId: string;
+  binId: string;
+  itemId: string;
+  qtyBefore: number;
+  qtyAfter: number;
+  qtyDelta: number;
+  batchNo: string | null;
+  createdAt: Date;
+}
+
 @Injectable()
 export class InventoryRepository extends BaseRepository {
   // GRN methods
@@ -223,6 +236,56 @@ export class InventoryRepository extends BaseRepository {
     return row ? this.mapAdjustment(row) : null;
   }
 
+  // Adjustment line methods
+  async addAdjustmentLine(data: {
+    tenantId: string;
+    adjustmentId: string;
+    binId: string;
+    itemId: string;
+    qtyBefore: number;
+    qtyAfter: number;
+    batchNo?: string;
+  }): Promise<AdjustmentLine> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `INSERT INTO adjustment_lines (tenant_id, adjustment_id, bin_id, item_id, qty_before, qty_after, batch_no)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *, (qty_after - qty_before) as qty_delta`,
+      [
+        data.tenantId,
+        data.adjustmentId,
+        data.binId,
+        data.itemId,
+        data.qtyBefore,
+        data.qtyAfter,
+        data.batchNo || null,
+      ],
+    );
+    return this.mapAdjustmentLine(row!);
+  }
+
+  async getAdjustmentLines(adjustmentId: string): Promise<AdjustmentLine[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT *, (qty_after - qty_before) as qty_delta FROM adjustment_lines WHERE adjustment_id = $1 ORDER BY created_at`,
+      [adjustmentId],
+    );
+    return rows.map(this.mapAdjustmentLine);
+  }
+
+  async deleteAdjustmentLine(id: string): Promise<void> {
+    await this.queryOne(
+      'DELETE FROM adjustment_lines WHERE id = $1',
+      [id],
+    );
+  }
+
+  async updateAdjustmentStatus(id: string, status: string): Promise<Adjustment | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE adjustments SET status = $1 WHERE id = $2 RETURNING *`,
+      [status, id],
+    );
+    return row ? this.mapAdjustment(row) : null;
+  }
+
   async generateGrnNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
       'SELECT COUNT(*) as count FROM grns WHERE tenant_id = $1',
@@ -272,6 +335,21 @@ export class InventoryRepository extends BaseRepository {
       expiryDate: row.expiry_date as Date | null,
       batchId: row.batch_id as string | null,
       receivingBinId: row.receiving_bin_id as string | null,
+      createdAt: row.created_at as Date,
+    };
+  }
+
+  private mapAdjustmentLine(row: Record<string, unknown>): AdjustmentLine {
+    return {
+      id: row.id as string,
+      tenantId: row.tenant_id as string,
+      adjustmentId: row.adjustment_id as string,
+      binId: row.bin_id as string,
+      itemId: row.item_id as string,
+      qtyBefore: parseFloat(row.qty_before as string),
+      qtyAfter: parseFloat(row.qty_after as string),
+      qtyDelta: parseFloat(row.qty_delta as string),
+      batchNo: row.batch_no as string | null,
       createdAt: row.created_at as Date,
     };
   }

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   Body,
   Query,
@@ -64,6 +65,48 @@ export class AdjustmentsController {
     });
   }
 
+  @Get(':id/lines')
+  @RequirePermissions('inventory.adjust')
+  @ApiOperation({ summary: 'Get adjustment lines' })
+  async getLines(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.getAdjustmentLines(id);
+  }
+
+  @Post(':id/lines')
+  @RequirePermissions('inventory.adjust')
+  @ApiOperation({ summary: 'Add adjustment line' })
+  async addLine(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+    @Body()
+    data: {
+      binId: string;
+      itemId: string;
+      qtyAfter: number;
+      batchNo?: string;
+    },
+  ) {
+    return this.service.addAdjustmentLine(id, { tenantId, ...data });
+  }
+
+  @Delete(':id/lines/:lineId')
+  @RequirePermissions('inventory.adjust')
+  @ApiOperation({ summary: 'Remove adjustment line' })
+  async removeLine(
+    @Param('id', UuidValidationPipe) id: string,
+    @Param('lineId', UuidValidationPipe) lineId: string,
+  ) {
+    await this.service.removeAdjustmentLine(id, lineId);
+    return { success: true };
+  }
+
+  @Post(':id/submit')
+  @RequirePermissions('inventory.adjust')
+  @ApiOperation({ summary: 'Submit adjustment for approval' })
+  async submit(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.submitAdjustment(id);
+  }
+
   @Post(':id/approve')
   @RequirePermissions('inventory.adjust.approve')
   @ApiOperation({ summary: 'Approve adjustment' })
@@ -72,5 +115,15 @@ export class AdjustmentsController {
     @CurrentUser() user: CurrentUserData,
   ) {
     return this.service.approveAdjustment(id, user.id);
+  }
+
+  @Post(':id/post')
+  @RequirePermissions('inventory.adjust.approve')
+  @ApiOperation({ summary: 'Post adjustment to stock' })
+  async post(
+    @Param('id', UuidValidationPipe) id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.service.postAdjustment(id, user.id);
   }
 }

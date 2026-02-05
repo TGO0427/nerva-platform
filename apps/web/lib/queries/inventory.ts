@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { StockOnHand, PaginatedResult } from '@nerva/shared';
+import type { StockOnHand, PaginatedResult, Adjustment, AdjustmentLine } from '@nerva/shared';
 import type { QueryParams } from './use-query-params';
 
 const INVENTORY_KEY = 'inventory';
 const GRN_KEY = 'grn';
 const EXPIRY_KEY = 'expiry-alerts';
+const ADJUSTMENT_KEY = 'adjustments';
 
 // Types for inventory
 export interface StockSnapshot {
@@ -296,6 +297,144 @@ export function useExpiredStock(warehouseId?: string) {
         `/inventory/expired-stock?${params.toString()}`
       );
       return response.data;
+    },
+  });
+}
+
+// Adjustment queries
+export function useAdjustments(params: QueryParams & { status?: string }) {
+  return useQuery({
+    queryKey: [ADJUSTMENT_KEY, params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      searchParams.set('page', String(params.page));
+      searchParams.set('limit', String(params.limit));
+      if (params.status) searchParams.set('status', params.status);
+
+      const response = await api.get<PaginatedResult<Adjustment>>(
+        `/inventory/adjustments?${searchParams.toString()}`
+      );
+      return response.data;
+    },
+  });
+}
+
+export function useAdjustment(id: string | undefined) {
+  return useQuery({
+    queryKey: [ADJUSTMENT_KEY, id],
+    queryFn: async () => {
+      const response = await api.get<Adjustment>(`/inventory/adjustments/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+}
+
+export function useAdjustmentLines(adjustmentId: string | undefined) {
+  return useQuery({
+    queryKey: [ADJUSTMENT_KEY, adjustmentId, 'lines'],
+    queryFn: async () => {
+      const response = await api.get<AdjustmentLine[]>(
+        `/inventory/adjustments/${adjustmentId}/lines`
+      );
+      return response.data;
+    },
+    enabled: !!adjustmentId,
+  });
+}
+
+export function useCreateAdjustment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      warehouseId: string;
+      reason: string;
+      notes?: string;
+    }) => {
+      const response = await api.post<Adjustment>('/inventory/adjustments', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADJUSTMENT_KEY] });
+    },
+  });
+}
+
+export function useAddAdjustmentLine(adjustmentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      binId: string;
+      itemId: string;
+      qtyAfter: number;
+      batchNo?: string;
+    }) => {
+      const response = await api.post<AdjustmentLine>(
+        `/inventory/adjustments/${adjustmentId}/lines`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADJUSTMENT_KEY, adjustmentId, 'lines'] });
+    },
+  });
+}
+
+export function useDeleteAdjustmentLine(adjustmentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (lineId: string) => {
+      await api.delete(`/inventory/adjustments/${adjustmentId}/lines/${lineId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADJUSTMENT_KEY, adjustmentId, 'lines'] });
+    },
+  });
+}
+
+export function useSubmitAdjustment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<Adjustment>(`/inventory/adjustments/${id}/submit`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADJUSTMENT_KEY] });
+    },
+  });
+}
+
+export function useApproveAdjustment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<Adjustment>(`/inventory/adjustments/${id}/approve`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADJUSTMENT_KEY] });
+    },
+  });
+}
+
+export function usePostAdjustment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<Adjustment>(`/inventory/adjustments/${id}/post`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADJUSTMENT_KEY] });
+      queryClient.invalidateQueries({ queryKey: [INVENTORY_KEY] });
     },
   });
 }

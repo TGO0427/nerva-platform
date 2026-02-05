@@ -276,6 +276,36 @@ export interface Bin {
   updatedAt: string;
 }
 
+// Adjustments
+export interface Adjustment {
+  id: string;
+  tenantId: string;
+  warehouseId: string;
+  adjustmentNo: string;
+  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'POSTED';
+  reason: string;
+  notes: string | null;
+  cycleCountId: string | null;
+  createdBy: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdjustmentLine {
+  id: string;
+  tenantId: string;
+  adjustmentId: string;
+  binId: string;
+  itemId: string;
+  qtyBefore: number;
+  qtyAfter: number;
+  qtyDelta: number;
+  batchNo: string | null;
+  createdAt: string;
+}
+
 // Inventory
 export interface StockOnHand {
   itemId: string;

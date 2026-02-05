@@ -23,6 +23,7 @@ const pathLabels: Record<string, string> = {
   settings: 'Settings',
   users: 'Users',
   integrations: 'Integrations',
+  adjustments: 'Stock Adjustments',
   profile: 'Profile',
   new: 'New',
   edit: 'Edit',

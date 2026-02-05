@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InventoryRepository, Grn, GrnLine, Adjustment } from './inventory.repository';
+import { InventoryRepository, Grn, GrnLine, Adjustment, AdjustmentLine } from './inventory.repository';
 import { StockLedgerService } from './stock-ledger.service';
 import { BatchRepository } from './batch.repository';
 import { MasterDataService } from '../masterdata/masterdata.service';
@@ -199,5 +199,95 @@ export class InventoryService {
       throw new BadRequestException('Adjustment not found or not in SUBMITTED status');
     }
     return adjustment;
+  }
+
+  async getAdjustmentLines(adjustmentId: string): Promise<AdjustmentLine[]> {
+    return this.repository.getAdjustmentLines(adjustmentId);
+  }
+
+  async addAdjustmentLine(
+    adjustmentId: string,
+    data: {
+      tenantId: string;
+      binId: string;
+      itemId: string;
+      qtyAfter: number;
+      batchNo?: string;
+    },
+  ): Promise<AdjustmentLine> {
+    const adjustment = await this.getAdjustment(adjustmentId);
+    if (adjustment.status !== 'DRAFT') {
+      throw new BadRequestException('Can only add lines to DRAFT adjustments');
+    }
+
+    // Get current stock quantity in this bin for this item
+    const stockInBin = await this.stockLedger.getStockInBin(data.tenantId, data.binId);
+    const currentStock = stockInBin.find(
+      (s) => s.itemId === data.itemId && (s.batchNo || null) === (data.batchNo || null),
+    );
+    const qtyBefore = currentStock?.qtyOnHand ?? 0;
+
+    return this.repository.addAdjustmentLine({
+      tenantId: data.tenantId,
+      adjustmentId,
+      binId: data.binId,
+      itemId: data.itemId,
+      qtyBefore,
+      qtyAfter: data.qtyAfter,
+      batchNo: data.batchNo,
+    });
+  }
+
+  async removeAdjustmentLine(adjustmentId: string, lineId: string): Promise<void> {
+    const adjustment = await this.getAdjustment(adjustmentId);
+    if (adjustment.status !== 'DRAFT') {
+      throw new BadRequestException('Can only remove lines from DRAFT adjustments');
+    }
+    await this.repository.deleteAdjustmentLine(lineId);
+  }
+
+  async submitAdjustment(id: string): Promise<Adjustment> {
+    const adjustment = await this.getAdjustment(id);
+    if (adjustment.status !== 'DRAFT') {
+      throw new BadRequestException('Only DRAFT adjustments can be submitted');
+    }
+    const lines = await this.repository.getAdjustmentLines(id);
+    if (lines.length === 0) {
+      throw new BadRequestException('Cannot submit an adjustment with no lines');
+    }
+    const updated = await this.repository.updateAdjustmentStatus(id, 'SUBMITTED');
+    return updated!;
+  }
+
+  async postAdjustment(id: string, userId: string): Promise<Adjustment> {
+    const adjustment = await this.getAdjustment(id);
+    if (adjustment.status !== 'APPROVED') {
+      throw new BadRequestException('Only APPROVED adjustments can be posted');
+    }
+
+    const lines = await this.repository.getAdjustmentLines(id);
+    const warehouse = await this.masterDataService.getWarehouse(adjustment.warehouseId);
+
+    for (const line of lines) {
+      const delta = line.qtyAfter - line.qtyBefore;
+      if (delta === 0) continue;
+
+      await this.stockLedger.recordMovement({
+        tenantId: adjustment.tenantId,
+        siteId: warehouse.siteId,
+        itemId: line.itemId,
+        fromBinId: delta < 0 ? line.binId : undefined,
+        toBinId: delta > 0 ? line.binId : undefined,
+        qty: Math.abs(delta),
+        reason: 'ADJUST',
+        refType: 'adjustment',
+        refId: id,
+        batchNo: line.batchNo || undefined,
+        createdBy: userId,
+      });
+    }
+
+    const updated = await this.repository.updateAdjustmentStatus(id, 'POSTED');
+    return updated!;
   }
 }
