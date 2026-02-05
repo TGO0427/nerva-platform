@@ -13,3 +13,4 @@ export * from './purchase-orders';
 export * from './dashboard';
 export * from './reports';
 export * from './notifications';
+export * from './integrations';
