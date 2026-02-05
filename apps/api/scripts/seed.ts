@@ -25,30 +25,51 @@ async function seed() {
     const tenantId = tenantResult.rows[0].id;
     console.log(`Using tenant ID: ${tenantId}`);
 
-    // Get existing site
-    const siteResult = await pool.query('SELECT id FROM sites WHERE tenant_id = $1 LIMIT 1', [tenantId]);
-    if (siteResult.rows.length === 0) {
-      console.error('No site found for tenant.');
-      process.exit(1);
+    // Get or create sites
+    const siteConfigs = [
+      { name: 'Klapmuts K58', code: 'K58' },
+      { name: 'Klapmuts GWF', code: 'GWF' },
+      { name: 'Pretoria', code: 'PTA' },
+    ];
+
+    const siteIds: Record<string, string> = {};
+    for (const site of siteConfigs) {
+      const result = await pool.query(`
+        INSERT INTO sites (tenant_id, name, code)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (tenant_id, code) DO UPDATE SET name = EXCLUDED.name
+        RETURNING id
+      `, [tenantId, site.name, site.code]);
+      siteIds[site.code] = result.rows[0].id;
     }
-    const siteId = siteResult.rows[0].id;
-    console.log(`Using site ID: ${siteId}`);
+    const siteId = siteIds['K58']; // Primary site for seed data
+    console.log(`Sites created: ${Object.entries(siteIds).map(([k, v]) => `${k}=${v}`).join(', ')}`);
 
     // Get existing user
     const userResult = await pool.query('SELECT id FROM users WHERE tenant_id = $1 LIMIT 1', [tenantId]);
     const userId = userResult.rows[0]?.id || null;
     console.log(`Using user ID: ${userId}`);
 
-    console.log('\nSeeding warehouse...');
-    // Create warehouse
-    const warehouseResult = await pool.query(`
-      INSERT INTO warehouses (tenant_id, site_id, name, code)
-      VALUES ($1, $2, 'Main Warehouse', 'WH-JHB-01')
-      ON CONFLICT (tenant_id, code) DO UPDATE SET name = EXCLUDED.name
-      RETURNING id
-    `, [tenantId, siteId]);
-    const warehouseId = warehouseResult.rows[0].id;
-    console.log(`Warehouse ID: ${warehouseId}`);
+    console.log('\nSeeding warehouses...');
+    // Create one warehouse per site
+    const warehouseConfigs = [
+      { site: 'K58', name: 'Klapmuts K58 Warehouse', code: 'WH-K58' },
+      { site: 'GWF', name: 'Klapmuts GWF Warehouse', code: 'WH-GWF' },
+      { site: 'PTA', name: 'Pretoria Warehouse', code: 'WH-PTA' },
+    ];
+
+    const warehouseIds: Record<string, string> = {};
+    for (const wh of warehouseConfigs) {
+      const result = await pool.query(`
+        INSERT INTO warehouses (tenant_id, site_id, name, code)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (tenant_id, code) DO UPDATE SET name = EXCLUDED.name
+        RETURNING id
+      `, [tenantId, siteIds[wh.site], wh.name, wh.code]);
+      warehouseIds[wh.site] = result.rows[0].id;
+    }
+    const warehouseId = warehouseIds['K58']; // Primary warehouse for seed data
+    console.log(`Warehouses: ${Object.entries(warehouseIds).map(([k, v]) => `${k}=${v}`).join(', ')}`);
 
     console.log('Seeding bins...');
     // Create bins
@@ -79,7 +100,30 @@ async function seed() {
       `, [tenantId, warehouseId, bin.code, bin.type, bin.aisle || null, bin.rack || null, bin.level || null]);
       binIds[bin.code] = result.rows[0].id;
     }
-    console.log(`Created ${Object.keys(binIds).length} bins`);
+    console.log(`Created ${Object.keys(binIds).length} bins for K58`);
+
+    // Create bins for GWF and PTA warehouses
+    const secondaryBins = [
+      { code: 'RCV-01', type: 'RECEIVING' },
+      { code: 'A-01-01', type: 'STORAGE', aisle: 'A', rack: '01', level: '01' },
+      { code: 'A-01-02', type: 'STORAGE', aisle: 'A', rack: '01', level: '02' },
+      { code: 'A-02-01', type: 'STORAGE', aisle: 'A', rack: '02', level: '01' },
+      { code: 'B-01-01', type: 'STORAGE', aisle: 'B', rack: '01', level: '01' },
+      { code: 'PICK-01', type: 'PICKING' },
+      { code: 'SHIP-01', type: 'SHIPPING' },
+      { code: 'QC-01', type: 'QUARANTINE' },
+    ];
+
+    for (const siteCode of ['GWF', 'PTA']) {
+      for (const bin of secondaryBins) {
+        await pool.query(`
+          INSERT INTO bins (tenant_id, warehouse_id, code, bin_type, aisle, rack, level)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          ON CONFLICT (tenant_id, warehouse_id, code) DO UPDATE SET bin_type = EXCLUDED.bin_type
+        `, [tenantId, warehouseIds[siteCode], bin.code, bin.type, bin.aisle || null, bin.rack || null, bin.level || null]);
+      }
+      console.log(`Created ${secondaryBins.length} bins for ${siteCode}`);
+    }
 
     console.log('Seeding items...');
     // Create items
@@ -237,9 +281,9 @@ async function seed() {
     console.log('Seeding vehicles and drivers...');
     // Create vehicles
     const vehicles = [
-      { reg: 'GP 123 ABC', make: 'Toyota', model: 'Hilux', capacity: 1000 },
-      { reg: 'GP 456 DEF', make: 'Isuzu', model: 'NPR 400', capacity: 3500 },
-      { reg: 'GP 789 GHI', make: 'Mercedes', model: 'Sprinter', capacity: 2000 },
+      { reg: 'CJ 123 ABC', make: 'Toyota', model: 'Hilux', capacity: 1000, site: 'K58' },
+      { reg: 'CJ 456 DEF', make: 'Isuzu', model: 'NPR 400', capacity: 3500, site: 'K58' },
+      { reg: 'GP 789 GHI', make: 'Mercedes', model: 'Sprinter', capacity: 2000, site: 'PTA' },
     ];
 
     const vehicleIds: Record<string, string> = {};
@@ -249,16 +293,16 @@ async function seed() {
         VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (tenant_id, reg_no) DO UPDATE SET make = EXCLUDED.make
         RETURNING id
-      `, [tenantId, siteId, v.reg, v.make, v.model, v.capacity]);
+      `, [tenantId, siteIds[v.site], v.reg, v.make, v.model, v.capacity]);
       vehicleIds[v.reg] = result.rows[0].id;
     }
     console.log(`Created ${Object.keys(vehicleIds).length} vehicles`);
 
     // Create drivers
     const drivers = [
-      { name: 'Mike Driver', phone: '+27 82 111 2222', license: 'DL123456' },
-      { name: 'Sarah Wheels', phone: '+27 82 333 4444', license: 'DL789012' },
-      { name: 'John Roads', phone: '+27 82 555 6666', license: 'DL345678' },
+      { name: 'Mike Driver', phone: '+27 82 111 2222', license: 'DL123456', site: 'K58' },
+      { name: 'Sarah Wheels', phone: '+27 82 333 4444', license: 'DL789012', site: 'K58' },
+      { name: 'John Roads', phone: '+27 82 555 6666', license: 'DL345678', site: 'PTA' },
     ];
 
     const driverIds: string[] = [];
@@ -268,7 +312,7 @@ async function seed() {
         VALUES ($1, $2, $3, $4, $5)
         ON CONFLICT DO NOTHING
         RETURNING id
-      `, [tenantId, siteId, d.name, d.phone, d.license]);
+      `, [tenantId, siteIds[d.site], d.name, d.phone, d.license]);
       if (result.rows[0]) driverIds.push(result.rows[0].id);
     }
     // Get existing drivers if we didn't create new ones

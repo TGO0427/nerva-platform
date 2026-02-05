@@ -2179,9 +2179,9 @@ export class MasterDataRepository extends BaseRepository {
         (SELECT COUNT(*) FROM sales_orders
          WHERE tenant_id = $1 AND created_at >= NOW() - INTERVAL '7 days') as weekly_orders_count,
         -- Dispatch stats
-        (SELECT COUNT(*) FROM trips
+        (SELECT COUNT(*) FROM dispatch_trips
          WHERE tenant_id = $1 AND status IN ('ASSIGNED', 'LOADING', 'IN_PROGRESS')) as trips_in_progress,
-        (SELECT COUNT(*) FROM trips
+        (SELECT COUNT(*) FROM dispatch_trips
          WHERE tenant_id = $1 AND status = 'COMPLETE' AND updated_at >= CURRENT_DATE) as trips_completed_today,
         -- Late orders (past requested_ship_date, not yet shipped)
         (SELECT COUNT(*) FROM sales_orders

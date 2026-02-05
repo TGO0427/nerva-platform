@@ -32,9 +32,16 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setCurrentSiteId(localStorage.getItem('siteId'));
+      const stored = localStorage.getItem('siteId');
+      if (stored) {
+        setCurrentSiteId(stored);
+      } else if (sites && sites.length > 0) {
+        const firstActive = sites.find(s => s.isActive) || sites[0];
+        localStorage.setItem('siteId', firstActive.id);
+        setCurrentSiteId(firstActive.id);
+      }
     }
-  }, []);
+  }, [sites]);
 
   const currentSite = sites?.find(s => s.id === currentSiteId);
 
