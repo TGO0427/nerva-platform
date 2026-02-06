@@ -37,6 +37,7 @@ export interface Shipment {
   siteId: string;
   warehouseId: string;
   salesOrderId: string;
+  orderNo: string | null;
   shipmentNo: string;
   status: string;
   totalWeightKg: number;
@@ -202,26 +203,32 @@ export class FulfilmentRepository extends BaseRepository {
 
   async findShipmentById(id: string): Promise<Shipment | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM shipments WHERE id = $1',
+      `SELECT s.*, so.order_no
+       FROM shipments s
+       LEFT JOIN sales_orders so ON so.id = s.sales_order_id
+       WHERE s.id = $1`,
       [id],
     );
     return row ? this.mapShipment(row) : null;
   }
 
   async findShipmentsByTenant(tenantId: string, status?: string, limit = 50, offset = 0): Promise<Shipment[]> {
-    let sql = 'SELECT * FROM shipments WHERE tenant_id = $1';
+    let sql = `SELECT s.*, so.order_no
+               FROM shipments s
+               LEFT JOIN sales_orders so ON so.id = s.sales_order_id
+               WHERE s.tenant_id = $1`;
     const params: unknown[] = [tenantId];
 
     if (status) {
-      sql += ' AND status = $2';
+      sql += ' AND s.status = $2';
       params.push(status);
     }
 
-    sql += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    sql += ` ORDER BY s.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     params.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
-    return rows.map(this.mapShipment);
+    return rows.map((row) => this.mapShipment(row));
   }
 
   async updateShipmentStatus(id: string, status: string): Promise<Shipment | null> {
@@ -317,7 +324,11 @@ export class FulfilmentRepository extends BaseRepository {
   // Find shipments by order
   async findShipmentsByOrder(salesOrderId: string): Promise<Shipment[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM shipments WHERE sales_order_id = $1 ORDER BY created_at DESC',
+      `SELECT s.*, so.order_no
+       FROM shipments s
+       LEFT JOIN sales_orders so ON so.id = s.sales_order_id
+       WHERE s.sales_order_id = $1
+       ORDER BY s.created_at DESC`,
       [salesOrderId],
     );
     return rows.map((row) => this.mapShipment(row));
@@ -463,6 +474,7 @@ export class FulfilmentRepository extends BaseRepository {
       siteId: row.site_id as string,
       warehouseId: row.warehouse_id as string,
       salesOrderId: row.sales_order_id as string,
+      orderNo: row.order_no as string | null,
       shipmentNo: row.shipment_no as string,
       status: row.status as string,
       totalWeightKg: parseFloat(row.total_weight_kg as string) || 0,
