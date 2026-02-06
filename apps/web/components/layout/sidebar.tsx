@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth, hasAnyPermission } from '@/lib/auth';
 import { PERMISSIONS } from '@nerva/shared';
+import { springs } from '@/lib/motion';
 
 interface NavItem {
   name: string;
@@ -215,9 +216,11 @@ const navigation: NavGroup[] = [
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
 
@@ -233,73 +236,181 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Mobile overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+            onClick={onClose}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Sidebar */}
+      {/* Mobile sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:z-auto',
+          'fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transform transition-transform duration-200 ease-in-out lg:hidden',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center h-16 px-6 border-b border-gray-200">
-            <Link href="/" className="text-xl font-bold text-primary-600">
-              Nerva
-            </Link>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto p-4 space-y-6">
-            {navigation.filter(isGroupVisible).map((group) => (
-              <div key={group.name}>
-                <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {group.name}
-                </h3>
-                <div className="mt-2 space-y-1">
-                  {group.items.filter(isItemVisible).map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onClick={onClose}
-                        className="relative block"
-                      >
-                        <div
-                          className={cn(
-                            'relative flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                            isActive
-                              ? 'text-primary-700'
-                              : 'text-gray-700 hover:bg-gray-100'
-                          )}
-                        >
-                          {isActive && (
-                            <motion.div
-                              layoutId="navActiveIndicator"
-                              className="absolute inset-0 bg-primary-50 rounded-md"
-                              transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                            />
-                          )}
-                          <span className="relative mr-3 h-5 w-5">{item.icon}</span>
-                          <span className="relative">{item.name}</span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </nav>
-        </div>
+        <SidebarContent
+          collapsed={false}
+          onClose={onClose}
+          pathname={pathname}
+          navigation={navigation}
+          isItemVisible={isItemVisible}
+          isGroupVisible={isGroupVisible}
+        />
       </aside>
+
+      {/* Desktop sidebar with animated width */}
+      <motion.aside
+        animate={{ width: collapsed ? 72 : 256 }}
+        transition={springs.snappy}
+        className="hidden lg:block h-screen shrink-0 overflow-hidden border-r border-slate-200 bg-white"
+      >
+        <SidebarContent
+          collapsed={collapsed}
+          onToggleCollapse={onToggleCollapse}
+          pathname={pathname}
+          navigation={navigation}
+          isItemVisible={isItemVisible}
+          isGroupVisible={isGroupVisible}
+        />
+      </motion.aside>
     </>
+  );
+}
+
+interface SidebarContentProps {
+  collapsed: boolean;
+  onClose?: () => void;
+  onToggleCollapse?: () => void;
+  pathname: string;
+  navigation: NavGroup[];
+  isItemVisible: (item: NavItem) => boolean;
+  isGroupVisible: (group: NavGroup) => boolean;
+}
+
+function SidebarContent({
+  collapsed,
+  onClose,
+  onToggleCollapse,
+  pathname,
+  navigation,
+  isItemVisible,
+  isGroupVisible,
+}: SidebarContentProps) {
+  return (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className={cn(
+        'flex items-center h-16 border-b border-slate-200',
+        collapsed ? 'justify-center px-2' : 'px-6'
+      )}>
+        <Link href="/" className="text-xl font-bold text-primary-600" onClick={onClose}>
+          {collapsed ? 'N' : 'Nerva'}
+        </Link>
+      </div>
+
+      {/* Navigation */}
+      <nav className={cn(
+        'flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-4',
+        collapsed ? 'px-2' : 'px-4'
+      )}>
+        {navigation.filter(isGroupVisible).map((group) => (
+          <div key={group.name}>
+            {!collapsed && (
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                {group.name}
+              </h3>
+            )}
+            <div className="space-y-1">
+              {group.items.filter(isItemVisible).map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={onClose}
+                    title={collapsed ? item.name : undefined}
+                    className="relative block"
+                  >
+                    <div
+                      className={cn(
+                        'relative flex items-center text-sm font-medium rounded-md transition-colors',
+                        collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2',
+                        isActive
+                          ? 'text-primary-700'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      )}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="navActiveIndicator"
+                          className="absolute inset-0 bg-primary-50 rounded-md"
+                          transition={springs.snappy}
+                        />
+                      )}
+                      <span className={cn(
+                        'relative h-5 w-5 shrink-0',
+                        !collapsed && 'mr-3'
+                      )}>
+                        {item.icon}
+                      </span>
+                      {!collapsed && (
+                        <span className="relative whitespace-nowrap">{item.name}</span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* Collapse toggle button (desktop only) */}
+      {onToggleCollapse && (
+        <div className={cn(
+          'border-t border-slate-200 p-2',
+          collapsed ? 'flex justify-center' : 'px-4'
+        )}>
+          <button
+            onClick={onToggleCollapse}
+            className={cn(
+              'flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors',
+              collapsed ? 'p-2 justify-center' : 'px-3 py-2 w-full'
+            )}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <span className={cn('h-5 w-5 shrink-0', !collapsed && 'mr-3')}>
+              {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+            </span>
+            {!collapsed && <span>Collapse</span>}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Chevron icons for collapse toggle
+function ChevronLeftIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+    </svg>
   );
 }
 
