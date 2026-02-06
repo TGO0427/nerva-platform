@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { PageShell, MetricGrid } from '@/components/ui/motion';
+import { StatCard } from '@/components/ui/stat-card';
 import { useWarehouses, useCreateWarehouse, useUpdateWarehouse } from '@/lib/queries/warehouses';
 import { useSites } from '@/lib/queries';
 
@@ -61,15 +62,14 @@ export default function WarehousesPage() {
 
   const activeCount = warehouses?.filter(w => w.isActive).length || 0;
   const inactiveCount = warehouses?.filter(w => !w.isActive).length || 0;
+  const totalCount = warehouses?.length || 0;
 
   return (
-    <div>
-      <Breadcrumbs />
-
+    <PageShell>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Warehouses</h1>
-          <p className="text-gray-500 mt-1">Manage warehouse locations and storage bins</p>
+          <h1 className="text-2xl font-bold text-slate-900">Warehouses</h1>
+          <p className="text-slate-500 mt-1">Manage warehouse locations and storage bins</p>
         </div>
         {!showCreateForm && (
           <Button onClick={() => setShowCreateForm(true)}>
@@ -79,27 +79,27 @@ export default function WarehousesPage() {
         )}
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{warehouses?.length || 0}</div>
-            <p className="text-sm text-gray-500">Total Warehouses</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">{activeCount}</div>
-            <p className="text-sm text-gray-500">Active</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-red-600">{inactiveCount}</div>
-            <p className="text-sm text-gray-500">Inactive</p>
-          </CardContent>
-        </Card>
-      </div>
+      <MetricGrid className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <StatCard
+          title="Total Warehouses"
+          value={totalCount}
+          icon={<WarehouseSmIcon />}
+          iconColor="gray"
+        />
+        <StatCard
+          title="Active"
+          value={activeCount}
+          icon={<CheckCircleIcon />}
+          iconColor="green"
+        />
+        <StatCard
+          title="Inactive"
+          value={inactiveCount}
+          icon={<XCircleIcon />}
+          iconColor="red"
+          alert={inactiveCount > 0}
+        />
+      </MetricGrid>
 
       {/* Create Form */}
       {showCreateForm && (
@@ -111,13 +111,13 @@ export default function WarehousesPage() {
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Site *
                   </label>
                   <select
                     value={newSiteId}
                     onChange={(e) => setNewSiteId(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     required
                   >
                     <option value="">Select a site...</option>
@@ -127,7 +127,7 @@ export default function WarehousesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Warehouse Name *
                   </label>
                   <Input
@@ -138,7 +138,7 @@ export default function WarehousesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Code
                   </label>
                   <Input
@@ -189,17 +189,17 @@ export default function WarehousesPage() {
                     className="flex items-center gap-4 flex-1"
                     onClick={() => router.push(`/master-data/warehouses/${warehouse.id}`)}
                   >
-                    <div className="p-2 bg-gray-100 rounded-lg">
+                    <div className="p-2 bg-slate-100 rounded-lg">
                       <WarehouseIcon />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-gray-900">{warehouse.name}</h3>
+                        <h3 className="font-medium text-slate-900">{warehouse.name}</h3>
                         <Badge variant={warehouse.isActive ? 'success' : 'danger'}>
                           {warehouse.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-slate-500">
                         {warehouse.code ? `${warehouse.code} | ` : ''}
                         Site: {getSiteName(warehouse.siteId)} | Created {new Date(warehouse.createdAt).toLocaleDateString()}
                       </p>
@@ -226,15 +226,15 @@ export default function WarehousesPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <WarehouseIconLarge />
-            <h3 className="mt-4 font-medium text-gray-900">No warehouses found</h3>
-            <p className="text-sm text-gray-500 mt-1">Create a warehouse to manage storage locations</p>
+            <h3 className="mt-4 font-medium text-slate-900">No warehouses found</h3>
+            <p className="text-sm text-slate-500 mt-1">Create a warehouse to manage storage locations</p>
             <Button className="mt-4" onClick={() => setShowCreateForm(true)}>
               Add Warehouse
             </Button>
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -246,9 +246,33 @@ function PlusIcon() {
   );
 }
 
+function WarehouseSmIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function XCircleIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
 function WarehouseIcon() {
   return (
-    <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <svg className="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
     </svg>
   );
@@ -256,7 +280,7 @@ function WarehouseIcon() {
 
 function WarehouseIconLarge() {
   return (
-    <svg className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+    <svg className="h-12 w-12 mx-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
     </svg>
   );

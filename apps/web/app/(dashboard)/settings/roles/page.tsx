@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { PageShell, MetricGrid } from '@/components/ui/motion';
+import { StatCard } from '@/components/ui/stat-card';
 import { useRoles, useCreateRole, useDeleteRole, Role } from '@/lib/queries';
 
 export default function RolesPage() {
@@ -46,14 +47,14 @@ export default function RolesPage() {
     }
   };
 
-  return (
-    <div>
-      <Breadcrumbs />
+  const totalRoles = roles?.length || 0;
 
+  return (
+    <PageShell>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Roles & Permissions</h1>
-          <p className="text-gray-500 mt-1">Manage roles and their permissions</p>
+          <h1 className="text-2xl font-bold text-slate-900">Roles & Permissions</h1>
+          <p className="text-slate-500 mt-1">Manage roles and their permissions</p>
         </div>
         {!showCreateForm && (
           <Button onClick={() => setShowCreateForm(true)}>
@@ -62,6 +63,27 @@ export default function RolesPage() {
           </Button>
         )}
       </div>
+
+      <MetricGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <StatCard
+          title="Total Roles"
+          value={totalRoles}
+          icon={<ShieldSmIcon />}
+          iconColor="gray"
+        />
+        <StatCard
+          title="System Roles"
+          value={roles?.filter(r => r.name === 'Admin' || r.name === 'User').length || 0}
+          icon={<LockIcon />}
+          iconColor="blue"
+        />
+        <StatCard
+          title="Custom Roles"
+          value={roles?.filter(r => r.name !== 'Admin' && r.name !== 'User').length || 0}
+          icon={<PlusCircleIcon />}
+          iconColor="green"
+        />
+      </MetricGrid>
 
       {/* Create Role Form */}
       {showCreateForm && (
@@ -73,7 +95,7 @@ export default function RolesPage() {
             <form onSubmit={handleCreateRole} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Role Name *
                   </label>
                   <Input
@@ -84,7 +106,7 @@ export default function RolesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Description
                   </label>
                   <Input
@@ -127,14 +149,14 @@ export default function RolesPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="font-medium text-gray-900">{role.name}</h3>
+                    <h3 className="font-medium text-slate-900">{role.name}</h3>
                     {role.description && (
-                      <p className="text-sm text-gray-500 mt-1">{role.description}</p>
+                      <p className="text-sm text-slate-500 mt-1">{role.description}</p>
                     )}
                   </div>
                   <Badge variant="default">Role</Badge>
                 </div>
-                <p className="text-xs text-gray-400 mb-4">
+                <p className="text-xs text-slate-400 mb-4">
                   Created {new Date(role.createdAt).toLocaleDateString()}
                 </p>
                 <div className="flex gap-2">
@@ -163,15 +185,15 @@ export default function RolesPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <ShieldIcon />
-            <h3 className="mt-4 font-medium text-gray-900">No roles found</h3>
-            <p className="text-sm text-gray-500 mt-1">Create a role to assign permissions</p>
+            <h3 className="mt-4 font-medium text-slate-900">No roles found</h3>
+            <p className="text-sm text-slate-500 mt-1">Create a role to assign permissions</p>
             <Button className="mt-4" onClick={() => setShowCreateForm(true)}>
               Create Role
             </Button>
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -179,6 +201,30 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function ShieldSmIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+    </svg>
+  );
+}
+
+function PlusCircleIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }
@@ -201,7 +247,7 @@ function TrashIcon() {
 
 function ShieldIcon() {
   return (
-    <svg className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+    <svg className="h-12 w-12 mx-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
     </svg>
   );

@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { ListPageTemplate } from '@/components/templates';
 import { useGrns, useQueryParams, Grn } from '@/lib/queries';
 import { useWarehouses } from '@/lib/queries/warehouses';
 
@@ -41,10 +41,10 @@ export default function GrnListPage() {
     {
       key: 'status',
       header: 'Status',
-      width: '120px',
+      width: '140px',
       render: (row) => (
         <Badge variant={getStatusVariant(row.status)}>
-          {row.status}
+          {row.status?.replace(/_/g, ' ')}
         </Badge>
       ),
     },
@@ -70,32 +70,62 @@ export default function GrnListPage() {
     router.push(`/inventory/grn/${row.id}`);
   };
 
-  return (
-    <div>
-      <Breadcrumbs />
+  // Stats
+  const openGrns = data?.data?.filter(g => g.status === 'OPEN').length || 0;
+  const partialGrns = data?.data?.filter(g => g.status === 'PARTIAL').length || 0;
+  const pendingPutaway = data?.data?.filter(g => g.status === 'PUTAWAY_PENDING').length || 0;
+  const totalGrns = data?.meta?.total || 0;
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Goods Receipt Notes</h1>
-          <p className="text-gray-500 mt-1">Manage incoming stock receipts</p>
-        </div>
+  return (
+    <ListPageTemplate
+      title="Goods Receipt Notes"
+      subtitle="Manage incoming stock receipts"
+      headerActions={
         <Link href="/inventory/grn/new">
           <Button>
             <PlusIcon />
             New GRN
           </Button>
         </Link>
-      </div>
-
-      <div className="mb-4">
+      }
+      stats={[
+        {
+          title: 'Open GRNs',
+          value: openGrns,
+          icon: <FolderOpenIcon />,
+          iconColor: 'blue',
+        },
+        {
+          title: 'Partial Received',
+          value: partialGrns,
+          icon: <PartialIcon />,
+          iconColor: 'yellow',
+        },
+        {
+          title: 'Pending Putaway',
+          value: pendingPutaway,
+          icon: <PutawayIcon />,
+          iconColor: 'orange',
+          alert: pendingPutaway > 0,
+        },
+        {
+          title: 'Total GRNs',
+          value: totalGrns,
+          icon: <ReceiveSmIcon />,
+          iconColor: 'gray',
+        },
+      ]}
+      statsColumns={4}
+      filters={
         <Select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           options={STATUS_OPTIONS}
           className="max-w-xs"
         />
-      </div>
-
+      }
+      wrapInCard={false}
+    >
       <DataTable
         columns={columns}
         data={data?.data || []}
@@ -120,20 +150,18 @@ export default function GrnListPage() {
           ),
         }}
       />
-    </div>
+    </ListPageTemplate>
   );
 }
 
 function getStatusVariant(status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' {
   switch (status) {
     case 'COMPLETE':
-      return 'success';
     case 'RECEIVED':
       return 'success';
     case 'PARTIAL':
       return 'warning';
     case 'OPEN':
-      return 'info';
     case 'PUTAWAY_PENDING':
       return 'info';
     case 'CANCELLED':
@@ -143,6 +171,7 @@ function getStatusVariant(status: string): 'default' | 'success' | 'warning' | '
   }
 }
 
+// Button icon
 function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -151,6 +180,40 @@ function PlusIcon() {
   );
 }
 
+// Stat card icons
+function FolderOpenIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
+    </svg>
+  );
+}
+
+function PartialIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+    </svg>
+  );
+}
+
+function PutawayIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+    </svg>
+  );
+}
+
+function ReceiveSmIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+    </svg>
+  );
+}
+
+// Empty state icon
 function ReceiveIcon() {
   return (
     <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>

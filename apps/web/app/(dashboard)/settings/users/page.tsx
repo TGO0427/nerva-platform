@@ -2,11 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { ListPageTemplate } from '@/components/templates';
 import { useUsers, useQueryParams, User } from '@/lib/queries';
 
 export default function UsersPage() {
@@ -53,46 +52,44 @@ export default function UsersPage() {
 
   const activeUsers = data?.data?.filter(u => u.isActive).length || 0;
   const inactiveUsers = data?.data?.filter(u => !u.isActive).length || 0;
+  const totalUsers = data?.meta?.total || 0;
 
   return (
-    <div>
-      <Breadcrumbs />
-
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-          <p className="text-gray-500 mt-1">Manage user accounts in your organization</p>
-        </div>
+    <ListPageTemplate
+      title="Users"
+      subtitle="Manage user accounts in your organization"
+      headerActions={
         <Link href="/settings/users/new">
           <Button>
             <PlusIcon />
             New User
           </Button>
         </Link>
-      </div>
-
-      {/* Quick stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{data?.meta?.total || 0}</div>
-            <p className="text-sm text-gray-500">Total Users</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">{activeUsers}</div>
-            <p className="text-sm text-gray-500">Active</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-red-600">{inactiveUsers}</div>
-            <p className="text-sm text-gray-500">Inactive</p>
-          </CardContent>
-        </Card>
-      </div>
-
+      }
+      stats={[
+        {
+          title: 'Total Users',
+          value: totalUsers,
+          icon: <UsersSmIcon />,
+          iconColor: 'gray',
+        },
+        {
+          title: 'Active',
+          value: activeUsers,
+          icon: <CheckCircleIcon />,
+          iconColor: 'green',
+        },
+        {
+          title: 'Inactive',
+          value: inactiveUsers,
+          icon: <XCircleIcon />,
+          iconColor: 'red',
+          alert: inactiveUsers > 0,
+        },
+      ]}
+      statsColumns={3}
+      wrapInCard={false}
+    >
       <DataTable
         columns={columns}
         data={data?.data || []}
@@ -117,7 +114,7 @@ export default function UsersPage() {
           ),
         }}
       />
-    </div>
+    </ListPageTemplate>
   );
 }
 
@@ -125,6 +122,30 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function UsersSmIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function XCircleIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }

@@ -2,11 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { ListPageTemplate } from '@/components/templates';
 import { useSuppliers, useQueryParams } from '@/lib/queries';
 import type { Supplier } from '@nerva/shared';
 
@@ -62,24 +62,44 @@ export default function SuppliersPage() {
     router.push(`/master-data/suppliers/${row.id}`);
   };
 
-  return (
-    <div>
-      <Breadcrumbs />
+  const activeSuppliers = data?.data?.filter(s => s.isActive).length || 0;
+  const inactiveSuppliers = data?.data?.filter(s => !s.isActive).length || 0;
+  const totalSuppliers = data?.meta?.total || 0;
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Suppliers</h1>
-          <p className="text-gray-500 mt-1">Manage your supplier database</p>
-        </div>
+  return (
+    <ListPageTemplate
+      title="Suppliers"
+      subtitle="Manage your supplier database"
+      headerActions={
         <Link href="/master-data/suppliers/new">
           <Button>
             <PlusIcon />
             Add Supplier
           </Button>
         </Link>
-      </div>
-
-      <div className="mb-4">
+      }
+      stats={[
+        {
+          title: 'Total Suppliers',
+          value: totalSuppliers,
+          icon: <BuildingSmIcon />,
+          iconColor: 'gray',
+        },
+        {
+          title: 'Active',
+          value: activeSuppliers,
+          icon: <CheckCircleIcon />,
+          iconColor: 'green',
+        },
+        {
+          title: 'Inactive',
+          value: inactiveSuppliers,
+          icon: <XCircleIcon />,
+          iconColor: 'red',
+        },
+      ]}
+      statsColumns={3}
+      filters={
         <Input
           type="search"
           placeholder="Search suppliers by name or code..."
@@ -87,8 +107,9 @@ export default function SuppliersPage() {
           value={params.search || ''}
           onChange={(e) => setSearch(e.target.value)}
         />
-      </div>
-
+      }
+      wrapInCard={false}
+    >
       <DataTable
         columns={columns}
         data={data?.data || []}
@@ -118,7 +139,7 @@ export default function SuppliersPage() {
           ),
         }}
       />
-    </div>
+    </ListPageTemplate>
   );
 }
 
@@ -126,6 +147,30 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function BuildingSmIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function XCircleIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }

@@ -2,11 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { ListPageTemplate } from '@/components/templates';
 import { useItems, useQueryParams } from '@/lib/queries';
 import type { Item } from '@nerva/shared';
 
@@ -63,24 +63,44 @@ export default function ItemsPage() {
     router.push(`/master-data/items/${row.id}`);
   };
 
-  return (
-    <div>
-      <Breadcrumbs />
+  const activeItems = data?.data?.filter(i => i.isActive).length || 0;
+  const inactiveItems = data?.data?.filter(i => !i.isActive).length || 0;
+  const totalItems = data?.meta?.total || 0;
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Items</h1>
-          <p className="text-gray-500 mt-1">Manage your product catalog</p>
-        </div>
+  return (
+    <ListPageTemplate
+      title="Items"
+      subtitle="Manage your product catalog"
+      headerActions={
         <Link href="/master-data/items/new">
           <Button>
             <PlusIcon />
             Add Item
           </Button>
         </Link>
-      </div>
-
-      <div className="mb-4">
+      }
+      stats={[
+        {
+          title: 'Total Items',
+          value: totalItems,
+          icon: <BoxSmIcon />,
+          iconColor: 'gray',
+        },
+        {
+          title: 'Active',
+          value: activeItems,
+          icon: <CheckCircleIcon />,
+          iconColor: 'green',
+        },
+        {
+          title: 'Inactive',
+          value: inactiveItems,
+          icon: <XCircleIcon />,
+          iconColor: 'red',
+        },
+      ]}
+      statsColumns={3}
+      filters={
         <Input
           type="search"
           placeholder="Search items by SKU or description..."
@@ -88,8 +108,9 @@ export default function ItemsPage() {
           value={params.search || ''}
           onChange={(e) => setSearch(e.target.value)}
         />
-      </div>
-
+      }
+      wrapInCard={false}
+    >
       <DataTable
         columns={columns}
         data={data?.data || []}
@@ -119,7 +140,7 @@ export default function ItemsPage() {
           ),
         }}
       />
-    </div>
+    </ListPageTemplate>
   );
 }
 
@@ -127,6 +148,30 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function BoxSmIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function XCircleIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }
