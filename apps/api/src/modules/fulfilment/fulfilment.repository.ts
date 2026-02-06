@@ -48,6 +48,28 @@ export interface Shipment {
   updatedAt: Date;
 }
 
+export interface ShipmentLine {
+  id: string;
+  tenantId: string;
+  shipmentId: string;
+  salesOrderLineId: string;
+  itemId: string;
+  itemSku: string;
+  itemDescription: string;
+  qty: number;
+  batchNo: string | null;
+  createdAt: Date;
+}
+
+export interface ShippableOrder {
+  id: string;
+  orderNo: string;
+  customerName: string;
+  siteId: string;
+  warehouseId: string;
+  status: string;
+}
+
 @Injectable()
 export class FulfilmentRepository extends BaseRepository {
   // Pick Wave
@@ -171,8 +193,8 @@ export class FulfilmentRepository extends BaseRepository {
     createdBy?: string;
   }): Promise<Shipment> {
     const row = await this.queryOne<Record<string, unknown>>(
-      `INSERT INTO shipments (tenant_id, site_id, warehouse_id, sales_order_id, shipment_no, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      `INSERT INTO shipments (tenant_id, site_id, warehouse_id, sales_order_id, shipment_no, status, created_by)
+       VALUES ($1, $2, $3, $4, $5, 'PENDING', $6) RETURNING *`,
       [data.tenantId, data.siteId, data.warehouseId, data.salesOrderId, data.shipmentNo, data.createdBy || null],
     );
     return this.mapShipment(row!);
@@ -299,6 +321,105 @@ export class FulfilmentRepository extends BaseRepository {
       [salesOrderId],
     );
     return rows.map((row) => this.mapShipment(row));
+  }
+
+  // Shipment Lines
+  async createShipmentLine(data: {
+    tenantId: string;
+    shipmentId: string;
+    salesOrderLineId: string;
+    itemId: string;
+    qty: number;
+    batchNo?: string;
+  }): Promise<void> {
+    await this.execute(
+      `INSERT INTO shipment_lines (tenant_id, shipment_id, sales_order_line_id, item_id, qty, batch_no)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [data.tenantId, data.shipmentId, data.salesOrderLineId, data.itemId, data.qty, data.batchNo || null],
+    );
+  }
+
+  async findShipmentLinesByShipment(shipmentId: string): Promise<ShipmentLine[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT sl.*, i.sku AS item_sku, i.description AS item_description
+       FROM shipment_lines sl
+       JOIN items i ON i.id = sl.item_id
+       WHERE sl.shipment_id = $1
+       ORDER BY sl.created_at`,
+      [shipmentId],
+    );
+    return rows.map((row) => this.mapShipmentLine(row));
+  }
+
+  async findPickedBatchesByOrderLine(salesOrderLineId: string): Promise<Array<{ batchNo: string | null; qtyPicked: number }>> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT batch_no, SUM(qty_picked) AS qty_picked
+       FROM pick_tasks
+       WHERE sales_order_line_id = $1 AND status IN ('PICKED', 'SHORT')
+       GROUP BY batch_no
+       ORDER BY batch_no`,
+      [salesOrderLineId],
+    );
+    return rows.map(row => ({
+      batchNo: row.batch_no as string | null,
+      qtyPicked: parseFloat(row.qty_picked as string),
+    }));
+  }
+
+  async sumShipmentWeight(shipmentId: string): Promise<number> {
+    const result = await this.queryOne<{ total_weight: string }>(
+      `SELECT COALESCE(SUM(COALESCE(i.weight_kg, 0) * sl.qty), 0) AS total_weight
+       FROM shipment_lines sl
+       JOIN items i ON i.id = sl.item_id
+       WHERE sl.shipment_id = $1`,
+      [shipmentId],
+    );
+    return parseFloat(result?.total_weight || '0');
+  }
+
+  async updateShipmentWeight(id: string, totalWeightKg: number): Promise<void> {
+    await this.execute(
+      'UPDATE shipments SET total_weight_kg = $1 WHERE id = $2',
+      [totalWeightKg, id],
+    );
+  }
+
+  async findShippableOrders(tenantId: string): Promise<ShippableOrder[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT so.id, so.order_no, c.name AS customer_name, so.site_id, so.warehouse_id, so.status
+       FROM sales_orders so
+       JOIN customers c ON c.id = so.customer_id
+       WHERE so.tenant_id = $1
+         AND so.status IN ('PICKING', 'ALLOCATED')
+         AND NOT EXISTS (
+           SELECT 1 FROM shipments s WHERE s.sales_order_id = so.id
+         )
+       ORDER BY so.priority, so.created_at`,
+      [tenantId],
+    );
+    return rows.map(row => ({
+      id: row.id as string,
+      orderNo: row.order_no as string,
+      customerName: row.customer_name as string,
+      siteId: row.site_id as string,
+      warehouseId: row.warehouse_id as string,
+      status: row.status as string,
+    }));
+  }
+
+  private mapShipmentLine(row: Record<string, unknown>): ShipmentLine {
+    return {
+      id: row.id as string,
+      tenantId: row.tenant_id as string,
+      shipmentId: row.shipment_id as string,
+      salesOrderLineId: row.sales_order_line_id as string,
+      itemId: row.item_id as string,
+      itemSku: (row.item_sku as string) || '',
+      itemDescription: (row.item_description as string) || '',
+      qty: parseFloat(row.qty as string),
+      batchNo: row.batch_no as string | null,
+      createdAt: row.created_at as Date,
+    };
   }
 
   private mapPickWave(row: Record<string, unknown>): PickWave {

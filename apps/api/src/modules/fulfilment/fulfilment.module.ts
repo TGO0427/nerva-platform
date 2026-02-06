@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { FulfilmentController } from './fulfilment.controller';
-import { ShipmentsController } from './shipments.controller';
 import { FulfilmentService } from './fulfilment.service';
 import { FulfilmentRepository } from './fulfilment.repository';
 import { InventoryModule } from '../inventory/inventory.module';
@@ -8,7 +7,7 @@ import { SalesModule } from '../sales/sales.module';
 
 @Module({
   imports: [InventoryModule, SalesModule],
-  controllers: [FulfilmentController, ShipmentsController],
+  controllers: [FulfilmentController],
   providers: [FulfilmentService, FulfilmentRepository],
   exports: [FulfilmentService],
 })

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { FulfilmentRepository, PickWave, PickTask, Shipment } from './fulfilment.repository';
+import { FulfilmentRepository, PickWave, PickTask, Shipment, ShipmentLine, ShippableOrder } from './fulfilment.repository';
 import { StockLedgerService } from '../inventory/stock-ledger.service';
 import { SalesService } from '../sales/sales.service';
 
@@ -148,13 +148,77 @@ export class FulfilmentService {
   // Shipments
   async createShipment(data: {
     tenantId: string;
-    siteId: string;
-    warehouseId: string;
+    siteId?: string;
+    warehouseId?: string;
     salesOrderId: string;
     createdBy?: string;
   }): Promise<Shipment> {
+    // Lookup order to get siteId/warehouseId if not provided
+    const order = await this.salesService.getOrder(data.salesOrderId);
+    const siteId = data.siteId || order.siteId;
+    const warehouseId = data.warehouseId || order.warehouseId;
+
+    // Create shipment header
     const shipmentNo = await this.repository.generateShipmentNo(data.tenantId);
-    return this.repository.createShipment({ ...data, shipmentNo });
+    const shipment = await this.repository.createShipment({
+      tenantId: data.tenantId,
+      siteId,
+      warehouseId,
+      salesOrderId: data.salesOrderId,
+      shipmentNo,
+      createdBy: data.createdBy,
+    });
+
+    // Get order lines and create shipment lines from picked quantities
+    const orderData = await this.salesService.getOrderWithLines(data.salesOrderId);
+    for (const line of orderData.lines) {
+      if (line.qtyPicked > 0) {
+        // Get picked batches for this order line
+        const pickedBatches = await this.repository.findPickedBatchesByOrderLine(line.id);
+
+        if (pickedBatches.length > 0) {
+          // Create a shipment line per batch
+          for (const batch of pickedBatches) {
+            if (batch.qtyPicked > 0) {
+              await this.repository.createShipmentLine({
+                tenantId: data.tenantId,
+                shipmentId: shipment.id,
+                salesOrderLineId: line.id,
+                itemId: line.itemId,
+                qty: batch.qtyPicked,
+                batchNo: batch.batchNo || undefined,
+              });
+            }
+          }
+        } else {
+          // No batch tracking - create single line
+          await this.repository.createShipmentLine({
+            tenantId: data.tenantId,
+            shipmentId: shipment.id,
+            salesOrderLineId: line.id,
+            itemId: line.itemId,
+            qty: line.qtyPicked,
+          });
+        }
+      }
+    }
+
+    // Calculate and update weight
+    const totalWeight = await this.repository.sumShipmentWeight(shipment.id);
+    if (totalWeight > 0) {
+      await this.repository.updateShipmentWeight(shipment.id, totalWeight);
+    }
+
+    // Return fresh shipment with weight
+    return this.repository.findShipmentById(shipment.id) as Promise<Shipment>;
+  }
+
+  async getShipmentLines(shipmentId: string): Promise<ShipmentLine[]> {
+    return this.repository.findShipmentLinesByShipment(shipmentId);
+  }
+
+  async getShippableOrders(tenantId: string): Promise<ShippableOrder[]> {
+    return this.repository.findShippableOrders(tenantId);
   }
 
   async getShipment(id: string): Promise<Shipment> {

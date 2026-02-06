@@ -164,13 +164,20 @@ export class FulfilmentController {
     return this.service.listShipments(tenantId, status, page, limit);
   }
 
+  @Get('shippable-orders')
+  @RequirePermissions('shipment.create')
+  @ApiOperation({ summary: 'Get orders ready for shipping' })
+  async getShippableOrders(@TenantId() tenantId: string) {
+    return this.service.getShippableOrders(tenantId);
+  }
+
   @Post('shipments')
   @RequirePermissions('shipment.create')
   @ApiOperation({ summary: 'Create shipment for order' })
   async createShipment(
     @TenantId() tenantId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: { siteId: string; warehouseId: string; salesOrderId: string },
+    @Body() data: { siteId?: string; warehouseId?: string; salesOrderId: string },
   ) {
     return this.service.createShipment({
       tenantId,
@@ -184,6 +191,13 @@ export class FulfilmentController {
   @ApiOperation({ summary: 'Get shipment' })
   async getShipment(@Param('id', UuidValidationPipe) id: string) {
     return this.service.getShipment(id);
+  }
+
+  @Get('shipments/:id/lines')
+  @RequirePermissions('shipment.read')
+  @ApiOperation({ summary: 'Get shipment lines' })
+  async getShipmentLines(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.getShipmentLines(id);
   }
 
   @Post('shipments/:id/pack')

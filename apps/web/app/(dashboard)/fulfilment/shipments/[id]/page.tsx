@@ -10,11 +10,37 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import {
   useShipment,
+  useShipmentLines,
   usePackShipment,
   useMarkShipmentReady,
   useShipShipment,
   useDeliverShipment,
 } from '@/lib/queries';
+import { DataTable, type Column } from '@/components/ui/data-table';
+import type { ShipmentLine } from '@/lib/queries/fulfilment';
+
+const shipmentLineColumns: Column<ShipmentLine>[] = [
+  {
+    key: 'itemSku',
+    header: 'SKU',
+    render: (row) => <span className="font-mono text-sm">{row.itemSku}</span>,
+  },
+  {
+    key: 'itemDescription',
+    header: 'Description',
+  },
+  {
+    key: 'qty',
+    header: 'Qty',
+    className: 'text-right',
+    render: (row) => row.qty.toLocaleString(),
+  },
+  {
+    key: 'batchNo',
+    header: 'Batch No',
+    render: (row) => row.batchNo || '-',
+  },
+];
 
 export default function ShipmentDetailPage() {
   const params = useParams();
@@ -22,6 +48,7 @@ export default function ShipmentDetailPage() {
   const shipmentId = params.id as string;
 
   const { data: shipment, isLoading } = useShipment(shipmentId);
+  const { data: lines } = useShipmentLines(shipmentId);
   const packShipment = usePackShipment();
   const markReady = useMarkShipmentReady();
   const shipShipment = useShipShipment();
@@ -176,6 +203,22 @@ export default function ShipmentDetailPage() {
                 Cancel
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Shipment Items */}
+      {lines && lines.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Shipment Items</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DataTable
+              data={lines}
+              columns={shipmentLineColumns}
+              keyField="id"
+            />
           </CardContent>
         </Card>
       )}

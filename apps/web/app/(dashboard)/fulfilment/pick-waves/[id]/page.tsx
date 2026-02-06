@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert } from '@/components/ui/alert';
 import {
   usePickWave,
   usePickTasks,
@@ -15,6 +19,7 @@ import {
   useCancelPickWave,
   useAssignPickTask,
   useConfirmPickTask,
+  useCreateShipment,
   PickTask,
 } from '@/lib/queries';
 
@@ -22,6 +27,15 @@ export default function PickWaveDetailPage() {
   const params = useParams();
   const router = useRouter();
   const waveId = params.id as string;
+
+  // Modal state
+  const [pickModalTask, setPickModalTask] = useState<PickTask | null>(null);
+  const [pickQty, setPickQty] = useState('');
+  const [shortReason, setShortReason] = useState('');
+  const [confirmAction, setConfirmAction] = useState<'release' | 'complete' | null>(null);
+  const [cancelModal, setCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [actionError, setActionError] = useState('');
 
   const { data: wave, isLoading: waveLoading } = usePickWave(waveId);
   const { data: tasks, isLoading: tasksLoading } = usePickTasks(waveId);
@@ -31,6 +45,14 @@ export default function PickWaveDetailPage() {
   const cancelWave = useCancelPickWave();
   const assignTask = useAssignPickTask();
   const confirmTask = useConfirmPickTask();
+  const createShipment = useCreateShipment();
+
+  // Get unique order IDs from tasks for shipment creation
+  const orderIds = useMemo(() => {
+    if (!tasks) return [];
+    const ids = new Set(tasks.map(t => t.salesOrderId));
+    return Array.from(ids);
+  }, [tasks]);
 
   const handleAssignTask = async (taskId: string) => {
     try {
@@ -40,28 +62,36 @@ export default function PickWaveDetailPage() {
     }
   };
 
-  const handleConfirmPick = async (task: PickTask) => {
-    const qtyStr = prompt(`Enter quantity picked (max ${task.qtyToPick}):`, String(task.qtyToPick));
-    if (qtyStr === null) return;
+  const openPickModal = (task: PickTask) => {
+    setPickModalTask(task);
+    setPickQty(String(task.qtyToPick));
+    setShortReason('');
+    setActionError('');
+  };
 
-    const qtyPicked = parseInt(qtyStr, 10);
-    if (isNaN(qtyPicked) || qtyPicked < 0 || qtyPicked > task.qtyToPick) {
-      alert('Invalid quantity');
+  const handleConfirmPick = async () => {
+    if (!pickModalTask) return;
+
+    const qtyPicked = parseInt(pickQty, 10);
+    if (isNaN(qtyPicked) || qtyPicked < 0 || qtyPicked > pickModalTask.qtyToPick) {
+      setActionError('Invalid quantity');
       return;
     }
 
-    const shortReason = qtyPicked < task.qtyToPick
-      ? prompt('Reason for short pick:')
-      : undefined;
+    if (qtyPicked < pickModalTask.qtyToPick && !shortReason.trim()) {
+      setActionError('Please provide a reason for short pick');
+      return;
+    }
 
     try {
       await confirmTask.mutateAsync({
-        taskId: task.id,
+        taskId: pickModalTask.id,
         qtyPicked,
-        shortReason: shortReason || undefined,
+        shortReason: qtyPicked < pickModalTask.qtyToPick ? shortReason : undefined,
       });
+      setPickModalTask(null);
     } catch (error) {
-      console.error('Failed to confirm pick:', error);
+      setActionError(error instanceof Error ? error.message : 'Failed to confirm pick');
     }
   };
 
@@ -133,7 +163,7 @@ export default function PickWaveDetailPage() {
             )}
             {canPick && (
               <button
-                onClick={() => handleConfirmPick(row)}
+                onClick={() => openPickModal(row)}
                 className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
               >
                 Pick
@@ -146,34 +176,51 @@ export default function PickWaveDetailPage() {
   ];
 
   const handleRelease = async () => {
-    if (confirm('Release this wave for picking?')) {
-      try {
-        await releaseWave.mutateAsync(waveId);
-      } catch (error) {
-        console.error('Failed to release wave:', error);
-      }
+    setActionError('');
+    try {
+      await releaseWave.mutateAsync(waveId);
+      setConfirmAction(null);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to release wave');
     }
   };
 
   const handleComplete = async () => {
-    if (confirm('Complete this pick wave? Ensure all tasks are done.')) {
-      try {
-        await completeWave.mutateAsync(waveId);
-      } catch (error) {
-        console.error('Failed to complete wave:', error);
-      }
+    setActionError('');
+    try {
+      await completeWave.mutateAsync(waveId);
+      setConfirmAction(null);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to complete wave');
     }
   };
 
   const handleCancel = async () => {
-    const reason = prompt('Please provide a reason for cancellation:');
-    if (reason) {
-      try {
-        await cancelWave.mutateAsync({ waveId, reason });
-        router.push('/fulfilment');
-      } catch (error) {
-        console.error('Failed to cancel wave:', error);
-      }
+    if (!cancelReason.trim()) {
+      setActionError('Please provide a cancellation reason');
+      return;
+    }
+
+    setActionError('');
+    try {
+      await cancelWave.mutateAsync({ waveId, reason: cancelReason });
+      setCancelModal(false);
+      router.push('/fulfilment');
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to cancel wave');
+    }
+  };
+
+  const handleCreateShipment = async () => {
+    if (orderIds.length === 0) return;
+
+    try {
+      const shipment = await createShipment.mutateAsync({
+        salesOrderId: orderIds[0],
+      });
+      router.push(`/fulfilment/shipments/${shipment.id}`);
+    } catch (error) {
+      console.error('Failed to create shipment:', error);
     }
   };
 
@@ -203,6 +250,7 @@ export default function PickWaveDetailPage() {
   const canRelease = wave.status === 'OPEN';
   const canComplete = wave.status === 'IN_PROGRESS';
   const canCancel = wave.status !== 'COMPLETE' && wave.status !== 'CANCELLED';
+  const canCreateShipment = wave.status === 'COMPLETE' && orderIds.length > 0;
 
   return (
     <div>
@@ -219,20 +267,26 @@ export default function PickWaveDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          {canCreateShipment && (
+            <Button onClick={handleCreateShipment} isLoading={createShipment.isPending}>
+              <ShipIcon />
+              Create Shipment
+            </Button>
+          )}
           {canRelease && (
-            <Button onClick={handleRelease} isLoading={releaseWave.isPending}>
+            <Button onClick={() => setConfirmAction('release')}>
               <PlayIcon />
               Release Wave
             </Button>
           )}
           {canComplete && (
-            <Button onClick={handleComplete} isLoading={completeWave.isPending}>
+            <Button onClick={() => setConfirmAction('complete')}>
               <CheckIcon />
               Complete Wave
             </Button>
           )}
           {canCancel && (
-            <Button variant="danger" onClick={handleCancel} isLoading={cancelWave.isPending}>
+            <Button variant="danger" onClick={() => setCancelModal(true)}>
               <XIcon />
               Cancel
             </Button>
@@ -298,6 +352,184 @@ export default function PickWaveDetailPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Pick Confirmation Modal */}
+      {pickModalTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setPickModalTask(null)} />
+          <Card className="relative z-10 w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Confirm Pick</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="text-sm text-gray-600">
+                  <p>
+                    <span className="font-medium">Item:</span> {pickModalTask.itemSku || pickModalTask.itemId.slice(0, 8)}
+                  </p>
+                  <p>
+                    <span className="font-medium">Bin:</span> {pickModalTask.fromBinCode || pickModalTask.fromBinId.slice(0, 8)}
+                  </p>
+                  {pickModalTask.batchNo && (
+                    <p>
+                      <span className="font-medium">Batch:</span> {pickModalTask.batchNo}
+                    </p>
+                  )}
+                </div>
+
+                {actionError && (
+                  <Alert variant="error">{actionError}</Alert>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Quantity Picked (max {pickModalTask.qtyToPick})
+                  </label>
+                  <Input
+                    type="number"
+                    value={pickQty}
+                    onChange={(e) => setPickQty(e.target.value)}
+                    min={0}
+                    max={pickModalTask.qtyToPick}
+                  />
+                </div>
+
+                {parseInt(pickQty, 10) < pickModalTask.qtyToPick && parseInt(pickQty, 10) >= 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Reason for short pick *
+                    </label>
+                    <Textarea
+                      value={shortReason}
+                      onChange={(e) => setShortReason(e.target.value)}
+                      placeholder="Explain why the full quantity could not be picked..."
+                      rows={2}
+                    />
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={handleConfirmPick}
+                    isLoading={confirmTask.isPending}
+                    className="flex-1"
+                  >
+                    Confirm Pick
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setPickModalTask(null)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Confirm Action Modal (Release/Complete) */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setConfirmAction(null)} />
+          <Card className="relative z-10 w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>
+                {confirmAction === 'release' ? 'Release Pick Wave' : 'Complete Pick Wave'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {actionError && (
+                  <Alert variant="error">{actionError}</Alert>
+                )}
+
+                <p className="text-gray-600">
+                  {confirmAction === 'release'
+                    ? 'Release this wave for picking? Tasks will become available to pickers.'
+                    : 'Complete this pick wave? Ensure all tasks are finished.'}
+                </p>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={confirmAction === 'release' ? handleRelease : handleComplete}
+                    isLoading={confirmAction === 'release' ? releaseWave.isPending : completeWave.isPending}
+                    className="flex-1"
+                  >
+                    {confirmAction === 'release' ? 'Release Wave' : 'Complete Wave'}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setConfirmAction(null)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Cancel Wave Modal */}
+      {cancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setCancelModal(false)} />
+          <Card className="relative z-10 w-full max-w-md mx-4 border-red-200">
+            <CardHeader>
+              <CardTitle className="text-red-600">Cancel Pick Wave</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Alert variant="warning">
+                  This action cannot be undone. All pending tasks will be cancelled.
+                </Alert>
+
+                {actionError && (
+                  <Alert variant="error">{actionError}</Alert>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cancellation Reason *
+                  </label>
+                  <Textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="Please provide a reason for cancelling this wave..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="danger"
+                    onClick={handleCancel}
+                    isLoading={cancelWave.isPending}
+                    className="flex-1"
+                  >
+                    Cancel Wave
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setCancelModal(false);
+                      setCancelReason('');
+                      setActionError('');
+                    }}
+                    className="flex-1"
+                  >
+                    Go Back
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
@@ -354,6 +586,14 @@ function XIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function ShipIcon() {
+  return (
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
     </svg>
   );
 }

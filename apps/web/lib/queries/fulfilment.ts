@@ -59,6 +59,28 @@ export interface Shipment {
   updatedAt: string;
 }
 
+export interface ShipmentLine {
+  id: string;
+  tenantId: string;
+  shipmentId: string;
+  salesOrderLineId: string;
+  itemId: string;
+  itemSku: string;
+  itemDescription: string;
+  qty: number;
+  batchNo: string | null;
+  createdAt: string;
+}
+
+export interface ShippableOrder {
+  id: string;
+  orderNo: string;
+  customerName: string;
+  siteId: string;
+  warehouseId: string;
+  status: string;
+}
+
 // Pick Wave queries
 export function usePickWaves(params: QueryParams & { status?: string }) {
   return useQuery({
@@ -231,6 +253,27 @@ export function useShipment(id: string | undefined) {
   });
 }
 
+export function useShipmentLines(shipmentId: string | undefined) {
+  return useQuery({
+    queryKey: [SHIPMENTS_KEY, shipmentId, 'lines'],
+    queryFn: async () => {
+      const response = await api.get<ShipmentLine[]>(`/fulfilment/shipments/${shipmentId}/lines`);
+      return response.data;
+    },
+    enabled: !!shipmentId,
+  });
+}
+
+export function useShippableOrders() {
+  return useQuery({
+    queryKey: [SHIPMENTS_KEY, 'shippable-orders'],
+    queryFn: async () => {
+      const response = await api.get<ShippableOrder[]>('/fulfilment/shippable-orders');
+      return response.data;
+    },
+  });
+}
+
 export function useOrderShipments(orderId: string | undefined) {
   return useQuery({
     queryKey: [SHIPMENTS_KEY, 'order', orderId],
@@ -246,7 +289,7 @@ export function useCreateShipment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { siteId: string; warehouseId: string; salesOrderId: string }) => {
+    mutationFn: async (data: { siteId?: string; warehouseId?: string; salesOrderId: string }) => {
       const response = await api.post<Shipment>('/fulfilment/shipments', data);
       return response.data;
     },

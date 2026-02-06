@@ -21,7 +21,10 @@ import {
 import {
   useAllocatedOrders,
   useCreatePickWave,
+  useShippableOrders,
+  useCreateShipment,
   AllocatedOrder,
+  ShippableOrder,
 } from '@/lib/queries/fulfilment';
 
 const WAVE_STATUS_OPTIONS = [
@@ -50,6 +53,8 @@ export default function FulfilmentPage() {
   const [shipmentStatus, setShipmentStatus] = useState('');
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [error, setError] = useState('');
+  const [showNewShipmentForm, setShowNewShipmentForm] = useState(false);
+  const [selectedOrderForShipment, setSelectedOrderForShipment] = useState('');
   const { params, setPage } = useQueryParams();
 
   const { data: wavesData, isLoading: wavesLoading } = usePickWaves({
@@ -63,8 +68,10 @@ export default function FulfilmentPage() {
   });
 
   const { data: allocatedOrders, isLoading: allocatedLoading } = useAllocatedOrders();
+  const { data: shippableOrders } = useShippableOrders();
   const { data: warehouses } = useWarehouses();
   const createPickWave = useCreatePickWave();
+  const createShipment = useCreateShipment();
 
   // Get the default warehouse for creating pick waves
   const defaultWarehouse = warehouses?.[0];
@@ -244,6 +251,25 @@ export default function FulfilmentPage() {
 
   const handleShipmentClick = (row: Shipment) => {
     router.push(`/fulfilment/shipments/${row.id}`);
+  };
+
+  const handleCreateShipment = async () => {
+    if (!selectedOrderForShipment) {
+      setError('Please select an order');
+      return;
+    }
+
+    setError('');
+    try {
+      const shipment = await createShipment.mutateAsync({
+        salesOrderId: selectedOrderForShipment,
+      });
+      setShowNewShipmentForm(false);
+      setSelectedOrderForShipment('');
+      router.push(`/fulfilment/shipments/${shipment.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create shipment');
+    }
   };
 
   return (
@@ -456,14 +482,72 @@ export default function FulfilmentPage() {
 
       {activeTab === 'shipments' && (
         <>
-          <div className="mb-4">
+          <div className="flex flex-wrap items-center gap-4 mb-4">
             <Select
               value={shipmentStatus}
               onChange={(e) => setShipmentStatus(e.target.value)}
               options={SHIPMENT_STATUS_OPTIONS}
               className="max-w-xs"
             />
+            <div className="flex-1" />
+            <Button onClick={() => setShowNewShipmentForm(!showNewShipmentForm)}>
+              <PlusIcon />
+              New Shipment
+            </Button>
           </div>
+
+          {showNewShipmentForm && (
+            <Card className="mb-4 border-primary-200 bg-primary-50">
+              <CardHeader>
+                <CardTitle className="text-lg">Create Shipment</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {error && (
+                  <Alert variant="error" className="mb-4">
+                    {error}
+                  </Alert>
+                )}
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="min-w-[250px]">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Select Order
+                    </label>
+                    <Select
+                      value={selectedOrderForShipment}
+                      onChange={(e) => setSelectedOrderForShipment(e.target.value)}
+                      options={[
+                        { value: '', label: 'Select an order...' },
+                        ...(shippableOrders?.map(o => ({
+                          value: o.id,
+                          label: `${o.orderNo} - ${o.customerName}`,
+                        })) || []),
+                      ]}
+                    />
+                    {shippableOrders?.length === 0 && (
+                      <p className="text-sm text-gray-500 mt-1">No orders ready for shipping</p>
+                    )}
+                  </div>
+                  <Button
+                    onClick={handleCreateShipment}
+                    isLoading={createShipment.isPending}
+                    disabled={!selectedOrderForShipment}
+                  >
+                    Create Shipment
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setShowNewShipmentForm(false);
+                      setSelectedOrderForShipment('');
+                      setError('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <DataTable
             columns={shipmentColumns}
