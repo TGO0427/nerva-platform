@@ -2,16 +2,30 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Breadcrumbs } from '@/components/layout';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Spinner } from '@/components/ui/spinner';
+import { Select } from '@/components/ui/select';
+import { DataTable, Column } from '@/components/ui/data-table';
+import { ListPageTemplate } from '@/components/templates';
 import { usePurchaseOrders, useQueryParams } from '@/lib/queries';
 import type { PurchaseOrder, PurchaseOrderStatus } from '@nerva/shared';
 
+const STATUS_OPTIONS = [
+  { value: '', label: 'All Statuses' },
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'SENT', label: 'Sent' },
+  { value: 'CONFIRMED', label: 'Confirmed' },
+  { value: 'PARTIAL', label: 'Partial' },
+  { value: 'RECEIVED', label: 'Received' },
+  { value: 'CANCELLED', label: 'Cancelled' },
+];
+
+type PurchaseOrderWithSupplier = PurchaseOrder & { supplierName?: string; lineCount?: number };
+
 export default function PurchaseOrdersPage() {
+  const router = useRouter();
   const { params, setSearch, setPage } = useQueryParams({ page: 1, limit: 20 });
   const [statusFilter, setStatusFilter] = useState<string>('');
 
@@ -20,157 +34,156 @@ export default function PurchaseOrdersPage() {
     status: statusFilter || undefined,
   });
 
-  const statuses: { value: string; label: string }[] = [
-    { value: '', label: 'All Statuses' },
-    { value: 'DRAFT', label: 'Draft' },
-    { value: 'SENT', label: 'Sent' },
-    { value: 'CONFIRMED', label: 'Confirmed' },
-    { value: 'PARTIAL', label: 'Partial' },
-    { value: 'RECEIVED', label: 'Received' },
-    { value: 'CANCELLED', label: 'Cancelled' },
+  const columns: Column<PurchaseOrderWithSupplier>[] = [
+    {
+      key: 'poNo',
+      header: 'PO #',
+      sortable: true,
+      render: (row) => (
+        <span className="font-medium text-primary-600">{row.poNo}</span>
+      ),
+    },
+    {
+      key: 'supplierName',
+      header: 'Supplier',
+      render: (row) => row.supplierName || '-',
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '120px',
+      render: (row) => (
+        <Badge variant={getStatusVariant(row.status as PurchaseOrderStatus)}>
+          {row.status}
+        </Badge>
+      ),
+    },
+    {
+      key: 'orderDate',
+      header: 'Order Date',
+      sortable: true,
+      render: (row) => new Date(row.orderDate).toLocaleDateString(),
+    },
+    {
+      key: 'expectedDate',
+      header: 'Expected Date',
+      render: (row) => row.expectedDate ? new Date(row.expectedDate).toLocaleDateString() : '-',
+    },
+    {
+      key: 'lineCount',
+      header: 'Lines',
+      width: '80px',
+      render: (row) => row.lineCount || 0,
+    },
+    {
+      key: 'totalAmount',
+      header: 'Total',
+      className: 'text-right',
+      render: (row) => (
+        <span className="font-medium">
+          R {row.totalAmount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+        </span>
+      ),
+    },
   ];
 
+  const handleRowClick = (row: PurchaseOrderWithSupplier) => {
+    router.push(`/procurement/purchase-orders/${row.id}`);
+  };
+
+  // Calculate stats
+  const totalPOs = data?.meta?.total || 0;
+  const draftPOs = data?.data?.filter(po => po.status === 'DRAFT').length || 0;
+  const pendingPOs = data?.data?.filter(po => ['SENT', 'CONFIRMED', 'PARTIAL'].includes(po.status)).length || 0;
+  const receivedPOs = data?.data?.filter(po => po.status === 'RECEIVED').length || 0;
+
   return (
-    <div>
-      <Breadcrumbs />
-
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Purchase Orders</h1>
+    <ListPageTemplate
+      title="Purchase Orders"
+      subtitle="Manage supplier orders and receiving"
+      headerActions={
         <Link href="/procurement/purchase-orders/new">
-          <Button>Create Purchase Order</Button>
+          <Button>
+            <PlusIcon />
+            Create Purchase Order
+          </Button>
         </Link>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-4 mb-6">
-        <Input
-          placeholder="Search PO # or supplier..."
-          value={params.search || ''}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs"
-        />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          {statuses.map((s) => (
-            <option key={s.value} value={s.value}>{s.label}</option>
-          ))}
-        </select>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Spinner size="lg" />
-        </div>
-      ) : data?.data && data.data.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  PO #
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Supplier
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Order Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Expected Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Lines
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {data.data.map((po) => (
-                <tr
-                  key={po.id}
-                  className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => window.location.href = `/procurement/purchase-orders/${po.id}`}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="font-medium text-primary-600">{po.poNo}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {po.supplierName || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <StatusBadge status={po.status as PurchaseOrderStatus} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(po.orderDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {po.lineCount || 0}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                    R {po.totalAmount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center text-gray-500">
-              <ShoppingCartIcon />
-              <h3 className="mt-4 font-medium text-gray-900">No purchase orders yet</h3>
-              <p className="mt-1">Create your first purchase order to get started.</p>
-              <Link href="/procurement/purchase-orders/new">
-                <Button className="mt-4">Create Purchase Order</Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Pagination */}
-      {data && data.meta && data.meta.totalPages && data.meta.totalPages > 1 && (
-        <div className="flex items-center justify-between mt-6">
-          <div className="text-sm text-gray-500">
-            Page {params.page} of {data.meta.totalPages}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={params.page <= 1}
-              onClick={() => setPage(params.page - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={params.page >= (data.meta.totalPages || 1)}
-              onClick={() => setPage(params.page + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+      }
+      stats={[
+        {
+          title: 'Total POs',
+          value: totalPOs,
+          icon: <ClipboardIcon />,
+          iconColor: 'gray',
+        },
+        {
+          title: 'Draft',
+          value: draftPOs,
+          icon: <DraftIcon />,
+          iconColor: 'blue',
+        },
+        {
+          title: 'Pending Receipt',
+          value: pendingPOs,
+          icon: <TruckIcon />,
+          iconColor: 'yellow',
+        },
+        {
+          title: 'Received',
+          value: receivedPOs,
+          icon: <CheckIcon />,
+          iconColor: 'green',
+        },
+      ]}
+      statsColumns={4}
+      filters={
+        <>
+          <Input
+            placeholder="Search PO # or supplier..."
+            value={params.search || ''}
+            onChange={(e) => setSearch(e.target.value)}
+            className="max-w-xs"
+          />
+          <Select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            options={STATUS_OPTIONS}
+            className="max-w-xs"
+          />
+        </>
+      }
+    >
+      <DataTable
+        columns={columns}
+        data={data?.data || []}
+        keyField="id"
+        isLoading={isLoading}
+        pagination={data?.meta ? {
+          page: data.meta.page,
+          limit: data.meta.limit,
+          total: data.meta.total || 0,
+          totalPages: data.meta.totalPages || 1,
+        } : undefined}
+        onPageChange={setPage}
+        onRowClick={handleRowClick}
+        emptyState={{
+          icon: <ShoppingCartIcon />,
+          title: 'No purchase orders yet',
+          description: statusFilter
+            ? 'No orders match the selected filter'
+            : 'Create your first purchase order to get started',
+          action: !statusFilter && (
+            <Link href="/procurement/purchase-orders/new">
+              <Button>Create Purchase Order</Button>
+            </Link>
+          ),
+        }}
+      />
+    </ListPageTemplate>
   );
 }
 
-function StatusBadge({ status }: { status: PurchaseOrderStatus }) {
+function getStatusVariant(status: PurchaseOrderStatus): 'success' | 'warning' | 'danger' | 'default' {
   const variants: Record<PurchaseOrderStatus, 'success' | 'warning' | 'danger' | 'default'> = {
     DRAFT: 'default',
     SENT: 'warning',
@@ -179,13 +192,55 @@ function StatusBadge({ status }: { status: PurchaseOrderStatus }) {
     RECEIVED: 'success',
     CANCELLED: 'danger',
   };
-
-  return <Badge variant={variants[status]}>{status}</Badge>;
+  return variants[status];
 }
 
+// Button icon
+function PlusIcon() {
+  return (
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+// Stat card icons
+function ClipboardIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+    </svg>
+  );
+}
+
+function DraftIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+    </svg>
+  );
+}
+
+function TruckIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+// Empty state icon
 function ShoppingCartIcon() {
   return (
-    <svg className="h-12 w-12 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+    <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
     </svg>
   );

@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Alert } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
+import { PageShell, MetricGrid } from '@/components/ui/motion';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatCard } from '@/components/ui/stat-card';
 import {
   usePickWaves,
   useShipments,
@@ -272,60 +274,54 @@ export default function FulfilmentPage() {
     }
   };
 
-  return (
-    <div>
-      <Breadcrumbs />
+  // Calculate stats
+  const readyToPick = allocatedOrders?.length || 0;
+  const activeWaves = wavesData?.data?.filter(w => w.status === 'IN_PROGRESS').length || 0;
+  const openWaves = wavesData?.data?.filter(w => w.status === 'OPEN').length || 0;
+  const readyToShip = shipmentsData?.data?.filter(s => s.status === 'READY_FOR_DISPATCH').length || 0;
+  const shippedToday = shipmentsData?.data?.filter(s => s.status === 'SHIPPED').length || 0;
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Fulfilment</h1>
-          <p className="text-gray-500 mt-1">Manage picking, packing, and shipping</p>
-        </div>
-      </div>
+  return (
+    <PageShell>
+      <PageHeader
+        title="Fulfilment"
+        subtitle="Manage picking, packing, and shipping"
+      />
 
       {/* Quick stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-6">
-        <Card className={allocatedOrders && allocatedOrders.length > 0 ? 'border-orange-200 bg-orange-50' : ''}>
-          <CardContent className="pt-6">
-            <div className={`text-2xl font-bold ${allocatedOrders && allocatedOrders.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
-              {allocatedOrders?.length || 0}
-            </div>
-            <p className="text-sm text-gray-500">Ready to Pick</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">
-              {wavesData?.data?.filter(w => w.status === 'IN_PROGRESS').length || 0}
-            </div>
-            <p className="text-sm text-gray-500">Active Waves</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-yellow-600">
-              {wavesData?.data?.filter(w => w.status === 'OPEN').length || 0}
-            </div>
-            <p className="text-sm text-gray-500">Open Waves</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-purple-600">
-              {shipmentsData?.data?.filter(s => s.status === 'READY_FOR_DISPATCH').length || 0}
-            </div>
-            <p className="text-sm text-gray-500">Ready to Ship</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">
-              {shipmentsData?.data?.filter(s => s.status === 'SHIPPED').length || 0}
-            </div>
-            <p className="text-sm text-gray-500">Shipped Today</p>
-          </CardContent>
-        </Card>
-      </div>
+      <MetricGrid className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <StatCard
+          title="Ready to Pick"
+          value={readyToPick}
+          icon={<ClipboardListIcon />}
+          iconColor="orange"
+          alert={readyToPick > 0}
+        />
+        <StatCard
+          title="Active Waves"
+          value={activeWaves}
+          icon={<PlayIcon />}
+          iconColor="blue"
+        />
+        <StatCard
+          title="Open Waves"
+          value={openWaves}
+          icon={<WaveIcon />}
+          iconColor="yellow"
+        />
+        <StatCard
+          title="Ready to Ship"
+          value={readyToShip}
+          icon={<BoxIcon />}
+          iconColor="purple"
+        />
+        <StatCard
+          title="Shipped Today"
+          value={shippedToday}
+          icon={<ShipIcon />}
+          iconColor="green"
+        />
+      </MetricGrid>
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-4">
@@ -470,7 +466,7 @@ export default function FulfilmentPage() {
             onPageChange={setPage}
             onRowClick={handleWaveClick}
             emptyState={{
-              icon: <WaveIcon />,
+              icon: <WaveIconLg />,
               title: 'No pick waves found',
               description: waveStatus
                 ? 'No waves match the selected filter'
@@ -563,7 +559,7 @@ export default function FulfilmentPage() {
             onPageChange={setPage}
             onRowClick={handleShipmentClick}
             emptyState={{
-              icon: <ShipIcon />,
+              icon: <ShipIconLg />,
               title: 'No shipments found',
               description: shipmentStatus
                 ? 'No shipments match the selected filter'
@@ -572,7 +568,7 @@ export default function FulfilmentPage() {
           />
         </>
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -606,7 +602,49 @@ function getShipmentStatusVariant(status: string): 'default' | 'success' | 'warn
   }
 }
 
+// Stat card icons (small)
+function ClipboardListIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+    </svg>
+  );
+}
+
 function WaveIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+    </svg>
+  );
+}
+
+function BoxIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+    </svg>
+  );
+}
+
+function ShipIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+    </svg>
+  );
+}
+
+// Empty state icons (large)
+function WaveIconLg() {
   return (
     <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
@@ -614,7 +652,7 @@ function WaveIcon() {
   );
 }
 
-function ShipIcon() {
+function ShipIconLg() {
   return (
     <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />

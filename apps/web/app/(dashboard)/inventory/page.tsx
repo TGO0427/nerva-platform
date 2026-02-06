@@ -1,16 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
-import { useItems, useQueryParams, useWarehouses, StockSnapshot } from '@/lib/queries';
+import { ListPageTemplate } from '@/components/templates';
+import { useItems, useQueryParams, useWarehouses } from '@/lib/queries';
 import { useExpiryAlertsSummary } from '@/lib/queries/inventory';
 import type { Item } from '@nerva/shared';
 
@@ -56,23 +53,22 @@ export default function InventoryPage() {
     router.push(`/inventory/stock/${row.id}`);
   };
 
-  return (
-    <div>
-      <Breadcrumbs />
+  const expiredCount = expiryAlerts?.expired || 0;
+  const criticalCount = expiryAlerts?.critical || 0;
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
-          <p className="text-gray-500 mt-1">View and manage stock levels</p>
-        </div>
+  return (
+    <ListPageTemplate
+      title="Inventory"
+      subtitle="View and manage stock levels"
+      headerActions={
         <div className="flex gap-2">
           <Link href="/inventory/expiry-alerts">
             <Button variant="secondary">
               <ExpiryIcon />
               Expiry Alerts
-              {(expiryAlerts?.expired || 0) > 0 && (
+              {expiredCount > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full">
-                  {expiryAlerts?.expired}
+                  {expiredCount}
                 </span>
               )}
             </Button>
@@ -90,89 +86,73 @@ export default function InventoryPage() {
             </Button>
           </Link>
         </div>
-      </div>
-
-      {/* Quick stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">
-              {warehouses?.length || 0}
-            </div>
-            <p className="text-sm text-gray-500">Warehouses</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">
-              {itemsData?.meta?.total || 0}
-            </div>
-            <p className="text-sm text-gray-500">Active Items</p>
-          </CardContent>
-        </Card>
-        <Link href="/inventory/expiry-alerts">
-          <Card className="cursor-pointer hover:shadow-md transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold text-red-600">
-                  {expiryAlerts?.expired || 0}
-                </span>
-                <span className="text-lg text-orange-600">
-                  +{expiryAlerts?.critical || 0}
-                </span>
-              </div>
-              <p className="text-sm text-gray-500">Expiry Alerts</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">-</div>
-            <p className="text-sm text-gray-500">Pending GRNs</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Stock by Item</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4">
-            <Input
-              type="search"
-              placeholder="Search items by SKU or description..."
-              className="max-w-md"
-              value={params.search || ''}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-
-          <DataTable
-            columns={columns}
-            data={itemsData?.data || []}
-            keyField="id"
-            isLoading={isLoading}
-            pagination={itemsData?.meta ? {
-              page: itemsData.meta.page,
-              limit: itemsData.meta.limit,
-              total: itemsData.meta.total || 0,
-              totalPages: itemsData.meta.totalPages || 1,
-            } : undefined}
-            onPageChange={setPage}
-            onRowClick={handleRowClick}
-            emptyState={{
-              icon: <BoxIcon />,
-              title: 'No items found',
-              description: 'Search for an item to view its stock levels',
-            }}
-          />
-        </CardContent>
-      </Card>
-    </div>
+      }
+      stats={[
+        {
+          title: 'Warehouses',
+          value: warehouses?.length || 0,
+          icon: <WarehouseIcon />,
+          iconColor: 'gray',
+        },
+        {
+          title: 'Active Items',
+          value: itemsData?.meta?.total || 0,
+          icon: <ItemsIcon />,
+          iconColor: 'blue',
+        },
+        {
+          title: 'Expiry Alerts',
+          value: expiredCount,
+          subtitle: criticalCount > 0 ? `+${criticalCount} critical` : undefined,
+          subtitleType: 'negative',
+          icon: <ExpiryLgIcon />,
+          iconColor: expiredCount > 0 ? 'red' : 'gray',
+          href: '/inventory/expiry-alerts',
+          alert: expiredCount > 0,
+        },
+        {
+          title: 'Pending GRNs',
+          value: '-',
+          icon: <GrnIcon />,
+          iconColor: 'blue',
+          emptyHint: 'No pending receipts',
+        },
+      ]}
+      statsColumns={4}
+      filters={
+        <Input
+          type="search"
+          placeholder="Search items by SKU or description..."
+          className="max-w-md"
+          value={params.search || ''}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      }
+    >
+      <DataTable
+        columns={columns}
+        data={itemsData?.data || []}
+        keyField="id"
+        isLoading={isLoading}
+        pagination={itemsData?.meta ? {
+          page: itemsData.meta.page,
+          limit: itemsData.meta.limit,
+          total: itemsData.meta.total || 0,
+          totalPages: itemsData.meta.totalPages || 1,
+        } : undefined}
+        onPageChange={setPage}
+        onRowClick={handleRowClick}
+        emptyState={{
+          icon: <BoxIcon />,
+          title: 'No items found',
+          description: 'Search for an item to view its stock levels',
+        }}
+      />
+    </ListPageTemplate>
   );
 }
 
+// Button icons (small)
 function ExpiryIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -197,6 +177,40 @@ function TransferIcon() {
   );
 }
 
+// Stat card icons (medium)
+function WarehouseIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+    </svg>
+  );
+}
+
+function ItemsIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+    </svg>
+  );
+}
+
+function ExpiryLgIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function GrnIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+    </svg>
+  );
+}
+
+// Empty state icon (large)
 function BoxIcon() {
   return (
     <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
