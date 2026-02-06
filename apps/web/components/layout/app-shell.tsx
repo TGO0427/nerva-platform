@@ -14,10 +14,7 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-surface">
-      {/* Brand accent strip */}
-      <div className="h-1 w-full bg-primary-600 fixed top-0 left-0 z-50" />
-
-      <div className="flex pt-1">
+      <div className="flex">
         <Sidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -26,7 +23,11 @@ export function AppShell({ children }: AppShellProps) {
         />
 
         <div className="flex-1 flex flex-col min-h-screen lg:pl-0">
-          <Header onMenuClick={() => setIsSidebarOpen(true)} />
+          {/* Sticky header with brand accent */}
+          <div className="sticky top-0 z-40">
+            <div className="h-1 w-full bg-primary-600" />
+            <Header onMenuClick={() => setIsSidebarOpen(true)} />
+          </div>
 
           <main className="flex-1 p-4 lg:p-6">
             {children}
