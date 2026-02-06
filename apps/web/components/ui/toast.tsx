@@ -1,6 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toastVariants } from '@/lib/motion';
 
 type ToastVariant = 'info' | 'success' | 'warning' | 'error';
 
@@ -92,28 +94,33 @@ function ToastContainer({
   toasts: Toast[];
   removeToast: (id: string) => void;
 }) {
-  if (toasts.length === 0) return null;
-
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
-      {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          className={`${variantStyles[toast.variant]} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in`}
-          role="alert"
-        >
-          <span className="flex-shrink-0">{variantIcons[toast.variant]}</span>
-          <p className="text-sm flex-1">{toast.message}</p>
-          <button
-            onClick={() => removeToast(toast.id)}
-            className="flex-shrink-0 p-1 hover:bg-white/20 rounded"
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none">
+      <AnimatePresence mode="popLayout">
+        {toasts.map((toast) => (
+          <motion.div
+            key={toast.id}
+            layout
+            variants={toastVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className={`${variantStyles[toast.variant]} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 pointer-events-auto`}
+            role="alert"
           >
-            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </div>
-      ))}
+            <span className="flex-shrink-0">{variantIcons[toast.variant]}</span>
+            <p className="text-sm flex-1">{toast.message}</p>
+            <button
+              onClick={() => removeToast(toast.id)}
+              className="flex-shrink-0 p-1 hover:bg-white/20 rounded transition-colors"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   );
 }

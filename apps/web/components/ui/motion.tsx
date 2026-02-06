@@ -1,18 +1,62 @@
 'use client';
 
-import { motion, HTMLMotionProps } from 'framer-motion';
-import { forwardRef, ReactNode } from 'react';
+import { motion, HTMLMotionProps, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { forwardRef, ReactNode, createContext, useContext } from 'react';
+import { durations, springs, pageVariants, pageTransition } from '@/lib/motion';
 
-// Page transition wrapper - fade + slight rise
-export function PageShell({ children }: { children: ReactNode }) {
+// Reduced motion context
+const ReducedMotionContext = createContext(false);
+
+export function useMotionPreference() {
+  return useContext(ReducedMotionContext);
+}
+
+export function MotionProvider({ children }: { children: ReactNode }) {
+  const prefersReduced = useReducedMotion();
+  return (
+    <ReducedMotionContext.Provider value={prefersReduced ?? false}>
+      {children}
+    </ReducedMotionContext.Provider>
+  );
+}
+
+// Page transition wrapper with AnimatePresence support
+interface PageShellProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export function PageShell({ children, className = '' }: PageShellProps) {
+  const prefersReduced = useReducedMotion();
+
+  if (prefersReduced) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: 'easeOut' as const }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: durations.medium, ease: [0.16, 1, 0.3, 1] }}
+      className={className}
     >
       {children}
     </motion.div>
+  );
+}
+
+// Wrapper for route transitions
+interface PageTransitionProps {
+  children: ReactNode;
+  routeKey: string;
+}
+
+export function PageTransition({ children, routeKey }: PageTransitionProps) {
+  return (
+    <AnimatePresence mode="wait">
+      <PageShell key={routeKey}>{children}</PageShell>
+    </AnimatePresence>
   );
 }
 
@@ -234,5 +278,109 @@ export function StaggerList({
         </motion.div>
       ))}
     </motion.div>
+  );
+}
+
+// Animated list with layout animations for filtering/sorting
+interface AnimatedListProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export function AnimatedList({ children, className = '' }: AnimatedListProps) {
+  return (
+    <AnimatePresence mode="popLayout">
+      <motion.div className={className}>
+        {children}
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// Individual list item with layout animation
+interface AnimatedListItemProps {
+  children: ReactNode;
+  id: string;
+  className?: string;
+}
+
+export function AnimatedListItem({ children, id, className = '' }: AnimatedListItemProps) {
+  return (
+    <motion.div
+      layout
+      layoutId={id}
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20, transition: { duration: durations.fast } }}
+      transition={springs.snappy}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// Attention animation for critical alerts (one-time shake)
+interface AttentionProps {
+  children: ReactNode;
+  trigger?: boolean;
+  className?: string;
+}
+
+export function Attention({ children, trigger = false, className = '' }: AttentionProps) {
+  const prefersReduced = useReducedMotion();
+
+  if (prefersReduced) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <motion.div
+      animate={trigger ? { x: [0, -3, 3, -3, 3, 0] } : { x: 0 }}
+      transition={{ duration: 0.4, ease: 'easeInOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// Collapsible sidebar wrapper
+interface CollapsibleSidebarProps {
+  children: ReactNode;
+  collapsed: boolean;
+  className?: string;
+}
+
+export function CollapsibleSidebar({ children, collapsed, className = '' }: CollapsibleSidebarProps) {
+  return (
+    <motion.aside
+      initial={false}
+      animate={{ width: collapsed ? 64 : 256 }}
+      transition={springs.snappy}
+      className={className}
+    >
+      {children}
+    </motion.aside>
+  );
+}
+
+// Tooltip wrapper for collapsed sidebar items
+interface TooltipProps {
+  children: ReactNode;
+  content: string;
+  side?: 'left' | 'right';
+}
+
+export function Tooltip({ children, content, side = 'right' }: TooltipProps) {
+  return (
+    <div className="relative group">
+      {children}
+      <div
+        className={`absolute ${side === 'right' ? 'left-full ml-2' : 'right-full mr-2'} top-1/2 -translate-y-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50`}
+      >
+        {content}
+      </div>
+    </div>
   );
 }

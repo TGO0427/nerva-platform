@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Breadcrumbs } from '@/components/layout';
 import { Spinner } from '@/components/ui/spinner';
 import { PageShell, MetricGrid } from '@/components/ui/motion';
+import { AnimatedNumber, AnimatedCurrency } from '@/components/ui/animated-number';
 import { useDashboardStats, useRecentActivity } from '@/lib/queries';
 import { PERMISSIONS } from '@nerva/shared';
 
@@ -34,7 +35,13 @@ function KpiCard({ title, value, subtitle, changeType = 'neutral', icon, href, e
       <CardContent className="flex items-center justify-between pt-4">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">
+            {typeof value === 'number' ? (
+              <AnimatedNumber value={value} duration={400} />
+            ) : (
+              value
+            )}
+          </p>
           {showEmpty ? (
             <p className="text-xs text-gray-400 mt-1">{emptyHint}</p>
           ) : subtitle ? (
@@ -202,7 +209,9 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-500">Trips in Progress</p>
-                        <p className="text-2xl font-bold text-gray-900 mt-1">{stats?.tripsInProgress ?? 0}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">
+                          <AnimatedNumber value={stats?.tripsInProgress ?? 0} duration={400} />
+                        </p>
                         <p className="text-xs text-gray-400 mt-1">
                           {stats?.tripsCompletedToday ? `${stats.tripsCompletedToday} completed today` : 'No trips completed yet'}
                         </p>
@@ -220,7 +229,9 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-500">Open NCRs</p>
-                        <p className="text-2xl font-bold text-gray-900 mt-1">{stats?.openNCRs ?? 0}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">
+                          <AnimatedNumber value={stats?.openNCRs ?? 0} duration={400} />
+                        </p>
                         <p className="text-xs text-gray-400 mt-1">
                           {(stats?.openNCRs ?? 0) > 0 ? 'Requires attention' : 'All clear'}
                         </p>
@@ -239,7 +250,7 @@ export default function DashboardPage() {
                       <div>
                         <p className="text-sm text-gray-500">Late Orders</p>
                         <p className={`text-2xl font-bold mt-1 ${(stats?.lateOrders ?? 0) > 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                          {stats?.lateOrders ?? 0}
+                          <AnimatedNumber value={stats?.lateOrders ?? 0} duration={400} />
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
                           {(stats?.lateOrders ?? 0) > 0 ? 'Past requested ship date' : 'All orders on track'}
@@ -263,7 +274,7 @@ export default function DashboardPage() {
                   <div>
                     <p className="text-sm text-gray-500">Weekly Sales</p>
                     <p className="text-xl font-bold text-gray-900">
-                      R {(stats?.weeklySalesValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                      <AnimatedCurrency value={stats?.weeklySalesValue ?? 0} duration={500} />
                     </p>
                   </div>
                   <div className="h-10 w-10 bg-green-50 rounded-lg flex items-center justify-center text-green-500">
@@ -277,7 +288,9 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500">Weekly Orders</p>
-                    <p className="text-xl font-bold text-gray-900">{stats?.weeklyOrdersCount ?? 0}</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      <AnimatedNumber value={stats?.weeklyOrdersCount ?? 0} duration={400} />
+                    </p>
                   </div>
                   <div className="h-10 w-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-500">
                     <TrendingIcon />
@@ -290,7 +303,9 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500">Shipped This Week</p>
-                    <p className="text-xl font-bold text-gray-900">{stats?.shippedOrders ?? 0}</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      <AnimatedNumber value={stats?.shippedOrders ?? 0} duration={400} />
+                    </p>
                   </div>
                   <div className="h-10 w-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-500">
                     <ShipIcon />
