@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -12,6 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert } from '@/components/ui/alert';
+import { PageShell, MetricGrid } from '@/components/ui/motion';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatCard } from '@/components/ui/stat-card';
 import {
   useTrips,
   useCreateTrip,
@@ -199,10 +201,11 @@ export default function DispatchPage() {
   };
 
   // Stats
+  const readyCount = readyShipments?.length || 0;
   const plannedTrips = tripsData?.data?.filter(t => t.status === 'PLANNED').length || 0;
   const inProgressTrips = tripsData?.data?.filter(t => t.status === 'IN_PROGRESS').length || 0;
   const completedToday = tripsData?.data?.filter(t => t.status === 'COMPLETE').length || 0;
-  const readyCount = readyShipments?.length || 0;
+  const totalTrips = tripsData?.meta?.total || 0;
 
   // Calculate total weight of selected shipments
   const selectedWeight = useMemo(() => {
@@ -213,54 +216,49 @@ export default function DispatchPage() {
   }, [readyShipments, selectedShipments]);
 
   return (
-    <div>
-      <Breadcrumbs />
-
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dispatch</h1>
-          <p className="text-gray-500 mt-1">Manage delivery trips and routes</p>
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Dispatch"
+        subtitle="Manage delivery trips and routes"
+      />
 
       {/* Quick stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-6">
-        <Card className={readyCount > 0 ? 'border-orange-200 bg-orange-50' : ''}>
-          <CardContent className="pt-6">
-            <div className={`text-2xl font-bold ${readyCount > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
-              {readyCount}
-            </div>
-            <p className="text-sm text-gray-500">Ready for Dispatch</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">{plannedTrips}</div>
-            <p className="text-sm text-gray-500">Planned Trips</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-yellow-600">{inProgressTrips}</div>
-            <p className="text-sm text-gray-500">In Progress</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">{completedToday}</div>
-            <p className="text-sm text-gray-500">Completed Today</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{tripsData?.meta?.total || 0}</div>
-            <p className="text-sm text-gray-500">Total Trips</p>
-          </CardContent>
-        </Card>
-      </div>
+      <MetricGrid className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <StatCard
+          title="Ready for Dispatch"
+          value={readyCount}
+          icon={<PackageSmIcon />}
+          iconColor="orange"
+          alert={readyCount > 0}
+        />
+        <StatCard
+          title="Planned Trips"
+          value={plannedTrips}
+          icon={<CalendarIcon />}
+          iconColor="blue"
+        />
+        <StatCard
+          title="In Progress"
+          value={inProgressTrips}
+          icon={<PlayIcon />}
+          iconColor="yellow"
+        />
+        <StatCard
+          title="Completed Today"
+          value={completedToday}
+          icon={<CheckIcon />}
+          iconColor="green"
+        />
+        <StatCard
+          title="Total Trips"
+          value={totalTrips}
+          icon={<TruckSmIcon />}
+          iconColor="gray"
+        />
+      </MetricGrid>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-4">
+      <div className="border-b border-slate-200 mb-4">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('trips')}
@@ -418,7 +416,7 @@ export default function DispatchPage() {
               }}
             />
           ) : (
-            <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
+            <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
               <PackageIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
               <h3 className="text-lg font-medium text-gray-900">No shipments ready for dispatch</h3>
               <p className="text-gray-500 mt-1">
@@ -433,7 +431,7 @@ export default function DispatchPage() {
           )}
         </>
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -456,6 +454,48 @@ function getTripStatusVariant(status: TripStatus): 'default' | 'success' | 'warn
   }
 }
 
+// Stat card icons (small)
+function PackageSmIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function TruckSmIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+    </svg>
+  );
+}
+
+// Empty state icons (large)
 function TruckIcon() {
   return (
     <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>

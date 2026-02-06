@@ -3,12 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { ListPageTemplate } from '@/components/templates';
 import { useRmas, useQueryParams, Rma } from '@/lib/queries';
 import type { RmaStatus } from '@nerva/shared';
 
@@ -88,16 +87,13 @@ export default function ReturnsPage() {
   const openRmas = data?.data?.filter(r => ['OPEN', 'AWAITING_RETURN'].includes(r.status)).length || 0;
   const awaitingInspection = data?.data?.filter(r => ['RECEIVED', 'INSPECTING'].includes(r.status)).length || 0;
   const pendingCredit = data?.data?.filter(r => ['CREDIT_PENDING'].includes(r.status)).length || 0;
+  const totalRmas = data?.meta?.total || 0;
 
   return (
-    <div>
-      <Breadcrumbs />
-
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Returns</h1>
-          <p className="text-gray-500 mt-1">Manage RMAs and customer returns</p>
-        </div>
+    <ListPageTemplate
+      title="Returns"
+      subtitle="Manage RMAs and customer returns"
+      headerActions={
         <div className="flex gap-2">
           <Link href="/returns/credit-notes">
             <Button variant="secondary">
@@ -112,45 +108,45 @@ export default function ReturnsPage() {
             </Button>
           </Link>
         </div>
-      </div>
-
-      {/* Quick stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">{openRmas}</div>
-            <p className="text-sm text-gray-500">Open RMAs</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-yellow-600">{awaitingInspection}</div>
-            <p className="text-sm text-gray-500">Awaiting Inspection</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-orange-600">{pendingCredit}</div>
-            <p className="text-sm text-gray-500">Credit Pending</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{data?.meta?.total || 0}</div>
-            <p className="text-sm text-gray-500">Total RMAs</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mb-4">
+      }
+      stats={[
+        {
+          title: 'Open RMAs',
+          value: openRmas,
+          icon: <FolderOpenIcon />,
+          iconColor: 'blue',
+        },
+        {
+          title: 'Awaiting Inspection',
+          value: awaitingInspection,
+          icon: <SearchIcon />,
+          iconColor: 'yellow',
+        },
+        {
+          title: 'Credit Pending',
+          value: pendingCredit,
+          icon: <CreditLgIcon />,
+          iconColor: 'orange',
+          alert: pendingCredit > 0,
+        },
+        {
+          title: 'Total RMAs',
+          value: totalRmas,
+          icon: <RefreshIcon />,
+          iconColor: 'gray',
+        },
+      ]}
+      statsColumns={4}
+      filters={
         <Select
           value={status}
           onChange={(e) => setStatus(e.target.value as RmaStatus | '')}
           options={STATUS_OPTIONS}
           className="max-w-xs"
         />
-      </div>
-
+      }
+      wrapInCard={false}
+    >
       <DataTable
         columns={columns}
         data={data?.data || []}
@@ -177,7 +173,7 @@ export default function ReturnsPage() {
           ),
         }}
       />
-    </div>
+    </ListPageTemplate>
   );
 }
 
@@ -201,6 +197,7 @@ function getStatusVariant(status: RmaStatus): 'default' | 'success' | 'warning' 
   }
 }
 
+// Button icons
 function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -217,6 +214,40 @@ function CreditIcon() {
   );
 }
 
+// Stat card icons
+function FolderOpenIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+    </svg>
+  );
+}
+
+function CreditLgIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+    </svg>
+  );
+}
+
+function RefreshIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+    </svg>
+  );
+}
+
+// Empty state icon
 function ReturnIcon() {
   return (
     <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
