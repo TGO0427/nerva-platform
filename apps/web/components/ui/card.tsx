@@ -12,7 +12,7 @@ interface CardProps {
 
 export function Card({ children, className, hover = false, alert = false }: CardProps) {
   const baseClass = cn(
-    'bg-white rounded-xl shadow-sm border p-6',
+    'bg-white rounded-2xl shadow-sm border',
     alert ? 'border-red-200' : 'border-slate-200',
     className
   );
@@ -45,7 +45,7 @@ interface CardHeaderProps {
 
 export function CardHeader({ children, className }: CardHeaderProps) {
   return (
-    <div className={cn('mb-4', className)}>
+    <div className={cn('px-6 pt-5 pb-4', className)}>
       {children}
     </div>
   );
@@ -84,7 +84,7 @@ interface CardContentProps {
 
 export function CardContent({ children, className }: CardContentProps) {
   return (
-    <div className={className}>
+    <div className={cn('px-6 pb-6', className)}>
       {children}
     </div>
   );

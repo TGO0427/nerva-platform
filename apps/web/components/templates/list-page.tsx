@@ -86,7 +86,7 @@ export function ListPageTemplate({
               </FilterBar>
             </CardHeader>
           )}
-          <CardContent className={filters || filterActions ? '' : 'pt-0'}>
+          <CardContent className={filters || filterActions ? '' : 'pt-6'}>
             {children}
           </CardContent>
         </Card>

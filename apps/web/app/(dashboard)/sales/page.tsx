@@ -139,7 +139,6 @@ export default function SalesOrdersPage() {
           className="max-w-xs"
         />
       }
-      wrapInCard={false}
     >
       <DataTable
         columns={columns}
