@@ -208,20 +208,24 @@ export default function ShipmentDetailPage() {
       )}
 
       {/* Shipment Items */}
-      {lines && lines.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Shipment Items</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Shipment Items</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {lines && lines.length > 0 ? (
             <DataTable
               data={lines}
               columns={shipmentLineColumns}
               keyField="id"
             />
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <p className="text-sm text-gray-500 text-center py-4">
+              No items in this shipment. Items are added automatically when a shipment is created from a picked order.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Shipment details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
