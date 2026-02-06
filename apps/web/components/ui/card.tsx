@@ -1,13 +1,38 @@
+'use client';
+
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface CardProps {
   children: React.ReactNode;
   className?: string;
+  hover?: boolean;
+  alert?: boolean;
 }
 
-export function Card({ children, className }: CardProps) {
+export function Card({ children, className, hover = false, alert = false }: CardProps) {
+  const baseClass = cn(
+    'bg-white rounded-lg shadow-sm border p-6',
+    alert ? 'border-red-200' : 'border-gray-200',
+    className
+  );
+
+  if (hover || alert) {
+    return (
+      <motion.div
+        className={baseClass}
+        initial={alert ? { opacity: 0, scale: 0.995 } : undefined}
+        animate={alert ? { opacity: 1, scale: 1 } : undefined}
+        whileHover={{ y: -2, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+        transition={{ type: 'spring', stiffness: 550, damping: 35 }}
+      >
+        {children}
+      </motion.div>
+    );
+  }
+
   return (
-    <div className={cn('bg-white rounded-lg shadow-sm border border-gray-200 p-6', className)}>
+    <div className={baseClass}>
       {children}
     </div>
   );

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth, hasAnyPermission } from '@/lib/auth';
 import { PERMISSIONS } from '@nerva/shared';
@@ -269,15 +270,26 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                         key={item.name}
                         href={item.href}
                         onClick={onClose}
-                        className={cn(
-                          'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                          isActive
-                            ? 'bg-primary-50 text-primary-700'
-                            : 'text-gray-700 hover:bg-gray-100'
-                        )}
+                        className="relative block"
                       >
-                        <span className="mr-3 h-5 w-5">{item.icon}</span>
-                        {item.name}
+                        <div
+                          className={cn(
+                            'relative flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                            isActive
+                              ? 'text-primary-700'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          )}
+                        >
+                          {isActive && (
+                            <motion.div
+                              layoutId="navActiveIndicator"
+                              className="absolute inset-0 bg-primary-50 rounded-md"
+                              transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+                            />
+                          )}
+                          <span className="relative mr-3 h-5 w-5">{item.icon}</span>
+                          <span className="relative">{item.name}</span>
+                        </div>
                       </Link>
                     );
                   })}

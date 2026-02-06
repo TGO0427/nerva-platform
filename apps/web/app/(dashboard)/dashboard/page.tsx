@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useAuth, hasPermission } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Breadcrumbs } from '@/components/layout';
 import { Spinner } from '@/components/ui/spinner';
+import { PageShell, MetricGrid } from '@/components/ui/motion';
 import { useDashboardStats, useRecentActivity } from '@/lib/queries';
 import { PERMISSIONS } from '@nerva/shared';
 
@@ -28,7 +30,7 @@ function KpiCard({ title, value, subtitle, changeType = 'neutral', icon, href, e
   const showEmpty = value === 0 && emptyHint;
 
   const content = (
-    <Card className={href ? 'hover:shadow-md transition-shadow cursor-pointer' : ''}>
+    <Card hover className={href ? 'cursor-pointer' : ''}>
       <CardContent className="flex items-center justify-between pt-4">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-500">{title}</p>
@@ -63,17 +65,20 @@ interface QuickActionProps {
 
 function QuickAction({ title, description, href, icon }: QuickActionProps) {
   return (
-    <Link
-      href={href}
-      className="flex items-center p-4 bg-white rounded-lg border border-gray-200 hover:border-primary-300 hover:shadow-sm transition-all"
-    >
-      <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 mr-4">
-        {icon}
-      </div>
-      <div>
-        <p className="font-medium text-gray-900">{title}</p>
-        <p className="text-sm text-gray-500">{description}</p>
-      </div>
+    <Link href={href}>
+      <motion.div
+        className="flex items-center p-4 bg-white rounded-lg border border-gray-200 hover:border-primary-300 transition-colors"
+        whileHover={{ y: -2, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+        transition={{ type: 'spring', stiffness: 550, damping: 35 }}
+      >
+        <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 mr-4">
+          {icon}
+        </div>
+        <div>
+          <p className="font-medium text-gray-900">{title}</p>
+          <p className="text-sm text-gray-500">{description}</p>
+        </div>
+      </motion.div>
     </Link>
   );
 }
@@ -129,7 +134,7 @@ export default function DashboardPage() {
   ].filter(action => hasPermission(user, action.permission));
 
   return (
-    <div>
+    <PageShell>
       <Breadcrumbs />
 
       <div className="mb-6">
@@ -148,7 +153,7 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <MetricGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <KpiCard
               title="Pending Orders"
               value={stats?.pendingOrders ?? 0}
@@ -185,14 +190,14 @@ export default function DashboardPage() {
               href="/inventory/expiry-alerts"
               emptyHint="All stock levels healthy"
             />
-          </div>
+          </MetricGrid>
 
           {/* Today's Ops */}
           <div className="mb-6">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Today&apos;s Ops</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <MetricGrid className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Link href="/dispatch">
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <Card hover className="cursor-pointer">
                   <CardContent className="pt-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -210,7 +215,7 @@ export default function DashboardPage() {
                 </Card>
               </Link>
               <Link href="/returns">
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <Card hover alert={(stats?.openNCRs ?? 0) > 0} className="cursor-pointer">
                   <CardContent className="pt-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -228,7 +233,7 @@ export default function DashboardPage() {
                 </Card>
               </Link>
               <Link href="/sales">
-                <Card className={`hover:shadow-md transition-shadow cursor-pointer ${(stats?.lateOrders ?? 0) > 0 ? 'border-red-200' : ''}`}>
+                <Card hover alert={(stats?.lateOrders ?? 0) > 0} className="cursor-pointer">
                   <CardContent className="pt-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -247,7 +252,7 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
               </Link>
-            </div>
+            </MetricGrid>
           </div>
 
           {/* Weekly Summary */}
@@ -331,17 +336,32 @@ export default function DashboardPage() {
                   <Spinner />
                 </div>
               ) : activity && activity.length > 0 ? (
-                <div className="space-y-4">
+                <motion.div
+                  className="space-y-4"
+                  initial="hidden"
+                  animate="show"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+                  }}
+                >
                   {activity.map((item) => (
-                    <div key={`${item.type}-${item.id}`} className="flex items-start">
+                    <motion.div
+                      key={`${item.type}-${item.id}`}
+                      className="flex items-start"
+                      variants={{
+                        hidden: { opacity: 0, x: -10 },
+                        show: { opacity: 1, x: 0, transition: { duration: 0.15 } }
+                      }}
+                    >
                       <ActivityIcon type={item.type} />
                       <div className="flex-1 min-w-0 ml-3">
                         <p className="text-sm text-gray-900">{item.message}</p>
                         <p className="text-xs text-gray-500">{getTimeAgo(item.createdAt)}</p>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               ) : (
                 <div className="text-center py-6">
                   <div className="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
@@ -355,7 +375,7 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
 
