@@ -5,12 +5,19 @@ interface EmptyStateProps {
   title: string;
   description?: string;
   action?: React.ReactNode;
+  variant?: 'default' | 'dashed';
   className?: string;
 }
 
-export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, action, variant = 'default', className }: EmptyStateProps) {
   return (
-    <div className={cn('text-center py-12', className)}>
+    <div
+      className={cn(
+        'text-center py-12',
+        variant === 'dashed' && 'border-2 border-dashed border-slate-200 rounded-xl',
+        className
+      )}
+    >
       {icon && (
         <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
           {icon}

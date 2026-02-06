@@ -12,8 +12,8 @@ interface CardProps {
 
 export function Card({ children, className, hover = false, alert = false }: CardProps) {
   const baseClass = cn(
-    'bg-white rounded-lg shadow-sm border p-6',
-    alert ? 'border-red-200' : 'border-gray-200',
+    'bg-white rounded-xl shadow-sm border p-6',
+    alert ? 'border-red-200' : 'border-slate-200',
     className
   );
 

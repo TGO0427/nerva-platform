@@ -12,7 +12,7 @@ export function AppShell({ children }: AppShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface">
       <div className="flex">
         <Sidebar
           isOpen={isSidebarOpen}

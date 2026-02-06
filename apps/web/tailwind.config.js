@@ -7,6 +7,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        surface: {
+          DEFAULT: '#f8fafc',  // slate-50 (app bg)
+          card: '#ffffff',
+          hover: '#f1f5f9',    // slate-100 (row hover)
+          border: '#e2e8f0',   // slate-200
+        },
         primary: {
           50: '#f0f9ff',
           100: '#e0f2fe',

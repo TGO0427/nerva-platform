@@ -101,7 +101,7 @@ export function DataTable<T extends object>({
 
   if (isLoading) {
     return (
-      <div className={cn('bg-white rounded-lg border border-gray-200', className)}>
+      <div className={cn('bg-white rounded-lg border border-slate-200', className)}>
         <div className="flex items-center justify-center py-12">
           <Spinner size="lg" />
         </div>
@@ -111,14 +111,14 @@ export function DataTable<T extends object>({
 
   if (data.length === 0 && emptyState) {
     return (
-      <div className={cn('bg-white rounded-lg border border-gray-200', className)}>
+      <div className={cn('bg-white rounded-lg border border-slate-200', className)}>
         <EmptyState {...emptyState} />
       </div>
     );
   }
 
   return (
-    <div className={cn('bg-white rounded-lg border border-gray-200 overflow-hidden', className)}>
+    <div className={cn('bg-white rounded-lg border border-slate-200 overflow-hidden', className)}>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -154,7 +154,7 @@ export function DataTable<T extends object>({
                 key={String(row[keyField])}
                 onClick={() => onRowClick?.(row)}
                 className={cn(
-                  'hover:bg-gray-50 transition-colors',
+                  'hover:bg-slate-50 transition-colors',
                   onRowClick && 'cursor-pointer'
                 )}
               >
@@ -246,7 +246,7 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
   };
 
   return (
-    <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+    <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-slate-200 sm:px-6">
       <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-gray-700">
@@ -260,7 +260,7 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
             <button
               onClick={() => onPageChange?.(page - 1)}
               disabled={page === 1}
-              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-slate-50 focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="sr-only">Previous</span>
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -284,7 +284,7 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
                     'relative inline-flex items-center px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-gray-300 focus:z-20',
                     page === pageNum
                       ? 'z-10 bg-primary-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600'
-                      : 'text-gray-900 hover:bg-gray-50'
+                      : 'text-gray-900 hover:bg-slate-50'
                   )}
                 >
                   {pageNum}
@@ -295,7 +295,7 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
             <button
               onClick={() => onPageChange?.(page + 1)}
               disabled={page === totalPages}
-              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-slate-50 focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="sr-only">Next</span>
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -311,7 +311,7 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
         <button
           onClick={() => onPageChange?.(page - 1)}
           disabled={page === 1}
-          className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 disabled:opacity-50"
         >
           Previous
         </button>
@@ -321,7 +321,7 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
         <button
           onClick={() => onPageChange?.(page + 1)}
           disabled={page === totalPages}
-          className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 disabled:opacity-50"
         >
           Next
         </button>
