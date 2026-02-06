@@ -158,6 +158,7 @@ export default function PurchaseOrdersPage() {
         data={data?.data || []}
         keyField="id"
         isLoading={isLoading}
+        variant="embedded"
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,

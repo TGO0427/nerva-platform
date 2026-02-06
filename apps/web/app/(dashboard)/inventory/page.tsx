@@ -134,6 +134,7 @@ export default function InventoryPage() {
         data={itemsData?.data || []}
         keyField="id"
         isLoading={isLoading}
+        variant="embedded"
         pagination={itemsData?.meta ? {
           page: itemsData.meta.page,
           limit: itemsData.meta.limit,

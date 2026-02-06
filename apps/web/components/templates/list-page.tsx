@@ -78,7 +78,7 @@ export function ListPageTemplate({
       )}
 
       {wrapInCard ? (
-        <Card>
+        <Card className="overflow-hidden">
           {(filters || filterActions) && (
             <CardHeader>
               <FilterBar actions={filterActions}>
@@ -86,9 +86,9 @@ export function ListPageTemplate({
               </FilterBar>
             </CardHeader>
           )}
-          <CardContent className={filters || filterActions ? '' : 'pt-6'}>
+          <div className={filters || filterActions ? '' : 'pt-6'}>
             {children}
-          </CardContent>
+          </div>
         </Card>
       ) : (
         <>

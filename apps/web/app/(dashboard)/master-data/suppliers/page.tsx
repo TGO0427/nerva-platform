@@ -108,13 +108,13 @@ export default function SuppliersPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
       }
-      wrapInCard={false}
     >
       <DataTable
         columns={columns}
         data={data?.data || []}
         keyField="id"
         isLoading={isLoading}
+        variant="embedded"
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,
