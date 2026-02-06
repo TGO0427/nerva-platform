@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS supplier_contacts (
 
 CREATE INDEX IF NOT EXISTS idx_supplier_contacts_supplier ON supplier_contacts(supplier_id);
 
+DROP TRIGGER IF EXISTS trg_supplier_contacts_updated ON supplier_contacts;
 CREATE TRIGGER trg_supplier_contacts_updated
 BEFORE UPDATE ON supplier_contacts
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -47,6 +48,7 @@ CREATE TABLE IF NOT EXISTS supplier_notes (
 
 CREATE INDEX IF NOT EXISTS idx_supplier_notes_supplier ON supplier_notes(supplier_id);
 
+DROP TRIGGER IF EXISTS trg_supplier_notes_updated ON supplier_notes;
 CREATE TRIGGER trg_supplier_notes_updated
 BEFORE UPDATE ON supplier_notes
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();

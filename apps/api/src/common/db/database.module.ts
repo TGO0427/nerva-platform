@@ -10,11 +10,16 @@ const databasePoolFactory = {
   provide: DATABASE_POOL,
   inject: [ConfigService],
   useFactory: (configService: ConfigService) => {
+    const connectionString = configService.get<string>('DATABASE_URL');
+    const isProduction = configService.get<string>('NODE_ENV') === 'production';
+    const isExternalDb = connectionString?.includes('render.com') || connectionString?.includes('neon.tech') || connectionString?.includes('supabase');
+
     const pool = new Pool({
-      connectionString: configService.get<string>('DATABASE_URL'),
+      connectionString,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      connectionTimeoutMillis: 10000,
+      ssl: (isProduction || isExternalDb) ? { rejectUnauthorized: false } : false,
     });
 
     pool.on('error', (err) => {
