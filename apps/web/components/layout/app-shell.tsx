@@ -14,7 +14,10 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-surface">
-      <div className="flex">
+      {/* Brand accent strip */}
+      <div className="h-1 w-full bg-primary-600 fixed top-0 left-0 z-50" />
+
+      <div className="flex pt-1">
         <Sidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
