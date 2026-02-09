@@ -37,6 +37,14 @@ export class SalesController {
     return this.service.listOrders(tenantId, { status, customerId }, page, limit);
   }
 
+  @Post('next-number')
+  @RequirePermissions('sales_order.create')
+  @ApiOperation({ summary: 'Generate next order number' })
+  async getNextNumber(@TenantId() tenantId: string) {
+    const orderNo = await this.service.getNextOrderNumber(tenantId);
+    return { orderNo };
+  }
+
   @Get(':id')
   @RequirePermissions('sales_order.read')
   @ApiOperation({ summary: 'Get sales order with lines' })
@@ -55,6 +63,7 @@ export class SalesController {
     data: {
       warehouseId: string;
       customerId: string;
+      orderNo?: string;
       externalRef?: string;
       priority?: number;
       requestedShipDate?: Date;

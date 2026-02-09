@@ -13,6 +13,7 @@ import {
   useItems,
   useWarehouses,
   useCreateOrder,
+  useGenerateOrderNumber,
   CreateOrderData,
 } from '@/lib/queries';
 import { useDebounce } from '@/lib/hooks/use-debounce';
@@ -34,12 +35,24 @@ function uid() {
 export default function NewSalesOrderPage() {
   const router = useRouter();
   const createOrder = useCreateOrder();
+  const generateOrderNo = useGenerateOrderNumber();
 
   // Form state
+  const [orderNo, setOrderNo] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [requestedShipDate, setRequestedShipDate] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
+
+  // Generate order number
+  const handleGenerateOrderNo = async () => {
+    try {
+      const generatedNo = await generateOrderNo.mutateAsync();
+      setOrderNo(generatedNo);
+    } catch (err) {
+      setError('Failed to generate order number');
+    }
+  };
 
   // Customer search
   const [customerSearch, setCustomerSearch] = useState('');
@@ -183,6 +196,7 @@ export default function NewSalesOrderPage() {
     const orderData: CreateOrderData = {
       customerId: selectedCustomer!.id,
       warehouseId,
+      orderNo: orderNo || undefined,
       priority: 5,
       requestedShipDate: requestedShipDate || undefined,
       notes: notes || undefined,
@@ -303,7 +317,35 @@ export default function NewSalesOrderPage() {
             <CardTitle>Order Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Order No.
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    value={orderNo}
+                    onChange={(e) => setOrderNo(e.target.value)}
+                    placeholder="Auto-generated if empty"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleGenerateOrderNo}
+                    disabled={generateOrderNo.isPending}
+                    className="shrink-0"
+                  >
+                    {generateOrderNo.isPending ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <GenerateIcon />
+                    )}
+                    Generate
+                  </Button>
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Warehouse <span className="text-red-500">*</span>
@@ -543,6 +585,14 @@ function CheckIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+}
+
+function GenerateIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
     </svg>
   );
 }

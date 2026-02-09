@@ -11,11 +11,16 @@ export class SalesService {
     private readonly masterDataService: MasterDataService,
   ) {}
 
+  async getNextOrderNumber(tenantId: string): Promise<string> {
+    return this.repository.generateOrderNo(tenantId);
+  }
+
   async createOrder(data: {
     tenantId: string;
     siteId?: string;
     warehouseId: string;
     customerId: string;
+    orderNo?: string;
     externalRef?: string;
     priority?: number;
     requestedShipDate?: Date;
@@ -39,7 +44,8 @@ export class SalesService {
       siteId = warehouse.siteId;
     }
 
-    const orderNo = await this.repository.generateOrderNo(data.tenantId);
+    // Use provided orderNo or generate one
+    const orderNo = data.orderNo || await this.repository.generateOrderNo(data.tenantId);
 
     const order = await this.repository.createOrder({
       tenantId: data.tenantId,

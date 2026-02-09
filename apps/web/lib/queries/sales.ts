@@ -70,10 +70,21 @@ export function useOrder(id: string | undefined) {
   });
 }
 
+// Generate next order number
+export function useGenerateOrderNumber() {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.post<{ orderNo: string }>('/sales/orders/next-number');
+      return response.data.orderNo;
+    },
+  });
+}
+
 // Create order
 export interface CreateOrderData {
   warehouseId: string;
   customerId: string;
+  orderNo?: string;
   externalRef?: string;
   priority?: number;
   requestedShipDate?: string;
