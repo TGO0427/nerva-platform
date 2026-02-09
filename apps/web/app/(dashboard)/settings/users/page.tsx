@@ -1,12 +1,17 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
+import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
 import { useUsers, useQueryParams, User } from '@/lib/queries';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 
 export default function UsersPage() {
   const router = useRouter();
@@ -14,7 +19,22 @@ export default function UsersPage() {
 
   const { data, isLoading } = useUsers(params);
 
-  const columns: Column<User>[] = [
+  const tableData = data?.data || [];
+
+  // Row selection
+  const {
+    selectedIds,
+    selectedCount,
+    isSelected,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
+
+  // Column definitions
+  const allColumns: Column<User>[] = useMemo(() => [
     {
       key: 'email',
       header: 'Email',
@@ -44,14 +64,38 @@ export default function UsersPage() {
       sortable: true,
       render: (row) => new Date(row.createdAt).toLocaleDateString(),
     },
-  ];
+  ], []);
+
+  // Column visibility
+  const {
+    visibleKeys,
+    visibleColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(allColumns, { storageKey: 'users', alwaysVisible: ['email'] });
 
   const handleRowClick = (row: User) => {
     router.push(`/settings/users/${row.id}`);
   };
 
-  const activeUsers = data?.data?.filter(u => u.isActive).length || 0;
-  const inactiveUsers = data?.data?.filter(u => !u.isActive).length || 0;
+  const handleExport = () => {
+    const exportData = selectedCount > 0
+      ? tableData.filter(row => selectedIds.has(row.id))
+      : tableData;
+
+    const exportColumns = [
+      { key: 'email', header: 'Email' },
+      { key: 'firstName', header: 'First Name' },
+      { key: 'lastName', header: 'Last Name' },
+      { key: 'isActive', header: 'Status', getValue: (row: User) => row.isActive ? 'Active' : 'Inactive' },
+      { key: 'createdAt', header: 'Created', getValue: (row: User) => formatDateForExport(row.createdAt) },
+    ];
+
+    exportToCSV(exportData, exportColumns, generateExportFilename('users'));
+  };
+
+  const activeUsers = tableData.filter(u => u.isActive).length;
+  const inactiveUsers = tableData.filter(u => !u.isActive).length;
   const totalUsers = data?.meta?.total || 0;
 
   return (
@@ -88,13 +132,46 @@ export default function UsersPage() {
         },
       ]}
       statsColumns={3}
+      filterActions={
+        <div className="flex gap-2">
+          <ColumnToggle
+            columns={allColumns}
+            visibleKeys={visibleKeys}
+            onToggle={toggleColumn}
+            onReset={resetColumns}
+            alwaysVisible={['email']}
+          />
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            {selectedCount > 0 ? `Export (${selectedCount})` : 'Export'}
+          </Button>
+        </div>
+      }
     >
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            Export Selected
+          </Button>
+        </BulkActionBar>
+      )}
+
       <DataTable
-        columns={columns}
-        data={data?.data || []}
+        columns={visibleColumns}
+        data={tableData}
         keyField="id"
         isLoading={isLoading}
         variant="embedded"
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,
@@ -122,6 +199,14 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
   );
 }

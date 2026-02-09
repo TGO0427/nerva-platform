@@ -1,14 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
+import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
 import { useRmas, useQueryParams, Rma } from '@/lib/queries';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { RmaStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -34,7 +38,22 @@ export default function ReturnsPage() {
     status: status || undefined,
   });
 
-  const columns: Column<Rma>[] = [
+  const tableData = data?.data || [];
+
+  // Row selection
+  const {
+    selectedIds,
+    selectedCount,
+    isSelected,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
+
+  // Column definitions
+  const allColumns: Column<Rma>[] = useMemo(() => [
     {
       key: 'rmaNo',
       header: 'RMA No.',
@@ -77,16 +96,41 @@ export default function ReturnsPage() {
       sortable: true,
       render: (row) => new Date(row.createdAt).toLocaleDateString(),
     },
-  ];
+  ], []);
+
+  // Column visibility
+  const {
+    visibleKeys,
+    visibleColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(allColumns, { storageKey: 'returns', alwaysVisible: ['rmaNo'] });
 
   const handleRowClick = (row: Rma) => {
     router.push(`/returns/${row.id}`);
   };
 
+  const handleExport = () => {
+    const exportData = selectedCount > 0
+      ? tableData.filter(row => selectedIds.has(row.id))
+      : tableData;
+
+    const exportColumns = [
+      { key: 'rmaNo', header: 'RMA No.' },
+      { key: 'status', header: 'Status', getValue: (row: Rma) => row.status?.replace(/_/g, ' ') },
+      { key: 'customerName', header: 'Customer' },
+      { key: 'returnType', header: 'Type' },
+      { key: 'orderNo', header: 'Order' },
+      { key: 'createdAt', header: 'Created', getValue: (row: Rma) => formatDateForExport(row.createdAt) },
+    ];
+
+    exportToCSV(exportData, exportColumns, generateExportFilename('returns'));
+  };
+
   // Stats
-  const openRmas = data?.data?.filter(r => ['OPEN', 'AWAITING_RETURN'].includes(r.status)).length || 0;
-  const awaitingInspection = data?.data?.filter(r => ['RECEIVED', 'INSPECTING'].includes(r.status)).length || 0;
-  const pendingCredit = data?.data?.filter(r => ['CREDIT_PENDING'].includes(r.status)).length || 0;
+  const openRmas = tableData.filter(r => ['OPEN', 'AWAITING_RETURN'].includes(r.status)).length;
+  const awaitingInspection = tableData.filter(r => ['RECEIVED', 'INSPECTING'].includes(r.status)).length;
+  const pendingCredit = tableData.filter(r => ['CREDIT_PENDING'].includes(r.status)).length;
   const totalRmas = data?.meta?.total || 0;
 
   return (
@@ -145,13 +189,46 @@ export default function ReturnsPage() {
           className="max-w-xs"
         />
       }
+      filterActions={
+        <div className="flex gap-2">
+          <ColumnToggle
+            columns={allColumns}
+            visibleKeys={visibleKeys}
+            onToggle={toggleColumn}
+            onReset={resetColumns}
+            alwaysVisible={['rmaNo']}
+          />
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            {selectedCount > 0 ? `Export (${selectedCount})` : 'Export'}
+          </Button>
+        </div>
+      }
     >
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            Export Selected
+          </Button>
+        </BulkActionBar>
+      )}
+
       <DataTable
-        columns={columns}
-        data={data?.data || []}
+        columns={visibleColumns}
+        data={tableData}
         keyField="id"
         isLoading={isLoading}
         variant="embedded"
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,
@@ -210,6 +287,14 @@ function CreditIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
   );
 }

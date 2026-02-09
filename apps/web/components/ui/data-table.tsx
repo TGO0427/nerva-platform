@@ -41,6 +41,18 @@ interface DataTableProps<T> {
   className?: string;
   /** When 'embedded', skips container styling (for use inside Card wrapper) */
   variant?: 'default' | 'embedded';
+  /** Enable row selection with checkboxes */
+  selectable?: boolean;
+  /** Currently selected row IDs */
+  selectedIds?: Set<string>;
+  /** Called when selection changes */
+  onSelectionChange?: (id: string) => void;
+  /** Called when select all is toggled */
+  onSelectAll?: () => void;
+  /** Whether all rows on current page are selected */
+  isAllSelected?: boolean;
+  /** Whether some (but not all) rows are selected */
+  isSomeSelected?: boolean;
 }
 
 export function DataTable<T extends object>({
@@ -57,10 +69,19 @@ export function DataTable<T extends object>({
   emptyState,
   className,
   variant = 'default',
+  selectable = false,
+  selectedIds,
+  onSelectionChange,
+  onSelectAll,
+  isAllSelected = false,
+  isSomeSelected = false,
 }: DataTableProps<T>) {
   const containerClass = variant === 'embedded'
     ? cn(className)
     : cn('bg-white rounded-2xl border border-slate-200 overflow-hidden', className);
+
+  const getRowId = (row: T): string => String(row[keyField]);
+  const isRowSelected = (row: T): boolean => selectedIds?.has(getRowId(row)) ?? false;
   const [localSortKey, setLocalSortKey] = useState<string | undefined>(sortKey);
   const [localSortOrder, setLocalSortOrder] = useState<'asc' | 'desc'>(sortOrder || 'asc');
 
@@ -129,6 +150,19 @@ export function DataTable<T extends object>({
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
+              {selectable && (
+                <th scope="col" className="w-12 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = isSomeSelected && !isAllSelected;
+                    }}
+                    onChange={() => onSelectAll?.()}
+                    className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                  />
+                </th>
+              )}
               {columns.map((column) => (
                 <th
                   key={column.key}
@@ -161,9 +195,21 @@ export function DataTable<T extends object>({
                 onClick={() => onRowClick?.(row)}
                 className={cn(
                   'hover:bg-slate-50 transition-colors',
-                  onRowClick && 'cursor-pointer'
+                  onRowClick && 'cursor-pointer',
+                  selectable && isRowSelected(row) && 'bg-primary-50'
                 )}
               >
+                {selectable && (
+                  <td className="w-12 px-4 py-4">
+                    <input
+                      type="checkbox"
+                      checked={isRowSelected(row)}
+                      onChange={() => onSelectionChange?.(getRowId(row))}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    />
+                  </td>
+                )}
                 {columns.map((column) => (
                   <td
                     key={column.key}

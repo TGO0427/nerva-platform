@@ -1,14 +1,19 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
+import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
 import { useItems, useQueryParams, useWarehouses } from '@/lib/queries';
 import { useExpiryAlertsSummary } from '@/lib/queries/inventory';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename } from '@/lib/utils/export';
 import type { Item } from '@nerva/shared';
 
 export default function InventoryPage() {
@@ -18,7 +23,22 @@ export default function InventoryPage() {
   const { data: warehouses } = useWarehouses();
   const { data: expiryAlerts } = useExpiryAlertsSummary();
 
-  const columns: Column<Item>[] = [
+  const tableData = itemsData?.data || [];
+
+  // Row selection
+  const {
+    selectedIds,
+    selectedCount,
+    isSelected,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
+
+  // Column definitions
+  const allColumns: Column<Item>[] = useMemo(() => [
     {
       key: 'sku',
       header: 'SKU',
@@ -47,10 +67,33 @@ export default function InventoryPage() {
         </Badge>
       ),
     },
-  ];
+  ], []);
+
+  // Column visibility
+  const {
+    visibleKeys,
+    visibleColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(allColumns, { storageKey: 'inventory-items', alwaysVisible: ['sku'] });
 
   const handleRowClick = (row: Item) => {
     router.push(`/inventory/stock/${row.id}`);
+  };
+
+  const handleExport = () => {
+    const exportData = selectedCount > 0
+      ? tableData.filter(row => selectedIds.has(row.id))
+      : tableData;
+
+    const exportColumns = [
+      { key: 'sku', header: 'SKU' },
+      { key: 'description', header: 'Description' },
+      { key: 'uom', header: 'UOM' },
+      { key: 'isActive', header: 'Status', getValue: (row: Item) => row.isActive ? 'Active' : 'Inactive' },
+    ];
+
+    exportToCSV(exportData, exportColumns, generateExportFilename('inventory'));
   };
 
   const expiredCount = expiryAlerts?.expired || 0;
@@ -128,13 +171,46 @@ export default function InventoryPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
       }
+      filterActions={
+        <div className="flex gap-2">
+          <ColumnToggle
+            columns={allColumns}
+            visibleKeys={visibleKeys}
+            onToggle={toggleColumn}
+            onReset={resetColumns}
+            alwaysVisible={['sku']}
+          />
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            {selectedCount > 0 ? `Export (${selectedCount})` : 'Export'}
+          </Button>
+        </div>
+      }
     >
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            Export Selected
+          </Button>
+        </BulkActionBar>
+      )}
+
       <DataTable
-        columns={columns}
-        data={itemsData?.data || []}
+        columns={visibleColumns}
+        data={tableData}
         keyField="id"
         isLoading={isLoading}
         variant="embedded"
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
         pagination={itemsData?.meta ? {
           page: itemsData.meta.page,
           limit: itemsData.meta.limit,
@@ -174,6 +250,14 @@ function TransferIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
   );
 }

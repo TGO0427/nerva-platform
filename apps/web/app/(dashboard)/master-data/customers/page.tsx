@@ -1,13 +1,18 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
+import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
 import { useCustomers, useQueryParams } from '@/lib/queries';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { Customer } from '@nerva/shared';
 
 export default function CustomersPage() {
@@ -15,7 +20,22 @@ export default function CustomersPage() {
   const { params, setPage, setSort, setSearch } = useQueryParams();
   const { data, isLoading } = useCustomers(params);
 
-  const columns: Column<Customer>[] = [
+  const tableData = data?.data || [];
+
+  // Row selection
+  const {
+    selectedIds,
+    selectedCount,
+    isSelected,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
+
+  // Column definitions
+  const allColumns: Column<Customer>[] = useMemo(() => [
     {
       key: 'code',
       header: 'Code',
@@ -58,14 +78,39 @@ export default function CustomersPage() {
       width: '120px',
       render: (row) => new Date(row.createdAt).toLocaleDateString(),
     },
-  ];
+  ], []);
+
+  // Column visibility
+  const {
+    visibleKeys,
+    visibleColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(allColumns, { storageKey: 'customers', alwaysVisible: ['code', 'name'] });
 
   const handleRowClick = (row: Customer) => {
     router.push(`/master-data/customers/${row.id}`);
   };
 
-  const activeCustomers = data?.data?.filter(c => c.isActive).length || 0;
-  const inactiveCustomers = data?.data?.filter(c => !c.isActive).length || 0;
+  const handleExport = () => {
+    const exportData = selectedCount > 0
+      ? tableData.filter(row => selectedIds.has(row.id))
+      : tableData;
+
+    const exportColumns = [
+      { key: 'code', header: 'Code' },
+      { key: 'name', header: 'Name' },
+      { key: 'email', header: 'Email' },
+      { key: 'phone', header: 'Phone' },
+      { key: 'isActive', header: 'Status', getValue: (row: Customer) => row.isActive ? 'Active' : 'Inactive' },
+      { key: 'createdAt', header: 'Created', getValue: (row: Customer) => formatDateForExport(row.createdAt) },
+    ];
+
+    exportToCSV(exportData, exportColumns, generateExportFilename('customers'));
+  };
+
+  const activeCustomers = tableData.filter(c => c.isActive).length;
+  const inactiveCustomers = tableData.filter(c => !c.isActive).length;
   const totalCustomers = data?.meta?.total || 0;
 
   return (
@@ -110,13 +155,46 @@ export default function CustomersPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
       }
+      filterActions={
+        <div className="flex gap-2">
+          <ColumnToggle
+            columns={allColumns}
+            visibleKeys={visibleKeys}
+            onToggle={toggleColumn}
+            onReset={resetColumns}
+            alwaysVisible={['code', 'name']}
+          />
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            {selectedCount > 0 ? `Export (${selectedCount})` : 'Export'}
+          </Button>
+        </div>
+      }
     >
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            Export Selected
+          </Button>
+        </BulkActionBar>
+      )}
+
       <DataTable
-        columns={columns}
-        data={data?.data || []}
+        columns={visibleColumns}
+        data={tableData}
         keyField="id"
         isLoading={isLoading}
         variant="embedded"
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,
@@ -149,6 +227,14 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
   );
 }

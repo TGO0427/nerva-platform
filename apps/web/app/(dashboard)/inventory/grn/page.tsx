@@ -1,15 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
+import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
 import { useGrns, useQueryParams, Grn } from '@/lib/queries';
 import { useWarehouses } from '@/lib/queries/warehouses';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -29,7 +33,22 @@ export default function GrnListPage() {
   const { data: warehouses } = useWarehouses();
   const warehouseMap = new Map(warehouses?.map(w => [w.id, w.name]) || []);
 
-  const columns: Column<Grn>[] = [
+  const tableData = data?.data || [];
+
+  // Row selection
+  const {
+    selectedIds,
+    selectedCount,
+    isSelected,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
+
+  // Column definitions
+  const allColumns: Column<Grn>[] = useMemo(() => [
     {
       key: 'grnNo',
       header: 'GRN No.',
@@ -64,16 +83,39 @@ export default function GrnListPage() {
       sortable: true,
       render: (row) => new Date(row.createdAt).toLocaleDateString(),
     },
-  ];
+  ], [warehouseMap]);
+
+  // Column visibility
+  const {
+    visibleKeys,
+    visibleColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(allColumns, { storageKey: 'grn', alwaysVisible: ['grnNo'] });
 
   const handleRowClick = (row: Grn) => {
     router.push(`/inventory/grn/${row.id}`);
   };
 
+  const handleExport = () => {
+    const exportData = selectedCount > 0
+      ? tableData.filter(row => selectedIds.has(row.id))
+      : tableData;
+
+    const exportColumns = [
+      { key: 'grnNo', header: 'GRN No.' },
+      { key: 'status', header: 'Status', getValue: (row: Grn) => row.status?.replace(/_/g, ' ') },
+      { key: 'warehouseId', header: 'Warehouse', getValue: (row: Grn) => warehouseMap.get(row.warehouseId) || '' },
+      { key: 'createdAt', header: 'Created', getValue: (row: Grn) => formatDateForExport(row.createdAt) },
+    ];
+
+    exportToCSV(exportData, exportColumns, generateExportFilename('grn'));
+  };
+
   // Stats
-  const openGrns = data?.data?.filter(g => g.status === 'OPEN').length || 0;
-  const partialGrns = data?.data?.filter(g => g.status === 'PARTIAL').length || 0;
-  const pendingPutaway = data?.data?.filter(g => g.status === 'PUTAWAY_PENDING').length || 0;
+  const openGrns = tableData.filter(g => g.status === 'OPEN').length;
+  const partialGrns = tableData.filter(g => g.status === 'PARTIAL').length;
+  const pendingPutaway = tableData.filter(g => g.status === 'PUTAWAY_PENDING').length;
   const totalGrns = data?.meta?.total || 0;
 
   return (
@@ -124,13 +166,46 @@ export default function GrnListPage() {
           className="max-w-xs"
         />
       }
+      filterActions={
+        <div className="flex gap-2">
+          <ColumnToggle
+            columns={allColumns}
+            visibleKeys={visibleKeys}
+            onToggle={toggleColumn}
+            onReset={resetColumns}
+            alwaysVisible={['grnNo']}
+          />
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            {selectedCount > 0 ? `Export (${selectedCount})` : 'Export'}
+          </Button>
+        </div>
+      }
     >
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            Export Selected
+          </Button>
+        </BulkActionBar>
+      )}
+
       <DataTable
-        columns={columns}
-        data={data?.data || []}
+        columns={visibleColumns}
+        data={tableData}
         keyField="id"
         isLoading={isLoading}
         variant="embedded"
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,
@@ -171,11 +246,19 @@ function getStatusVariant(status: string): 'default' | 'success' | 'warning' | '
   }
 }
 
-// Button icon
+// Button icons
 function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
   );
 }

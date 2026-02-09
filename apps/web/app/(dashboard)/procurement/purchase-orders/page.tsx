@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
+import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
 import { usePurchaseOrders, useQueryParams } from '@/lib/queries';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename, formatDateForExport, formatCurrencyForExport } from '@/lib/utils/export';
 import type { PurchaseOrder, PurchaseOrderStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -34,7 +38,22 @@ export default function PurchaseOrdersPage() {
     status: statusFilter || undefined,
   });
 
-  const columns: Column<PurchaseOrderWithSupplier>[] = [
+  const tableData = data?.data || [];
+
+  // Row selection
+  const {
+    selectedIds,
+    selectedCount,
+    isSelected,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
+
+  // Column definitions
+  const allColumns: Column<PurchaseOrderWithSupplier>[] = useMemo(() => [
     {
       key: 'poNo',
       header: 'PO #',
@@ -85,17 +104,43 @@ export default function PurchaseOrdersPage() {
         </span>
       ),
     },
-  ];
+  ], []);
+
+  // Column visibility
+  const {
+    visibleKeys,
+    visibleColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(allColumns, { storageKey: 'purchase-orders', alwaysVisible: ['poNo'] });
 
   const handleRowClick = (row: PurchaseOrderWithSupplier) => {
     router.push(`/procurement/purchase-orders/${row.id}`);
   };
 
+  const handleExport = () => {
+    const exportData = selectedCount > 0
+      ? tableData.filter(row => selectedIds.has(row.id))
+      : tableData;
+
+    const exportColumns = [
+      { key: 'poNo', header: 'PO #' },
+      { key: 'supplierName', header: 'Supplier' },
+      { key: 'status', header: 'Status' },
+      { key: 'orderDate', header: 'Order Date', getValue: (row: PurchaseOrderWithSupplier) => formatDateForExport(row.orderDate) },
+      { key: 'expectedDate', header: 'Expected Date', getValue: (row: PurchaseOrderWithSupplier) => formatDateForExport(row.expectedDate) },
+      { key: 'lineCount', header: 'Lines' },
+      { key: 'totalAmount', header: 'Total', getValue: (row: PurchaseOrderWithSupplier) => formatCurrencyForExport(row.totalAmount) },
+    ];
+
+    exportToCSV(exportData, exportColumns, generateExportFilename('purchase-orders'));
+  };
+
   // Calculate stats
   const totalPOs = data?.meta?.total || 0;
-  const draftPOs = data?.data?.filter(po => po.status === 'DRAFT').length || 0;
-  const pendingPOs = data?.data?.filter(po => ['SENT', 'CONFIRMED', 'PARTIAL'].includes(po.status)).length || 0;
-  const receivedPOs = data?.data?.filter(po => po.status === 'RECEIVED').length || 0;
+  const draftPOs = tableData.filter(po => po.status === 'DRAFT').length;
+  const pendingPOs = tableData.filter(po => ['SENT', 'CONFIRMED', 'PARTIAL'].includes(po.status)).length;
+  const receivedPOs = tableData.filter(po => po.status === 'RECEIVED').length;
 
   return (
     <ListPageTemplate
@@ -152,13 +197,46 @@ export default function PurchaseOrdersPage() {
           />
         </>
       }
+      filterActions={
+        <div className="flex gap-2">
+          <ColumnToggle
+            columns={allColumns}
+            visibleKeys={visibleKeys}
+            onToggle={toggleColumn}
+            onReset={resetColumns}
+            alwaysVisible={['poNo']}
+          />
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            {selectedCount > 0 ? `Export (${selectedCount})` : 'Export'}
+          </Button>
+        </div>
+      }
     >
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            Export Selected
+          </Button>
+        </BulkActionBar>
+      )}
+
       <DataTable
-        columns={columns}
-        data={data?.data || []}
+        columns={visibleColumns}
+        data={tableData}
         keyField="id"
         isLoading={isLoading}
         variant="embedded"
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,
@@ -196,11 +274,19 @@ function getStatusVariant(status: PurchaseOrderStatus): 'success' | 'warning' | 
   return variants[status];
 }
 
-// Button icon
+// Button icons
 function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
   );
 }

@@ -1,14 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
+import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
 import { useOrders, useQueryParams, SalesOrderWithCustomer } from '@/lib/queries';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { SalesOrderStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -30,7 +34,22 @@ export default function SalesOrdersPage() {
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useOrders({ ...params, status: status || undefined });
 
-  const columns: Column<SalesOrderWithCustomer>[] = [
+  const tableData = data?.data || [];
+
+  // Row selection
+  const {
+    selectedIds,
+    selectedCount,
+    isSelected,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
+
+  // Column definitions
+  const allColumns: Column<SalesOrderWithCustomer>[] = useMemo(() => [
     {
       key: 'orderNo',
       header: 'Order No.',
@@ -77,21 +96,46 @@ export default function SalesOrdersPage() {
       sortable: true,
       render: (row) => new Date(row.createdAt).toLocaleDateString(),
     },
-  ];
+  ], []);
+
+  // Column visibility
+  const {
+    visibleKeys,
+    visibleColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(allColumns, { storageKey: 'sales-orders', alwaysVisible: ['orderNo'] });
 
   const handleRowClick = (row: SalesOrderWithCustomer) => {
     router.push(`/sales/${row.id}`);
   };
 
+  const handleExport = () => {
+    const exportData = selectedCount > 0
+      ? tableData.filter(row => selectedIds.has(row.id))
+      : tableData;
+
+    const exportColumns = [
+      { key: 'orderNo', header: 'Order No.' },
+      { key: 'status', header: 'Status' },
+      { key: 'customerName', header: 'Customer' },
+      { key: 'priority', header: 'Priority', getValue: (row: SalesOrderWithCustomer) => getPriorityLabel(row.priority) },
+      { key: 'requestedShipDate', header: 'Ship Date', getValue: (row: SalesOrderWithCustomer) => formatDateForExport(row.requestedShipDate) },
+      { key: 'createdAt', header: 'Created', getValue: (row: SalesOrderWithCustomer) => formatDateForExport(row.createdAt) },
+    ];
+
+    exportToCSV(exportData, exportColumns, generateExportFilename('sales-orders'));
+  };
+
   // Calculate stats from visible data
   const totalOrders = data?.meta?.total || 0;
-  const openOrders = data?.data?.filter(o =>
+  const openOrders = tableData.filter(o =>
     ['DRAFT', 'CONFIRMED', 'ALLOCATED'].includes(o.status)
-  ).length || 0;
-  const inFulfilment = data?.data?.filter(o =>
+  ).length;
+  const inFulfilment = tableData.filter(o =>
     ['PICKING', 'PACKING', 'READY_TO_SHIP'].includes(o.status)
-  ).length || 0;
-  const shippedToday = data?.data?.filter(o => o.status === 'SHIPPED').length || 0;
+  ).length;
+  const shippedToday = tableData.filter(o => o.status === 'SHIPPED').length;
 
   return (
     <ListPageTemplate
@@ -139,13 +183,46 @@ export default function SalesOrdersPage() {
           className="max-w-xs"
         />
       }
+      filterActions={
+        <div className="flex gap-2">
+          <ColumnToggle
+            columns={allColumns}
+            visibleKeys={visibleKeys}
+            onToggle={toggleColumn}
+            onReset={resetColumns}
+            alwaysVisible={['orderNo']}
+          />
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            {selectedCount > 0 ? `Export (${selectedCount})` : 'Export'}
+          </Button>
+        </div>
+      }
     >
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            Export Selected
+          </Button>
+        </BulkActionBar>
+      )}
+
       <DataTable
-        columns={columns}
-        data={data?.data || []}
+        columns={visibleColumns}
+        data={tableData}
         keyField="id"
         isLoading={isLoading}
         variant="embedded"
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,
@@ -210,6 +287,14 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
   );
 }

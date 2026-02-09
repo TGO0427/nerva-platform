@@ -1,13 +1,18 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
+import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
 import { useItems, useQueryParams } from '@/lib/queries';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { Item } from '@nerva/shared';
 
 export default function ItemsPage() {
@@ -15,7 +20,22 @@ export default function ItemsPage() {
   const { params, setPage, setSort, setSearch } = useQueryParams();
   const { data, isLoading } = useItems(params);
 
-  const columns: Column<Item>[] = [
+  const tableData = data?.data || [];
+
+  // Row selection
+  const {
+    selectedIds,
+    selectedCount,
+    isSelected,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
+
+  // Column definitions
+  const allColumns: Column<Item>[] = useMemo(() => [
     {
       key: 'sku',
       header: 'SKU',
@@ -57,14 +77,39 @@ export default function ItemsPage() {
       width: '120px',
       render: (row) => new Date(row.createdAt).toLocaleDateString(),
     },
-  ];
+  ], []);
+
+  // Column visibility
+  const {
+    visibleKeys,
+    visibleColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(allColumns, { storageKey: 'items', alwaysVisible: ['sku'] });
 
   const handleRowClick = (row: Item) => {
     router.push(`/master-data/items/${row.id}`);
   };
 
-  const activeItems = data?.data?.filter(i => i.isActive).length || 0;
-  const inactiveItems = data?.data?.filter(i => !i.isActive).length || 0;
+  const handleExport = () => {
+    const exportData = selectedCount > 0
+      ? tableData.filter(row => selectedIds.has(row.id))
+      : tableData;
+
+    const exportColumns = [
+      { key: 'sku', header: 'SKU' },
+      { key: 'description', header: 'Description' },
+      { key: 'uom', header: 'UOM' },
+      { key: 'weightKg', header: 'Weight (kg)', getValue: (row: Item) => row.weightKg?.toFixed(2) ?? '' },
+      { key: 'isActive', header: 'Status', getValue: (row: Item) => row.isActive ? 'Active' : 'Inactive' },
+      { key: 'createdAt', header: 'Created', getValue: (row: Item) => formatDateForExport(row.createdAt) },
+    ];
+
+    exportToCSV(exportData, exportColumns, generateExportFilename('items'));
+  };
+
+  const activeItems = tableData.filter(i => i.isActive).length;
+  const inactiveItems = tableData.filter(i => !i.isActive).length;
   const totalItems = data?.meta?.total || 0;
 
   return (
@@ -109,13 +154,46 @@ export default function ItemsPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
       }
+      filterActions={
+        <div className="flex gap-2">
+          <ColumnToggle
+            columns={allColumns}
+            visibleKeys={visibleKeys}
+            onToggle={toggleColumn}
+            onReset={resetColumns}
+            alwaysVisible={['sku']}
+          />
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            {selectedCount > 0 ? `Export (${selectedCount})` : 'Export'}
+          </Button>
+        </div>
+      }
     >
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <Button variant="secondary" size="sm" onClick={handleExport}>
+            <DownloadIcon />
+            Export Selected
+          </Button>
+        </BulkActionBar>
+      )}
+
       <DataTable
-        columns={columns}
-        data={data?.data || []}
+        columns={visibleColumns}
+        data={tableData}
         keyField="id"
         isLoading={isLoading}
         variant="embedded"
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,
@@ -148,6 +226,14 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
   );
 }
