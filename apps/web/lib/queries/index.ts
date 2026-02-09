@@ -15,3 +15,4 @@ export * from './reports';
 export * from './notifications';
 export * from './integrations';
 export * from './ibt';
+export * from './manufacturing';

@@ -68,6 +68,32 @@ export const PERMISSIONS = {
   REPORT_OPERATIONAL: 'report.operational',
   REPORT_FINANCIAL: 'report.financial',
   AUDIT_READ: 'audit.read',
+
+  // Manufacturing
+  WORKSTATION_VIEW: 'workstation.view',
+  WORKSTATION_CREATE: 'workstation.create',
+  WORKSTATION_EDIT: 'workstation.edit',
+  WORKSTATION_DELETE: 'workstation.delete',
+  BOM_VIEW: 'bom.view',
+  BOM_CREATE: 'bom.create',
+  BOM_EDIT: 'bom.edit',
+  BOM_DELETE: 'bom.delete',
+  BOM_APPROVE: 'bom.approve',
+  ROUTING_VIEW: 'routing.view',
+  ROUTING_CREATE: 'routing.create',
+  ROUTING_EDIT: 'routing.edit',
+  ROUTING_DELETE: 'routing.delete',
+  ROUTING_APPROVE: 'routing.approve',
+  WORK_ORDER_VIEW: 'work_order.view',
+  WORK_ORDER_CREATE: 'work_order.create',
+  WORK_ORDER_EDIT: 'work_order.edit',
+  WORK_ORDER_DELETE: 'work_order.delete',
+  WORK_ORDER_RELEASE: 'work_order.release',
+  WORK_ORDER_COMPLETE: 'work_order.complete',
+  WORK_ORDER_CANCEL: 'work_order.cancel',
+  PRODUCTION_ISSUE_MATERIAL: 'production.issue_material',
+  PRODUCTION_RECORD_OUTPUT: 'production.record_output',
+  PRODUCTION_VIEW_LEDGER: 'production.view_ledger',
 } as const;
 
 // Reason codes for returns

@@ -18,6 +18,7 @@ import { DispatchModule } from './modules/dispatch/dispatch.module';
 import { ReturnsModule } from './modules/returns/returns.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { ManufacturingModule } from './modules/manufacturing/manufacturing.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { AuditModule } from './modules/audit/audit.module';
     ReturnsModule,
     IntegrationsModule,
     AuditModule,
+    ManufacturingModule,
   ],
 })
 export class AppModule {}

@@ -520,3 +520,236 @@ export interface PostingQueueItem {
   externalRef: string | null;
   createdAt: string;
 }
+
+// Manufacturing
+
+export type WorkstationType = 'MACHINE' | 'ASSEMBLY' | 'PACKAGING' | 'QC';
+export type WorkstationStatus = 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE';
+
+export interface Workstation {
+  id: string;
+  tenantId: string;
+  siteId: string;
+  code: string;
+  name: string;
+  description: string | null;
+  workstationType: WorkstationType;
+  capacityPerHour: number | null;
+  costPerHour: number | null;
+  status: WorkstationStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type BomStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'OBSOLETE';
+
+export interface BomHeader {
+  id: string;
+  tenantId: string;
+  itemId: string;
+  version: number;
+  revision: string;
+  status: BomStatus;
+  effectiveFrom: string | null;
+  effectiveTo: string | null;
+  baseQty: number;
+  uom: string;
+  notes: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  // Joined fields
+  itemSku?: string;
+  itemDescription?: string;
+  approvedByName?: string;
+  createdByName?: string;
+  lineCount?: number;
+}
+
+export interface BomLine {
+  id: string;
+  tenantId: string;
+  bomHeaderId: string;
+  lineNo: number;
+  itemId: string;
+  qtyPer: number;
+  uom: string;
+  scrapPct: number;
+  isCritical: boolean;
+  notes: string | null;
+  createdAt: string;
+  // Joined fields
+  itemSku?: string;
+  itemDescription?: string;
+}
+
+export type RoutingStatus = 'DRAFT' | 'APPROVED' | 'OBSOLETE';
+
+export interface Routing {
+  id: string;
+  tenantId: string;
+  itemId: string;
+  version: number;
+  status: RoutingStatus;
+  effectiveFrom: string | null;
+  effectiveTo: string | null;
+  notes: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  // Joined fields
+  itemSku?: string;
+  itemDescription?: string;
+  approvedByName?: string;
+  createdByName?: string;
+  operationCount?: number;
+}
+
+export interface RoutingOperation {
+  id: string;
+  tenantId: string;
+  routingId: string;
+  operationNo: number;
+  name: string;
+  description: string | null;
+  workstationId: string | null;
+  setupTimeMins: number;
+  runTimeMins: number;
+  queueTimeMins: number;
+  overlapPct: number;
+  isSubcontracted: boolean;
+  instructions: string | null;
+  createdAt: string;
+  // Joined fields
+  workstationCode?: string;
+  workstationName?: string;
+}
+
+export type WorkOrderStatus = 'DRAFT' | 'RELEASED' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
+
+export interface WorkOrder {
+  id: string;
+  tenantId: string;
+  siteId: string;
+  warehouseId: string;
+  workOrderNo: string;
+  itemId: string;
+  bomHeaderId: string | null;
+  routingId: string | null;
+  status: WorkOrderStatus;
+  priority: number;
+  qtyOrdered: number;
+  qtyCompleted: number;
+  qtyScrapped: number;
+  plannedStart: string | null;
+  plannedEnd: string | null;
+  actualStart: string | null;
+  actualEnd: string | null;
+  salesOrderId: string | null;
+  notes: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  // Joined fields
+  itemSku?: string;
+  itemDescription?: string;
+  warehouseName?: string;
+  salesOrderNo?: string;
+  createdByName?: string;
+}
+
+export type WorkOrderOperationStatus = 'PENDING' | 'READY' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';
+
+export interface WorkOrderOperation {
+  id: string;
+  tenantId: string;
+  workOrderId: string;
+  routingOperationId: string | null;
+  operationNo: number;
+  name: string;
+  workstationId: string | null;
+  assignedUserId: string | null;
+  status: WorkOrderOperationStatus;
+  plannedStart: string | null;
+  plannedEnd: string | null;
+  actualStart: string | null;
+  actualEnd: string | null;
+  qtyCompleted: number;
+  qtyScrapped: number;
+  setupTimeActual: number | null;
+  runTimeActual: number | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Joined fields
+  workstationCode?: string;
+  workstationName?: string;
+  assignedUserName?: string;
+}
+
+export type WorkOrderMaterialStatus = 'PENDING' | 'PARTIAL' | 'ISSUED' | 'RETURNED';
+
+export interface WorkOrderMaterial {
+  id: string;
+  tenantId: string;
+  workOrderId: string;
+  bomLineId: string | null;
+  itemId: string;
+  qtyRequired: number;
+  qtyIssued: number;
+  qtyReturned: number;
+  status: WorkOrderMaterialStatus;
+  createdAt: string;
+  updatedAt: string;
+  // Joined fields
+  itemSku?: string;
+  itemDescription?: string;
+}
+
+export type ProductionLedgerEntryType = 'MATERIAL_ISSUE' | 'MATERIAL_RETURN' | 'PRODUCTION_OUTPUT' | 'SCRAP' | 'REWORK';
+
+export interface ProductionLedgerEntry {
+  id: string;
+  tenantId: string;
+  workOrderId: string;
+  workOrderOperationId: string | null;
+  entryType: ProductionLedgerEntryType;
+  itemId: string;
+  warehouseId: string;
+  binId: string | null;
+  batchNo: string | null;
+  qty: number;
+  uom: string;
+  workstationId: string | null;
+  operatorId: string | null;
+  reference: string | null;
+  reasonCode: string | null;
+  notes: string | null;
+  createdBy: string;
+  createdAt: string;
+  // Joined fields
+  itemSku?: string;
+  itemDescription?: string;
+  workOrderNo?: string;
+  operatorName?: string;
+  warehouseName?: string;
+  binCode?: string;
+}
+
+export interface BomComparison {
+  left: BomHeader & { lines: BomLine[] };
+  right: BomHeader & { lines: BomLine[] };
+  differences: {
+    added: BomLine[];
+    removed: BomLine[];
+    changed: Array<{
+      left: BomLine;
+      right: BomLine;
+      changedFields: string[];
+    }>;
+  };
+}
