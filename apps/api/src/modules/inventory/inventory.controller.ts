@@ -28,6 +28,19 @@ export class InventoryController {
     private readonly batchRepository: BatchRepository,
   ) {}
 
+  @Get('stock-snapshots')
+  @RequirePermissions('inventory.read')
+  @ApiOperation({ summary: 'Get paginated stock snapshots with search' })
+  async getStockSnapshots(
+    @TenantId() tenantId: string,
+    @Query('search') search?: string,
+    @Query('warehouseId') warehouseId?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.service.getStockSnapshots(tenantId, { search, warehouseId, page, limit });
+  }
+
   @Get('stock-on-hand')
   @RequirePermissions('inventory.read')
   @ApiOperation({ summary: 'Get stock on hand for item' })

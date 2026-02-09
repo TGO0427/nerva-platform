@@ -128,6 +128,23 @@ export class InventoryService {
   }
 
   // Stock queries
+  async getStockSnapshots(
+    tenantId: string,
+    options: { search?: string; warehouseId?: string; page?: number; limit?: number } = {},
+  ) {
+    const { page = 1, limit = 50 } = options;
+    const result = await this.stockLedger.getStockSnapshots(tenantId, options);
+    return {
+      data: result.data,
+      meta: {
+        page,
+        limit,
+        total: result.total,
+        totalPages: Math.ceil(result.total / limit),
+      },
+    };
+  }
+
   async getStockOnHand(tenantId: string, itemId: string) {
     return this.stockLedger.getStockOnHand(tenantId, itemId);
   }

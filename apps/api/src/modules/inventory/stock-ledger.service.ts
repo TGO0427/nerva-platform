@@ -308,6 +308,114 @@ export class StockLedgerService {
     return result.rows;
   }
 
+  /**
+   * Get paginated stock snapshots with search support
+   * Searches across SKU, description, batch number, bin code, and warehouse name
+   */
+  async getStockSnapshots(
+    tenantId: string,
+    options: {
+      search?: string;
+      warehouseId?: string;
+      page?: number;
+      limit?: number;
+    } = {},
+  ): Promise<{ data: StockOnHand[]; total: number }> {
+    const { search, warehouseId, page = 1, limit = 50 } = options;
+    const offset = (page - 1) * limit;
+
+    let whereClause = 'ss.tenant_id = $1 AND ss.qty_on_hand != 0';
+    const params: (string | number)[] = [tenantId];
+    let paramIndex = 2;
+
+    if (warehouseId) {
+      whereClause += ` AND w.id = $${paramIndex}`;
+      params.push(warehouseId);
+      paramIndex++;
+    }
+
+    if (search) {
+      const searchPattern = `%${search}%`;
+      whereClause += ` AND (
+        i.sku ILIKE $${paramIndex} OR
+        i.description ILIKE $${paramIndex} OR
+        ss.batch_no ILIKE $${paramIndex} OR
+        b.code ILIKE $${paramIndex} OR
+        w.name ILIKE $${paramIndex}
+      )`;
+      params.push(searchPattern);
+      paramIndex++;
+    }
+
+    // Get total count
+    const countResult = await this.pool.query<{ count: string }>(
+      `SELECT COUNT(*) as count
+       FROM stock_snapshot ss
+       JOIN items i ON i.id = ss.item_id
+       JOIN bins b ON b.id = ss.bin_id
+       JOIN warehouses w ON w.id = b.warehouse_id
+       WHERE ${whereClause}`,
+      params,
+    );
+    const total = parseInt(countResult.rows[0]?.count || '0', 10);
+
+    // Get paginated data
+    const dataParams = [...params, limit, offset];
+    const result = await this.pool.query<{
+      item_id: string;
+      item_sku: string;
+      item_description: string;
+      bin_id: string;
+      bin_code: string;
+      warehouse_id: string;
+      warehouse_name: string;
+      batch_no: string | null;
+      expiry_date: Date | null;
+      qty_on_hand: string;
+      qty_reserved: string;
+      qty_available: string;
+    }>(
+      `SELECT
+        ss.item_id,
+        i.sku as item_sku,
+        i.description as item_description,
+        ss.bin_id,
+        b.code as bin_code,
+        w.id as warehouse_id,
+        w.name as warehouse_name,
+        ss.batch_no,
+        ss.expiry_date,
+        ss.qty_on_hand,
+        ss.qty_reserved,
+        ss.qty_available
+       FROM stock_snapshot ss
+       JOIN items i ON i.id = ss.item_id
+       JOIN bins b ON b.id = ss.bin_id
+       JOIN warehouses w ON w.id = b.warehouse_id
+       WHERE ${whereClause}
+       ORDER BY i.sku ASC, ss.batch_no ASC NULLS LAST, ss.expiry_date ASC NULLS LAST
+       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      dataParams,
+    );
+
+    const data = result.rows.map((row) => ({
+      itemId: row.item_id,
+      itemSku: row.item_sku,
+      itemDescription: row.item_description,
+      binId: row.bin_id,
+      binCode: row.bin_code,
+      warehouseId: row.warehouse_id,
+      warehouseName: row.warehouse_name,
+      batchNo: row.batch_no || null,
+      expiryDate: row.expiry_date,
+      qtyOnHand: parseFloat(row.qty_on_hand),
+      qtyReserved: parseFloat(row.qty_reserved),
+      qtyAvailable: parseFloat(row.qty_available),
+    }));
+
+    return { data, total };
+  }
+
   private async updateSnapshot(
     client: Pool | PoolClient,
     tenantId: string,

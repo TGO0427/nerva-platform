@@ -10,20 +10,30 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
-import { useItems, useQueryParams, useWarehouses } from '@/lib/queries';
-import { useExpiryAlertsSummary } from '@/lib/queries/inventory';
+import { useQueryParams, useWarehouses } from '@/lib/queries';
+import { useStockSnapshots, useExpiryAlertsSummary, StockSnapshot } from '@/lib/queries/inventory';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
-import { exportToCSV, generateExportFilename } from '@/lib/utils/export';
-import type { Item } from '@nerva/shared';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+
+// Extended type with id for table selection
+interface StockRow extends StockSnapshot {
+  id: string;
+}
 
 export default function InventoryPage() {
   const router = useRouter();
   const { params, setPage, setSearch } = useQueryParams();
-  const { data: itemsData, isLoading } = useItems(params);
+  const { data: stockData, isLoading } = useStockSnapshots(params);
   const { data: warehouses } = useWarehouses();
   const { data: expiryAlerts } = useExpiryAlertsSummary();
 
-  const tableData = itemsData?.data || [];
+  // Add unique id for each row (composite key: itemId + binId + batchNo)
+  const tableData: StockRow[] = useMemo(() => {
+    return (stockData?.data || []).map(row => ({
+      ...row,
+      id: `${row.itemId}-${row.binId}-${row.batchNo || 'no-batch'}`,
+    }));
+  }, [stockData?.data]);
 
   // Row selection
   const {
@@ -38,33 +48,74 @@ export default function InventoryPage() {
   } = useTableSelection(tableData);
 
   // Column definitions
-  const allColumns: Column<Item>[] = useMemo(() => [
+  const allColumns: Column<StockRow>[] = useMemo(() => [
     {
-      key: 'sku',
+      key: 'itemSku',
       header: 'SKU',
-      sortable: true,
       render: (row) => (
-        <span className="font-medium text-primary-600">{row.sku}</span>
+        <span className="font-medium text-primary-600">{row.itemSku}</span>
       ),
     },
     {
-      key: 'description',
+      key: 'itemDescription',
       header: 'Description',
-      sortable: true,
     },
     {
-      key: 'uom',
-      header: 'UOM',
-      width: '80px',
+      key: 'batchNo',
+      header: 'Batch No.',
+      render: (row) => row.batchNo || <span className="text-slate-400">-</span>,
     },
     {
-      key: 'isActive',
-      header: 'Status',
+      key: 'expiryDate',
+      header: 'Expiry Date',
+      render: (row) => {
+        if (!row.expiryDate) return <span className="text-slate-400">-</span>;
+        const date = new Date(row.expiryDate);
+        const now = new Date();
+        const daysUntil = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const isExpired = daysUntil < 0;
+        const isCritical = daysUntil >= 0 && daysUntil <= 7;
+        return (
+          <span className={isExpired ? 'text-red-600 font-medium' : isCritical ? 'text-orange-600' : ''}>
+            {date.toLocaleDateString()}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'warehouseName',
+      header: 'Warehouse',
+    },
+    {
+      key: 'binCode',
+      header: 'Bin',
+    },
+    {
+      key: 'qtyOnHand',
+      header: 'On Hand',
       width: '100px',
       render: (row) => (
-        <Badge variant={row.isActive ? 'success' : 'danger'}>
-          {row.isActive ? 'Active' : 'Inactive'}
-        </Badge>
+        <span className="font-medium">{row.qtyOnHand}</span>
+      ),
+    },
+    {
+      key: 'qtyReserved',
+      header: 'Reserved',
+      width: '100px',
+      render: (row) => (
+        <span className={row.qtyReserved > 0 ? 'text-orange-600' : 'text-slate-400'}>
+          {row.qtyReserved}
+        </span>
+      ),
+    },
+    {
+      key: 'qtyAvailable',
+      header: 'Available',
+      width: '100px',
+      render: (row) => (
+        <span className={row.qtyAvailable > 0 ? 'text-green-600 font-medium' : 'text-slate-400'}>
+          {row.qtyAvailable}
+        </span>
       ),
     },
   ], []);
@@ -75,10 +126,10 @@ export default function InventoryPage() {
     visibleColumns,
     toggle: toggleColumn,
     reset: resetColumns,
-  } = useColumnVisibility(allColumns, { storageKey: 'inventory-items', alwaysVisible: ['sku'] });
+  } = useColumnVisibility(allColumns, { storageKey: 'inventory-stock', alwaysVisible: ['itemSku'] });
 
-  const handleRowClick = (row: Item) => {
-    router.push(`/inventory/stock/${row.id}`);
+  const handleRowClick = (row: StockRow) => {
+    router.push(`/inventory/stock/${row.itemId}`);
   };
 
   const handleExport = () => {
@@ -87,10 +138,15 @@ export default function InventoryPage() {
       : tableData;
 
     const exportColumns = [
-      { key: 'sku', header: 'SKU' },
-      { key: 'description', header: 'Description' },
-      { key: 'uom', header: 'UOM' },
-      { key: 'isActive', header: 'Status', getValue: (row: Item) => row.isActive ? 'Active' : 'Inactive' },
+      { key: 'itemSku', header: 'SKU' },
+      { key: 'itemDescription', header: 'Description' },
+      { key: 'batchNo', header: 'Batch No.', getValue: (row: StockRow) => row.batchNo || '' },
+      { key: 'expiryDate', header: 'Expiry Date', getValue: (row: StockRow) => row.expiryDate ? formatDateForExport(row.expiryDate) : '' },
+      { key: 'warehouseName', header: 'Warehouse' },
+      { key: 'binCode', header: 'Bin' },
+      { key: 'qtyOnHand', header: 'On Hand' },
+      { key: 'qtyReserved', header: 'Reserved' },
+      { key: 'qtyAvailable', header: 'Available' },
     ];
 
     exportToCSV(exportData, exportColumns, generateExportFilename('inventory'));
@@ -98,6 +154,7 @@ export default function InventoryPage() {
 
   const expiredCount = expiryAlerts?.expired || 0;
   const criticalCount = expiryAlerts?.critical || 0;
+  const totalStockRows = stockData?.meta?.total || 0;
 
   return (
     <ListPageTemplate
@@ -138,8 +195,8 @@ export default function InventoryPage() {
           iconColor: 'gray',
         },
         {
-          title: 'Active Items',
-          value: itemsData?.meta?.total || 0,
+          title: 'Stock Records',
+          value: totalStockRows,
           icon: <ItemsIcon />,
           iconColor: 'blue',
         },
@@ -165,7 +222,7 @@ export default function InventoryPage() {
       filters={
         <Input
           type="search"
-          placeholder="Search items by SKU or description..."
+          placeholder="Search by SKU, description, batch number..."
           className="max-w-md"
           value={params.search || ''}
           onChange={(e) => setSearch(e.target.value)}
@@ -178,7 +235,7 @@ export default function InventoryPage() {
             visibleKeys={visibleKeys}
             onToggle={toggleColumn}
             onReset={resetColumns}
-            alwaysVisible={['sku']}
+            alwaysVisible={['itemSku']}
           />
           <Button variant="secondary" size="sm" onClick={handleExport}>
             <DownloadIcon />
@@ -211,18 +268,20 @@ export default function InventoryPage() {
         onSelectAll={() => togglePage(tableData)}
         isAllSelected={isAllSelected}
         isSomeSelected={isSomeSelected}
-        pagination={itemsData?.meta ? {
-          page: itemsData.meta.page,
-          limit: itemsData.meta.limit,
-          total: itemsData.meta.total || 0,
-          totalPages: itemsData.meta.totalPages || 1,
+        pagination={stockData?.meta ? {
+          page: stockData.meta.page,
+          limit: stockData.meta.limit,
+          total: stockData.meta.total || 0,
+          totalPages: stockData.meta.totalPages || 1,
         } : undefined}
         onPageChange={setPage}
         onRowClick={handleRowClick}
         emptyState={{
           icon: <BoxIcon />,
-          title: 'No items found',
-          description: 'Search for an item to view its stock levels',
+          title: 'No stock found',
+          description: params.search
+            ? 'No stock records match your search criteria'
+            : 'No stock has been received yet',
         }}
       />
     </ListPageTemplate>

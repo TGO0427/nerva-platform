@@ -89,6 +89,24 @@ export interface ExpiringStock {
 }
 
 // Stock queries
+export function useStockSnapshots(params: QueryParams & { warehouseId?: string }) {
+  return useQuery({
+    queryKey: [INVENTORY_KEY, 'stock-snapshots', params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      searchParams.set('page', String(params.page));
+      searchParams.set('limit', String(params.limit));
+      if (params.search) searchParams.set('search', params.search);
+      if (params.warehouseId) searchParams.set('warehouseId', params.warehouseId);
+
+      const response = await api.get<PaginatedResult<StockSnapshot>>(
+        `/inventory/stock-snapshots?${searchParams.toString()}`
+      );
+      return response.data;
+    },
+  });
+}
+
 export function useStockOnHand(itemId: string | undefined) {
   return useQuery({
     queryKey: [INVENTORY_KEY, 'stock-on-hand', itemId],
