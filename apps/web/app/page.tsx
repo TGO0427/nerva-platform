@@ -314,6 +314,14 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-gray-500 flex flex-col md:flex-row justify-between gap-3">
           <div>&copy; {new Date().getFullYear()} Nerva</div>
           <div className="flex gap-6">
+            <a
+              href={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/api/docs`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-gray-700 transition-colors"
+            >
+              API Docs
+            </a>
             <span>Privacy</span>
             <span>Terms</span>
           </div>
