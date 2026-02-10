@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useOrder,
   useConfirmOrder,
@@ -25,6 +26,7 @@ export default function SalesOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const orderId = params.id as string;
 
   const { data: order, isLoading } = useOrder(orderId);
@@ -132,7 +134,12 @@ export default function SalesOrderDetailPage() {
   ];
 
   const handleConfirm = async () => {
-    if (confirm('Are you sure you want to confirm this order?')) {
+    const confirmed = await confirm({
+      title: 'Confirm Order',
+      message: 'Are you sure you want to confirm this order? This will lock the order for fulfilment.',
+      confirmLabel: 'Confirm Order',
+    });
+    if (confirmed) {
       try {
         await confirmOrder.mutateAsync(orderId);
         addToast('Order confirmed', 'success');
@@ -144,7 +151,12 @@ export default function SalesOrderDetailPage() {
   };
 
   const handleAllocate = async () => {
-    if (confirm('Are you sure you want to allocate stock for this order?')) {
+    const confirmed = await confirm({
+      title: 'Allocate Stock',
+      message: 'Are you sure you want to allocate stock for this order? This will reserve inventory.',
+      confirmLabel: 'Allocate Stock',
+    });
+    if (confirmed) {
       try {
         await allocateOrder.mutateAsync(orderId);
         addToast('Stock allocated successfully', 'success');
@@ -156,7 +168,13 @@ export default function SalesOrderDetailPage() {
   };
 
   const handleCancel = async () => {
-    if (confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
+    const confirmed = await confirm({
+      title: 'Cancel Order',
+      message: 'Are you sure you want to cancel this order? This action cannot be undone.',
+      confirmLabel: 'Cancel Order',
+      variant: 'danger',
+    });
+    if (confirmed) {
       try {
         await cancelOrder.mutateAsync(orderId);
         addToast('Order cancelled', 'success');
@@ -171,7 +189,12 @@ export default function SalesOrderDetailPage() {
   const handleCreateShipment = async () => {
     if (!order) return;
 
-    if (confirm('Create a shipment for this order?')) {
+    const confirmed = await confirm({
+      title: 'Create Shipment',
+      message: 'Create a shipment for this order? You will be redirected to the shipment page.',
+      confirmLabel: 'Create Shipment',
+    });
+    if (confirmed) {
       try {
         const shipment = await createShipment.mutateAsync({
           siteId: order.siteId,
