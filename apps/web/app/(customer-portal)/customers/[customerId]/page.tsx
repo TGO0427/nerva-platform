@@ -2,9 +2,10 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
+import { KpiCard } from '@/components/ui/kpi-card';
 import { useCustomerPortal } from '@/lib/contexts/customer-portal-context';
 import { useOrders } from '@/lib/queries/sales';
 
@@ -34,22 +35,21 @@ export default function CustomerPortalDashboard() {
   ).length;
   const cancelledOrders = orders.filter(o => o.status === 'CANCELLED').length;
 
-  // Calculate orders by month (last 6 months)
+  // Calculate orders by month (last 6 months) for sparkline
   const ordersByMonth = (() => {
-    const months: { month: string; count: number }[] = [];
+    const counts: number[] = [];
     const now = new Date();
 
     for (let i = 5; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
       const count = orders.filter(o => {
         const orderDate = new Date(o.createdAt);
         return orderDate.getMonth() === date.getMonth() &&
                orderDate.getFullYear() === date.getFullYear();
       }).length;
-      months.push({ month: monthKey, count });
+      counts.push(count);
     }
-    return months;
+    return counts;
   })();
 
   // Recent orders (last 5)
@@ -65,137 +65,145 @@ export default function CustomerPortalDashboard() {
     );
   }
 
+  // Determine tones
+  const totalOrdersTone = totalOrders > 0 ? 'blue' : 'neutral';
+  const completedTone = completedOrders > 0 ? 'green' : 'neutral';
+  const pendingTone = pendingOrders > 0 ? 'amber' : 'green';
+  const cancelledTone = cancelledOrders > 0 ? 'red' : 'green';
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-slate-500 mt-1">
           Overview of {customer?.name}'s account
         </p>
       </div>
 
       {/* Insights Section */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Insights</h2>
+        <h2 className="text-sm font-semibold text-slate-700 tracking-tight uppercase mb-4">Insights</h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-gray-500 mb-1">Total Orders</div>
-              <div className="text-2xl font-bold text-gray-900">{totalOrders}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-gray-500 mb-1">Completed</div>
-              <div className="text-2xl font-bold text-green-600">{completedOrders}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-gray-500 mb-1">Pending</div>
-              <div className="text-2xl font-bold text-orange-600">{pendingOrders}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-gray-500 mb-1">Cancelled</div>
-              <div className="text-2xl font-bold text-red-600">{cancelledOrders}</div>
-            </CardContent>
-          </Card>
-        </div>
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          initial="hidden"
+          animate="show"
+          variants={{
+            hidden: { opacity: 0 },
+            show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+          }}
+        >
+          <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+            <KpiCard
+              title="Total Orders"
+              value={totalOrders}
+              sub="All time"
+              icon={<OrdersIcon />}
+              tone={totalOrdersTone as 'blue' | 'neutral'}
+              sparkline={ordersByMonth}
+            />
+          </motion.div>
+          <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+            <KpiCard
+              title="Completed"
+              value={completedOrders}
+              sub="Shipped & delivered"
+              icon={<CheckIcon />}
+              tone={completedTone as 'green' | 'neutral'}
+            />
+          </motion.div>
+          <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+            <KpiCard
+              title="Pending"
+              value={pendingOrders}
+              sub={pendingOrders > 0 ? 'In progress' : 'All clear'}
+              icon={<ClockIcon />}
+              tone={pendingTone as 'amber' | 'green'}
+            />
+          </motion.div>
+          <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+            <KpiCard
+              title="Cancelled"
+              value={cancelledOrders}
+              sub={cancelledOrders > 0 ? 'Cancelled orders' : 'No cancellations'}
+              icon={<XIcon />}
+              tone={cancelledTone as 'red' | 'green'}
+            />
+          </motion.div>
+        </motion.div>
       </div>
-
-      {/* Order Trends Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Order Trends (Last 6 Months)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {ordersByMonth.some(m => m.count > 0) ? (
-            <SimpleBarChart data={ordersByMonth} color="blue" />
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <p className="text-sm">No order data to display</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Quick Stats Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Order Status Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+        <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm hover:shadow-md transition-all">
+          <div className="p-5 border-b border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900">Order Status</h3>
+          </div>
+          <div className="p-5">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Completed</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <span className="text-sm text-slate-600">Completed</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-green-500 rounded-full"
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                       style={{ width: `${totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0}%` }}
                     />
                   </div>
-                  <span className="text-sm font-medium w-8">{completedOrders}</span>
+                  <span className="text-sm font-semibold text-slate-900 w-8 text-right">{completedOrders}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Pending</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <span className="text-sm text-slate-600">Pending</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-orange-500 rounded-full"
+                      className="h-full bg-amber-500 rounded-full transition-all duration-500"
                       style={{ width: `${totalOrders > 0 ? (pendingOrders / totalOrders) * 100 : 0}%` }}
                     />
                   </div>
-                  <span className="text-sm font-medium w-8">{pendingOrders}</span>
+                  <span className="text-sm font-semibold text-slate-900 w-8 text-right">{pendingOrders}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Cancelled</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <span className="text-sm text-slate-600">Cancelled</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-red-500 rounded-full"
+                      className="h-full bg-red-500 rounded-full transition-all duration-500"
                       style={{ width: `${totalOrders > 0 ? (cancelledOrders / totalOrders) * 100 : 0}%` }}
                     />
                   </div>
-                  <span className="text-sm font-medium w-8">{cancelledOrders}</span>
+                  <span className="text-sm font-semibold text-slate-900 w-8 text-right">{cancelledOrders}</span>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Customer Info Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Customer Information</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm hover:shadow-md transition-all">
+          <div className="p-5 border-b border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900">Customer Information</h3>
+          </div>
+          <div className="p-5">
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-gray-500">Customer Code</dt>
-                <dd className="font-medium mt-1">{customer?.code || '-'}</dd>
+                <dt className="text-slate-500">Customer Code</dt>
+                <dd className="font-semibold text-slate-900 mt-1">{customer?.code || '-'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Email</dt>
-                <dd className="font-medium mt-1">{customer?.email || '-'}</dd>
+                <dt className="text-slate-500">Email</dt>
+                <dd className="font-semibold text-slate-900 mt-1 truncate">{customer?.email || '-'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Phone</dt>
-                <dd className="font-medium mt-1">{customer?.phone || '-'}</dd>
+                <dt className="text-slate-500">Phone</dt>
+                <dd className="font-semibold text-slate-900 mt-1">{customer?.phone || '-'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Status</dt>
+                <dt className="text-slate-500">Status</dt>
                 <dd className="mt-1">
                   <Badge variant={customer?.isActive ? 'success' : 'danger'}>
                     {customer?.isActive ? 'Active' : 'Inactive'}
@@ -203,39 +211,43 @@ export default function CustomerPortalDashboard() {
                 </dd>
               </div>
             </dl>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Recent Orders */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Recent Orders</CardTitle>
+      <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm hover:shadow-md transition-all">
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-900">Recent Orders</h3>
           <Link
             href={`/customers/${customerId}/orders`}
-            className="text-sm text-primary-600 hover:text-primary-700"
+            className="text-sm font-medium text-blue-600 hover:text-blue-700"
           >
             View all
           </Link>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-5">
           {recentOrders.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <OrderIcon className="mx-auto h-12 w-12 mb-4 text-gray-300" />
-              <p className="font-medium">No orders yet</p>
-              <p className="text-sm mt-1">Orders will appear here once created</p>
+            <div className="text-center py-8">
+              <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
+                <OrdersIcon />
+              </div>
+              <p className="text-slate-500 mt-4 font-medium">No orders yet</p>
+              <p className="text-slate-400 text-sm mt-1">Orders will appear here once created</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-slate-100">
               {recentOrders.map((order) => (
-                <div
+                <motion.div
                   key={order.id}
                   onClick={() => router.push(`/sales/${order.id}`)}
-                  className="flex items-center justify-between py-3 cursor-pointer hover:bg-gray-50 -mx-4 px-4 transition-colors"
+                  className="flex items-center justify-between py-3 cursor-pointer hover:bg-slate-50 -mx-5 px-5 transition-colors first:pt-0 last:pb-0 first:-mt-3 last:-mb-3 first:rounded-t-xl last:rounded-b-xl"
+                  whileHover={{ x: 4 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 >
                   <div>
-                    <div className="font-medium text-gray-900">{order.orderNo}</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="font-semibold text-slate-900">{order.orderNo}</div>
+                    <div className="text-sm text-slate-500">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </div>
                   </div>
@@ -244,17 +256,17 @@ export default function CustomerPortalDashboard() {
                       {order.status.replace(/_/g, ' ')}
                     </Badge>
                     {order.requestedShipDate && (
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-xs text-slate-500 mt-1">
                         Ship: {new Date(order.requestedShipDate).toLocaleDateString()}
                       </div>
                     )}
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -279,108 +291,35 @@ function getStatusVariant(status: string): 'default' | 'success' | 'warning' | '
   }
 }
 
-function OrderIcon({ className }: { className?: string }) {
+// Icons
+function OrdersIcon() {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
     </svg>
   );
 }
 
-function SimpleBarChart({
-  data,
-}: {
-  data: Array<{ month: string; count: number }>;
-  color?: string;
-}) {
-  const values = data.map(d => d.count);
-  const maxValue = Math.max(...values, 1);
-  const chartHeight = 180;
-  const padding = 40;
-
-  // Calculate points for the line
-  const points = data.map((item, index) => {
-    const x = (index / (data.length - 1)) * 100;
-    const y = maxValue > 0 ? ((maxValue - item.count) / maxValue) * 100 : 100;
-    return { x, y, count: item.count, month: item.month };
-  });
-
-  // Create SVG path for the line
-  const linePath = points.map((point, index) => {
-    const command = index === 0 ? 'M' : 'L';
-    return `${command} ${point.x} ${point.y}`;
-  }).join(' ');
-
-  // Create area fill path
-  const areaPath = `${linePath} L 100 100 L 0 100 Z`;
-
+function CheckIcon() {
   return (
-    <div className="relative" style={{ height: chartHeight + padding }}>
-      {/* Chart area */}
-      <div className="relative" style={{ height: chartHeight }}>
-        <svg
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          className="w-full h-full"
-        >
-          {/* Grid lines */}
-          <line x1="0" y1="0" x2="100" y2="0" stroke="#e5e7eb" strokeWidth="0.5" />
-          <line x1="0" y1="50" x2="100" y2="50" stroke="#e5e7eb" strokeWidth="0.5" />
-          <line x1="0" y1="100" x2="100" y2="100" stroke="#e5e7eb" strokeWidth="0.5" />
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
 
-          {/* Area fill */}
-          <path d={areaPath} fill="url(#gradient)" opacity="0.1" />
+function ClockIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
 
-          {/* Line */}
-          <path
-            d={linePath}
-            fill="none"
-            stroke="#3b82f6"
-            strokeWidth="2"
-            vectorEffect="non-scaling-stroke"
-          />
-
-          {/* Gradient definition */}
-          <defs>
-            <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#3b82f6" />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-        </svg>
-
-        {/* Data points and values */}
-        {points.map((point, index) => (
-          <div
-            key={index}
-            className="absolute flex flex-col items-center"
-            style={{
-              left: `${point.x}%`,
-              top: `${point.y}%`,
-              transform: 'translate(-50%, -50%)',
-            }}
-          >
-            {/* Value label */}
-            <span
-              className="text-xs text-gray-600 font-medium absolute"
-              style={{ top: '-20px' }}
-            >
-              {point.count}
-            </span>
-            {/* Dot */}
-            <div className="w-2 h-2 bg-blue-500 rounded-full border-2 border-white shadow-sm" />
-          </div>
-        ))}
-      </div>
-
-      {/* X-axis labels */}
-      <div className="flex justify-between mt-2">
-        {data.map((item, index) => (
-          <span key={index} className="text-xs text-gray-500">
-            {item.month}
-          </span>
-        ))}
-      </div>
-    </div>
+function XIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
   );
 }
