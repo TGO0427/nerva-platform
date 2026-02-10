@@ -4,86 +4,56 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useAuth, hasPermission } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Breadcrumbs } from '@/components/layout';
 import { Spinner } from '@/components/ui/spinner';
-import { PageShell, MetricGrid } from '@/components/ui/motion';
+import { KpiCard } from '@/components/ui/kpi-card';
 import { AnimatedNumber, AnimatedCurrency } from '@/components/ui/animated-number';
 import { useDashboardStats, useRecentActivity } from '@/lib/queries';
 import { PERMISSIONS } from '@nerva/shared';
-
-interface KpiCardProps {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  changeType?: 'positive' | 'negative' | 'neutral';
-  icon: React.ReactNode;
-  href?: string;
-  emptyHint?: string;
-}
-
-function KpiCard({ title, value, subtitle, changeType = 'neutral', icon, href, emptyHint }: KpiCardProps) {
-  const subtitleColors = {
-    positive: 'text-green-600',
-    negative: 'text-red-600',
-    neutral: 'text-gray-500',
-  };
-
-  const showEmpty = value === 0 && emptyHint;
-
-  const content = (
-    <Card hover className={href ? 'cursor-pointer' : ''}>
-      <CardContent className="flex items-center justify-between pt-4">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">
-            {typeof value === 'number' ? (
-              <AnimatedNumber value={value} duration={400} />
-            ) : (
-              value
-            )}
-          </p>
-          {showEmpty ? (
-            <p className="text-xs text-gray-400 mt-1">{emptyHint}</p>
-          ) : subtitle ? (
-            <p className={`text-sm mt-1 ${subtitleColors[changeType]}`}>
-              {subtitle}
-            </p>
-          ) : null}
-        </div>
-        <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">
-          {icon}
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  if (href) {
-    return <Link href={href}>{content}</Link>;
-  }
-  return content;
-}
 
 interface QuickActionProps {
   title: string;
   description: string;
   href: string;
   icon: React.ReactNode;
+  primary?: boolean;
 }
 
-function QuickAction({ title, description, href, icon }: QuickActionProps) {
+function QuickAction({ title, description, href, icon, primary }: QuickActionProps) {
+  if (primary) {
+    return (
+      <Link href={href}>
+        <motion.div
+          className="flex items-center p-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl text-white shadow-md hover:shadow-lg"
+          whileHover={{ y: -2, boxShadow: '0 8px 20px rgba(59,130,246,0.3)' }}
+          transition={{ type: 'spring', stiffness: 550, damping: 35 }}
+        >
+          <div className="h-11 w-11 bg-white/20 rounded-xl flex items-center justify-center mr-4">
+            {icon}
+          </div>
+          <div>
+            <p className="font-semibold">{title}</p>
+            <p className="text-sm text-blue-100">{description}</p>
+          </div>
+        </motion.div>
+      </Link>
+    );
+  }
+
   return (
     <Link href={href}>
       <motion.div
-        className="flex items-center p-4 bg-white rounded-lg border border-gray-200 hover:border-primary-300 transition-colors"
-        whileHover={{ y: -2, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+        className="flex items-center p-4 bg-white rounded-2xl border border-slate-200/70 hover:border-slate-300 transition-all"
+        whileHover={{ y: -2, boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
         transition={{ type: 'spring', stiffness: 550, damping: 35 }}
       >
-        <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 mr-4">
+        <div className="h-11 w-11 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 mr-4">
           {icon}
         </div>
         <div>
-          <p className="font-medium text-gray-900">{title}</p>
-          <p className="text-sm text-gray-500">{description}</p>
+          <p className="font-medium text-slate-900">{title}</p>
+          <p className="text-sm text-slate-500">{description}</p>
         </div>
       </motion.div>
     </Link>
@@ -116,6 +86,7 @@ export default function DashboardPage() {
       href: '/sales/new',
       icon: <PlusIcon />,
       permission: PERMISSIONS.SALES_ORDER_CREATE,
+      primary: true,
     },
     {
       title: 'View Fulfilment',
@@ -140,257 +111,227 @@ export default function DashboardPage() {
     },
   ].filter(action => hasPermission(user, action.permission));
 
+  // Determine tones based on values
+  const pendingOrdersTone = (stats?.pendingOrders ?? 0) > 0 ? 'blue' : 'neutral';
+  const readyToPickTone = (stats?.activePickWaves ?? 0) > 0 ? 'blue' : 'neutral';
+  const openReturnsTone = (stats?.openReturns ?? 0) > 0 ? 'amber' : 'neutral';
+  const stockAlertsTone = ((stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)) > 0 ? 'red' : 'green';
+  const lateOrdersTone = (stats?.lateOrders ?? 0) > 0 ? 'red' : 'green';
+  const openNCRsTone = (stats?.openNCRs ?? 0) > 0 ? 'amber' : 'neutral';
+
   return (
-    <PageShell>
-      <Breadcrumbs />
+    <div className="min-h-screen bg-slate-50">
+      {/* Brand Strip */}
+      <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-emerald-500 to-blue-500" />
 
-      <div className="mb-6">
-        <p className="text-sm text-gray-500">
-          Welcome back, {user?.displayName?.split(' ')[0] || 'User'}
-        </p>
-        <h1 className="text-2xl font-bold text-gray-900 mt-0.5">
-          Operations Overview
-        </h1>
-      </div>
+      <div className="p-6">
+        <Breadcrumbs />
 
-      {/* KPI Cards */}
-      {statsLoading ? (
-        <div className="flex justify-center py-8">
-          <Spinner />
+        <div className="mb-6">
+          <p className="text-sm text-slate-500">
+            Welcome back, {user?.displayName?.split(' ')[0] || 'User'}
+          </p>
+          <h1 className="text-2xl font-bold text-slate-900 mt-0.5">
+            Operations Overview
+          </h1>
         </div>
-      ) : (
-        <>
-          <MetricGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <KpiCard
-              title="Pending Orders"
-              value={stats?.pendingOrders ?? 0}
-              subtitle={stats?.allocatedOrders ? `${stats.allocatedOrders} allocated` : undefined}
-              changeType="neutral"
-              icon={<ClipboardIcon />}
-              href="/sales"
-              emptyHint="Create an order to start"
-            />
-            <KpiCard
-              title="Ready to Pick"
-              value={stats?.activePickWaves ?? 0}
-              subtitle={stats?.pendingPickTasks ? `${stats.pendingPickTasks} pick tasks` : undefined}
-              changeType="positive"
-              icon={<BoxIcon />}
-              href="/fulfilment"
-              emptyHint="Create a pick wave"
-            />
-            <KpiCard
-              title="Open Returns"
-              value={stats?.openReturns ?? 0}
-              subtitle="Awaiting processing"
-              changeType="neutral"
-              icon={<RefreshIcon />}
-              href="/returns"
-              emptyHint="No returns to process"
-            />
-            <KpiCard
-              title="Stock Alerts"
-              value={(stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)}
-              subtitle={stats?.lowStockItems ? `${stats.lowStockItems} low stock` : undefined}
-              changeType={(stats?.lowStockItems ?? 0) > 0 ? 'negative' : 'neutral'}
-              icon={<AlertIcon />}
-              href="/inventory/expiry-alerts"
-              emptyHint="All stock levels healthy"
-            />
-          </MetricGrid>
 
-          {/* Today's Ops */}
-          <div className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Today&apos;s Ops</h2>
-            <MetricGrid className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Link href="/dispatch">
-                <Card hover className="cursor-pointer">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Trips in Progress</p>
-                        <p className="text-2xl font-bold text-gray-900 mt-1">
-                          <AnimatedNumber value={stats?.tripsInProgress ?? 0} duration={400} />
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {stats?.tripsCompletedToday ? `${stats.tripsCompletedToday} completed today` : 'No trips completed yet'}
-                        </p>
-                      </div>
-                      <div className="h-10 w-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-500">
-                        <TruckIcon />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-              <Link href="/returns">
-                <Card hover alert={(stats?.openNCRs ?? 0) > 0} className="cursor-pointer">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Open NCRs</p>
-                        <p className="text-2xl font-bold text-gray-900 mt-1">
-                          <AnimatedNumber value={stats?.openNCRs ?? 0} duration={400} />
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {(stats?.openNCRs ?? 0) > 0 ? 'Requires attention' : 'All clear'}
-                        </p>
-                      </div>
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${(stats?.openNCRs ?? 0) > 0 ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-400'}`}>
-                        <WarningIcon />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-              <Link href="/sales">
-                <Card hover alert={(stats?.lateOrders ?? 0) > 0} className="cursor-pointer">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Late Orders</p>
-                        <p className={`text-2xl font-bold mt-1 ${(stats?.lateOrders ?? 0) > 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                          <AnimatedNumber value={stats?.lateOrders ?? 0} duration={400} />
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {(stats?.lateOrders ?? 0) > 0 ? 'Past requested ship date' : 'All orders on track'}
-                        </p>
-                      </div>
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${(stats?.lateOrders ?? 0) > 0 ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-400'}`}>
-                        <ClockIcon />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            </MetricGrid>
+        {/* KPI Cards */}
+        {statsLoading ? (
+          <div className="flex justify-center py-8">
+            <Spinner />
           </div>
+        ) : (
+          <>
+            <motion.div
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+              initial="hidden"
+              animate="show"
+              variants={{
+                hidden: { opacity: 0 },
+                show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+              }}
+            >
+              <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+                <KpiCard
+                  title="Pending Orders"
+                  value={<AnimatedNumber value={stats?.pendingOrders ?? 0} duration={400} />}
+                  sub={stats?.allocatedOrders ? `${stats.allocatedOrders} allocated` : (stats?.pendingOrders ?? 0) === 0 ? 'Create an order to start' : undefined}
+                  icon={<ClipboardIcon />}
+                  href="/sales"
+                  tone={pendingOrdersTone as 'blue' | 'neutral'}
+                />
+              </motion.div>
+              <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+                <KpiCard
+                  title="Ready to Pick"
+                  value={<AnimatedNumber value={stats?.activePickWaves ?? 0} duration={400} />}
+                  sub={stats?.pendingPickTasks ? `${stats.pendingPickTasks} pick tasks` : (stats?.activePickWaves ?? 0) === 0 ? 'Create a pick wave' : undefined}
+                  icon={<BoxIcon />}
+                  href="/fulfilment"
+                  tone={readyToPickTone as 'blue' | 'neutral'}
+                />
+              </motion.div>
+              <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+                <KpiCard
+                  title="Open Returns"
+                  value={<AnimatedNumber value={stats?.openReturns ?? 0} duration={400} />}
+                  sub={(stats?.openReturns ?? 0) > 0 ? 'Awaiting processing' : 'No returns to process'}
+                  icon={<RefreshIcon />}
+                  href="/returns"
+                  tone={openReturnsTone as 'amber' | 'neutral'}
+                />
+              </motion.div>
+              <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+                <KpiCard
+                  title="Stock Alerts"
+                  value={<AnimatedNumber value={(stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)} duration={400} />}
+                  sub={stats?.lowStockItems ? `${stats.lowStockItems} low stock` : 'All stock levels healthy'}
+                  icon={<AlertIcon />}
+                  href="/inventory/expiry-alerts"
+                  tone={stockAlertsTone as 'red' | 'green'}
+                />
+              </motion.div>
+            </motion.div>
 
-          {/* Weekly Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">Weekly Sales</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      <AnimatedCurrency value={stats?.weeklySalesValue ?? 0} duration={500} />
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 bg-green-50 rounded-lg flex items-center justify-center text-green-500">
-                    <CurrencyIcon />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">Weekly Orders</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      <AnimatedNumber value={stats?.weeklyOrdersCount ?? 0} duration={400} />
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-500">
-                    <TrendingIcon />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">Shipped This Week</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      <AnimatedNumber value={stats?.shippedOrders ?? 0} duration={400} />
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-500">
-                    <ShipIcon />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Actions */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {quickActions.map((action) => (
-                  <QuickAction key={action.title} {...action} />
-                ))}
+            {/* Today's Ops */}
+            <div className="mb-6">
+              <h2 className="text-sm font-semibold text-slate-700 tracking-tight uppercase mb-3">Today&apos;s Ops</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <KpiCard
+                  title="Trips in Progress"
+                  value={<AnimatedNumber value={stats?.tripsInProgress ?? 0} duration={400} />}
+                  sub={stats?.tripsCompletedToday ? `${stats.tripsCompletedToday} completed today` : 'No trips completed yet'}
+                  icon={<TruckIcon />}
+                  href="/dispatch"
+                  tone={(stats?.tripsInProgress ?? 0) > 0 ? 'blue' : 'neutral'}
+                />
+                <KpiCard
+                  title="Open NCRs"
+                  value={<AnimatedNumber value={stats?.openNCRs ?? 0} duration={400} />}
+                  sub={(stats?.openNCRs ?? 0) > 0 ? 'Requires attention' : 'All clear'}
+                  icon={<WarningIcon />}
+                  href="/returns"
+                  tone={openNCRsTone as 'amber' | 'neutral'}
+                />
+                <KpiCard
+                  title="Late Orders"
+                  value={<AnimatedNumber value={stats?.lateOrders ?? 0} duration={400} />}
+                  sub={(stats?.lateOrders ?? 0) > 0 ? 'Past requested ship date' : 'All orders on track'}
+                  icon={<ClockIcon />}
+                  href="/sales"
+                  tone={lateOrdersTone as 'red' | 'green'}
+                />
               </div>
-              {quickActions.length === 0 && (
-                <p className="text-gray-500 text-center py-4">
-                  No actions available with your current permissions.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
 
-        {/* Recent Activity */}
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {activityLoading ? (
-                <div className="flex justify-center py-8">
-                  <Spinner />
-                </div>
-              ) : activity && activity.length > 0 ? (
-                <motion.div
-                  className="space-y-4"
-                  initial="hidden"
-                  animate="show"
-                  variants={{
-                    hidden: { opacity: 0 },
-                    show: { opacity: 1, transition: { staggerChildren: 0.05 } }
-                  }}
-                >
-                  {activity.map((item) => (
-                    <motion.div
-                      key={`${item.type}-${item.id}`}
-                      className="flex items-start"
-                      variants={{
-                        hidden: { opacity: 0, x: -10 },
-                        show: { opacity: 1, x: 0, transition: { duration: 0.15 } }
-                      }}
-                    >
-                      <ActivityIcon type={item.type} />
-                      <div className="flex-1 min-w-0 ml-3">
-                        <p className="text-sm text-gray-900">{item.message}</p>
-                        <p className="text-xs text-gray-500">{getTimeAgo(item.createdAt)}</p>
-                      </div>
-                    </motion.div>
+            {/* Weekly Summary */}
+            <div className="mb-6">
+              <h2 className="text-sm font-semibold text-slate-700 tracking-tight uppercase mb-3">Weekly Summary</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <KpiCard
+                  title="Weekly Sales"
+                  value={<AnimatedCurrency value={stats?.weeklySalesValue ?? 0} duration={500} />}
+                  sub="Last 7 days"
+                  icon={<CurrencyIcon />}
+                  tone="green"
+                  sparkline={[4, 7, 5, 9, 6, 8, 10]}
+                />
+                <KpiCard
+                  title="Weekly Orders"
+                  value={<AnimatedNumber value={stats?.weeklyOrdersCount ?? 0} duration={400} />}
+                  sub="Last 7 days"
+                  icon={<TrendingIcon />}
+                  tone="blue"
+                  sparkline={[3, 5, 4, 7, 6, 8, 9]}
+                />
+                <KpiCard
+                  title="Shipped This Week"
+                  value={<AnimatedNumber value={stats?.shippedOrders ?? 0} duration={400} />}
+                  sub="Completed shipments"
+                  icon={<ShipIcon />}
+                  tone="green"
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Quick Actions */}
+          <div className="lg:col-span-2">
+            <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm">
+              <div className="p-5 border-b border-slate-100">
+                <h3 className="text-lg font-semibold text-slate-900">Quick Actions</h3>
+              </div>
+              <div className="p-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {quickActions.map((action) => (
+                    <QuickAction key={action.title} {...action} />
                   ))}
-                </motion.div>
-              ) : (
-                <div className="text-center py-6">
-                  <div className="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
-                    <ActivityEmptyIcon />
-                  </div>
-                  <p className="text-gray-500 mt-3 text-sm">No recent activity</p>
-                  <p className="text-gray-400 text-xs mt-1">Activity will appear as you create orders and process stock.</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                {quickActions.length === 0 && (
+                  <p className="text-slate-500 text-center py-4">
+                    No actions available with your current permissions.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div>
+            <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm">
+              <div className="p-5 border-b border-slate-100">
+                <h3 className="text-lg font-semibold text-slate-900">Recent Activity</h3>
+              </div>
+              <div className="p-5">
+                {activityLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Spinner />
+                  </div>
+                ) : activity && activity.length > 0 ? (
+                  <motion.div
+                    className="space-y-4"
+                    initial="hidden"
+                    animate="show"
+                    variants={{
+                      hidden: { opacity: 0 },
+                      show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+                    }}
+                  >
+                    {activity.map((item) => (
+                      <motion.div
+                        key={`${item.type}-${item.id}`}
+                        className="flex items-start"
+                        variants={{
+                          hidden: { opacity: 0, x: -10 },
+                          show: { opacity: 1, x: 0, transition: { duration: 0.15 } }
+                        }}
+                      >
+                        <ActivityIcon type={item.type} />
+                        <div className="flex-1 min-w-0 ml-3">
+                          <p className="text-sm text-slate-900">{item.message}</p>
+                          <p className="text-xs text-slate-500">{getTimeAgo(item.createdAt)}</p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                ) : (
+                  <div className="text-center py-6">
+                    <div className="h-11 w-11 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
+                      <ActivityEmptyIcon />
+                    </div>
+                    <p className="text-slate-500 mt-3 text-sm">No recent activity</p>
+                    <p className="text-slate-400 text-xs mt-1">Activity will appear as you create orders and process stock.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </PageShell>
+    </div>
   );
 }
 
@@ -398,12 +339,12 @@ function ActivityIcon({ type }: { type: string }) {
   const colors: Record<string, string> = {
     sales_order: 'bg-blue-500',
     purchase_order: 'bg-purple-500',
-    grn: 'bg-green-500',
-    pick_wave: 'bg-orange-500',
+    grn: 'bg-emerald-500',
+    pick_wave: 'bg-amber-500',
     shipment: 'bg-teal-500',
   };
   return (
-    <div className={`h-2 w-2 mt-2 rounded-full ${colors[type] || 'bg-gray-400'} flex-shrink-0`} />
+    <div className={`h-2 w-2 mt-2 rounded-full ${colors[type] || 'bg-slate-400'} flex-shrink-0`} />
   );
 }
 
