@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { Customer, CustomerContact, CustomerNote, PaginatedResult, AuditEntry } from '@nerva/shared';
+import type { Customer, CustomerContact, CustomerNote, PaginatedResult } from '@nerva/shared';
 import type { QueryParams } from './use-query-params';
+import type { AuditEntryWithActor } from './audit';
 
 const CUSTOMERS_KEY = 'customers';
 const CUSTOMER_CONTACTS_KEY = 'customer-contacts';
@@ -114,7 +115,7 @@ export function useCustomerActivity(customerId: string | undefined) {
   return useQuery({
     queryKey: [CUSTOMER_ACTIVITY_KEY, customerId],
     queryFn: async () => {
-      const response = await api.get<AuditEntry[]>(`/masterdata/customers/${customerId}/activity`);
+      const response = await api.get<AuditEntryWithActor[]>(`/masterdata/customers/${customerId}/activity`);
       return response.data;
     },
     enabled: !!customerId,

@@ -89,7 +89,7 @@ export default function CustomersPage() {
   } = useColumnVisibility(allColumns, { storageKey: 'customers', alwaysVisible: ['code', 'name'] });
 
   const handleRowClick = (row: Customer) => {
-    router.push(`/master-data/customers/${row.id}`);
+    router.push(`/customers/${row.id}`);
   };
 
   const handleExport = () => {
