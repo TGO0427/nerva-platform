@@ -31,6 +31,9 @@ export interface DispatchStop {
   tripId: string;
   sequence: number;
   customerId: string | null;
+  customerName: string | null;
+  shipmentId: string | null;
+  shipmentNo: string | null;
   addressLine1: string;
   city: string | null;
   gpsLat: number | null;
@@ -281,7 +284,14 @@ export class DispatchRepository extends BaseRepository {
 
   async findStopsByTrip(tripId: string): Promise<DispatchStop[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM dispatch_stops WHERE trip_id = $1 ORDER BY sequence',
+      `SELECT ds.*, c.name as customer_name,
+              s.shipment_no, ml.shipment_id
+       FROM dispatch_stops ds
+       LEFT JOIN customers c ON ds.customer_id = c.id
+       LEFT JOIN manifest_lines ml ON ml.stop_id = ds.id
+       LEFT JOIN shipments s ON ml.shipment_id = s.id
+       WHERE ds.trip_id = $1
+       ORDER BY ds.sequence`,
       [tripId],
     );
     return rows.map(this.mapStop);
@@ -463,6 +473,9 @@ export class DispatchRepository extends BaseRepository {
       tripId: row.trip_id as string,
       sequence: row.sequence as number,
       customerId: row.customer_id as string | null,
+      customerName: row.customer_name as string | null,
+      shipmentId: row.shipment_id as string | null,
+      shipmentNo: row.shipment_no as string | null,
       addressLine1: row.address_line1 as string,
       city: row.city as string | null,
       gpsLat: row.gps_lat ? parseFloat(row.gps_lat as string) : null,
