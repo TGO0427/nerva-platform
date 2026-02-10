@@ -331,7 +331,80 @@ export class DispatchRepository extends BaseRepository {
       [tenantId],
     );
     const count = parseInt(result?.count || '0', 10) + 1;
-    return `TRIP-${count.toString().padStart(6, '0')}`;
+    return `TRIP-${new Date().getFullYear()}-${count.toString().padStart(4, '0')}`;
+  }
+
+  async getShipmentInfoForTrip(shipmentIds: string[]): Promise<{
+    id: string;
+    warehouseId: string;
+    customerId: string | null;
+    customerName?: string;
+    addressLine1?: string;
+    city?: string;
+  }[]> {
+    if (shipmentIds.length === 0) return [];
+
+    const placeholders = shipmentIds.map((_, i) => `$${i + 1}`).join(', ');
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT s.id, s.warehouse_id, so.customer_id, c.name as customer_name,
+              c.address_line1, c.city
+       FROM shipments s
+       JOIN sales_orders so ON s.sales_order_id = so.id
+       LEFT JOIN customers c ON so.customer_id = c.id
+       WHERE s.id IN (${placeholders})`,
+      shipmentIds,
+    );
+
+    return rows.map((r) => ({
+      id: r.id as string,
+      warehouseId: r.warehouse_id as string,
+      customerId: r.customer_id as string | null,
+      customerName: r.customer_name as string | undefined,
+      addressLine1: r.address_line1 as string | undefined,
+      city: r.city as string | undefined,
+    }));
+  }
+
+  async addStopFromShipment(data: {
+    tenantId: string;
+    tripId: string;
+    sequence: number;
+    shipmentId: string;
+    customerId?: string;
+    addressLine1: string;
+    city?: string;
+  }): Promise<DispatchStop> {
+    // Create the stop
+    const row = await this.queryOne<Record<string, unknown>>(
+      `INSERT INTO dispatch_stops (
+        tenant_id, trip_id, sequence, customer_id, address_line1, city
+      ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [
+        data.tenantId,
+        data.tripId,
+        data.sequence,
+        data.customerId || null,
+        data.addressLine1,
+        data.city || null,
+      ],
+    );
+    const stop = this.mapStop(row!);
+
+    // Link shipment to stop via manifest_lines
+    await this.query(
+      `INSERT INTO manifest_lines (tenant_id, stop_id, shipment_id)
+       VALUES ($1, $2, $3)`,
+      [data.tenantId, stop.id, data.shipmentId],
+    );
+
+    return stop;
+  }
+
+  async updateTripStopCount(tripId: string, count: number): Promise<void> {
+    await this.query(
+      'UPDATE dispatch_trips SET total_stops = $1 WHERE id = $2',
+      [count, tripId],
+    );
   }
 
   private mapTrip(row: Record<string, unknown>): DispatchTrip {

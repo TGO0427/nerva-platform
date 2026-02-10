@@ -1,6 +1,17 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DispatchRepository, DispatchTrip, DispatchStop, Pod } from './dispatch.repository';
 
+interface ShipmentInfo {
+  id: string;
+  warehouseId: string;
+  customerId: string | null;
+  customerName?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  postalCode?: string;
+}
+
 @Injectable()
 export class DispatchService {
   constructor(private readonly repository: DispatchRepository) {}
@@ -19,6 +30,72 @@ export class DispatchService {
   }): Promise<DispatchTrip> {
     const tripNo = await this.repository.generateTripNo(data.tenantId);
     return this.repository.createTrip({ ...data, tripNo });
+  }
+
+  async createTripFromShipments(data: {
+    tenantId: string;
+    siteId: string;
+    warehouseId?: string;
+    vehicleId?: string;
+    driverId?: string;
+    plannedDate?: Date;
+    plannedStart?: Date;
+    notes?: string;
+    shipmentIds: string[];
+    createdBy?: string;
+  }): Promise<DispatchTrip> {
+    // If shipmentIds provided, get warehouse and customer info from shipments
+    let warehouseId = data.warehouseId;
+    let shipments: ShipmentInfo[] = [];
+
+    if (data.shipmentIds.length > 0) {
+      shipments = await this.repository.getShipmentInfoForTrip(data.shipmentIds);
+      if (shipments.length === 0) {
+        throw new BadRequestException('No valid shipments found');
+      }
+      // Use warehouse from first shipment if not provided
+      if (!warehouseId) {
+        warehouseId = shipments[0].warehouseId;
+      }
+    }
+
+    if (!warehouseId) {
+      throw new BadRequestException('warehouseId is required when not providing shipmentIds');
+    }
+
+    // Create the trip
+    const tripNo = await this.repository.generateTripNo(data.tenantId);
+    const trip = await this.repository.createTrip({
+      tenantId: data.tenantId,
+      siteId: data.siteId,
+      warehouseId,
+      tripNo,
+      vehicleId: data.vehicleId,
+      driverId: data.driverId,
+      plannedDate: data.plannedDate,
+      plannedStart: data.plannedStart,
+      notes: data.notes,
+      createdBy: data.createdBy,
+    });
+
+    // Create stops from shipments
+    for (let i = 0; i < shipments.length; i++) {
+      const shipment = shipments[i];
+      await this.repository.addStopFromShipment({
+        tenantId: data.tenantId,
+        tripId: trip.id,
+        sequence: i + 1,
+        shipmentId: shipment.id,
+        customerId: shipment.customerId || undefined,
+        addressLine1: shipment.addressLine1 || 'Address not provided',
+        city: shipment.city || undefined,
+      });
+    }
+
+    // Update trip total stops
+    await this.repository.updateTripStopCount(trip.id, shipments.length);
+
+    return this.getTrip(trip.id);
   }
 
   async getTrip(id: string): Promise<DispatchTrip> {

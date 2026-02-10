@@ -52,18 +52,25 @@ export class DispatchController {
     @CurrentUser() user: CurrentUserData,
     @Body()
     data: {
-      warehouseId: string;
+      warehouseId?: string;
       vehicleId?: string;
       driverId?: string;
-      plannedDate?: Date;
-      plannedStart?: Date;
+      plannedDate?: string;
+      plannedStart?: string;
       notes?: string;
+      shipmentIds?: string[];
     },
   ) {
-    return this.service.createTrip({
+    return this.service.createTripFromShipments({
       tenantId,
       siteId,
-      ...data,
+      warehouseId: data.warehouseId,
+      vehicleId: data.vehicleId,
+      driverId: data.driverId,
+      plannedDate: data.plannedDate ? new Date(data.plannedDate) : undefined,
+      plannedStart: data.plannedStart ? new Date(data.plannedStart) : undefined,
+      notes: data.notes,
+      shipmentIds: data.shipmentIds || [],
       createdBy: user.id,
     });
   }
