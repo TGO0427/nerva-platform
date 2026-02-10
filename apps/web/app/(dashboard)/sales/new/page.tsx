@@ -221,8 +221,8 @@ export default function NewSalesOrderPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">New Sales Order</h1>
-          <p className="text-gray-500 mt-1">Create an order and add line items</p>
+          <h1 className="text-2xl font-bold text-slate-900">New Sales Order</h1>
+          <p className="text-slate-500 mt-1">Create an order and add line items</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -256,11 +256,11 @@ export default function NewSalesOrderPage() {
           </CardHeader>
           <CardContent>
             {selectedCustomer ? (
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                 <div>
-                  <div className="font-medium text-gray-900">{selectedCustomer.name}</div>
+                  <div className="font-medium text-slate-900">{selectedCustomer.name}</div>
                   {selectedCustomer.code && (
-                    <div className="text-sm text-gray-500">{selectedCustomer.code}</div>
+                    <div className="text-sm text-slate-500">{selectedCustomer.code}</div>
                   )}
                 </div>
                 <Button variant="secondary" size="sm" onClick={handleClearCustomer}>
@@ -280,13 +280,13 @@ export default function NewSalesOrderPage() {
                   className="w-full"
                 />
                 {showCustomerDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-auto">
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-auto">
                     {customersLoading ? (
                       <div className="p-4 text-center">
                         <Spinner size="sm" />
                       </div>
                     ) : customers.length === 0 ? (
-                      <div className="p-4 text-center text-gray-500 text-sm">
+                      <div className="p-4 text-center text-slate-500 text-sm">
                         No customers found
                       </div>
                     ) : (
@@ -294,12 +294,12 @@ export default function NewSalesOrderPage() {
                         <button
                           key={customer.id}
                           type="button"
-                          className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b last:border-b-0"
+                          className="w-full px-4 py-3 text-left hover:bg-slate-50 border-b last:border-b-0"
                           onClick={() => handleSelectCustomer(customer)}
                         >
-                          <div className="font-medium text-gray-900">{customer.name}</div>
+                          <div className="font-medium text-slate-900">{customer.name}</div>
                           {customer.code && (
-                            <div className="text-sm text-gray-500">{customer.code}</div>
+                            <div className="text-sm text-slate-500">{customer.code}</div>
                           )}
                         </button>
                       ))
@@ -319,7 +319,7 @@ export default function NewSalesOrderPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Order No.
                 </label>
                 <div className="flex gap-2">
@@ -347,13 +347,13 @@ export default function NewSalesOrderPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Warehouse <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={warehouseId}
                   onChange={(e) => setWarehouseId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   disabled={warehousesLoading}
                 >
                   <option value="">Select warehouse...</option>
@@ -365,7 +365,7 @@ export default function NewSalesOrderPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Requested Ship Date
                 </label>
                 <Input
@@ -375,7 +375,7 @@ export default function NewSalesOrderPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Notes
                 </label>
                 <Input
@@ -393,7 +393,7 @@ export default function NewSalesOrderPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Line Items</CardTitle>
-              <span className="text-sm text-gray-500">{totals.lineCount} items</span>
+              <span className="text-sm text-slate-500">{totals.lineCount} items</span>
             </div>
           </CardHeader>
           <CardContent>
@@ -410,13 +410,13 @@ export default function NewSalesOrderPage() {
                 className="w-full"
               />
               {showItemDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-auto">
+                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-auto">
                   {itemsLoading ? (
                     <div className="p-4 text-center">
                       <Spinner size="sm" />
                     </div>
                   ) : items.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500 text-sm">
+                    <div className="p-4 text-center text-slate-500 text-sm">
                       No items found
                     </div>
                   ) : (
@@ -424,14 +424,14 @@ export default function NewSalesOrderPage() {
                       <button
                         key={item.id}
                         type="button"
-                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b last:border-b-0"
+                        className="w-full px-4 py-3 text-left hover:bg-slate-50 border-b last:border-b-0"
                         onClick={() => handleAddItem(item)}
                       >
                         <div className="flex justify-between">
-                          <span className="font-medium text-gray-900">{item.sku}</span>
-                          <span className="text-sm text-gray-500">{item.uom}</span>
+                          <span className="font-medium text-slate-900">{item.sku}</span>
+                          <span className="text-sm text-slate-500">{item.uom}</span>
                         </div>
-                        <div className="text-sm text-gray-600">{item.description}</div>
+                        <div className="text-sm text-slate-600">{item.description}</div>
                       </button>
                     ))
                   )}
@@ -441,29 +441,29 @@ export default function NewSalesOrderPage() {
 
             {/* Lines Table */}
             {lines.length === 0 ? (
-              <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
-                <BoxIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-                <p className="text-gray-500">No items added yet</p>
-                <p className="text-sm text-gray-400">Search and select items above</p>
+              <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
+                <BoxIcon className="mx-auto h-12 w-12 text-slate-400 mb-3" />
+                <p className="text-slate-500">No items added yet</p>
+                <p className="text-sm text-slate-400">Search and select items above</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase">
+                      <th className="text-left py-3 px-2 text-xs font-medium text-slate-500 uppercase">
                         Item
                       </th>
-                      <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase">
+                      <th className="text-left py-3 px-2 text-xs font-medium text-slate-500 uppercase">
                         Description
                       </th>
-                      <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-28">
+                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-28">
                         Qty
                       </th>
-                      <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-32">
+                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-32">
                         Unit Price
                       </th>
-                      <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-32">
+                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-32">
                         Total
                       </th>
                       <th className="w-12"></th>
@@ -475,7 +475,7 @@ export default function NewSalesOrderPage() {
                         <td className="py-3 px-2">
                           <span className="font-medium">{line.itemSku}</span>
                         </td>
-                        <td className="py-3 px-2 text-gray-600">
+                        <td className="py-3 px-2 text-slate-600">
                           {line.itemDescription}
                         </td>
                         <td className="py-3 px-2">
@@ -506,7 +506,7 @@ export default function NewSalesOrderPage() {
                           <button
                             type="button"
                             onClick={() => handleRemoveLine(line.tempId)}
-                            className="text-gray-400 hover:text-red-600 transition-colors"
+                            className="text-slate-400 hover:text-red-600 transition-colors"
                           >
                             <TrashIcon />
                           </button>
@@ -528,15 +528,15 @@ export default function NewSalesOrderPage() {
           <CardContent>
             <div className="flex justify-between items-center">
               <div className="space-y-1">
-                <div className="text-sm text-gray-500">
-                  <span className="font-medium text-gray-900">{totals.lineCount}</span> line items
+                <div className="text-sm text-slate-500">
+                  <span className="font-medium text-slate-900">{totals.lineCount}</span> line items
                 </div>
-                <div className="text-sm text-gray-500">
-                  <span className="font-medium text-gray-900">{totals.totalQty}</span> total quantity
+                <div className="text-sm text-slate-500">
+                  <span className="font-medium text-slate-900">{totals.totalQty}</span> total quantity
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm text-gray-500">Total Value</div>
+                <div className="text-sm text-slate-500">Total Value</div>
                 <div className="text-2xl font-bold text-primary-600">
                   ${totals.totalValue.toFixed(2)}
                 </div>

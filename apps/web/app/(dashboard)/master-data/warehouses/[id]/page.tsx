@@ -116,7 +116,7 @@ export default function WarehouseDetailPage() {
   if (!warehouse) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-gray-900">Warehouse not found</h2>
+        <h2 className="text-xl font-semibold text-slate-900">Warehouse not found</h2>
         <Link href="/master-data/warehouses" className="text-primary-600 hover:underline mt-2 inline-block">
           Back to warehouses
         </Link>
@@ -143,17 +143,17 @@ export default function WarehouseDetailPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <Link href="/master-data/warehouses" className="text-sm text-gray-500 hover:text-primary-600 mb-1 inline-block">
+          <Link href="/master-data/warehouses" className="text-sm text-slate-500 hover:text-primary-600 mb-1 inline-block">
             &larr; Back to warehouses
           </Link>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{warehouse.name}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{warehouse.name}</h1>
             <Badge variant={warehouse.isActive ? 'success' : 'danger'}>
               {warehouse.isActive ? 'Active' : 'Inactive'}
             </Badge>
           </div>
           {warehouse.code && (
-            <p className="text-gray-500 mt-1">Code: {warehouse.code}</p>
+            <p className="text-slate-500 mt-1">Code: {warehouse.code}</p>
           )}
         </div>
         <div className="flex gap-2">
@@ -181,7 +181,7 @@ export default function WarehouseDetailPage() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Name *</label>
                 <Input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
@@ -189,7 +189,7 @@ export default function WarehouseDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Code</label>
                 <Input
                   value={editCode}
                   onChange={(e) => setEditCode(e.target.value.toUpperCase())}
@@ -213,21 +213,21 @@ export default function WarehouseDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-gray-500">Site</p>
-            <p className="text-lg font-semibold text-gray-900">{siteName}</p>
+            <p className="text-sm text-slate-500">Site</p>
+            <p className="text-lg font-semibold text-slate-900">{siteName}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-gray-500">Total Bins</p>
-            <p className="text-lg font-semibold text-gray-900">{totalBins}</p>
-            <p className="text-xs text-gray-400">{activeBins} active</p>
+            <p className="text-sm text-slate-500">Total Bins</p>
+            <p className="text-lg font-semibold text-slate-900">{totalBins}</p>
+            <p className="text-xs text-slate-400">{activeBins} active</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-gray-500">Created</p>
-            <p className="text-lg font-semibold text-gray-900">
+            <p className="text-sm text-slate-500">Created</p>
+            <p className="text-lg font-semibold text-slate-900">
               {new Date(warehouse.createdAt).toLocaleDateString()}
             </p>
           </CardContent>
@@ -250,10 +250,10 @@ export default function WarehouseDetailPage() {
         <CardContent>
           {/* Add Bin Form */}
           {showBinForm && (
-            <form onSubmit={handleCreateBin} className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <form onSubmit={handleCreateBin} className="mb-6 p-4 bg-slate-50 rounded-lg">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bin Code *</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Bin Code *</label>
                   <Input
                     value={newBinCode}
                     onChange={(e) => setNewBinCode(e.target.value.toUpperCase())}
@@ -262,11 +262,11 @@ export default function WarehouseDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bin Type</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Bin Type</label>
                   <select
                     value={newBinType}
                     onChange={(e) => setNewBinType(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   >
                     {BIN_TYPES.map(type => (
                       <option key={type} value={type}>{type}</option>
@@ -300,30 +300,30 @@ export default function WarehouseDetailPage() {
             </div>
           ) : bins && bins.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                       Code
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                       Type
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                       Location
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                       Status
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-slate-200">
                   {bins.map((bin) => (
-                    <tr key={bin.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <tr key={bin.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
                         {bin.code}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -331,7 +331,7 @@ export default function WarehouseDetailPage() {
                           {bin.binType}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
                         {[bin.aisle, bin.rack, bin.level].filter(Boolean).join(' / ') || '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -356,8 +356,8 @@ export default function WarehouseDetailPage() {
           ) : (
             <div className="text-center py-8">
               <BinIcon />
-              <h3 className="mt-4 font-medium text-gray-900">No bins configured</h3>
-              <p className="text-sm text-gray-500 mt-1">Add bins to organize storage within this warehouse</p>
+              <h3 className="mt-4 font-medium text-slate-900">No bins configured</h3>
+              <p className="text-sm text-slate-500 mt-1">Add bins to organize storage within this warehouse</p>
               {!showBinForm && (
                 <Button className="mt-4" size="sm" onClick={() => setShowBinForm(true)}>
                   Add Bin
@@ -389,7 +389,7 @@ function EditIcon() {
 
 function BinIcon() {
   return (
-    <svg className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+    <svg className="h-12 w-12 mx-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
     </svg>
   );

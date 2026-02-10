@@ -222,7 +222,7 @@ export function SupplierForm({ supplier, onSubmit, isSubmitting }: SupplierFormP
               type="checkbox"
               checked={copyPostalToTrading}
               onChange={(e) => setCopyPostalToTrading(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
             />
             Same as postal
           </label>
@@ -274,9 +274,9 @@ export function SupplierForm({ supplier, onSubmit, isSubmitting }: SupplierFormP
                 type="checkbox"
                 checked={formData.isActive}
                 onChange={(e) => handleChange('isActive', e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
               />
-              <span className="text-sm text-gray-700">Supplier is active</span>
+              <span className="text-sm text-slate-700">Supplier is active</span>
             </label>
           </CardContent>
         </Card>

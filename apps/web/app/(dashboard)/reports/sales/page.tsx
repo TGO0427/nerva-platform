@@ -33,8 +33,8 @@ export default function SalesReportPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sales Report</h1>
-          <p className="text-gray-500 mt-1">Analyze your sales performance and trends.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Sales Report</h1>
+          <p className="text-slate-500 mt-1">Analyze your sales performance and trends.</p>
         </div>
         <div className="flex items-center gap-4">
           <div>
@@ -95,7 +95,7 @@ export default function SalesReportPage() {
               <SimpleBarChart data={report.byDay} />
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No sales data for this period.</p>
+            <p className="text-slate-500 text-center py-8">No sales data for this period.</p>
           )}
         </CardContent>
       </Card>
@@ -109,17 +109,17 @@ export default function SalesReportPage() {
           <CardContent>
             {report?.topCustomers && report.topCustomers.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Orders</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Value</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Customer</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Orders</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Value</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-slate-200">
                     {report.topCustomers.map((customer) => (
-                      <tr key={customer.id} className="hover:bg-gray-50">
+                      <tr key={customer.id} className="hover:bg-slate-50">
                         <td className="px-4 py-2 text-sm">
                           <Link href={`/master-data/customers/${customer.id}`} className="text-primary-600 hover:underline">
                             {customer.name}
@@ -135,7 +135,7 @@ export default function SalesReportPage() {
                 </table>
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4">No customer data available.</p>
+              <p className="text-slate-500 text-center py-4">No customer data available.</p>
             )}
           </CardContent>
         </Card>
@@ -148,22 +148,22 @@ export default function SalesReportPage() {
           <CardContent>
             {report?.topItems && report.topItems.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qty Sold</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Value</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Item</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Qty Sold</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Value</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-slate-200">
                     {report.topItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50">
+                      <tr key={item.id} className="hover:bg-slate-50">
                         <td className="px-4 py-2 text-sm">
                           <Link href={`/master-data/items/${item.id}`} className="text-primary-600 hover:underline">
                             {item.sku}
                           </Link>
-                          <p className="text-xs text-gray-500">{item.description}</p>
+                          <p className="text-xs text-slate-500">{item.description}</p>
                         </td>
                         <td className="px-4 py-2 text-sm text-right">{item.qtySold.toLocaleString()}</td>
                         <td className="px-4 py-2 text-sm text-right font-medium">
@@ -175,7 +175,7 @@ export default function SalesReportPage() {
                 </table>
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4">No item data available.</p>
+              <p className="text-slate-500 text-center py-4">No item data available.</p>
             )}
           </CardContent>
         </Card>
@@ -190,8 +190,8 @@ function SummaryCard({ title, value, icon }: { title: string; value: string | nu
       <CardContent className="pt-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">{title}</p>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            <p className="text-sm text-slate-500">{title}</p>
+            <p className="text-2xl font-bold text-slate-900">{value}</p>
           </div>
           <div className="h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600">
             {icon}
@@ -217,7 +217,7 @@ function SimpleBarChart({ data }: { data: Array<{ date: string; dailyValue: numb
               title={`${item.date}: R ${item.dailyValue.toLocaleString()}`}
             />
             {data.length <= 15 && (
-              <span className="text-xs text-gray-400 mt-1 rotate-45 origin-left whitespace-nowrap">
+              <span className="text-xs text-slate-400 mt-1 rotate-45 origin-left whitespace-nowrap">
                 {item.date.slice(5)}
               </span>
             )}

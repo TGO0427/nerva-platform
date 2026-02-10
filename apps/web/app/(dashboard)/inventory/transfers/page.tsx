@@ -102,8 +102,8 @@ export default function StockTransfersPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Stock Transfers</h1>
-          <p className="text-gray-500 mt-1">Move stock between bins and warehouses</p>
+          <h1 className="text-2xl font-bold text-slate-900">Stock Transfers</h1>
+          <p className="text-slate-500 mt-1">Move stock between bins and warehouses</p>
         </div>
       </div>
 
@@ -128,7 +128,7 @@ export default function StockTransfersPage() {
           <CardContent className="space-y-4">
             {/* Item selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Item *
               </label>
               <Select
@@ -141,7 +141,7 @@ export default function StockTransfersPage() {
             {/* Source */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   From Warehouse
                 </label>
                 <Select
@@ -154,7 +154,7 @@ export default function StockTransfersPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   From Bin *
                 </label>
                 <Select
@@ -169,7 +169,7 @@ export default function StockTransfersPage() {
             {/* Destination */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   To Warehouse
                 </label>
                 <Select
@@ -182,7 +182,7 @@ export default function StockTransfersPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   To Bin *
                 </label>
                 <Select
@@ -197,7 +197,7 @@ export default function StockTransfersPage() {
             {/* Quantity and Batch */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Quantity *
                 </label>
                 <Input
@@ -209,7 +209,7 @@ export default function StockTransfersPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Batch No
                 </label>
                 <Input
@@ -243,7 +243,7 @@ export default function StockTransfersPage() {
             <CardTitle>How Stock Transfers Work</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none">
-            <ol className="list-decimal list-inside space-y-2 text-gray-600">
+            <ol className="list-decimal list-inside space-y-2 text-slate-600">
               <li>Select the item you want to transfer</li>
               <li>Choose the source warehouse and bin where the stock currently resides</li>
               <li>Choose the destination warehouse and bin where you want to move the stock</li>

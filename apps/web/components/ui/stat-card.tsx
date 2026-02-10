@@ -23,7 +23,7 @@ export interface StatCardProps {
 const subtitleColors = {
   positive: 'text-green-600',
   negative: 'text-red-600',
-  neutral: 'text-gray-500',
+  neutral: 'text-slate-500',
 };
 
 export function StatCard({
@@ -45,8 +45,8 @@ export function StatCard({
     <Card hover={!!href} alert={alert} className={cn(href && 'cursor-pointer', className)}>
       <CardContent className="flex items-center justify-between pt-4">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">
+          <p className="text-sm font-medium text-slate-500">{title}</p>
+          <p className="text-3xl font-bold text-slate-900 mt-1">
             {isNumeric ? (
               <AnimatedNumber value={value} duration={400} />
             ) : (
@@ -54,7 +54,7 @@ export function StatCard({
             )}
           </p>
           {showEmpty ? (
-            <p className="text-xs text-gray-400 mt-1">{emptyHint}</p>
+            <p className="text-xs text-slate-400 mt-1">{emptyHint}</p>
           ) : subtitle ? (
             <p className={cn('text-sm mt-1', subtitleColors[subtitleType])}>
               {subtitle}

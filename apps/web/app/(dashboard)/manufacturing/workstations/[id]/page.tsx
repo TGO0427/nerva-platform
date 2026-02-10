@@ -50,8 +50,8 @@ export default function WorkstationDetailPage() {
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <h2 className="text-lg font-semibold text-gray-900">Workstation not found</h2>
-          <p className="mt-2 text-gray-500">The workstation you're looking for doesn't exist.</p>
+          <h2 className="text-lg font-semibold text-slate-900">Workstation not found</h2>
+          <p className="mt-2 text-slate-500">The workstation you're looking for doesn't exist.</p>
           <Link href="/manufacturing/workstations">
             <Button className="mt-4">Back to Workstations</Button>
           </Link>
@@ -117,7 +117,7 @@ export default function WorkstationDetailPage() {
           {/* Header Info */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Status</div>
+              <div className="text-sm text-slate-500">Status</div>
               <div className="mt-1">
                 <Badge variant={getStatusVariant(workstation.status)} >
                   {workstation.status}
@@ -125,19 +125,19 @@ export default function WorkstationDetailPage() {
               </div>
             </Card>
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Type</div>
+              <div className="text-sm text-slate-500">Type</div>
               <div className="mt-1 text-lg font-semibold">
                 {workstation.workstationType}
               </div>
             </Card>
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Capacity/Hour</div>
+              <div className="text-sm text-slate-500">Capacity/Hour</div>
               <div className="mt-1 text-lg font-semibold">
                 {workstation.capacityPerHour?.toLocaleString() || '-'}
               </div>
             </Card>
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Cost/Hour</div>
+              <div className="text-sm text-slate-500">Cost/Hour</div>
               <div className="mt-1 text-lg font-semibold">
                 {workstation.costPerHour ? `$${workstation.costPerHour.toFixed(2)}` : '-'}
               </div>
@@ -151,7 +151,7 @@ export default function WorkstationDetailPage() {
                 <h3 className="text-lg font-medium mb-4">Edit Workstation</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Name <span className="text-red-500">*</span>
                     </label>
                     <Input
@@ -160,7 +160,7 @@ export default function WorkstationDetailPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Type <span className="text-red-500">*</span>
                     </label>
                     <Select
@@ -170,7 +170,7 @@ export default function WorkstationDetailPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Status
                     </label>
                     <Select
@@ -180,7 +180,7 @@ export default function WorkstationDetailPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Capacity Per Hour
                     </label>
                     <Input
@@ -192,7 +192,7 @@ export default function WorkstationDetailPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Cost Per Hour
                     </label>
                     <Input
@@ -204,11 +204,11 @@ export default function WorkstationDetailPage() {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Description
                     </label>
                     <textarea
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       rows={3}
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -229,28 +229,28 @@ export default function WorkstationDetailPage() {
                 <h3 className="text-lg font-medium mb-4">Details</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
-                    <div className="text-sm text-gray-500">Code</div>
+                    <div className="text-sm text-slate-500">Code</div>
                     <div className="mt-1 font-medium">{workstation.code}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Name</div>
+                    <div className="text-sm text-slate-500">Name</div>
                     <div className="mt-1">{workstation.name}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Type</div>
+                    <div className="text-sm text-slate-500">Type</div>
                     <div className="mt-1">{workstation.workstationType}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Created</div>
+                    <div className="text-sm text-slate-500">Created</div>
                     <div className="mt-1">{new Date(workstation.createdAt).toLocaleString()}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Updated</div>
+                    <div className="text-sm text-slate-500">Updated</div>
                     <div className="mt-1">{new Date(workstation.updatedAt).toLocaleString()}</div>
                   </div>
                   {workstation.description && (
                     <div className="col-span-full">
-                      <div className="text-sm text-gray-500">Description</div>
+                      <div className="text-sm text-slate-500">Description</div>
                       <div className="mt-1">{workstation.description}</div>
                     </div>
                   )}

@@ -48,8 +48,8 @@ export default function EditItemPage() {
   if (!item) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">Item not found</h2>
-        <p className="text-gray-500 mt-1">The item you&apos;re looking for doesn&apos;t exist.</p>
+        <h2 className="text-lg font-medium text-slate-900">Item not found</h2>
+        <p className="text-slate-500 mt-1">The item you&apos;re looking for doesn&apos;t exist.</p>
       </div>
     );
   }
@@ -59,8 +59,8 @@ export default function EditItemPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Item</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-slate-900">Edit Item</h1>
+        <p className="text-slate-500 mt-1">
           {item.sku} - {item.description}
         </p>
       </div>

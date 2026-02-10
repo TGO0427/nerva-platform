@@ -121,8 +121,8 @@ export default function PackingStationPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Packing Station</h1>
-          <p className="text-gray-500 mt-1">Pack shipments and generate packing slips</p>
+          <h1 className="text-2xl font-bold text-slate-900">Packing Station</h1>
+          <p className="text-slate-500 mt-1">Pack shipments and generate packing slips</p>
         </div>
       </div>
 
@@ -139,8 +139,8 @@ export default function PackingStationPage() {
                   <Spinner />
                 </div>
               ) : packableShipments.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <PackageIcon className="mx-auto h-12 w-12 mb-4 text-gray-300" />
+                <div className="text-center py-8 text-slate-500">
+                  <PackageIcon className="mx-auto h-12 w-12 mb-4 text-slate-300" />
                   <p className="font-medium">No shipments to pack</p>
                   <p className="text-sm mt-1">Create shipments from picked orders in Fulfilment</p>
                 </div>
@@ -153,7 +153,7 @@ export default function PackingStationPage() {
                       className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
                         selectedShipmentId === shipment.id
                           ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
@@ -162,10 +162,10 @@ export default function PackingStationPage() {
                           {shipment.status}
                         </Badge>
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-slate-500">
                         Order: {shipment.orderNo || shipment.salesOrderId.slice(0, 8)}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-slate-500">
                         Weight: {shipment.totalWeightKg?.toFixed(2) || 0} kg
                       </div>
                     </button>
@@ -180,9 +180,9 @@ export default function PackingStationPage() {
         <div className="lg:col-span-2 space-y-6">
           {!selectedShipmentId ? (
             <Card className="p-12">
-              <div className="text-center text-gray-500">
-                <ScanIcon className="mx-auto h-16 w-16 mb-4 text-gray-300" />
-                <h3 className="text-lg font-medium text-gray-900">Select a Shipment</h3>
+              <div className="text-center text-slate-500">
+                <ScanIcon className="mx-auto h-16 w-16 mb-4 text-slate-300" />
+                <h3 className="text-lg font-medium text-slate-900">Select a Shipment</h3>
                 <p className="mt-1">Choose a shipment from the list to start packing</p>
               </div>
             </Card>
@@ -204,7 +204,7 @@ export default function PackingStationPage() {
                         {selectedShipment.status}
                       </Badge>
                     </CardTitle>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-slate-500 mt-1">
                       Order: {selectedShipment.orderNo || selectedShipment.salesOrderId}
                     </p>
                   </div>
@@ -217,21 +217,21 @@ export default function PackingStationPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-4 gap-4 text-center">
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="text-2xl font-bold text-gray-900">{totalItems}</div>
-                      <div className="text-sm text-gray-500">Total Items</div>
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <div className="text-2xl font-bold text-slate-900">{totalItems}</div>
+                      <div className="text-sm text-slate-500">Total Items</div>
                     </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="text-2xl font-bold text-gray-900">{shipmentLines?.length || 0}</div>
-                      <div className="text-sm text-gray-500">Line Items</div>
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <div className="text-2xl font-bold text-slate-900">{shipmentLines?.length || 0}</div>
+                      <div className="text-sm text-slate-500">Line Items</div>
                     </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="text-2xl font-bold text-gray-900">{selectedShipment.totalWeightKg?.toFixed(1) || 0}</div>
-                      <div className="text-sm text-gray-500">Weight (kg)</div>
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <div className="text-2xl font-bold text-slate-900">{selectedShipment.totalWeightKg?.toFixed(1) || 0}</div>
+                      <div className="text-sm text-slate-500">Weight (kg)</div>
                     </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="text-2xl font-bold text-gray-900">{selectedShipment.totalCbm?.toFixed(2) || 0}</div>
-                      <div className="text-sm text-gray-500">Volume (m³)</div>
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <div className="text-2xl font-bold text-slate-900">{selectedShipment.totalCbm?.toFixed(2) || 0}</div>
+                      <div className="text-sm text-slate-500">Volume (m³)</div>
                     </div>
                   </div>
                 </CardContent>
@@ -254,7 +254,7 @@ export default function PackingStationPage() {
                       keyField="id"
                     />
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-slate-500">
                       No items in this shipment
                     </div>
                   )}

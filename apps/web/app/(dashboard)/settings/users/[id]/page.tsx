@@ -83,7 +83,7 @@ export default function UserDetailPage() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">User not found</h2>
+        <h2 className="text-lg font-medium text-slate-900">User not found</h2>
         <Button className="mt-4" onClick={() => router.push('/settings/users')}>
           Back to Users
         </Button>
@@ -101,12 +101,12 @@ export default function UserDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{user.email}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{user.email}</h1>
             <Badge variant={user.isActive ? 'success' : 'danger'}>
               {user.isActive ? 'Active' : 'Inactive'}
             </Badge>
           </div>
-          <p className="text-gray-500 mt-1">
+          <p className="text-slate-500 mt-1">
             Created {new Date(user.createdAt).toLocaleDateString()}
           </p>
         </div>
@@ -139,7 +139,7 @@ export default function UserDetailPage() {
             {isEditing ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     First Name
                   </label>
                   <Input
@@ -148,7 +148,7 @@ export default function UserDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Last Name
                   </label>
                   <Input
@@ -175,19 +175,19 @@ export default function UserDetailPage() {
             ) : (
               <dl className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <dt className="text-gray-500">Email</dt>
+                  <dt className="text-slate-500">Email</dt>
                   <dd className="font-medium">{user.email}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Name</dt>
+                  <dt className="text-slate-500">Name</dt>
                   <dd className="font-medium">{user.firstName} {user.lastName}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Status</dt>
+                  <dt className="text-slate-500">Status</dt>
                   <dd className="font-medium">{user.isActive ? 'Active' : 'Inactive'}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Last Updated</dt>
+                  <dt className="text-slate-500">Last Updated</dt>
                   <dd className="font-medium">{new Date(user.updatedAt).toLocaleDateString()}</dd>
                 </div>
               </dl>
@@ -212,12 +212,12 @@ export default function UserDetailPage() {
                     {userRoles.map((role) => (
                       <div
                         key={role.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
                       >
                         <div>
                           <div className="font-medium">{role.name}</div>
                           {role.description && (
-                            <div className="text-sm text-gray-500">{role.description}</div>
+                            <div className="text-sm text-slate-500">{role.description}</div>
                           )}
                         </div>
                         <Badge variant="info">Assigned</Badge>
@@ -225,12 +225,12 @@ export default function UserDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-sm mb-4">No roles assigned</p>
+                  <p className="text-slate-500 text-sm mb-4">No roles assigned</p>
                 )}
 
                 {availableRoles.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Add Role</h4>
+                    <h4 className="text-sm font-medium text-slate-700 mb-2">Add Role</h4>
                     <div className="flex flex-wrap gap-2">
                       {availableRoles.map((role) => (
                         <Button

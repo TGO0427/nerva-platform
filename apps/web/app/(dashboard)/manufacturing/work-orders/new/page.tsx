@@ -88,7 +88,7 @@ export default function NewWorkOrderPage() {
         <Card className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Work Order Number
               </label>
               <Input
@@ -99,7 +99,7 @@ export default function NewWorkOrderPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Product <span className="text-red-500">*</span>
               </label>
               <Select
@@ -116,7 +116,7 @@ export default function NewWorkOrderPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Warehouse <span className="text-red-500">*</span>
               </label>
               <Select
@@ -133,7 +133,7 @@ export default function NewWorkOrderPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Quantity <span className="text-red-500">*</span>
               </label>
               <Input
@@ -147,7 +147,7 @@ export default function NewWorkOrderPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Bill of Materials
               </label>
               <Select
@@ -165,7 +165,7 @@ export default function NewWorkOrderPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Routing
               </label>
               <Select
@@ -183,7 +183,7 @@ export default function NewWorkOrderPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Priority
               </label>
               <Select
@@ -199,7 +199,7 @@ export default function NewWorkOrderPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Planned Start
               </label>
               <Input
@@ -210,7 +210,7 @@ export default function NewWorkOrderPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Planned End
               </label>
               <Input
@@ -221,11 +221,11 @@ export default function NewWorkOrderPage() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Notes
               </label>
               <textarea
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={3}
                 value={formData.notes}
                 onChange={(e) => handleChange('notes', e.target.value)}

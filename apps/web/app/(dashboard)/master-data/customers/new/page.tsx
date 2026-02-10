@@ -43,8 +43,8 @@ export default function NewCustomerPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">New Customer</h1>
-        <p className="text-gray-500 mt-1">Add a new customer to your database</p>
+        <h1 className="text-2xl font-bold text-slate-900">New Customer</h1>
+        <p className="text-slate-500 mt-1">Add a new customer to your database</p>
       </div>
 
       {error && (

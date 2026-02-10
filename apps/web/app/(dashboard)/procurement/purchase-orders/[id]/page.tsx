@@ -41,7 +41,7 @@ export default function PurchaseOrderDetailPage() {
   if (!po) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">Purchase Order not found</h2>
+        <h2 className="text-lg font-medium text-slate-900">Purchase Order not found</h2>
         <Link href="/procurement/purchase-orders" className="text-primary-600 hover:underline mt-4 inline-block">
           Back to Purchase Orders
         </Link>
@@ -73,13 +73,13 @@ export default function PurchaseOrderDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="pt-4">
-            <div className="text-sm text-gray-500">Order Date</div>
+            <div className="text-sm text-slate-500">Order Date</div>
             <div className="font-medium">{new Date(po.orderDate).toLocaleDateString()}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <div className="text-sm text-gray-500">Expected Date</div>
+            <div className="text-sm text-slate-500">Expected Date</div>
             <div className="font-medium">
               {po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : '-'}
             </div>
@@ -87,13 +87,13 @@ export default function PurchaseOrderDetailPage() {
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <div className="text-sm text-gray-500">Ship To</div>
+            <div className="text-sm text-slate-500">Ship To</div>
             <div className="font-medium">{po.warehouseName || '-'}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <div className="text-sm text-gray-500">Total Amount</div>
+            <div className="text-sm text-slate-500">Total Amount</div>
             <div className="font-medium text-lg">
               R {po.totalAmount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
             </div>
@@ -120,21 +120,21 @@ export default function PurchaseOrderDetailPage() {
 
           {lines && lines.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty Ordered</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty Received</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Unit Cost</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Line Total</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">SKU</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Description</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Qty Ordered</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Qty Received</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Unit Cost</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Line Total</th>
                     {po.status === 'DRAFT' && (
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-slate-200">
                   {lines.map((line) => (
                     <OrderLineRow
                       key={line.id}
@@ -144,7 +144,7 @@ export default function PurchaseOrderDetailPage() {
                     />
                   ))}
                 </tbody>
-                <tfoot className="bg-gray-50">
+                <tfoot className="bg-slate-50">
                   <tr>
                     <td colSpan={po.status === 'DRAFT' ? 5 : 4} className="px-4 py-3 text-right text-sm font-medium">
                       Subtotal:
@@ -177,7 +177,7 @@ export default function PurchaseOrderDetailPage() {
             </div>
           ) : (
             !showAddLine && (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-slate-500">
                 <p>No lines added yet.</p>
                 {po.status === 'DRAFT' && (
                   <Button className="mt-4" onClick={() => setShowAddLine(true)}>
@@ -197,7 +197,7 @@ export default function PurchaseOrderDetailPage() {
             <CardTitle>Notes</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-700 whitespace-pre-wrap">{po.notes}</p>
+            <p className="text-slate-700 whitespace-pre-wrap">{po.notes}</p>
           </CardContent>
         </Card>
       )}
@@ -313,7 +313,7 @@ function AddLineForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border rounded-md p-4 mb-4 bg-gray-50">
+    <form onSubmit={handleSubmit} className="border rounded-md p-4 mb-4 bg-slate-50">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <Label htmlFor="itemId">Item *</Label>
@@ -321,7 +321,7 @@ function AddLineForm({
             id="itemId"
             value={formData.itemId}
             onChange={(e) => setFormData({ ...formData, itemId: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
             required
           >
             <option value="">Select item...</option>
@@ -392,22 +392,22 @@ function OrderLineRow({
 
   return (
     <tr>
-      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
         {line.itemSku}
       </td>
-      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
         {line.itemDescription}
       </td>
-      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
         {line.qtyOrdered}
       </td>
-      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
         {line.qtyReceived}
       </td>
-      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
         {line.unitCost ? `R ${line.unitCost.toFixed(2)}` : '-'}
       </td>
-      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
+      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900 text-right">
         {line.lineTotal ? `R ${line.lineTotal.toFixed(2)}` : '-'}
       </td>
       {editable && (

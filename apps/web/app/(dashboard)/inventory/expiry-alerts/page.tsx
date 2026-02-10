@@ -92,7 +92,7 @@ export default function ExpiryAlertsPage() {
                 ? 'text-orange-600 font-semibold'
                 : row.daysUntilExpiry <= 30
                   ? 'text-yellow-600'
-                  : 'text-gray-600'
+                  : 'text-slate-600'
           }
         >
           {row.daysUntilExpiry <= 0
@@ -135,8 +135,8 @@ export default function ExpiryAlertsPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Expiry Alerts</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900">Expiry Alerts</h1>
+          <p className="text-slate-500 mt-1">
             Monitor batch expiry dates and take action on expiring stock
           </p>
         </div>
@@ -163,7 +163,7 @@ export default function ExpiryAlertsPage() {
                   <div className="text-3xl font-bold text-red-600">
                     {summary?.expired || 0}
                   </div>
-                  <p className="text-sm text-gray-500">Expired</p>
+                  <p className="text-sm text-slate-500">Expired</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
                   <ExpiredIcon />
@@ -186,7 +186,7 @@ export default function ExpiryAlertsPage() {
                   <div className="text-3xl font-bold text-orange-600">
                     {summary?.critical || 0}
                   </div>
-                  <p className="text-sm text-gray-500">Critical (7 days)</p>
+                  <p className="text-sm text-slate-500">Critical (7 days)</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
                   <CriticalIcon />
@@ -209,7 +209,7 @@ export default function ExpiryAlertsPage() {
                   <div className="text-3xl font-bold text-yellow-600">
                     {summary?.warning || 0}
                   </div>
-                  <p className="text-sm text-gray-500">Warning (30 days)</p>
+                  <p className="text-sm text-slate-500">Warning (30 days)</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
                   <WarningIcon />

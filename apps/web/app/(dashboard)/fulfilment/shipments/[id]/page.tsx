@@ -131,7 +131,7 @@ export default function ShipmentDetailPage() {
   if (!shipment) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">Shipment not found</h2>
+        <h2 className="text-lg font-medium text-slate-900">Shipment not found</h2>
       </div>
     );
   }
@@ -148,12 +148,12 @@ export default function ShipmentDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{shipment.shipmentNo}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{shipment.shipmentNo}</h1>
             <Badge variant={getStatusVariant(shipment.status)}>
               {shipment.status?.replace(/_/g, ' ')}
             </Badge>
           </div>
-          <p className="text-gray-500 mt-1">
+          <p className="text-slate-500 mt-1">
             Created {new Date(shipment.createdAt).toLocaleDateString()}
           </p>
         </div>
@@ -198,7 +198,7 @@ export default function ShipmentDetailPage() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Carrier *
                 </label>
                 <Input
@@ -208,7 +208,7 @@ export default function ShipmentDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Tracking Number *
                 </label>
                 <Input
@@ -243,7 +243,7 @@ export default function ShipmentDetailPage() {
               keyField="id"
             />
           ) : (
-            <p className="text-sm text-gray-500 text-center py-4">
+            <p className="text-sm text-slate-500 text-center py-4">
               No items in this shipment. Items are added automatically when a shipment is created from a picked order.
             </p>
           )}
@@ -259,19 +259,19 @@ export default function ShipmentDetailPage() {
           <CardContent>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-gray-500">Order</dt>
+                <dt className="text-slate-500">Order</dt>
                 <dd className="font-medium">{shipment.orderNo || shipment.salesOrderId}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Warehouse</dt>
+                <dt className="text-slate-500">Warehouse</dt>
                 <dd className="font-medium">Main Warehouse</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Total Weight</dt>
+                <dt className="text-slate-500">Total Weight</dt>
                 <dd className="font-medium">{shipment.totalWeightKg} kg</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Total Volume</dt>
+                <dt className="text-slate-500">Total Volume</dt>
                 <dd className="font-medium">{shipment.totalCbm} m³</dd>
               </div>
             </dl>
@@ -285,19 +285,19 @@ export default function ShipmentDetailPage() {
           <CardContent>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-gray-500">Carrier</dt>
+                <dt className="text-slate-500">Carrier</dt>
                 <dd className="font-medium">{shipment.carrier || '-'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Tracking Number</dt>
+                <dt className="text-slate-500">Tracking Number</dt>
                 <dd className="font-medium font-mono">{shipment.trackingNo || '-'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Created By</dt>
+                <dt className="text-slate-500">Created By</dt>
                 <dd className="font-medium">{shipment.createdBy || 'System'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Last Updated</dt>
+                <dt className="text-slate-500">Last Updated</dt>
                 <dd className="font-medium">
                   {new Date(shipment.updatedAt).toLocaleString()}
                 </dd>
@@ -359,7 +359,7 @@ function TimelineStep({ label, active, complete }: { label: string; active: bool
             ? 'bg-green-600 text-white'
             : active
             ? 'bg-primary-600 text-white'
-            : 'bg-gray-200 text-gray-400'
+            : 'bg-slate-200 text-slate-400'
         }`}
       >
         {complete ? (
@@ -370,7 +370,7 @@ function TimelineStep({ label, active, complete }: { label: string; active: bool
           <span className="w-2 h-2 bg-current rounded-full" />
         )}
       </div>
-      <span className={`mt-2 text-xs font-medium ${active || complete ? 'text-gray-900' : 'text-gray-400'}`}>
+      <span className={`mt-2 text-xs font-medium ${active || complete ? 'text-slate-900' : 'text-slate-400'}`}>
         {label}
       </span>
     </div>
@@ -379,7 +379,7 @@ function TimelineStep({ label, active, complete }: { label: string; active: bool
 
 function TimelineConnector({ complete }: { complete: boolean }) {
   return (
-    <div className={`flex-1 h-1 mx-2 ${complete ? 'bg-green-600' : 'bg-gray-200'}`} />
+    <div className={`flex-1 h-1 mx-2 ${complete ? 'bg-green-600' : 'bg-slate-200'}`} />
   );
 }
 

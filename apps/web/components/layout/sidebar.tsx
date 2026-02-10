@@ -283,7 +283,7 @@ export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+            className="fixed inset-0 z-40 bg-slate-600 bg-opacity-75 lg:hidden"
             onClick={onClose}
           />
         )}
@@ -364,7 +364,7 @@ function SidebarContent({
         {navigation.filter(isGroupVisible).map((group) => (
           <div key={group.name}>
             {!collapsed && (
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                 {group.name}
               </h3>
             )}
@@ -384,14 +384,14 @@ function SidebarContent({
                         'relative flex items-center text-sm font-medium rounded-md transition-colors',
                         collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2',
                         isActive
-                          ? 'text-primary-700'
-                          : 'text-gray-700 hover:bg-gray-100'
+                          ? 'text-blue-700'
+                          : 'text-slate-700 hover:bg-slate-100'
                       )}
                     >
                       {isActive && (
                         <motion.div
                           layoutId="navActiveIndicator"
-                          className="absolute inset-0 bg-primary-50 rounded-md"
+                          className="absolute inset-0 bg-blue-50 rounded-md"
                           transition={springs.snappy}
                         />
                       )}
@@ -422,7 +422,7 @@ function SidebarContent({
           <button
             onClick={onToggleCollapse}
             className={cn(
-              'flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors',
+              'flex items-center text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors',
               collapsed ? 'p-2 justify-center' : 'px-3 py-2 w-full'
             )}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}

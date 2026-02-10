@@ -115,7 +115,7 @@ export default function FulfilmentPage() {
               setSelectedOrders(new Set());
             }
           }}
-          className="h-4 w-4 rounded border-gray-300"
+          className="h-4 w-4 rounded border-slate-300"
         />
       ),
       width: '50px',
@@ -132,7 +132,7 @@ export default function FulfilmentPage() {
             }
             setSelectedOrders(newSelected);
           }}
-          className="h-4 w-4 rounded border-gray-300"
+          className="h-4 w-4 rounded border-slate-300"
         />
       ),
     },
@@ -324,14 +324,14 @@ export default function FulfilmentPage() {
       </MetricGrid>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-4">
+      <div className="border-b border-slate-200 mb-4">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('allocated-orders')}
             className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
               activeTab === 'allocated-orders'
                 ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
             Allocated Orders
@@ -346,7 +346,7 @@ export default function FulfilmentPage() {
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'pick-waves'
                 ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
             Pick Waves
@@ -356,7 +356,7 @@ export default function FulfilmentPage() {
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'shipments'
                 ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
             Shipments
@@ -381,7 +381,7 @@ export default function FulfilmentPage() {
               <CardContent>
                 <div className="flex flex-wrap items-center gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Selected Orders
                     </label>
                     <div className="text-2xl font-bold text-primary-600">
@@ -389,7 +389,7 @@ export default function FulfilmentPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Warehouse
                     </label>
                     <div className="text-lg font-medium">
@@ -430,10 +430,10 @@ export default function FulfilmentPage() {
               }}
             />
           ) : (
-            <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
+            <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
               <CheckCircleIcon className="mx-auto h-12 w-12 text-green-400 mb-3" />
-              <h3 className="text-lg font-medium text-gray-900">All caught up!</h3>
-              <p className="text-gray-500 mt-1">
+              <h3 className="text-lg font-medium text-slate-900">All caught up!</h3>
+              <p className="text-slate-500 mt-1">
                 No orders waiting for picking. Allocate stock to orders in the Sales module.
               </p>
             </div>
@@ -505,7 +505,7 @@ export default function FulfilmentPage() {
                 )}
                 <div className="flex flex-wrap items-end gap-4">
                   <div className="min-w-[250px]">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Select Order
                     </label>
                     <Select
@@ -520,7 +520,7 @@ export default function FulfilmentPage() {
                       ]}
                     />
                     {shippableOrders?.length === 0 && (
-                      <p className="text-sm text-gray-500 mt-1">No orders ready for shipping</p>
+                      <p className="text-sm text-slate-500 mt-1">No orders ready for shipping</p>
                     )}
                   </div>
                   <Button

@@ -135,7 +135,7 @@ export default function StockDetailPage() {
   if (!item) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">Item not found</h2>
+        <h2 className="text-lg font-medium text-slate-900">Item not found</h2>
       </div>
     );
   }
@@ -150,8 +150,8 @@ export default function StockDetailPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{item.sku}</h1>
-          <p className="text-gray-500 mt-1">{item.description}</p>
+          <h1 className="text-2xl font-bold text-slate-900">{item.sku}</h1>
+          <p className="text-slate-500 mt-1">{item.description}</p>
         </div>
         <div className="flex gap-2">
           <Link href={`/master-data/items/${item.id}`}>
@@ -167,20 +167,20 @@ export default function StockDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-3xl font-bold text-gray-900">{totalOnHand}</div>
-            <p className="text-sm text-gray-500">Total On Hand</p>
+            <div className="text-3xl font-bold text-slate-900">{totalOnHand}</div>
+            <p className="text-sm text-slate-500">Total On Hand</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-3xl font-bold text-orange-600">{totalReserved}</div>
-            <p className="text-sm text-gray-500">Reserved</p>
+            <p className="text-sm text-slate-500">Reserved</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-3xl font-bold text-green-600">{totalAvailable}</div>
-            <p className="text-sm text-gray-500">Available</p>
+            <p className="text-sm text-slate-500">Available</p>
           </CardContent>
         </Card>
       </div>

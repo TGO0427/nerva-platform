@@ -117,7 +117,7 @@ export default function DispatchPage() {
               setSelectedShipments(new Set());
             }
           }}
-          className="h-4 w-4 rounded border-gray-300"
+          className="h-4 w-4 rounded border-slate-300"
         />
       ),
       width: '50px',
@@ -134,7 +134,7 @@ export default function DispatchPage() {
             }
             setSelectedShipments(newSelected);
           }}
-          className="h-4 w-4 rounded border-gray-300"
+          className="h-4 w-4 rounded border-slate-300"
         />
       ),
     },
@@ -265,7 +265,7 @@ export default function DispatchPage() {
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'trips'
                 ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
             Trips
@@ -275,7 +275,7 @@ export default function DispatchPage() {
             className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
               activeTab === 'ready-shipments'
                 ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
             Ready for Dispatch
@@ -358,7 +358,7 @@ export default function DispatchPage() {
               <CardContent>
                 <div className="flex flex-wrap items-end gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Selected Shipments
                     </label>
                     <div className="text-2xl font-bold text-primary-600">
@@ -366,7 +366,7 @@ export default function DispatchPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Total Weight
                     </label>
                     <div className="text-lg font-medium">
@@ -374,7 +374,7 @@ export default function DispatchPage() {
                     </div>
                   </div>
                   <div className="flex-1 min-w-[200px]">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Planned Date
                     </label>
                     <Input
@@ -417,9 +417,9 @@ export default function DispatchPage() {
             />
           ) : (
             <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
-              <PackageIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-              <h3 className="text-lg font-medium text-gray-900">No shipments ready for dispatch</h3>
-              <p className="text-gray-500 mt-1">
+              <PackageIcon className="mx-auto h-12 w-12 text-slate-400 mb-3" />
+              <h3 className="text-lg font-medium text-slate-900">No shipments ready for dispatch</h3>
+              <p className="text-slate-500 mt-1">
                 Shipments will appear here when marked as "Ready for Dispatch" in the fulfilment module
               </p>
               <Link href="/fulfilment">

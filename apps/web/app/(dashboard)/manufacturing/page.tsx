@@ -7,8 +7,8 @@ export default function ManufacturingPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Manufacturing</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-semibold text-slate-900">Manufacturing</h1>
+        <p className="mt-1 text-sm text-slate-500">
           Manage production, bills of materials, and work orders
         </p>
       </div>
@@ -21,8 +21,8 @@ export default function ManufacturingPage() {
                 <WorkOrderIcon className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Work Orders</h3>
-                <p className="text-sm text-gray-500">Create and manage production orders</p>
+                <h3 className="font-medium text-slate-900">Work Orders</h3>
+                <p className="text-sm text-slate-500">Create and manage production orders</p>
               </div>
             </div>
           </Card>
@@ -35,8 +35,8 @@ export default function ManufacturingPage() {
                 <BomIcon className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Bills of Materials</h3>
-                <p className="text-sm text-gray-500">Define product recipes and components</p>
+                <h3 className="font-medium text-slate-900">Bills of Materials</h3>
+                <p className="text-sm text-slate-500">Define product recipes and components</p>
               </div>
             </div>
           </Card>
@@ -49,8 +49,8 @@ export default function ManufacturingPage() {
                 <RoutingIcon className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Routings</h3>
-                <p className="text-sm text-gray-500">Define production sequences and operations</p>
+                <h3 className="font-medium text-slate-900">Routings</h3>
+                <p className="text-sm text-slate-500">Define production sequences and operations</p>
               </div>
             </div>
           </Card>
@@ -63,8 +63,8 @@ export default function ManufacturingPage() {
                 <FactoryIcon className="h-6 w-6 text-yellow-600" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Workstations</h3>
-                <p className="text-sm text-gray-500">Manage machines and work centers</p>
+                <h3 className="font-medium text-slate-900">Workstations</h3>
+                <p className="text-sm text-slate-500">Manage machines and work centers</p>
               </div>
             </div>
           </Card>
@@ -73,12 +73,12 @@ export default function ManufacturingPage() {
         <Link href="/manufacturing/ledger">
           <Card className="p-6 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center gap-4">
-              <div className="flex-shrink-0 p-3 bg-gray-100 rounded-lg">
-                <LedgerIcon className="h-6 w-6 text-gray-600" />
+              <div className="flex-shrink-0 p-3 bg-slate-100 rounded-lg">
+                <LedgerIcon className="h-6 w-6 text-slate-600" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Production Ledger</h3>
-                <p className="text-sm text-gray-500">View production history and transactions</p>
+                <h3 className="font-medium text-slate-900">Production Ledger</h3>
+                <p className="text-sm text-slate-500">View production history and transactions</p>
               </div>
             </div>
           </Card>

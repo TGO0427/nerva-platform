@@ -28,8 +28,8 @@ export default function RoutingDetailPage() {
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <h2 className="text-lg font-semibold text-gray-900">Routing not found</h2>
-          <p className="mt-2 text-gray-500">The routing you're looking for doesn't exist.</p>
+          <h2 className="text-lg font-semibold text-slate-900">Routing not found</h2>
+          <p className="mt-2 text-slate-500">The routing you're looking for doesn't exist.</p>
           <Link href="/manufacturing/routings">
             <Button className="mt-4">Back to Routings</Button>
           </Link>
@@ -62,7 +62,7 @@ export default function RoutingDetailPage() {
         <div>
           <div className="font-medium">{row.name}</div>
           {row.description && (
-            <div className="text-sm text-gray-500">{row.description}</div>
+            <div className="text-sm text-slate-500">{row.description}</div>
           )}
         </div>
       ),
@@ -103,7 +103,7 @@ export default function RoutingDetailPage() {
       render: (row) => row.isSubcontracted ? (
         <Badge variant="info">Yes</Badge>
       ) : (
-        <span className="text-gray-400">No</span>
+        <span className="text-slate-400">No</span>
       ),
     },
   ];
@@ -146,7 +146,7 @@ export default function RoutingDetailPage() {
           {/* Header Info */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Status</div>
+              <div className="text-sm text-slate-500">Status</div>
               <div className="mt-1">
                 <Badge variant={getStatusVariant(routing.status)} >
                   {routing.status}
@@ -154,19 +154,19 @@ export default function RoutingDetailPage() {
               </div>
             </Card>
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Version</div>
+              <div className="text-sm text-slate-500">Version</div>
               <div className="mt-1 text-lg font-semibold">
                 V{routing.version}
               </div>
             </Card>
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Operations</div>
+              <div className="text-sm text-slate-500">Operations</div>
               <div className="mt-1 text-lg font-semibold">
                 {routing.operations?.length || 0}
               </div>
             </Card>
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Total Time</div>
+              <div className="text-sm text-slate-500">Total Time</div>
               <div className="mt-1 text-lg font-semibold">
                 {totalTime} min
               </div>
@@ -178,21 +178,21 @@ export default function RoutingDetailPage() {
             <h3 className="text-lg font-medium mb-4">Product</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <div className="text-sm text-gray-500">SKU</div>
+                <div className="text-sm text-slate-500">SKU</div>
                 <div className="mt-1 font-medium">{(routing as any).itemSku || routing.itemId.slice(0, 8)}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Description</div>
+                <div className="text-sm text-slate-500">Description</div>
                 <div className="mt-1">{(routing as any).itemDescription || '-'}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Effective From</div>
+                <div className="text-sm text-slate-500">Effective From</div>
                 <div className="mt-1">
                   {routing.effectiveFrom ? new Date(routing.effectiveFrom).toLocaleDateString() : 'Not set'}
                 </div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Effective To</div>
+                <div className="text-sm text-slate-500">Effective To</div>
                 <div className="mt-1">
                   {routing.effectiveTo ? new Date(routing.effectiveTo).toLocaleDateString() : 'Not set'}
                 </div>
@@ -200,7 +200,7 @@ export default function RoutingDetailPage() {
             </div>
             {routing.notes && (
               <div className="mt-4">
-                <div className="text-sm text-gray-500">Notes</div>
+                <div className="text-sm text-slate-500">Notes</div>
                 <div className="mt-1">{routing.notes}</div>
               </div>
             )}
@@ -212,19 +212,19 @@ export default function RoutingDetailPage() {
             <div className="grid grid-cols-4 gap-4">
               <div className="text-center p-3 bg-blue-50 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">{totalSetupTime}</div>
-                <div className="text-sm text-gray-500">Setup (min)</div>
+                <div className="text-sm text-slate-500">Setup (min)</div>
               </div>
               <div className="text-center p-3 bg-green-50 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">{totalRunTime}</div>
-                <div className="text-sm text-gray-500">Run (min)</div>
+                <div className="text-sm text-slate-500">Run (min)</div>
               </div>
               <div className="text-center p-3 bg-yellow-50 rounded-lg">
                 <div className="text-2xl font-bold text-yellow-600">{totalQueueTime}</div>
-                <div className="text-sm text-gray-500">Queue (min)</div>
+                <div className="text-sm text-slate-500">Queue (min)</div>
               </div>
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-700">{totalTime}</div>
-                <div className="text-sm text-gray-500">Total (min)</div>
+              <div className="text-center p-3 bg-slate-50 rounded-lg">
+                <div className="text-2xl font-bold text-slate-700">{totalTime}</div>
+                <div className="text-sm text-slate-500">Total (min)</div>
               </div>
             </div>
           </Card>

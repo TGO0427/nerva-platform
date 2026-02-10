@@ -61,7 +61,7 @@ export default function TripDetailPage() {
       render: (row) => (
         <div>
           <div>{row.addressLine1}</div>
-          {row.city && <div className="text-xs text-gray-500">{row.city}</div>}
+          {row.city && <div className="text-xs text-slate-500">{row.city}</div>}
         </div>
       ),
     },
@@ -154,7 +154,7 @@ export default function TripDetailPage() {
   if (!trip) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">Trip not found</h2>
+        <h2 className="text-lg font-medium text-slate-900">Trip not found</h2>
       </div>
     );
   }
@@ -185,12 +185,12 @@ export default function TripDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{trip.tripNo}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{trip.tripNo}</h1>
             <Badge variant={getTripStatusVariant(trip.status)}>
               {trip.status?.replace(/_/g, ' ') || trip.status}
             </Badge>
           </div>
-          <p className="text-gray-500 mt-1">
+          <p className="text-slate-500 mt-1">
             {trip.plannedDate
               ? `Planned for ${new Date(trip.plannedDate).toLocaleDateString()}`
               : `Created ${new Date(trip.createdAt).toLocaleDateString()}`}
@@ -233,7 +233,7 @@ export default function TripDetailPage() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Vehicle *
                 </label>
                 <Select
@@ -243,7 +243,7 @@ export default function TripDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Driver *
                 </label>
                 <Select
@@ -269,26 +269,26 @@ export default function TripDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{trip.totalStops}</div>
-            <p className="text-sm text-gray-500">Total Stops</p>
+            <div className="text-2xl font-bold text-slate-900">{trip.totalStops}</div>
+            <p className="text-sm text-slate-500">Total Stops</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-green-600">{completedStops}</div>
-            <p className="text-sm text-gray-500">Delivered</p>
+            <p className="text-sm text-slate-500">Delivered</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-yellow-600">{pendingStops}</div>
-            <p className="text-sm text-gray-500">Pending</p>
+            <p className="text-sm text-slate-500">Pending</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-red-600">{failedStops}</div>
-            <p className="text-sm text-gray-500">Failed/Skipped</p>
+            <p className="text-sm text-slate-500">Failed/Skipped</p>
           </CardContent>
         </Card>
       </div>
@@ -302,31 +302,31 @@ export default function TripDetailPage() {
           <CardContent>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-gray-500">Driver</dt>
+                <dt className="text-slate-500">Driver</dt>
                 <dd className="font-medium">{trip.driverName || '-'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Vehicle</dt>
+                <dt className="text-slate-500">Vehicle</dt>
                 <dd className="font-medium">{trip.vehiclePlate || '-'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Total Weight</dt>
+                <dt className="text-slate-500">Total Weight</dt>
                 <dd className="font-medium">{trip.totalWeight || 0} kg</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Planned Date</dt>
+                <dt className="text-slate-500">Planned Date</dt>
                 <dd className="font-medium">
                   {trip.plannedDate ? new Date(trip.plannedDate).toLocaleDateString() : '-'}
                 </dd>
               </div>
               <div>
-                <dt className="text-gray-500">Started At</dt>
+                <dt className="text-slate-500">Started At</dt>
                 <dd className="font-medium">
                   {trip.startedAt ? new Date(trip.startedAt).toLocaleString() : '-'}
                 </dd>
               </div>
               <div>
-                <dt className="text-gray-500">Completed At</dt>
+                <dt className="text-slate-500">Completed At</dt>
                 <dd className="font-medium">
                   {trip.completedAt ? new Date(trip.completedAt).toLocaleString() : '-'}
                 </dd>
@@ -341,7 +341,7 @@ export default function TripDetailPage() {
               <CardTitle>Notes</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700">{trip.notes}</p>
+              <p className="text-slate-700">{trip.notes}</p>
             </CardContent>
           </Card>
         )}

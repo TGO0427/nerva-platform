@@ -25,7 +25,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="flex-1 flex flex-col min-h-screen lg:pl-0">
           {/* Sticky header with brand accent */}
           <div className="sticky top-0 z-40">
-            <div className="h-1 w-full bg-primary-600" />
+            <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-emerald-500 to-blue-500" />
             <Header onMenuClick={() => setIsSidebarOpen(true)} />
           </div>
 

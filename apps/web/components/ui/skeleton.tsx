@@ -5,7 +5,7 @@ interface SkeletonProps {
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
     <div
-      className={`bg-gray-200 animate-pulse-subtle rounded ${className}`}
+      className={`bg-slate-200 animate-pulse-subtle rounded ${className}`}
     />
   );
 }
@@ -25,7 +25,7 @@ export function SkeletonText({ lines = 1, className = '' }: { lines?: number; cl
 
 export function SkeletonCard({ className = '' }: SkeletonProps) {
   return (
-    <div className={`bg-white border border-gray-200 rounded-lg p-6 ${className}`}>
+    <div className={`bg-white border border-slate-200 rounded-lg p-6 ${className}`}>
       <Skeleton className="h-8 w-24 mb-2" />
       <Skeleton className="h-4 w-32" />
     </div>
@@ -44,7 +44,7 @@ export function SkeletonCardGrid({ count = 4 }: { count?: number }) {
 
 export function SkeletonTableRow({ columns = 5 }: { columns?: number }) {
   return (
-    <tr className="border-b border-gray-100">
+    <tr className="border-b border-slate-100">
       {Array.from({ length: columns }).map((_, i) => (
         <td key={i} className="px-4 py-3">
           <Skeleton className="h-4 w-full" />
@@ -56,9 +56,9 @@ export function SkeletonTableRow({ columns = 5 }: { columns?: number }) {
 
 export function SkeletonTable({ rows = 5, columns = 5 }: { rows?: number; columns?: number }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
       <table className="min-w-full">
-        <thead className="bg-gray-50 border-b border-gray-200">
+        <thead className="bg-slate-50 border-b border-slate-200">
           <tr>
             {Array.from({ length: columns }).map((_, i) => (
               <th key={i} className="px-4 py-3 text-left">
@@ -114,7 +114,7 @@ export function SkeletonDetailPage() {
 
       {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="bg-white border border-slate-200 rounded-lg p-6">
           <Skeleton className="h-6 w-32 mb-4" />
           <div className="space-y-3">
             <div className="flex justify-between">
@@ -131,7 +131,7 @@ export function SkeletonDetailPage() {
             </div>
           </div>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="bg-white border border-slate-200 rounded-lg p-6">
           <Skeleton className="h-6 w-24 mb-4" />
           <SkeletonText lines={4} />
         </div>

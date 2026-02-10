@@ -198,7 +198,7 @@ export default function IbtDetailPage() {
   if (!ibt) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">Transfer not found</h2>
+        <h2 className="text-lg font-medium text-slate-900">Transfer not found</h2>
       </div>
     );
   }
@@ -214,14 +214,14 @@ export default function IbtDetailPage() {
       render: (row) => (
         <div>
           <span className="font-medium">{row.itemSku}</span>
-          <p className="text-xs text-gray-500 truncate max-w-[200px]">{row.itemDescription}</p>
+          <p className="text-xs text-slate-500 truncate max-w-[200px]">{row.itemDescription}</p>
         </div>
       ),
     },
     {
       key: 'fromBinCode',
       header: 'From Bin',
-      render: (row) => row.fromBinCode ? <span className="font-mono text-sm">{row.fromBinCode}</span> : <span className="text-gray-400">Not set</span>,
+      render: (row) => row.fromBinCode ? <span className="font-mono text-sm">{row.fromBinCode}</span> : <span className="text-slate-400">Not set</span>,
     },
     { key: 'qtyRequested', header: 'Qty Requested' },
     {
@@ -256,7 +256,7 @@ export default function IbtDetailPage() {
       render: (row) => (
         <div>
           <span className="font-medium">{row.itemSku}</span>
-          <p className="text-xs text-gray-500 truncate max-w-[200px]">{row.itemDescription}</p>
+          <p className="text-xs text-slate-500 truncate max-w-[200px]">{row.itemDescription}</p>
         </div>
       ),
     },
@@ -290,7 +290,7 @@ export default function IbtDetailPage() {
       render: (row) => (
         <div>
           <span className="font-medium">{row.itemSku}</span>
-          <p className="text-xs text-gray-500 truncate max-w-[200px]">{row.itemDescription}</p>
+          <p className="text-xs text-slate-500 truncate max-w-[200px]">{row.itemDescription}</p>
         </div>
       ),
     },
@@ -333,7 +333,7 @@ export default function IbtDetailPage() {
       render: (row) => (
         <div>
           <span className="font-medium">{row.itemSku}</span>
-          <p className="text-xs text-gray-500 truncate max-w-[200px]">{row.itemDescription}</p>
+          <p className="text-xs text-slate-500 truncate max-w-[200px]">{row.itemDescription}</p>
         </div>
       ),
     },
@@ -381,12 +381,12 @@ export default function IbtDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{ibt.ibtNo}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{ibt.ibtNo}</h1>
             <Badge variant={statusVariant[ibt.status] || 'default'}>
               {statusLabel[ibt.status] || ibt.status}
             </Badge>
           </div>
-          <p className="text-gray-500 mt-1">{keyDate}</p>
+          <p className="text-slate-500 mt-1">{keyDate}</p>
         </div>
 
         <div className="flex gap-2">
@@ -434,30 +434,30 @@ export default function IbtDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-lg font-semibold text-gray-900">{ibt.fromWarehouseName}</div>
-            <p className="text-sm text-gray-500">From Warehouse</p>
+            <div className="text-lg font-semibold text-slate-900">{ibt.fromWarehouseName}</div>
+            <p className="text-sm text-slate-500">From Warehouse</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-lg font-semibold text-gray-900">{ibt.toWarehouseName}</div>
-            <p className="text-sm text-gray-500">To Warehouse</p>
+            <div className="text-lg font-semibold text-slate-900">{ibt.toWarehouseName}</div>
+            <p className="text-sm text-slate-500">To Warehouse</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{ibt.lineCount}</div>
-            <p className="text-sm text-gray-500">Line Items</p>
+            <div className="text-2xl font-bold text-slate-900">{ibt.lineCount}</div>
+            <p className="text-sm text-slate-500">Line Items</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-sm font-medium text-gray-900">{keyDate}</div>
-            <p className="text-sm text-gray-500">
+            <div className="text-sm font-medium text-slate-900">{keyDate}</div>
+            <p className="text-sm text-slate-500">
               {ibt.createdByName ? `By ${ibt.createdByName}` : 'System'}
             </p>
             {ibt.approvedByName && (
-              <p className="text-xs text-gray-400 mt-1">Approved by {ibt.approvedByName}</p>
+              <p className="text-xs text-slate-400 mt-1">Approved by {ibt.approvedByName}</p>
             )}
           </CardContent>
         </Card>
@@ -467,7 +467,7 @@ export default function IbtDetailPage() {
         <Card>
           <CardHeader><CardTitle>Notes</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-gray-700">{ibt.notes}</p>
+            <p className="text-slate-700">{ibt.notes}</p>
           </CardContent>
         </Card>
       )}
@@ -496,10 +496,10 @@ export default function IbtDetailPage() {
         </CardHeader>
         <CardContent>
           {showAddLine && ibt.status === 'DRAFT' && (
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <div className="mb-4 p-4 bg-slate-50 rounded-lg">
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Item</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Item</label>
                   <Select
                     value={newItemId}
                     onChange={(e) => setNewItemId(e.target.value)}
@@ -513,7 +513,7 @@ export default function IbtDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Quantity</label>
                   <Input
                     type="number"
                     value={newQty}
@@ -523,7 +523,7 @@ export default function IbtDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">From Bin</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">From Bin</label>
                   <Select
                     value={newFromBinId}
                     onChange={(e) => setNewFromBinId(e.target.value)}
@@ -534,7 +534,7 @@ export default function IbtDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Batch No</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Batch No</label>
                   <Input
                     value={newBatchNo}
                     onChange={(e) => setNewBatchNo(e.target.value)}

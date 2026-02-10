@@ -72,7 +72,7 @@ export default function WorkOrdersPage() {
         <div>
           <div className="font-medium">{row.itemSku || '-'}</div>
           {row.itemDescription && (
-            <div className="text-sm text-gray-500 truncate max-w-[200px]">{row.itemDescription}</div>
+            <div className="text-sm text-slate-500 truncate max-w-[200px]">{row.itemDescription}</div>
           )}
         </div>
       ),

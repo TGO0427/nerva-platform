@@ -97,7 +97,7 @@ export default function PutawayPage() {
       render: (t) => (
         <div>
           <span className="font-medium text-primary-600">{t.itemSku}</span>
-          <p className="text-xs text-gray-500 truncate max-w-[200px]">{t.itemDescription}</p>
+          <p className="text-xs text-slate-500 truncate max-w-[200px]">{t.itemDescription}</p>
         </div>
       ),
     },
@@ -113,7 +113,7 @@ export default function PutawayPage() {
         t.toBinCode ? (
           <span className="font-mono text-sm">{t.toBinCode}</span>
         ) : (
-          <span className="text-gray-400">Not set</span>
+          <span className="text-slate-400">Not set</span>
         ),
     },
     {
@@ -136,7 +136,7 @@ export default function PutawayPage() {
     {
       key: 'assignedToName',
       header: 'Assigned To',
-      render: (t) => t.assignedToName || <span className="text-gray-400">Unassigned</span>,
+      render: (t) => t.assignedToName || <span className="text-slate-400">Unassigned</span>,
     },
     {
       key: 'actions',
@@ -209,14 +209,14 @@ export default function PutawayPage() {
       <Breadcrumbs />
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Putaway Tasks</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-slate-900">Putaway Tasks</h1>
+        <p className="text-sm text-slate-500 mt-1">
           Move received stock from receiving bins to storage locations
         </p>
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex gap-2 border-b border-gray-200 pb-2 flex-1">
+        <div className="flex gap-2 border-b border-slate-200 pb-2 flex-1">
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -227,7 +227,7 @@ export default function PutawayPage() {
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 statusFilter === tab.value
                   ? 'bg-primary-100 text-primary-700'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
               }`}
             >
               {tab.label}
@@ -268,7 +268,7 @@ export default function PutawayPage() {
 
       {data && data.total > 0 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-slate-500">
             Page {page} of {totalPages} ({data.total} total)
           </p>
           <div className="flex gap-2">

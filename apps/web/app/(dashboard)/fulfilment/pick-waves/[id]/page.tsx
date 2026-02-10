@@ -254,7 +254,7 @@ export default function PickWaveDetailPage() {
   if (!wave) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">Pick wave not found</h2>
+        <h2 className="text-lg font-medium text-slate-900">Pick wave not found</h2>
       </div>
     );
   }
@@ -278,10 +278,10 @@ export default function PickWaveDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{wave.waveNo}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{wave.waveNo}</h1>
             <Badge variant={getWaveStatusVariant(wave.status)}>{wave.status}</Badge>
           </div>
-          <p className="text-gray-500 mt-1">
+          <p className="text-slate-500 mt-1">
             Created {new Date(wave.createdAt).toLocaleDateString()}
           </p>
         </div>
@@ -321,33 +321,33 @@ export default function PickWaveDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{totalTasks}</div>
-            <p className="text-sm text-gray-500">Total Tasks</p>
+            <div className="text-2xl font-bold text-slate-900">{totalTasks}</div>
+            <p className="text-sm text-slate-500">Total Tasks</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-blue-600">{inProgressTasks}</div>
-            <p className="text-sm text-gray-500">In Progress</p>
+            <p className="text-sm text-slate-500">In Progress</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-green-600">{completedTasks}</div>
-            <p className="text-sm text-gray-500">Completed</p>
+            <p className="text-sm text-slate-500">Completed</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{totalPicked}/{totalToPick}</div>
-            <p className="text-sm text-gray-500">Qty Picked</p>
+            <div className="text-2xl font-bold text-slate-900">{totalPicked}/{totalToPick}</div>
+            <p className="text-sm text-slate-500">Qty Picked</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-primary-600">{progress}%</div>
-            <p className="text-sm text-gray-500">Progress</p>
-            <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <p className="text-sm text-slate-500">Progress</p>
+            <div className="mt-2 h-2 bg-slate-200 rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary-600 transition-all"
                 style={{ width: `${progress}%` }}
@@ -386,7 +386,7 @@ export default function PickWaveDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-slate-600">
                   <p>
                     <span className="font-medium">Item:</span> {pickModalTask.itemSku || pickModalTask.itemId.slice(0, 8)}
                   </p>
@@ -405,7 +405,7 @@ export default function PickWaveDetailPage() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Quantity Picked (max {pickModalTask.qtyToPick})
                   </label>
                   <Input
@@ -419,7 +419,7 @@ export default function PickWaveDetailPage() {
 
                 {parseInt(pickQty, 10) < pickModalTask.qtyToPick && parseInt(pickQty, 10) >= 0 && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Reason for short pick *
                     </label>
                     <Textarea
@@ -469,7 +469,7 @@ export default function PickWaveDetailPage() {
                   <Alert variant="error">{actionError}</Alert>
                 )}
 
-                <p className="text-gray-600">
+                <p className="text-slate-600">
                   {confirmAction === 'release'
                     ? 'Release this wave for picking? Tasks will become available to pickers.'
                     : 'Complete this pick wave? Ensure all tasks are finished.'}
@@ -516,7 +516,7 @@ export default function PickWaveDetailPage() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Cancellation Reason *
                   </label>
                   <Textarea

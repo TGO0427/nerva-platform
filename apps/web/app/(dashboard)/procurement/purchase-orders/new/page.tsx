@@ -53,8 +53,8 @@ export default function NewPurchaseOrderPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">New Purchase Order</h1>
-        <p className="text-gray-500 mt-1">Create a new purchase order for a supplier.</p>
+        <h1 className="text-2xl font-bold text-slate-900">New Purchase Order</h1>
+        <p className="text-slate-500 mt-1">Create a new purchase order for a supplier.</p>
       </div>
 
       {error && (
@@ -75,7 +75,7 @@ export default function NewPurchaseOrderPage() {
                 id="supplierId"
                 value={formData.supplierId}
                 onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 required
               >
                 <option value="">Select a supplier...</option>
@@ -114,7 +114,7 @@ export default function NewPurchaseOrderPage() {
                 id="shipToWarehouseId"
                 value={formData.shipToWarehouseId}
                 onChange={(e) => setFormData({ ...formData, shipToWarehouseId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Select warehouse...</option>
                 {warehouses?.map((wh) => (
@@ -131,7 +131,7 @@ export default function NewPurchaseOrderPage() {
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full h-24 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Add any notes or special instructions..."
               />
             </div>

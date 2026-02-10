@@ -188,7 +188,7 @@ export default function SalesOrderDetailPage() {
   if (!order) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">Order not found</h2>
+        <h2 className="text-lg font-medium text-slate-900">Order not found</h2>
       </div>
     );
   }
@@ -218,11 +218,11 @@ export default function SalesOrderDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{order.orderNo}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{order.orderNo}</h1>
             <Badge variant={getStatusVariant(order.status)}>{formatStatus(order.status)}</Badge>
             <Badge variant={getPriorityVariant(order.priority)}>{getPriorityLabel(order.priority)}</Badge>
           </div>
-          <p className="text-gray-500 mt-1">
+          <p className="text-slate-500 mt-1">
             Created {new Date(order.createdAt).toLocaleDateString()}
           </p>
         </div>
@@ -258,8 +258,8 @@ export default function SalesOrderDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{totalOrdered}</div>
-            <p className="text-sm text-gray-500">Qty Ordered</p>
+            <div className="text-2xl font-bold text-slate-900">{totalOrdered}</div>
+            <p className="text-sm text-slate-500">Qty Ordered</p>
           </CardContent>
         </Card>
         <Card>
@@ -267,7 +267,7 @@ export default function SalesOrderDetailPage() {
             <div className={`text-2xl font-bold ${totalAllocated >= totalOrdered ? 'text-green-600' : 'text-orange-600'}`}>
               {totalAllocated}
             </div>
-            <p className="text-sm text-gray-500">Qty Allocated</p>
+            <p className="text-sm text-slate-500">Qty Allocated</p>
           </CardContent>
         </Card>
         <Card>
@@ -275,21 +275,21 @@ export default function SalesOrderDetailPage() {
             <div className={`text-2xl font-bold ${totalPicked >= totalOrdered ? 'text-green-600' : 'text-blue-600'}`}>
               {totalPicked}
             </div>
-            <p className="text-sm text-gray-500">Qty Picked</p>
+            <p className="text-sm text-slate-500">Qty Picked</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className={`text-2xl font-bold ${totalShipped >= totalOrdered ? 'text-green-600' : 'text-gray-900'}`}>
+            <div className={`text-2xl font-bold ${totalShipped >= totalOrdered ? 'text-green-600' : 'text-slate-900'}`}>
               {totalShipped}
             </div>
-            <p className="text-sm text-gray-500">Qty Shipped</p>
+            <p className="text-sm text-slate-500">Qty Shipped</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">${totalValue.toFixed(2)}</div>
-            <p className="text-sm text-gray-500">Order Value</p>
+            <div className="text-2xl font-bold text-slate-900">${totalValue.toFixed(2)}</div>
+            <p className="text-sm text-slate-500">Order Value</p>
           </CardContent>
         </Card>
       </div>
@@ -303,19 +303,19 @@ export default function SalesOrderDetailPage() {
           <CardContent>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-gray-500">Customer</dt>
+                <dt className="text-slate-500">Customer</dt>
                 <dd className="font-medium">{order.customer?.name || order.customerId}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Customer Code</dt>
+                <dt className="text-slate-500">Customer Code</dt>
                 <dd className="font-medium">{order.customer?.code || '-'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Warehouse</dt>
+                <dt className="text-slate-500">Warehouse</dt>
                 <dd className="font-medium">{order.warehouse?.name || 'Main Warehouse'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Requested Ship Date</dt>
+                <dt className="text-slate-500">Requested Ship Date</dt>
                 <dd className="font-medium">
                   {order.requestedShipDate
                     ? new Date(order.requestedShipDate).toLocaleDateString()
@@ -323,11 +323,11 @@ export default function SalesOrderDetailPage() {
                 </dd>
               </div>
               <div>
-                <dt className="text-gray-500">Priority</dt>
+                <dt className="text-slate-500">Priority</dt>
                 <dd className="font-medium">{getPriorityLabel(order.priority)}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Line Items</dt>
+                <dt className="text-slate-500">Line Items</dt>
                 <dd className="font-medium">{order.lines?.length || 0}</dd>
               </div>
             </dl>
@@ -374,11 +374,11 @@ export default function SalesOrderDetailPage() {
                 keyField="id"
               />
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <TruckIconLarge className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+              <div className="text-center py-8 text-slate-500">
+                <TruckIconLarge className="mx-auto h-12 w-12 text-slate-400 mb-2" />
                 <p>No shipments yet</p>
                 {allPicked && (
-                  <p className="text-sm text-gray-400 mt-1">
+                  <p className="text-sm text-slate-400 mt-1">
                     All items picked. Ready to create shipment.
                   </p>
                 )}
@@ -416,12 +416,12 @@ function ProgressBar({ label, current, total }: { label: string; current: number
   return (
     <div>
       <div className="flex justify-between mb-1">
-        <span className="text-sm text-gray-600">{label}</span>
-        <span className={`text-sm font-medium ${isComplete ? 'text-green-600' : 'text-gray-900'}`}>
+        <span className="text-sm text-slate-600">{label}</span>
+        <span className={`text-sm font-medium ${isComplete ? 'text-green-600' : 'text-slate-900'}`}>
           {current}/{total} ({percent}%)
         </span>
       </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
         <div
           className={`h-full transition-all ${isComplete ? 'bg-green-600' : 'bg-primary-600'}`}
           style={{ width: `${percent}%` }}

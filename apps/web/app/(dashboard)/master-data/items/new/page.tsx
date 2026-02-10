@@ -33,8 +33,8 @@ export default function NewItemPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">New Item</h1>
-        <p className="text-gray-500 mt-1">Add a new item to your catalog</p>
+        <h1 className="text-2xl font-bold text-slate-900">New Item</h1>
+        <p className="text-slate-500 mt-1">Add a new item to your catalog</p>
       </div>
 
       {error && (

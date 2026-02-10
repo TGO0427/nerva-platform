@@ -76,7 +76,7 @@ export default function ProductionLedgerPage() {
         <div>
           <div className="font-medium">{row.itemSku || '-'}</div>
           {row.itemDescription && (
-            <div className="text-sm text-gray-500 truncate max-w-[150px]">{row.itemDescription}</div>
+            <div className="text-sm text-slate-500 truncate max-w-[150px]">{row.itemDescription}</div>
           )}
         </div>
       ),
@@ -195,7 +195,7 @@ export default function ProductionLedgerPage() {
               className="w-40"
               placeholder="Start date"
             />
-            <span className="text-gray-400">to</span>
+            <span className="text-slate-400">to</span>
             <Input
               type="date"
               value={endDate}

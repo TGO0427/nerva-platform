@@ -47,8 +47,8 @@ export default function CustomerDetailPage() {
   if (!customer) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">Customer not found</h2>
-        <p className="text-gray-500 mt-1">The customer you are looking for does not exist.</p>
+        <h2 className="text-lg font-medium text-slate-900">Customer not found</h2>
+        <p className="text-slate-500 mt-1">The customer you are looking for does not exist.</p>
         <Link href="/master-data/customers" className="text-primary-600 hover:underline mt-4 inline-block">
           Back to customers
         </Link>
@@ -90,19 +90,19 @@ export default function CustomerDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardContent className="pt-4">
-            <div className="text-sm text-gray-500">Customer Code</div>
+            <div className="text-sm text-slate-500">Customer Code</div>
             <div className="font-medium">{customer.code || '-'}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <div className="text-sm text-gray-500">Email</div>
+            <div className="text-sm text-slate-500">Email</div>
             <div className="font-medium text-primary-600">{customer.email || '-'}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <div className="text-sm text-gray-500">Phone</div>
+            <div className="text-sm text-slate-500">Phone</div>
             <div className="font-medium">{customer.phone || '-'}</div>
           </CardContent>
         </Card>
@@ -118,7 +118,7 @@ export default function CustomerDetailPage() {
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 activeTab === tab.key
                   ? 'bg-blue-700 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
               {tab.label}
@@ -149,19 +149,19 @@ function CompanyInfoTab({ customer, activityLog }: { customer: Customer; activit
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-sm font-medium text-gray-500">Customer Code</div>
+              <div className="text-sm font-medium text-slate-500">Customer Code</div>
               <div className="mt-1">{customer.code || '-'}</div>
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-500">Email</div>
+              <div className="text-sm font-medium text-slate-500">Email</div>
               <div className="mt-1 text-primary-600">{customer.email || '-'}</div>
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-500">Contact Number</div>
+              <div className="text-sm font-medium text-slate-500">Contact Number</div>
               <div className="mt-1">{customer.phone || '-'}</div>
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-500">Status</div>
+              <div className="text-sm font-medium text-slate-500">Status</div>
               <div className="mt-1">
                 <Badge variant={customer.isActive ? 'success' : 'danger'}>
                   {customer.isActive ? 'Active' : 'Inactive'}
@@ -180,19 +180,19 @@ function CompanyInfoTab({ customer, activityLog }: { customer: Customer; activit
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-sm font-medium text-gray-500">Street</div>
+              <div className="text-sm font-medium text-slate-500">Street</div>
               <div className="mt-1">{formatAddress(customer.billingAddressLine1, customer.billingAddressLine2)}</div>
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-500">City</div>
+              <div className="text-sm font-medium text-slate-500">City</div>
               <div className="mt-1">{customer.billingCity || '-'}</div>
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-500">Postal Code</div>
+              <div className="text-sm font-medium text-slate-500">Postal Code</div>
               <div className="mt-1">{customer.billingPostalCode || '-'}</div>
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-500">Country</div>
+              <div className="text-sm font-medium text-slate-500">Country</div>
               <div className="mt-1">{customer.billingCountry || '-'}</div>
             </div>
           </div>
@@ -207,19 +207,19 @@ function CompanyInfoTab({ customer, activityLog }: { customer: Customer; activit
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-sm font-medium text-gray-500">Street</div>
+              <div className="text-sm font-medium text-slate-500">Street</div>
               <div className="mt-1">{formatAddress(customer.shippingAddressLine1, customer.shippingAddressLine2)}</div>
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-500">City</div>
+              <div className="text-sm font-medium text-slate-500">City</div>
               <div className="mt-1">{customer.shippingCity || '-'}</div>
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-500">Postal Code</div>
+              <div className="text-sm font-medium text-slate-500">Postal Code</div>
               <div className="mt-1">{customer.shippingPostalCode || '-'}</div>
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-500">Country</div>
+              <div className="text-sm font-medium text-slate-500">Country</div>
               <div className="mt-1">{customer.shippingCountry || '-'}</div>
             </div>
           </div>
@@ -234,7 +234,7 @@ function CompanyInfoTab({ customer, activityLog }: { customer: Customer; activit
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-sm font-medium text-gray-500">VAT Number</div>
+              <div className="text-sm font-medium text-slate-500">VAT Number</div>
               <div className="mt-1 text-primary-600">{customer.vatNo || '-'}</div>
             </div>
           </div>
@@ -250,10 +250,10 @@ function CompanyInfoTab({ customer, activityLog }: { customer: Customer; activit
           <CardContent>
             <div className="space-y-3">
               {activityLog.slice(0, 5).map((entry) => (
-                <div key={entry.id} className="flex items-start gap-3 text-sm border-l-2 border-gray-200 pl-3">
+                <div key={entry.id} className="flex items-start gap-3 text-sm border-l-2 border-slate-200 pl-3">
                   <div>
                     <span className="font-medium">{entry.action}</span>
-                    <span className="text-gray-500 ml-2">
+                    <span className="text-slate-500 ml-2">
                       {new Date(entry.createdAt).toLocaleString()}
                     </span>
                   </div>
@@ -394,7 +394,7 @@ function ContactsTab({ customerId }: { customerId: string }) {
                   id="isPrimary"
                   checked={formData.isPrimary}
                   onChange={(e) => setFormData({ ...formData, isPrimary: e.target.checked })}
-                  className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                  className="h-4 w-4 text-primary-600 rounded border-slate-300"
                 />
                 <Label htmlFor="isPrimary" className="mb-0">Primary Contact</Label>
               </div>
@@ -425,19 +425,19 @@ function ContactsTab({ customerId }: { customerId: string }) {
                       )}
                     </div>
                     {contact.title && (
-                      <div className="text-sm text-gray-500">{contact.title}</div>
+                      <div className="text-sm text-slate-500">{contact.title}</div>
                     )}
                   </div>
                   <div className="flex gap-1">
                     <button
                       onClick={() => handleEdit(contact)}
-                      className="p-1 text-gray-400 hover:text-gray-600"
+                      className="p-1 text-slate-400 hover:text-slate-600"
                     >
                       <PencilIcon />
                     </button>
                     <button
                       onClick={() => handleDelete(contact.id)}
-                      className="p-1 text-gray-400 hover:text-red-600"
+                      className="p-1 text-slate-400 hover:text-red-600"
                     >
                       <TrashIcon />
                     </button>
@@ -448,7 +448,7 @@ function ContactsTab({ customerId }: { customerId: string }) {
                     <div className="text-primary-600">{contact.email}</div>
                   )}
                   {contact.phone && (
-                    <div className="text-gray-600">{contact.phone}</div>
+                    <div className="text-slate-600">{contact.phone}</div>
                   )}
                 </div>
               </CardContent>
@@ -459,9 +459,9 @@ function ContactsTab({ customerId }: { customerId: string }) {
         !showForm && (
           <Card>
             <CardContent className="py-12">
-              <div className="text-center text-gray-500">
+              <div className="text-center text-slate-500">
                 <UsersIcon />
-                <h3 className="mt-4 font-medium text-gray-900">No contacts yet</h3>
+                <h3 className="mt-4 font-medium text-slate-900">No contacts yet</h3>
                 <p className="mt-1">Add contacts to manage customer relationships.</p>
               </div>
             </CardContent>
@@ -520,7 +520,7 @@ function NotesTab({ customerId }: { customerId: string }) {
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
               placeholder="Enter your note..."
-              className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full h-24 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
             <Button type="submit" disabled={createNote.isPending || !newNote.trim()}>
               {createNote.isPending ? 'Adding...' : 'Add Note'}
@@ -536,15 +536,15 @@ function NotesTab({ customerId }: { customerId: string }) {
               <CardContent className="pt-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
-                    <div className="mt-2 text-sm text-gray-500">
+                    <p className="text-slate-800 whitespace-pre-wrap">{note.content}</p>
+                    <div className="mt-2 text-sm text-slate-500">
                       {note.createdByName && <span>{note.createdByName} - </span>}
                       {new Date(note.createdAt).toLocaleString()}
                     </div>
                   </div>
                   <button
                     onClick={() => handleDelete(note.id)}
-                    className="p-1 text-gray-400 hover:text-red-600 ml-4"
+                    className="p-1 text-slate-400 hover:text-red-600 ml-4"
                   >
                     <TrashIcon />
                   </button>
@@ -556,9 +556,9 @@ function NotesTab({ customerId }: { customerId: string }) {
       ) : (
         <Card>
           <CardContent className="py-12">
-            <div className="text-center text-gray-500">
+            <div className="text-center text-slate-500">
               <NotesIcon />
-              <h3 className="mt-4 font-medium text-gray-900">No notes yet</h3>
+              <h3 className="mt-4 font-medium text-slate-900">No notes yet</h3>
               <p className="mt-1">Add notes to track important information about this customer.</p>
             </div>
           </CardContent>
@@ -599,7 +599,7 @@ function OrdersTab({ customerId }: { customerId: string }) {
     <div className="space-y-4">
       {/* Summary */}
       {total > 0 && (
-        <div className="flex items-center gap-4 text-sm text-gray-500">
+        <div className="flex items-center gap-4 text-sm text-slate-500">
           <span>{total} order{total !== 1 ? 's' : ''}</span>
         </div>
       )}
@@ -613,7 +613,7 @@ function OrdersTab({ customerId }: { customerId: string }) {
             className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
               statusFilter === s
                 ? 'bg-blue-700 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
             {s || 'All'}
@@ -639,14 +639,14 @@ function OrdersTab({ customerId }: { customerId: string }) {
                   <div className="flex items-center gap-4">
                     <div>
                       <span className="font-medium text-primary-600">{order.orderNo}</span>
-                      <div className="text-sm text-gray-500 mt-0.5">
+                      <div className="text-sm text-slate-500 mt-0.5">
                         {new Date(order.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     {order.requestedShipDate && (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-slate-400">
                         Ship by {new Date(order.requestedShipDate).toLocaleDateString()}
                       </span>
                     )}
@@ -662,7 +662,7 @@ function OrdersTab({ customerId }: { customerId: string }) {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-slate-500">
                 Page {page} of {totalPages}
               </p>
               <div className="flex gap-2">
@@ -679,9 +679,9 @@ function OrdersTab({ customerId }: { customerId: string }) {
       ) : (
         <Card>
           <CardContent className="py-12">
-            <div className="text-center text-gray-500">
+            <div className="text-center text-slate-500">
               <OrdersIcon />
-              <h3 className="mt-4 font-medium text-gray-900">No orders found</h3>
+              <h3 className="mt-4 font-medium text-slate-900">No orders found</h3>
               <p className="mt-1">
                 {statusFilter ? 'No orders match the selected filter.' : 'This customer has no orders yet.'}
               </p>
@@ -716,7 +716,7 @@ function TrashIcon() {
 
 function UsersIcon() {
   return (
-    <svg className="h-12 w-12 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+    <svg className="h-12 w-12 mx-auto text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
     </svg>
   );
@@ -724,7 +724,7 @@ function UsersIcon() {
 
 function NotesIcon() {
   return (
-    <svg className="h-12 w-12 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+    <svg className="h-12 w-12 mx-auto text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
     </svg>
   );
@@ -732,7 +732,7 @@ function NotesIcon() {
 
 function OrdersIcon() {
   return (
-    <svg className="h-12 w-12 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+    <svg className="h-12 w-12 mx-auto text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
     </svg>
   );

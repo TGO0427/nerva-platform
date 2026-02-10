@@ -52,8 +52,8 @@ export default function SupplierAnalyticsPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Supplier Analytics</h1>
-        <p className="text-gray-500 mt-1">Monitor supplier performance, NCRs, and procurement trends.</p>
+        <h1 className="text-2xl font-bold text-slate-900">Supplier Analytics</h1>
+        <p className="text-slate-500 mt-1">Monitor supplier performance, NCRs, and procurement trends.</p>
       </div>
 
       {/* Summary Cards */}
@@ -105,14 +105,14 @@ export default function SupplierAnalyticsPage() {
                     <div className="ml-4 flex-1">
                       <Link
                         href={`/master-data/suppliers/${supplier.id}`}
-                        className="text-sm font-medium text-gray-900 hover:text-primary-600"
+                        className="text-sm font-medium text-slate-900 hover:text-primary-600"
                       >
                         {supplier.name}
                       </Link>
-                      <p className="text-xs text-gray-500">{supplier.poCount} purchase orders</p>
+                      <p className="text-xs text-slate-500">{supplier.poCount} purchase orders</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-slate-900">
                         R {supplier.totalValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -120,7 +120,7 @@ export default function SupplierAnalyticsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-sm">No purchase order data available.</p>
+              <p className="text-slate-500 text-sm">No purchase order data available.</p>
             )}
           </CardContent>
         </Card>
@@ -134,22 +134,22 @@ export default function SupplierAnalyticsPage() {
             {summary?.recentNCRs && summary.recentNCRs.length > 0 ? (
               <div className="space-y-3">
                 {summary.recentNCRs.map((ncr) => (
-                  <div key={ncr.id} className="border-b border-gray-100 pb-3 last:border-0">
+                  <div key={ncr.id} className="border-b border-slate-100 pb-3 last:border-0">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{ncr.ncrNo}</p>
-                        <p className="text-xs text-gray-500">{ncr.supplierName}</p>
+                        <p className="text-sm font-medium text-slate-900">{ncr.ncrNo}</p>
+                        <p className="text-xs text-slate-500">{ncr.supplierName}</p>
                       </div>
                       <NcrStatusBadge status={ncr.status} />
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-slate-400 mt-1">
                       {new Date(ncr.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-sm">No NCRs recorded.</p>
+              <p className="text-slate-500 text-sm">No NCRs recorded.</p>
             )}
           </CardContent>
         </Card>
@@ -165,7 +165,7 @@ export default function SupplierAnalyticsPage() {
             {ncrTrends && ncrTrends.length > 0 ? (
               <SimpleBarChart data={ncrTrends} color="red" />
             ) : (
-              <p className="text-gray-500 text-sm">No trend data available.</p>
+              <p className="text-slate-500 text-sm">No trend data available.</p>
             )}
           </CardContent>
         </Card>
@@ -178,7 +178,7 @@ export default function SupplierAnalyticsPage() {
             {poTrends && poTrends.length > 0 ? (
               <SimpleBarChart data={poTrends} color="blue" valueKey="value" />
             ) : (
-              <p className="text-gray-500 text-sm">No trend data available.</p>
+              <p className="text-slate-500 text-sm">No trend data available.</p>
             )}
           </CardContent>
         </Card>
@@ -197,10 +197,10 @@ export default function SupplierAnalyticsPage() {
           ) : performance?.data && performance.data.length > 0 ? (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Supplier
                       </th>
                       <SortableHeader
@@ -238,17 +238,17 @@ export default function SupplierAnalyticsPage() {
                         sortOrder={sortOrder}
                         onSort={handleSort}
                       />
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Contracts
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Last PO
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-slate-200">
                     {performance.data.map((supplier: SupplierPerformanceStats) => (
-                      <tr key={supplier.id} className="hover:bg-gray-50">
+                      <tr key={supplier.id} className="hover:bg-slate-50">
                         <td className="px-4 py-3 whitespace-nowrap">
                           <Link
                             href={`/master-data/suppliers/${supplier.id}`}
@@ -257,35 +257,35 @@ export default function SupplierAnalyticsPage() {
                             {supplier.code ? `${supplier.code} - ` : ''}{supplier.name}
                           </Link>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
                           {supplier.totalPOs}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
                           R {supplier.totalPOValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
                           R {supplier.avgPOValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
                           {supplier.totalNCRs > 0 ? (
-                            <span className={supplier.openNCRs > 0 ? 'text-red-600 font-medium' : 'text-gray-900'}>
+                            <span className={supplier.openNCRs > 0 ? 'text-red-600 font-medium' : 'text-slate-900'}>
                               {supplier.openNCRs} open / {supplier.totalNCRs} total
                             </span>
                           ) : (
-                            <span className="text-gray-400">-</span>
+                            <span className="text-slate-400">-</span>
                           )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
                           <NcrRateBadge rate={supplier.ncrRate} />
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-center">
                           {supplier.activeContracts > 0 ? (
                             <Badge variant="success">{supplier.activeContracts}</Badge>
                           ) : (
-                            <span className="text-gray-400">-</span>
+                            <span className="text-slate-400">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
                           {supplier.lastPODate
                             ? new Date(supplier.lastPODate).toLocaleDateString()
                             : '-'}
@@ -299,21 +299,21 @@ export default function SupplierAnalyticsPage() {
               {/* Pagination */}
               {performance.meta && (performance.meta.totalPages ?? 1) > 1 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-slate-500">
                     Page {performancePage} of {performance.meta.totalPages ?? 1}
                   </p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPerformancePage(p => Math.max(1, p - 1))}
                       disabled={performancePage <= 1}
-                      className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
                     >
                       Previous
                     </button>
                     <button
                       onClick={() => setPerformancePage(p => p + 1)}
                       disabled={performancePage >= (performance.meta.totalPages || 1)}
-                      className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
                     >
                       Next
                     </button>
@@ -322,7 +322,7 @@ export default function SupplierAnalyticsPage() {
               )}
             </>
           ) : (
-            <p className="text-gray-500 text-sm py-8 text-center">No supplier performance data available.</p>
+            <p className="text-slate-500 text-sm py-8 text-center">No supplier performance data available.</p>
           )}
         </CardContent>
       </Card>
@@ -359,9 +359,9 @@ function SummaryCard({
             {icon}
           </div>
           <div className="ml-4">
-            <p className="text-sm text-gray-500">{title}</p>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-400">{subtitle}</p>
+            <p className="text-sm text-slate-500">{title}</p>
+            <p className="text-2xl font-bold text-slate-900">{value}</p>
+            <p className="text-xs text-slate-400">{subtitle}</p>
           </div>
         </div>
       </CardContent>
@@ -386,7 +386,7 @@ function SortableHeader({
   const isActive = currentSort === column;
   return (
     <th
-      className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+      className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100"
       onClick={() => onSort(column)}
     >
       <div className="flex items-center justify-end gap-1">
@@ -407,7 +407,7 @@ function NcrStatusBadge({ status }: { status: string }) {
 
 // NCR Rate Badge
 function NcrRateBadge({ rate }: { rate: number }) {
-  if (rate === 0) return <span className="text-gray-400">-</span>;
+  if (rate === 0) return <span className="text-slate-400">-</span>;
 
   const variant = rate > 10 ? 'danger' : rate > 5 ? 'warning' : 'success';
   return <Badge variant={variant}>{rate.toFixed(1)}%</Badge>;
@@ -444,7 +444,7 @@ function SimpleBarChart({
               style={{ height: `${Math.max(height, 2)}%` }}
               title={`${item.month}: ${valueKey === 'value' ? `R ${value.toLocaleString()}` : value}`}
             />
-            <span className="text-xs text-gray-400 mt-1 rotate-45 origin-left whitespace-nowrap">
+            <span className="text-xs text-slate-400 mt-1 rotate-45 origin-left whitespace-nowrap">
               {item.month.slice(0, 3)}
             </span>
           </div>

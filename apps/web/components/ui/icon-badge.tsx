@@ -14,7 +14,7 @@ interface IconBadgeProps {
 }
 
 const colorClasses: Record<IconColor, string> = {
-  gray: 'bg-gray-100 text-gray-400',
+  gray: 'bg-slate-100 text-slate-500',
   blue: 'bg-blue-50 text-blue-500',
   green: 'bg-green-50 text-green-500',
   red: 'bg-red-50 text-red-500',

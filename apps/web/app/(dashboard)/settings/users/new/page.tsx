@@ -52,8 +52,8 @@ export default function NewUserPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">New User</h1>
-        <p className="text-gray-500 mt-1">Create a new user account</p>
+        <h1 className="text-2xl font-bold text-slate-900">New User</h1>
+        <p className="text-slate-500 mt-1">Create a new user account</p>
       </div>
 
       <Card className="max-w-2xl">
@@ -70,7 +70,7 @@ export default function NewUserPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   First Name *
                 </label>
                 <Input
@@ -81,7 +81,7 @@ export default function NewUserPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Last Name *
                 </label>
                 <Input
@@ -94,7 +94,7 @@ export default function NewUserPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Email *
               </label>
               <Input
@@ -108,7 +108,7 @@ export default function NewUserPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Password *
                 </label>
                 <Input
@@ -121,7 +121,7 @@ export default function NewUserPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Confirm Password *
                 </label>
                 <Input

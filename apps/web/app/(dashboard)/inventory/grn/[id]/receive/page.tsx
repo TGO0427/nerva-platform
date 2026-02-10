@@ -113,7 +113,7 @@ export default function GrnReceivePage() {
   if (!grn) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">GRN not found</h2>
+        <h2 className="text-lg font-medium text-slate-900">GRN not found</h2>
       </div>
     );
   }
@@ -125,10 +125,10 @@ export default function GrnReceivePage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Receive: {grn.grnNo}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Receive: {grn.grnNo}</h1>
             <Badge variant="info">{grn.status}</Badge>
           </div>
-          <p className="text-gray-500 mt-1">Scan or enter items to receive</p>
+          <p className="text-slate-500 mt-1">Scan or enter items to receive</p>
         </div>
         <Button variant="secondary" onClick={() => router.push(`/inventory/grn/${grnId}`)}>
           Back to GRN
@@ -150,7 +150,7 @@ export default function GrnReceivePage() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Item <span className="text-red-500">*</span>
                 </label>
                 <Select
@@ -164,7 +164,7 @@ export default function GrnReceivePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Quantity <span className="text-red-500">*</span>
                 </label>
                 <Input
@@ -177,11 +177,11 @@ export default function GrnReceivePage() {
               </div>
 
               <div className="border-t pt-4 mt-4">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Batch / Expiry Tracking</h4>
+                <h4 className="text-sm font-medium text-slate-900 mb-3">Batch / Expiry Tracking</h4>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Batch Number
                     </label>
                     <Input
@@ -193,7 +193,7 @@ export default function GrnReceivePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Expiry Date
                     </label>
                     <Input
@@ -201,13 +201,13 @@ export default function GrnReceivePage() {
                       value={formData.expiryDate}
                       onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
                     />
-                    <p className="text-xs text-gray-500 mt-1">Required for FEFO allocation</p>
+                    <p className="text-xs text-slate-500 mt-1">Required for FEFO allocation</p>
                   </div>
                 </div>
               </div>
 
               <div className="border-t pt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Receiving Bin <span className="text-red-500">*</span>
                 </label>
                 <Select

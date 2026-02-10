@@ -77,7 +77,7 @@ export default function GrnDetailPage() {
       render: (t) => (
         <div>
           <span className="font-medium">{t.itemSku}</span>
-          <p className="text-xs text-gray-500 truncate max-w-[200px]">{t.itemDescription}</p>
+          <p className="text-xs text-slate-500 truncate max-w-[200px]">{t.itemDescription}</p>
         </div>
       ),
     },
@@ -93,7 +93,7 @@ export default function GrnDetailPage() {
         t.toBinCode ? (
           <span className="font-mono text-sm">{t.toBinCode}</span>
         ) : (
-          <span className="text-gray-400">Not set</span>
+          <span className="text-slate-400">Not set</span>
         ),
     },
     { key: 'qty', header: 'Qty' },
@@ -113,7 +113,7 @@ export default function GrnDetailPage() {
     {
       key: 'assignedToName',
       header: 'Assigned To',
-      render: (t) => t.assignedToName || <span className="text-gray-400">Unassigned</span>,
+      render: (t) => t.assignedToName || <span className="text-slate-400">Unassigned</span>,
     },
   ];
 
@@ -147,7 +147,7 @@ export default function GrnDetailPage() {
   if (!grn) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">GRN not found</h2>
+        <h2 className="text-lg font-medium text-slate-900">GRN not found</h2>
       </div>
     );
   }
@@ -163,10 +163,10 @@ export default function GrnDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{grn.grnNo}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{grn.grnNo}</h1>
             <Badge variant={getStatusVariant(grn.status)}>{grn.status}</Badge>
           </div>
-          <p className="text-gray-500 mt-1">
+          <p className="text-slate-500 mt-1">
             Created {new Date(grn.createdAt).toLocaleDateString()}
           </p>
         </div>
@@ -196,27 +196,27 @@ export default function GrnDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{totalExpected}</div>
-            <p className="text-sm text-gray-500">Expected Qty</p>
+            <div className="text-2xl font-bold text-slate-900">{totalExpected}</div>
+            <p className="text-sm text-slate-500">Expected Qty</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-green-600">{totalReceived}</div>
-            <p className="text-sm text-gray-500">Received Qty</p>
+            <p className="text-sm text-slate-500">Received Qty</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{lines?.length || 0}</div>
-            <p className="text-sm text-gray-500">Line Items</p>
+            <div className="text-2xl font-bold text-slate-900">{lines?.length || 0}</div>
+            <p className="text-sm text-slate-500">Line Items</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-primary-600">{progress}%</div>
-            <p className="text-sm text-gray-500">Progress</p>
-            <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <p className="text-sm text-slate-500">Progress</p>
+            <div className="mt-2 h-2 bg-slate-200 rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary-600 transition-all"
                 style={{ width: `${progress}%` }}
@@ -233,7 +233,7 @@ export default function GrnDetailPage() {
             <CardTitle>Notes</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-700">{grn.notes}</p>
+            <p className="text-slate-700">{grn.notes}</p>
           </CardContent>
         </Card>
       )}
@@ -264,7 +264,7 @@ export default function GrnDetailPage() {
             <div className="flex items-center justify-between">
               <CardTitle>Putaway Tasks</CardTitle>
               {putawayTasks && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-slate-500">
                   {putawayTasks.filter((t) => t.status === 'COMPLETE').length} / {putawayTasks.length} completed
                 </p>
               )}
@@ -282,7 +282,7 @@ export default function GrnDetailPage() {
               }}
             />
             {putawayTasks && putawayTasks.length > 0 && (
-              <p className="text-sm text-gray-500 mt-4">
+              <p className="text-sm text-slate-500 mt-4">
                 Manage putaway tasks from the{' '}
                 <a href="/inventory/putaway" className="text-primary-600 hover:underline">
                   Putaway page

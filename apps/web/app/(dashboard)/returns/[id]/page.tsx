@@ -128,7 +128,7 @@ export default function RmaDetailPage() {
   if (!rma) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">RMA not found</h2>
+        <h2 className="text-lg font-medium text-slate-900">RMA not found</h2>
       </div>
     );
   }
@@ -148,13 +148,13 @@ export default function RmaDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{rma.rmaNo}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{rma.rmaNo}</h1>
             <Badge variant={getStatusVariant(rma.status)}>
               {rma.status?.replace(/_/g, ' ')}
             </Badge>
             <Badge variant="default">{rma.returnType}</Badge>
           </div>
-          <p className="text-gray-500 mt-1">
+          <p className="text-slate-500 mt-1">
             Created {new Date(rma.createdAt).toLocaleDateString()}
           </p>
         </div>
@@ -184,8 +184,8 @@ export default function RmaDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{totalRequested}</div>
-            <p className="text-sm text-gray-500">Qty Requested</p>
+            <div className="text-2xl font-bold text-slate-900">{totalRequested}</div>
+            <p className="text-sm text-slate-500">Qty Requested</p>
           </CardContent>
         </Card>
         <Card>
@@ -193,19 +193,19 @@ export default function RmaDetailPage() {
             <div className={`text-2xl font-bold ${totalReceived >= totalRequested ? 'text-green-600' : 'text-orange-600'}`}>
               {totalReceived}
             </div>
-            <p className="text-sm text-gray-500">Qty Received</p>
+            <p className="text-sm text-slate-500">Qty Received</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-blue-600">{totalInspected}</div>
-            <p className="text-sm text-gray-500">Qty Inspected</p>
+            <p className="text-sm text-slate-500">Qty Inspected</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{lines?.length || 0}</div>
-            <p className="text-sm text-gray-500">Line Items</p>
+            <div className="text-2xl font-bold text-slate-900">{lines?.length || 0}</div>
+            <p className="text-sm text-slate-500">Line Items</p>
           </CardContent>
         </Card>
       </div>
@@ -219,23 +219,23 @@ export default function RmaDetailPage() {
           <CardContent>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-gray-500">Customer</dt>
+                <dt className="text-slate-500">Customer</dt>
                 <dd className="font-medium">{rma.customerName || rma.customerId}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Customer Code</dt>
+                <dt className="text-slate-500">Customer Code</dt>
                 <dd className="font-medium">{rma.customerCode || '-'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Original Order</dt>
+                <dt className="text-slate-500">Original Order</dt>
                 <dd className="font-medium">{rma.orderNo || '-'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Return Type</dt>
+                <dt className="text-slate-500">Return Type</dt>
                 <dd className="font-medium">{rma.returnType}</dd>
               </div>
               <div className="col-span-2">
-                <dt className="text-gray-500">Reason</dt>
+                <dt className="text-slate-500">Reason</dt>
                 <dd className="font-medium">{rma.reason}</dd>
               </div>
             </dl>
@@ -248,7 +248,7 @@ export default function RmaDetailPage() {
               <CardTitle>Notes</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700">{rma.notes}</p>
+              <p className="text-slate-700">{rma.notes}</p>
             </CardContent>
           </Card>
         )}
@@ -307,12 +307,12 @@ function WorkflowStep({ label, active, complete }: { label: string; active: bool
             ? 'bg-green-600 text-white'
             : active
             ? 'bg-primary-600 text-white'
-            : 'bg-gray-200 text-gray-400'
+            : 'bg-slate-200 text-slate-400'
         }`}
       >
         {complete ? '✓' : ''}
       </div>
-      <span className={`mt-1 text-xs ${active || complete ? 'text-gray-900' : 'text-gray-400'}`}>
+      <span className={`mt-1 text-xs ${active || complete ? 'text-slate-900' : 'text-slate-400'}`}>
         {label}
       </span>
     </div>
@@ -321,7 +321,7 @@ function WorkflowStep({ label, active, complete }: { label: string; active: bool
 
 function WorkflowConnector({ complete }: { complete: boolean }) {
   return (
-    <div className={`flex-1 h-0.5 mx-1 ${complete ? 'bg-green-600' : 'bg-gray-200'}`} />
+    <div className={`flex-1 h-0.5 mx-1 ${complete ? 'bg-green-600' : 'bg-slate-200'}`} />
   );
 }
 

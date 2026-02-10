@@ -45,8 +45,8 @@ export default function NotificationsPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-          <p className="text-gray-500 mt-1">Stay updated on important events and alerts.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Notifications</h1>
+          <p className="text-slate-500 mt-1">Stay updated on important events and alerts.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -74,12 +74,12 @@ export default function NotificationsPage() {
               <Spinner size="lg" />
             </div>
           ) : data?.data && data.data.length > 0 ? (
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-slate-200">
               {data.data.map((notification) => (
                 <div
                   key={notification.id}
                   className={cn(
-                    'px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors',
+                    'px-6 py-4 hover:bg-slate-50 cursor-pointer transition-colors',
                     !notification.isRead && 'bg-blue-50'
                   )}
                   onClick={() => handleNotificationClick(notification)}
@@ -92,9 +92,9 @@ export default function NotificationsPage() {
                           <p className={cn('text-sm', !notification.isRead && 'font-semibold')}>
                             {notification.title}
                           </p>
-                          <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                          <p className="text-sm text-slate-600 mt-1">{notification.message}</p>
                           <div className="flex items-center gap-3 mt-2">
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-slate-400">
                               {formatDateTime(notification.createdAt)}
                             </span>
                             <CategoryBadge category={notification.category} />
@@ -106,7 +106,7 @@ export default function NotificationsPage() {
                           )}
                           <button
                             type="button"
-                            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                            className="p-1 text-slate-400 hover:text-red-500 transition-colors"
                             onClick={(e) => handleDelete(e, notification.id)}
                             title="Delete notification"
                           >
@@ -120,7 +120,7 @@ export default function NotificationsPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-slate-500">
               <BellOffIcon />
               <p className="mt-2">
                 {showUnreadOnly ? 'No unread notifications' : 'No notifications yet'}
@@ -133,7 +133,7 @@ export default function NotificationsPage() {
       {/* Pagination */}
       {data?.meta && (data.meta.totalPages ?? 1) > 1 && (
         <div className="flex items-center justify-between mt-6">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-slate-500">
             Page {page} of {data.meta.totalPages ?? 1} ({data.meta.total ?? 0} total)
           </p>
           <div className="flex gap-2">
@@ -176,7 +176,7 @@ function CategoryBadge({ category }: { category: string }) {
     SALES: 'bg-blue-100 text-blue-700',
     INVENTORY: 'bg-green-100 text-green-700',
     PROCUREMENT: 'bg-purple-100 text-purple-700',
-    SYSTEM: 'bg-gray-100 text-gray-700',
+    SYSTEM: 'bg-slate-100 text-slate-700',
   };
   return (
     <span className={cn('px-2 py-0.5 text-xs rounded-full', colors[category] || colors.SYSTEM)}>
@@ -230,7 +230,7 @@ function TrashIcon() {
 
 function BellOffIcon() {
   return (
-    <svg className="h-16 w-16 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+    <svg className="h-16 w-16 mx-auto text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9.143 17.082a24.248 24.248 0 003.714.318 23.997 23.997 0 003.143-.318m-6.857 0a23.998 23.998 0 01-3.643-.987c.166-.23.323-.469.47-.716A8.986 8.986 0 004 9.75V9A6 6 0 0116 9v.75c0 1.89.577 3.64 1.562 5.086m-10.419 2.246a3 3 0 005.714 0M3 3l18 18" />
     </svg>
   );

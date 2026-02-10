@@ -108,8 +108,8 @@ export default function CycleCountsPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Cycle Counts</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900">Cycle Counts</h1>
+          <p className="text-sm text-slate-500 mt-1">
             Physical inventory counting and variance management
           </p>
         </div>
@@ -143,7 +143,7 @@ export default function CycleCountsPage() {
         </Card>
       )}
 
-      <div className="flex gap-2 border-b border-gray-200 pb-2">
+      <div className="flex gap-2 border-b border-slate-200 pb-2">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
@@ -154,7 +154,7 @@ export default function CycleCountsPage() {
             className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
               statusFilter === tab.value
                 ? 'bg-primary-100 text-primary-700'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
             }`}
           >
             {tab.label}
@@ -180,7 +180,7 @@ export default function CycleCountsPage() {
 
       {data && data.data.length > 0 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">Page {params.page}</p>
+          <p className="text-sm text-slate-500">Page {params.page}</p>
           <div className="flex gap-2">
             <Button
               variant="secondary"

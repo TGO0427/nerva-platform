@@ -50,8 +50,8 @@ export default function CustomerAnalyticsPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Customer Analytics</h1>
-        <p className="text-gray-500 mt-1">Monitor customer performance, sales trends, and order analytics.</p>
+        <h1 className="text-2xl font-bold text-slate-900">Customer Analytics</h1>
+        <p className="text-slate-500 mt-1">Monitor customer performance, sales trends, and order analytics.</p>
       </div>
 
       {/* Summary Cards */}
@@ -103,14 +103,14 @@ export default function CustomerAnalyticsPage() {
                     <div className="ml-4 flex-1">
                       <Link
                         href={`/master-data/customers/${customer.id}`}
-                        className="text-sm font-medium text-gray-900 hover:text-primary-600"
+                        className="text-sm font-medium text-slate-900 hover:text-primary-600"
                       >
                         {customer.name}
                       </Link>
-                      <p className="text-xs text-gray-500">{customer.orderCount} orders</p>
+                      <p className="text-xs text-slate-500">{customer.orderCount} orders</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-slate-900">
                         R {customer.totalValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -118,7 +118,7 @@ export default function CustomerAnalyticsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-sm">No sales data available.</p>
+              <p className="text-slate-500 text-sm">No sales data available.</p>
             )}
           </CardContent>
         </Card>
@@ -132,7 +132,7 @@ export default function CustomerAnalyticsPage() {
             {summary?.recentOrders && summary.recentOrders.length > 0 ? (
               <div className="space-y-3">
                 {summary.recentOrders.map((order) => (
-                  <div key={order.id} className="border-b border-gray-100 pb-3 last:border-0">
+                  <div key={order.id} className="border-b border-slate-100 pb-3 last:border-0">
                     <div className="flex items-start justify-between">
                       <div>
                         <Link
@@ -141,15 +141,15 @@ export default function CustomerAnalyticsPage() {
                         >
                           {order.soNo}
                         </Link>
-                        <p className="text-xs text-gray-500">{order.customerName}</p>
+                        <p className="text-xs text-slate-500">{order.customerName}</p>
                       </div>
                       <OrderStatusBadge status={order.status} />
                     </div>
                     <div className="flex justify-between items-center mt-1">
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-slate-400">
                         {new Date(order.createdAt).toLocaleDateString()}
                       </p>
-                      <p className="text-xs font-medium text-gray-700">
+                      <p className="text-xs font-medium text-slate-700">
                         R {order.totalAmount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -157,7 +157,7 @@ export default function CustomerAnalyticsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-sm">No recent orders.</p>
+              <p className="text-slate-500 text-sm">No recent orders.</p>
             )}
           </CardContent>
         </Card>
@@ -172,7 +172,7 @@ export default function CustomerAnalyticsPage() {
           {salesTrends && salesTrends.length > 0 ? (
             <SimpleBarChart data={salesTrends} color="green" valueKey="value" />
           ) : (
-            <p className="text-gray-500 text-sm">No trend data available.</p>
+            <p className="text-slate-500 text-sm">No trend data available.</p>
           )}
         </CardContent>
       </Card>
@@ -190,10 +190,10 @@ export default function CustomerAnalyticsPage() {
           ) : performance?.data && performance.data.length > 0 ? (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Customer
                       </th>
                       <SortableHeader
@@ -217,20 +217,20 @@ export default function CustomerAnalyticsPage() {
                         sortOrder={sortOrder}
                         onSort={handleSort}
                       />
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">
                         Shipped
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">
                         Cancelled
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Last Order
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-slate-200">
                     {performance.data.map((customer: CustomerPerformanceStats) => (
-                      <tr key={customer.id} className="hover:bg-gray-50">
+                      <tr key={customer.id} className="hover:bg-slate-50">
                         <td className="px-4 py-3 whitespace-nowrap">
                           <Link
                             href={`/master-data/customers/${customer.id}`}
@@ -239,30 +239,30 @@ export default function CustomerAnalyticsPage() {
                             {customer.code ? `${customer.code} - ` : ''}{customer.name}
                           </Link>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
                           {customer.totalOrders}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
                           R {customer.totalOrderValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
                           R {customer.avgOrderValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
                           {customer.shippedOrders > 0 ? (
                             <span className="text-green-600">{customer.shippedOrders}</span>
                           ) : (
-                            <span className="text-gray-400">-</span>
+                            <span className="text-slate-400">-</span>
                           )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
                           {customer.cancelledOrders > 0 ? (
                             <span className="text-red-600">{customer.cancelledOrders}</span>
                           ) : (
-                            <span className="text-gray-400">-</span>
+                            <span className="text-slate-400">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
                           {customer.lastOrderDate
                             ? new Date(customer.lastOrderDate).toLocaleDateString()
                             : '-'}
@@ -276,21 +276,21 @@ export default function CustomerAnalyticsPage() {
               {/* Pagination */}
               {performance.meta && (performance.meta.totalPages ?? 1) > 1 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-slate-500">
                     Page {performancePage} of {performance.meta.totalPages ?? 1}
                   </p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPerformancePage(p => Math.max(1, p - 1))}
                       disabled={performancePage <= 1}
-                      className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
                     >
                       Previous
                     </button>
                     <button
                       onClick={() => setPerformancePage(p => p + 1)}
                       disabled={performancePage >= (performance.meta.totalPages || 1)}
-                      className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
                     >
                       Next
                     </button>
@@ -299,7 +299,7 @@ export default function CustomerAnalyticsPage() {
               )}
             </>
           ) : (
-            <p className="text-gray-500 text-sm py-8 text-center">No customer performance data available.</p>
+            <p className="text-slate-500 text-sm py-8 text-center">No customer performance data available.</p>
           )}
         </CardContent>
       </Card>
@@ -336,9 +336,9 @@ function SummaryCard({
             {icon}
           </div>
           <div className="ml-4">
-            <p className="text-sm text-gray-500">{title}</p>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-400">{subtitle}</p>
+            <p className="text-sm text-slate-500">{title}</p>
+            <p className="text-2xl font-bold text-slate-900">{value}</p>
+            <p className="text-xs text-slate-400">{subtitle}</p>
           </div>
         </div>
       </CardContent>
@@ -363,7 +363,7 @@ function SortableHeader({
   const isActive = currentSort === column;
   return (
     <th
-      className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+      className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase cursor-pointer hover:bg-slate-100"
       onClick={() => onSort(column)}
     >
       <div className="flex items-center justify-end gap-1">
@@ -421,7 +421,7 @@ function SimpleBarChart({
               style={{ height: `${Math.max(height, 2)}%` }}
               title={`${item.month}: ${valueKey === 'value' ? `R ${value.toLocaleString()}` : value}`}
             />
-            <span className="text-xs text-gray-400 mt-1 rotate-45 origin-left whitespace-nowrap">
+            <span className="text-xs text-slate-400 mt-1 rotate-45 origin-left whitespace-nowrap">
               {item.month.slice(0, 3)}
             </span>
           </div>

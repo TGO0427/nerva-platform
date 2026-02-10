@@ -39,7 +39,7 @@ export default function RoutingsPage() {
         <div>
           <div className="font-medium text-primary-600">{row.itemSku || '-'}</div>
           {row.itemDescription && (
-            <div className="text-sm text-gray-500 truncate max-w-[200px]">{row.itemDescription}</div>
+            <div className="text-sm text-slate-500 truncate max-w-[200px]">{row.itemDescription}</div>
           )}
         </div>
       ),

@@ -23,8 +23,8 @@ export default function InventoryReportPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Inventory Report</h1>
-        <p className="text-gray-500 mt-1">Monitor stock levels, valuations, and alerts.</p>
+        <h1 className="text-2xl font-bold text-slate-900">Inventory Report</h1>
+        <p className="text-slate-500 mt-1">Monitor stock levels, valuations, and alerts.</p>
       </div>
 
       {/* Summary Cards */}
@@ -69,23 +69,23 @@ export default function InventoryReportPage() {
         <CardContent>
           {report?.byWarehouse && report.byWarehouse.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Warehouse</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Items</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Qty</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Value</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">% of Total</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Warehouse</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Items</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Total Qty</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Total Value</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">% of Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-slate-200">
                   {report.byWarehouse.map((wh) => {
                     const percentOfTotal = report.summary.totalValue > 0
                       ? (wh.totalValue / report.summary.totalValue) * 100
                       : 0;
                     return (
-                      <tr key={wh.id} className="hover:bg-gray-50">
+                      <tr key={wh.id} className="hover:bg-slate-50">
                         <td className="px-4 py-3 text-sm font-medium">
                           {wh.code ? `${wh.code} - ` : ''}{wh.name}
                         </td>
@@ -96,7 +96,7 @@ export default function InventoryReportPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <div className="w-20 bg-gray-200 rounded-full h-2">
+                            <div className="w-20 bg-slate-200 rounded-full h-2">
                               <div
                                 className="bg-primary-500 h-2 rounded-full"
                                 style={{ width: `${Math.min(percentOfTotal, 100)}%` }}
@@ -112,7 +112,7 @@ export default function InventoryReportPage() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">No warehouse data available.</p>
+            <p className="text-slate-500 text-center py-4">No warehouse data available.</p>
           )}
         </CardContent>
       </Card>
@@ -129,36 +129,36 @@ export default function InventoryReportPage() {
           <CardContent>
             {report?.lowStock && report.lowStock.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Warehouse</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">On Hand</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Reorder</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Item</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Warehouse</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">On Hand</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Reorder</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-slate-200">
                     {report.lowStock.map((item) => (
-                      <tr key={item.inventoryId} className="hover:bg-gray-50">
+                      <tr key={item.inventoryId} className="hover:bg-slate-50">
                         <td className="px-4 py-2 text-sm">
                           <Link href={`/master-data/items/${item.itemId}`} className="text-primary-600 hover:underline">
                             {item.sku}
                           </Link>
-                          <p className="text-xs text-gray-500 truncate max-w-[200px]">{item.description}</p>
+                          <p className="text-xs text-slate-500 truncate max-w-[200px]">{item.description}</p>
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-600">{item.warehouseName}</td>
+                        <td className="px-4 py-2 text-sm text-slate-600">{item.warehouseName}</td>
                         <td className="px-4 py-2 text-sm text-right">
                           <Badge variant="danger">{item.qtyOnHand}</Badge>
                         </td>
-                        <td className="px-4 py-2 text-sm text-right text-gray-500">{item.reorderPoint}</td>
+                        <td className="px-4 py-2 text-sm text-right text-slate-500">{item.reorderPoint}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-slate-500">
                 <CheckIcon />
                 <p className="mt-2">No low stock items</p>
               </div>
@@ -177,29 +177,29 @@ export default function InventoryReportPage() {
           <CardContent>
             {report?.expiringSoon && report.expiringSoon.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Batch</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Expires</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Item</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Batch</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Qty</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Expires</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-slate-200">
                     {report.expiringSoon.map((item) => {
                       const daysUntil = item.expiryDate
                         ? Math.ceil((new Date(item.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                         : null;
                       return (
-                        <tr key={item.inventoryId} className="hover:bg-gray-50">
+                        <tr key={item.inventoryId} className="hover:bg-slate-50">
                           <td className="px-4 py-2 text-sm">
                             <Link href={`/master-data/items/${item.itemId}`} className="text-primary-600 hover:underline">
                               {item.sku}
                             </Link>
-                            <p className="text-xs text-gray-500 truncate max-w-[200px]">{item.description}</p>
+                            <p className="text-xs text-slate-500 truncate max-w-[200px]">{item.description}</p>
                           </td>
-                          <td className="px-4 py-2 text-sm text-gray-600">{item.batchNumber || '-'}</td>
+                          <td className="px-4 py-2 text-sm text-slate-600">{item.batchNumber || '-'}</td>
                           <td className="px-4 py-2 text-sm text-right">{item.qtyOnHand}</td>
                           <td className="px-4 py-2 text-sm">
                             {item.expiryDate && (
@@ -215,7 +215,7 @@ export default function InventoryReportPage() {
                 </table>
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-slate-500">
                 <CheckIcon />
                 <p className="mt-2">No items expiring soon</p>
               </div>
@@ -251,8 +251,8 @@ function SummaryCard({
       <CardContent className="pt-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">{title}</p>
-            <p className="text-xl font-bold text-gray-900">{value}</p>
+            <p className="text-sm text-slate-500">{title}</p>
+            <p className="text-xl font-bold text-slate-900">{value}</p>
           </div>
           <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${colorClasses[color]}`}>
             {icon}

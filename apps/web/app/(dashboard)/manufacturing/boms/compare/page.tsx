@@ -36,7 +36,7 @@ export default function CompareBomPage() {
       <Card className="p-6 mb-6 mt-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               First BOM
             </label>
             <Select
@@ -53,7 +53,7 @@ export default function CompareBomPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               Second BOM
             </label>
             <Select
@@ -73,7 +73,7 @@ export default function CompareBomPage() {
 
       {isComparing && (
         <Card className="p-12">
-          <div className="text-center text-gray-500">
+          <div className="text-center text-slate-500">
             Loading comparison...
           </div>
         </Card>
@@ -163,19 +163,19 @@ export default function CompareBomPage() {
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <div className="font-medium">{item.left.itemId.slice(0, 8)}</div>
-                        <div className="text-sm text-gray-500">Changed: {item.changedFields.join(', ')}</div>
+                        <div className="text-sm text-slate-500">Changed: {item.changedFields.join(', ')}</div>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="bg-gray-50 p-3 rounded">
-                        <div className="text-gray-500 mb-1">Before</div>
+                      <div className="bg-slate-50 p-3 rounded">
+                        <div className="text-slate-500 mb-1">Before</div>
                         <div>Qty: {item.left.qtyPer} {item.left.uom}</div>
                         {item.left.scrapPct !== undefined && (
                           <div>Scrap: {item.left.scrapPct}%</div>
                         )}
                       </div>
                       <div className="bg-yellow-50 p-3 rounded">
-                        <div className="text-gray-500 mb-1">After</div>
+                        <div className="text-slate-500 mb-1">After</div>
                         <div className="flex items-center gap-2">
                           Qty: {item.right.qtyPer} {item.right.uom}
                           {item.left.qtyPer !== item.right.qtyPer && (
@@ -198,9 +198,9 @@ export default function CompareBomPage() {
           {/* No Changes */}
           {added.length === 0 && removed.length === 0 && changed.length === 0 && (
             <Card className="p-12">
-              <div className="text-center text-gray-500">
+              <div className="text-center text-slate-500">
                 <CheckIcon className="h-12 w-12 mx-auto mb-4 text-green-500" />
-                <h3 className="text-lg font-medium text-gray-900">No Differences</h3>
+                <h3 className="text-lg font-medium text-slate-900">No Differences</h3>
                 <p className="mt-1">The two BOMs have identical components.</p>
               </div>
             </Card>
@@ -210,9 +210,9 @@ export default function CompareBomPage() {
 
       {!bom1Id || !bom2Id ? (
         <Card className="p-12">
-          <div className="text-center text-gray-500">
+          <div className="text-center text-slate-500">
             <CompareIcon className="h-12 w-12 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900">Select BOMs to Compare</h3>
+            <h3 className="text-lg font-medium text-slate-900">Select BOMs to Compare</h3>
             <p className="mt-1">Choose two BOMs above to see the differences.</p>
           </div>
         </Card>

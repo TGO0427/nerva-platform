@@ -35,8 +35,8 @@ export default function WorkOrderDetailPage() {
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <h2 className="text-lg font-semibold text-gray-900">Work order not found</h2>
-          <p className="mt-2 text-gray-500">The work order you're looking for doesn't exist.</p>
+          <h2 className="text-lg font-semibold text-slate-900">Work order not found</h2>
+          <p className="mt-2 text-slate-500">The work order you're looking for doesn't exist.</p>
           <Link href="/manufacturing/work-orders">
             <Button className="mt-4">Back to Work Orders</Button>
           </Link>
@@ -199,7 +199,7 @@ export default function WorkOrderDetailPage() {
           {/* Header Info */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Status</div>
+              <div className="text-sm text-slate-500">Status</div>
               <div className="mt-1">
                 <Badge variant={getStatusVariant(workOrder.status)} >
                   {workOrder.status.replace(/_/g, ' ')}
@@ -207,7 +207,7 @@ export default function WorkOrderDetailPage() {
               </div>
             </Card>
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Priority</div>
+              <div className="text-sm text-slate-500">Priority</div>
               <div className="mt-1">
                 <Badge variant={getPriorityVariant(workOrder.priority)} >
                   {getPriorityLabel(workOrder.priority)}
@@ -215,9 +215,9 @@ export default function WorkOrderDetailPage() {
               </div>
             </Card>
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Progress</div>
+              <div className="text-sm text-slate-500">Progress</div>
               <div className="mt-1 flex items-center gap-2">
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                <div className="flex-1 bg-slate-200 rounded-full h-2">
                   <div
                     className="bg-blue-600 h-2 rounded-full"
                     style={{ width: `${Math.min(progressPercentage, 100)}%` }}
@@ -227,7 +227,7 @@ export default function WorkOrderDetailPage() {
               </div>
             </Card>
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Quantity</div>
+              <div className="text-sm text-slate-500">Quantity</div>
               <div className="mt-1 text-lg font-semibold">
                 {workOrder.qtyCompleted.toLocaleString()} / {workOrder.qtyOrdered.toLocaleString()}
               </div>
@@ -239,43 +239,43 @@ export default function WorkOrderDetailPage() {
             <h3 className="text-lg font-medium mb-4">Details</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <div className="text-sm text-gray-500">Product</div>
+                <div className="text-sm text-slate-500">Product</div>
                 <div className="mt-1 font-medium">{(workOrder as any).itemSku || workOrder.itemId.slice(0, 8)}</div>
                 {(workOrder as any).itemDescription && (
-                  <div className="text-sm text-gray-500">{(workOrder as any).itemDescription}</div>
+                  <div className="text-sm text-slate-500">{(workOrder as any).itemDescription}</div>
                 )}
               </div>
               <div>
-                <div className="text-sm text-gray-500">Warehouse</div>
+                <div className="text-sm text-slate-500">Warehouse</div>
                 <div className="mt-1">{(workOrder as any).warehouseName || workOrder.warehouseId.slice(0, 8)}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Planned Start</div>
+                <div className="text-sm text-slate-500">Planned Start</div>
                 <div className="mt-1">
                   {workOrder.plannedStart ? new Date(workOrder.plannedStart).toLocaleDateString() : '-'}
                 </div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Planned End</div>
+                <div className="text-sm text-slate-500">Planned End</div>
                 <div className="mt-1">
                   {workOrder.plannedEnd ? new Date(workOrder.plannedEnd).toLocaleDateString() : '-'}
                 </div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Actual Start</div>
+                <div className="text-sm text-slate-500">Actual Start</div>
                 <div className="mt-1">
                   {workOrder.actualStart ? new Date(workOrder.actualStart).toLocaleString() : '-'}
                 </div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Actual End</div>
+                <div className="text-sm text-slate-500">Actual End</div>
                 <div className="mt-1">
                   {workOrder.actualEnd ? new Date(workOrder.actualEnd).toLocaleString() : '-'}
                 </div>
               </div>
               {workOrder.notes && (
                 <div className="col-span-full">
-                  <div className="text-sm text-gray-500">Notes</div>
+                  <div className="text-sm text-slate-500">Notes</div>
                   <div className="mt-1">{workOrder.notes}</div>
                 </div>
               )}
@@ -291,7 +291,7 @@ export default function WorkOrderDetailPage() {
                   className={`py-3 px-1 border-b-2 font-medium text-sm ${
                     activeTab === 'materials'
                       ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   Materials ({workOrder.materials?.length || 0})
@@ -301,7 +301,7 @@ export default function WorkOrderDetailPage() {
                   className={`py-3 px-1 border-b-2 font-medium text-sm ${
                     activeTab === 'operations'
                       ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   Operations ({workOrder.operations?.length || 0})

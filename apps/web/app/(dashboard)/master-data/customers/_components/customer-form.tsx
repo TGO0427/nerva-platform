@@ -203,7 +203,7 @@ export function CustomerForm({ customer, onSubmit, isSubmitting }: CustomerFormP
               type="checkbox"
               checked={copyBillingToShipping}
               onChange={(e) => setCopyBillingToShipping(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
             />
             Same as billing
           </label>
@@ -259,9 +259,9 @@ export function CustomerForm({ customer, onSubmit, isSubmitting }: CustomerFormP
                 type="checkbox"
                 checked={formData.isActive}
                 onChange={(e) => handleChange('isActive', e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
               />
-              <span className="text-sm text-gray-700">Customer is active</span>
+              <span className="text-sm text-slate-700">Customer is active</span>
             </label>
           </CardContent>
         </Card>

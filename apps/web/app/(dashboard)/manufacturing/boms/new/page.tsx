@@ -91,7 +91,7 @@ export default function NewBomPage() {
           <h3 className="text-lg font-medium mb-4">Product Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Product <span className="text-red-500">*</span>
               </label>
               <Select
@@ -109,7 +109,7 @@ export default function NewBomPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Base Quantity <span className="text-red-500">*</span>
                 </label>
                 <Input
@@ -121,7 +121,7 @@ export default function NewBomPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   UOM
                 </label>
                 <Input
@@ -132,7 +132,7 @@ export default function NewBomPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Effective From
               </label>
               <Input
@@ -143,7 +143,7 @@ export default function NewBomPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Effective To
               </label>
               <Input
@@ -154,11 +154,11 @@ export default function NewBomPage() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Notes
               </label>
               <textarea
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={2}
                 value={formData.notes}
                 onChange={(e) => handleChange('notes', e.target.value)}
@@ -178,16 +178,16 @@ export default function NewBomPage() {
           </div>
 
           {lines.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-slate-500">
               <p>No components added yet.</p>
               <p className="text-sm">Click "Add Component" to add materials to this BOM.</p>
             </div>
           ) : (
             <div className="space-y-4">
               {lines.map((line, index) => (
-                <div key={index} className="grid grid-cols-12 gap-3 items-start p-4 bg-gray-50 rounded-lg">
+                <div key={index} className="grid grid-cols-12 gap-3 items-start p-4 bg-slate-50 rounded-lg">
                   <div className="col-span-4">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Component</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Component</label>
                     <Select
                       value={line.itemId}
                       onChange={(e) => updateLine(index, 'itemId', e.target.value)}
@@ -201,7 +201,7 @@ export default function NewBomPage() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Qty Per</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Qty Per</label>
                     <Input
                       type="number"
                       min="0.0001"
@@ -212,14 +212,14 @@ export default function NewBomPage() {
                     />
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">UOM</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">UOM</label>
                     <Input
                       value={line.uom}
                       onChange={(e) => updateLine(index, 'uom', e.target.value)}
                     />
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Scrap %</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Scrap %</label>
                     <Input
                       type="number"
                       min="0"
@@ -230,16 +230,16 @@ export default function NewBomPage() {
                     />
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Critical</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Critical</label>
                     <input
                       type="checkbox"
                       checked={line.isCritical}
                       onChange={(e) => updateLine(index, 'isCritical', e.target.checked)}
-                      className="mt-2 h-4 w-4 rounded border-gray-300"
+                      className="mt-2 h-4 w-4 rounded border-slate-300"
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Notes</label>
                     <Input
                       value={line.notes}
                       onChange={(e) => updateLine(index, 'notes', e.target.value)}
@@ -247,7 +247,7 @@ export default function NewBomPage() {
                     />
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">&nbsp;</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">&nbsp;</label>
                     <Button
                       type="button"
                       variant="ghost"

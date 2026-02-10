@@ -38,8 +38,8 @@ export default function EditSupplierPage() {
   if (!supplier) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">Supplier not found</h2>
-        <p className="text-gray-500 mt-1">The supplier you are looking for does not exist.</p>
+        <h2 className="text-lg font-medium text-slate-900">Supplier not found</h2>
+        <p className="text-slate-500 mt-1">The supplier you are looking for does not exist.</p>
         <Link href="/master-data/suppliers" className="text-primary-600 hover:underline mt-4 inline-block">
           Back to suppliers
         </Link>
@@ -52,8 +52,8 @@ export default function EditSupplierPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Supplier</h1>
-        <p className="text-gray-500 mt-1">Update supplier information</p>
+        <h1 className="text-2xl font-bold text-slate-900">Edit Supplier</h1>
+        <p className="text-slate-500 mt-1">Update supplier information</p>
       </div>
 
       {error && (

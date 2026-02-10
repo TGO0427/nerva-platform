@@ -138,8 +138,8 @@ export default function NewGrnPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">New GRN</h1>
-          <p className="text-gray-500 mt-1">Create a new goods receipt note</p>
+          <h1 className="text-2xl font-bold text-slate-900">New GRN</h1>
+          <p className="text-slate-500 mt-1">Create a new goods receipt note</p>
         </div>
       </div>
 
@@ -158,7 +158,7 @@ export default function NewGrnPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Warehouse *
                 </label>
                 <Select
@@ -168,7 +168,7 @@ export default function NewGrnPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Supplier Reference
                 </label>
                 <Input
@@ -178,7 +178,7 @@ export default function NewGrnPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Notes
                 </label>
                 <Textarea
@@ -245,15 +245,15 @@ export default function NewGrnPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Line Items</span>
+                <span className="text-slate-500">Line Items</span>
                 <span className="font-medium">{lines.length}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Total Expected Qty</span>
+                <span className="text-slate-500">Total Expected Qty</span>
                 <span className="font-medium">{totalExpected}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Warehouse</span>
+                <span className="text-slate-500">Warehouse</span>
                 <span className="font-medium">
                   {warehouses?.find(w => w.id === warehouseId)?.name || '-'}
                 </span>

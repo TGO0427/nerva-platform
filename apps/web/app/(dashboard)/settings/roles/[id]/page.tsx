@@ -105,7 +105,7 @@ export default function RoleDetailPage() {
   if (!role) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-gray-900">Role not found</h2>
+        <h2 className="text-lg font-medium text-slate-900">Role not found</h2>
         <Button className="mt-4" onClick={() => router.push('/settings/roles')}>
           Back to Roles
         </Button>
@@ -119,8 +119,8 @@ export default function RoleDetailPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{role.name}</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900">{role.name}</h1>
+          <p className="text-slate-500 mt-1">
             {role.description || 'No description'}
           </p>
         </div>
@@ -144,7 +144,7 @@ export default function RoleDetailPage() {
             {isEditingDetails ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Role Name
                   </label>
                   <Input
@@ -153,7 +153,7 @@ export default function RoleDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Description
                   </label>
                   <Input
@@ -180,21 +180,21 @@ export default function RoleDetailPage() {
             ) : (
               <dl className="space-y-3 text-sm">
                 <div>
-                  <dt className="text-gray-500">Name</dt>
+                  <dt className="text-slate-500">Name</dt>
                   <dd className="font-medium">{role.name}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Description</dt>
+                  <dt className="text-slate-500">Description</dt>
                   <dd className="font-medium">{role.description || '-'}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Created</dt>
+                  <dt className="text-slate-500">Created</dt>
                   <dd className="font-medium">
                     {new Date(role.createdAt).toLocaleDateString()}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Permissions</dt>
+                  <dt className="text-slate-500">Permissions</dt>
                   <dd className="font-medium">{selectedPermissions.size} assigned</dd>
                 </div>
               </dl>
@@ -224,7 +224,7 @@ export default function RoleDetailPage() {
               <div className="space-y-6">
                 {Object.entries(groupedPermissions).map(([module, permissions]) => (
                   <div key={module}>
-                    <h4 className="text-sm font-medium text-gray-700 mb-3 uppercase tracking-wide">
+                    <h4 className="text-sm font-medium text-slate-700 mb-3 uppercase tracking-wide">
                       {module}
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -234,24 +234,24 @@ export default function RoleDetailPage() {
                           className={`flex items-start p-3 border rounded-lg cursor-pointer transition-colors ${
                             selectedPermissions.has(permission.id)
                               ? 'border-primary-300 bg-primary-50'
-                              : 'border-gray-200 hover:border-gray-300'
+                              : 'border-slate-200 hover:border-slate-300'
                           }`}
                         >
                           <input
                             type="checkbox"
                             checked={selectedPermissions.has(permission.id)}
                             onChange={() => handleTogglePermission(permission.id)}
-                            className="mt-0.5 h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                            className="mt-0.5 h-4 w-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
                           />
                           <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-slate-900">
                               {permission.name}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-slate-500">
                               {permission.code}
                             </div>
                             {permission.description && (
-                              <div className="text-xs text-gray-400 mt-1">
+                              <div className="text-xs text-slate-400 mt-1">
                                 {permission.description}
                               </div>
                             )}
@@ -263,7 +263,7 @@ export default function RoleDetailPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-8">No permissions available</p>
+              <p className="text-slate-500 text-center py-8">No permissions available</p>
             )}
           </CardContent>
         </Card>

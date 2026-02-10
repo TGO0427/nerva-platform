@@ -130,7 +130,7 @@ export default function AdjustmentDetailPage() {
   if (!adjustment) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Adjustment not found</p>
+        <p className="text-slate-500">Adjustment not found</p>
         <Link href="/inventory/adjustments" className="text-primary-600 hover:underline mt-2 inline-block">
           Back to Adjustments
         </Link>
@@ -147,7 +147,7 @@ export default function AdjustmentDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">{adjustment.adjustmentNo}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{adjustment.adjustmentNo}</h1>
           <Badge variant={statusVariant[adjustment.status] || 'info'}>
             {adjustment.status}
           </Badge>
@@ -184,19 +184,19 @@ export default function AdjustmentDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Warehouse</p>
+            <p className="text-sm text-slate-500">Warehouse</p>
             <p className="text-lg font-semibold">{warehouseName || '-'}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Reason</p>
+            <p className="text-sm text-slate-500">Reason</p>
             <p className="text-lg font-semibold">{adjustment.reason}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Created</p>
+            <p className="text-sm text-slate-500">Created</p>
             <p className="text-lg font-semibold">
               {new Date(adjustment.createdAt).toLocaleDateString()}
             </p>
@@ -204,9 +204,9 @@ export default function AdjustmentDetailPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Net Change</p>
+            <p className="text-sm text-slate-500">Net Change</p>
             <p className={`text-lg font-semibold ${
-              totalDelta > 0 ? 'text-green-600' : totalDelta < 0 ? 'text-red-600' : 'text-gray-900'
+              totalDelta > 0 ? 'text-green-600' : totalDelta < 0 ? 'text-red-600' : 'text-slate-900'
             }`}>
               {totalDelta > 0 ? '+' : ''}{totalDelta}
             </p>
@@ -217,7 +217,7 @@ export default function AdjustmentDetailPage() {
       {adjustment.notes && (
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Notes</p>
+            <p className="text-sm text-slate-500">Notes</p>
             <p className="text-sm mt-1">{adjustment.notes}</p>
           </CardContent>
         </Card>
@@ -242,7 +242,7 @@ export default function AdjustmentDetailPage() {
         <CardContent>
           {/* Add line form */}
           {showLineForm && isDraft && (
-            <form onSubmit={handleAddLine} className="mb-6 p-4 bg-gray-50 rounded-lg space-y-4">
+            <form onSubmit={handleAddLine} className="mb-6 p-4 bg-slate-50 rounded-lg space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Select
                   label="Bin"
@@ -300,14 +300,14 @@ export default function AdjustmentDetailPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-medium text-gray-500">Item</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-500">Bin</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-500">Batch</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-500">Qty Before</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-500">Qty After</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-500">Delta</th>
-                    {isDraft && <th className="text-right py-3 px-4 font-medium text-gray-500">Actions</th>}
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-3 px-4 font-medium text-slate-500">Item</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-500">Bin</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-500">Batch</th>
+                    <th className="text-right py-3 px-4 font-medium text-slate-500">Qty Before</th>
+                    <th className="text-right py-3 px-4 font-medium text-slate-500">Qty After</th>
+                    <th className="text-right py-3 px-4 font-medium text-slate-500">Delta</th>
+                    {isDraft && <th className="text-right py-3 px-4 font-medium text-slate-500">Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -315,12 +315,12 @@ export default function AdjustmentDetailPage() {
                     const item = itemMap.get(line.itemId);
                     const bin = binMap.get(line.binId);
                     return (
-                      <tr key={line.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr key={line.id} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="py-3 px-4">
                           <div>
                             <span className="font-medium">{item?.sku || line.itemId}</span>
                             {item?.description && (
-                              <span className="text-gray-500 ml-2">{item.description}</span>
+                              <span className="text-slate-500 ml-2">{item.description}</span>
                             )}
                           </div>
                         </td>
@@ -329,7 +329,7 @@ export default function AdjustmentDetailPage() {
                         <td className="py-3 px-4 text-right">{line.qtyBefore}</td>
                         <td className="py-3 px-4 text-right">{line.qtyAfter}</td>
                         <td className={`py-3 px-4 text-right font-medium ${
-                          line.qtyDelta > 0 ? 'text-green-600' : line.qtyDelta < 0 ? 'text-red-600' : 'text-gray-500'
+                          line.qtyDelta > 0 ? 'text-green-600' : line.qtyDelta < 0 ? 'text-red-600' : 'text-slate-500'
                         }`}>
                           {line.qtyDelta > 0 ? '+' : ''}{line.qtyDelta}
                         </td>
@@ -354,7 +354,7 @@ export default function AdjustmentDetailPage() {
           ) : (
             <div className="text-center py-8">
               <svg
-                className="mx-auto h-12 w-12 text-gray-400"
+                className="mx-auto h-12 w-12 text-slate-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -366,7 +366,7 @@ export default function AdjustmentDetailPage() {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              <p className="mt-2 text-sm text-gray-500">No lines added yet</p>
+              <p className="mt-2 text-sm text-slate-500">No lines added yet</p>
               {isDraft && (
                 <Button
                   variant="secondary"
@@ -386,7 +386,7 @@ export default function AdjustmentDetailPage() {
       {adjustment.approvedBy && (
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Approved</p>
+            <p className="text-sm text-slate-500">Approved</p>
             <p className="text-sm mt-1">
               {adjustment.approvedAt && new Date(adjustment.approvedAt).toLocaleString()}
             </p>

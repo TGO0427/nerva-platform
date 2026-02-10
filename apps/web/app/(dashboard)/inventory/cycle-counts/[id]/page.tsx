@@ -172,7 +172,7 @@ export default function CycleCountDetailPage() {
   if (!cc) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Cycle count not found</p>
+        <p className="text-slate-500">Cycle count not found</p>
         <Link href="/inventory/cycle-counts" className="text-primary-600 hover:underline mt-2 inline-block">
           Back to Cycle Counts
         </Link>
@@ -187,7 +187,7 @@ export default function CycleCountDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">{cc.countNo}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{cc.countNo}</h1>
           <Badge variant={statusVariant[cc.status] || 'info'}>
             {cc.status.replace(/_/g, ' ')}
           </Badge>
@@ -236,16 +236,16 @@ export default function CycleCountDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Warehouse</p>
+            <p className="text-sm text-slate-500">Warehouse</p>
             <p className="text-lg font-semibold">{warehouseName || '-'}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Progress</p>
+            <p className="text-sm text-slate-500">Progress</p>
             <p className="text-lg font-semibold">{countedLines} / {totalLines} lines</p>
             {totalLines > 0 && (
-              <div className="mt-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="mt-1 h-2 bg-slate-200 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary-500 rounded-full transition-all"
                   style={{ width: `${(countedLines / totalLines) * 100}%` }}
@@ -256,7 +256,7 @@ export default function CycleCountDetailPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Variances</p>
+            <p className="text-sm text-slate-500">Variances</p>
             <p className={`text-lg font-semibold ${varianceLines.length > 0 ? 'text-red-600' : 'text-green-600'}`}>
               {varianceLines.length} lines
             </p>
@@ -264,7 +264,7 @@ export default function CycleCountDetailPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Total Abs. Variance</p>
+            <p className="text-sm text-slate-500">Total Abs. Variance</p>
             <p className={`text-lg font-semibold ${totalVariance > 0 ? 'text-red-600' : 'text-green-600'}`}>
               {totalVariance}
             </p>
@@ -292,7 +292,7 @@ export default function CycleCountDetailPage() {
         <CardContent>
           {/* Add from bin form */}
           {showAddFromBin && isOpen && (
-            <form onSubmit={handleAddFromBin} className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <form onSubmit={handleAddFromBin} className="mb-6 p-4 bg-slate-50 rounded-lg">
               <div className="flex items-end gap-4">
                 <div className="flex-1">
                   <Select
@@ -316,7 +316,7 @@ export default function CycleCountDetailPage() {
 
           {/* Add single line form */}
           {showAddLine && isOpen && (
-            <form onSubmit={handleAddLine} className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <form onSubmit={handleAddLine} className="mb-6 p-4 bg-slate-50 rounded-lg">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Select
                   label="Bin"
@@ -358,21 +358,21 @@ export default function CycleCountDetailPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-medium text-gray-500">Bin</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-500">Item</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-500">System Qty</th>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-3 px-4 font-medium text-slate-500">Bin</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-500">Item</th>
+                    <th className="text-right py-3 px-4 font-medium text-slate-500">System Qty</th>
                     {(isInProgress || isPendingApproval || cc.status === 'CLOSED') && (
                       <>
-                        <th className="text-right py-3 px-4 font-medium text-gray-500">Counted Qty</th>
-                        <th className="text-right py-3 px-4 font-medium text-gray-500">Variance</th>
+                        <th className="text-right py-3 px-4 font-medium text-slate-500">Counted Qty</th>
+                        <th className="text-right py-3 px-4 font-medium text-slate-500">Variance</th>
                       </>
                     )}
                     {isInProgress && (
-                      <th className="text-right py-3 px-4 font-medium text-gray-500">Count</th>
+                      <th className="text-right py-3 px-4 font-medium text-slate-500">Count</th>
                     )}
                     {isOpen && (
-                      <th className="text-right py-3 px-4 font-medium text-gray-500">Actions</th>
+                      <th className="text-right py-3 px-4 font-medium text-slate-500">Actions</th>
                     )}
                   </tr>
                 </thead>
@@ -399,7 +399,7 @@ export default function CycleCountDetailPage() {
           ) : (
             <div className="text-center py-8">
               <svg
-                className="mx-auto h-12 w-12 text-gray-400"
+                className="mx-auto h-12 w-12 text-slate-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -411,9 +411,9 @@ export default function CycleCountDetailPage() {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              <p className="mt-2 text-sm text-gray-500">No lines added yet</p>
+              <p className="mt-2 text-sm text-slate-500">No lines added yet</p>
               {isOpen && (
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-sm text-slate-400 mt-1">
                   Use &quot;Add All from Bin&quot; to populate items from a bin
                 </p>
               )}
@@ -448,7 +448,7 @@ function LineRow({
   const isCounted = line.countedQty !== null;
 
   return (
-    <tr className={`border-b border-gray-100 hover:bg-gray-50 ${
+    <tr className={`border-b border-slate-100 hover:bg-slate-50 ${
       isCounted && line.varianceQty !== 0 ? 'bg-red-50' : ''
     }`}>
       <td className="py-3 px-4">{line.binCode || line.binId}</td>
@@ -456,7 +456,7 @@ function LineRow({
         <div>
           <span className="font-medium">{line.itemSku || line.itemId}</span>
           {line.itemDescription && (
-            <span className="text-gray-500 ml-2">{line.itemDescription}</span>
+            <span className="text-slate-500 ml-2">{line.itemDescription}</span>
           )}
         </div>
       </td>
@@ -467,7 +467,7 @@ function LineRow({
             {isCounted ? line.countedQty : '-'}
           </td>
           <td className={`py-3 px-4 text-right font-medium ${
-            !isCounted ? 'text-gray-400' :
+            !isCounted ? 'text-slate-400' :
             line.varianceQty > 0 ? 'text-orange-600' :
             line.varianceQty < 0 ? 'text-red-600' :
             'text-green-600'
@@ -483,7 +483,7 @@ function LineRow({
               type="number"
               min="0"
               step="1"
-              className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 text-right"
+              className="w-20 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 text-right"
               value={countInput}
               onChange={(e) => onCountInputChange(e.target.value)}
               placeholder={isCounted ? String(line.countedQty) : '0'}

@@ -89,12 +89,12 @@ export function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6">
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-6">
       {/* Left side - Menu button (mobile) */}
       <div className="flex items-center">
         <button
           type="button"
-          className="lg:hidden p-2 -ml-2 text-gray-500 hover:text-gray-700"
+          className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-700"
           onClick={onMenuClick}
         >
           <span className="sr-only">Open menu</span>
@@ -111,18 +111,18 @@ export function Header({ onMenuClick }: HeaderProps) {
           <div className="relative hidden sm:block" ref={siteMenuRef}>
             <button
               type="button"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
               onClick={() => setIsSiteMenuOpen(!isSiteMenuOpen)}
             >
               <SiteIcon />
               <div className="text-left">
-                <p className="text-xs text-gray-500 leading-none">Site</p>
-                <p className="text-sm font-medium text-gray-700 leading-tight">
+                <p className="text-xs text-slate-500 leading-none">Site</p>
+                <p className="text-sm font-medium text-slate-700 leading-tight">
                   {currentSite?.name || 'Select site'}
                 </p>
               </div>
               <svg
-                className={cn('h-3.5 w-3.5 text-gray-400 transition-transform', isSiteMenuOpen && 'rotate-180')}
+                className={cn('h-3.5 w-3.5 text-slate-400 transition-transform', isSiteMenuOpen && 'rotate-180')}
                 fill="none" viewBox="0 0 24 24" stroke="currentColor"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -130,23 +130,23 @@ export function Header({ onMenuClick }: HeaderProps) {
             </button>
 
             {isSiteMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
-                <div className="px-3 py-2 border-b border-gray-100">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Switch site</p>
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-slate-200 py-1 z-50">
+                <div className="px-3 py-2 border-b border-slate-100">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Switch site</p>
                 </div>
                 {sites.filter(s => s.isActive).map((site) => (
                   <button
                     key={site.id}
                     type="button"
                     className={cn(
-                      'w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between',
+                      'w-full px-3 py-2 text-left text-sm hover:bg-slate-50 flex items-center justify-between',
                       site.id === currentSiteId && 'bg-primary-50 text-primary-700'
                     )}
                     onClick={() => handleSiteChange(site.id)}
                   >
                     <div>
                       <p className="font-medium">{site.name}</p>
-                      {site.code && <p className="text-xs text-gray-500">{site.code}</p>}
+                      {site.code && <p className="text-xs text-slate-500">{site.code}</p>}
                     </div>
                     {site.id === currentSiteId && (
                       <svg className="h-4 w-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -164,7 +164,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         <div className="relative" ref={notificationsRef}>
           <button
             type="button"
-            className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
           >
             <span className="sr-only">View notifications</span>
@@ -178,9 +178,9 @@ export function Header({ onMenuClick }: HeaderProps) {
 
           {/* Notifications dropdown */}
           {isNotificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="font-medium text-gray-900">Notifications</h3>
+            <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg border border-slate-200 z-50">
+              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="font-medium text-slate-900">Notifications</h3>
                 {unreadCount && unreadCount > 0 && (
                   <button
                     type="button"
@@ -198,7 +198,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                       key={notification.id}
                       type="button"
                       className={cn(
-                        'w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0',
+                        'w-full px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-100 last:border-0',
                         !notification.isRead && 'bg-blue-50'
                       )}
                       onClick={() => handleNotificationClick(notification)}
@@ -209,8 +209,8 @@ export function Header({ onMenuClick }: HeaderProps) {
                           <p className={cn('text-sm', !notification.isRead && 'font-medium')}>
                             {notification.title}
                           </p>
-                          <p className="text-xs text-gray-500 truncate">{notification.message}</p>
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-slate-500 truncate">{notification.message}</p>
+                          <p className="text-xs text-slate-400 mt-1">
                             {formatTimeAgo(notification.createdAt)}
                           </p>
                         </div>
@@ -221,13 +221,13 @@ export function Header({ onMenuClick }: HeaderProps) {
                     </button>
                   ))
                 ) : (
-                  <div className="px-4 py-8 text-center text-gray-500">
+                  <div className="px-4 py-8 text-center text-slate-500">
                     <BellOffIcon />
                     <p className="mt-2 text-sm">No notifications</p>
                   </div>
                 )}
               </div>
-              <div className="px-4 py-2 border-t border-gray-100">
+              <div className="px-4 py-2 border-t border-slate-100">
                 <Link
                   href="/notifications"
                   className="text-sm text-primary-600 hover:underline"
@@ -244,7 +244,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         <div className="relative" ref={userMenuRef}>
           <button
             type="button"
-            className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-100 transition-colors"
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
           >
             <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
@@ -253,16 +253,16 @@ export function Header({ onMenuClick }: HeaderProps) {
               </span>
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm font-medium text-slate-700">
                 {user?.displayName || 'User'}
               </p>
-              <p className="text-xs text-gray-500 truncate max-w-[120px]">
+              <p className="text-xs text-slate-500 truncate max-w-[120px]">
                 {user?.email}
               </p>
             </div>
             <svg
               className={cn(
-                'h-4 w-4 text-gray-500 transition-transform',
+                'h-4 w-4 text-slate-500 transition-transform',
                 isUserMenuOpen && 'rotate-180'
               )}
               fill="none"
@@ -275,14 +275,14 @@ export function Header({ onMenuClick }: HeaderProps) {
 
           {/* Dropdown menu */}
           {isUserMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
-              <div className="px-4 py-2 border-b border-gray-100 sm:hidden">
-                <p className="text-sm font-medium text-gray-700">{user?.displayName}</p>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-slate-200 py-1 z-50">
+              <div className="px-4 py-2 border-b border-slate-100 sm:hidden">
+                <p className="text-sm font-medium text-slate-700">{user?.displayName}</p>
+                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
               </div>
               <button
                 type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
                 onClick={() => {
                   setIsUserMenuOpen(false);
                   router.push('/settings/profile');
@@ -330,7 +330,7 @@ function BellIcon() {
 
 function BellOffIcon() {
   return (
-    <svg className="h-12 w-12 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+    <svg className="h-12 w-12 mx-auto text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9.143 17.082a24.248 24.248 0 003.714.318 23.997 23.997 0 003.143-.318m-6.857 0a23.998 23.998 0 01-3.643-.987c.166-.23.323-.469.47-.716A8.986 8.986 0 004 9.75V9A6 6 0 0116 9v.75c0 1.89.577 3.64 1.562 5.086m-10.419 2.246a3 3 0 005.714 0M3 3l18 18" />
     </svg>
   );
@@ -338,7 +338,7 @@ function BellOffIcon() {
 
 function SiteIcon() {
   return (
-    <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
     </svg>
   );
@@ -351,10 +351,10 @@ function NotificationIcon({ type }: { type: string }) {
     ERROR: 'text-red-500',
     SUCCESS: 'text-green-500',
   };
-  const color = colors[type as keyof typeof colors] || 'text-gray-500';
+  const color = colors[type as keyof typeof colors] || 'text-slate-500';
 
   return (
-    <div className={`h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center ${color}`}>
+    <div className={`h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center ${color}`}>
       {type === 'SUCCESS' && (
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />

@@ -34,8 +34,8 @@ export default function BomDetailPage() {
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <h2 className="text-lg font-semibold text-gray-900">BOM not found</h2>
-          <p className="mt-2 text-gray-500">The BOM you're looking for doesn't exist.</p>
+          <h2 className="text-lg font-semibold text-slate-900">BOM not found</h2>
+          <p className="mt-2 text-slate-500">The BOM you're looking for doesn't exist.</p>
           <Link href="/manufacturing/boms">
             <Button className="mt-4">Back to BOMs</Button>
           </Link>
@@ -109,7 +109,7 @@ export default function BomDetailPage() {
       render: (row) => row.isCritical ? (
         <Badge variant="danger">Yes</Badge>
       ) : (
-        <span className="text-gray-400">No</span>
+        <span className="text-slate-400">No</span>
       ),
     },
     {
@@ -164,7 +164,7 @@ export default function BomDetailPage() {
           {/* Header Info */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Status</div>
+              <div className="text-sm text-slate-500">Status</div>
               <div className="mt-1">
                 <Badge variant={getStatusVariant(bom.status)} >
                   {bom.status.replace(/_/g, ' ')}
@@ -172,19 +172,19 @@ export default function BomDetailPage() {
               </div>
             </Card>
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Version</div>
+              <div className="text-sm text-slate-500">Version</div>
               <div className="mt-1 text-lg font-semibold">
                 V{bom.version} Rev {bom.revision}
               </div>
             </Card>
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Base Quantity</div>
+              <div className="text-sm text-slate-500">Base Quantity</div>
               <div className="mt-1 text-lg font-semibold">
                 {bom.baseQty} {bom.uom}
               </div>
             </Card>
             <Card className="p-4">
-              <div className="text-sm text-gray-500">Components</div>
+              <div className="text-sm text-slate-500">Components</div>
               <div className="mt-1 text-lg font-semibold">
                 {bom.lines?.length || 0}
               </div>
@@ -196,28 +196,28 @@ export default function BomDetailPage() {
             <h3 className="text-lg font-medium mb-4">Product</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <div className="text-sm text-gray-500">SKU</div>
+                <div className="text-sm text-slate-500">SKU</div>
                 <div className="mt-1 font-medium">{(bom as any).itemSku || bom.itemId.slice(0, 8)}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Description</div>
+                <div className="text-sm text-slate-500">Description</div>
                 <div className="mt-1">{(bom as any).itemDescription || '-'}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Effective From</div>
+                <div className="text-sm text-slate-500">Effective From</div>
                 <div className="mt-1">
                   {bom.effectiveFrom ? new Date(bom.effectiveFrom).toLocaleDateString() : 'Not set'}
                 </div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Effective To</div>
+                <div className="text-sm text-slate-500">Effective To</div>
                 <div className="mt-1">
                   {bom.effectiveTo ? new Date(bom.effectiveTo).toLocaleDateString() : 'Not set'}
                 </div>
               </div>
               {bom.approvedBy && (
                 <div>
-                  <div className="text-sm text-gray-500">Approved At</div>
+                  <div className="text-sm text-slate-500">Approved At</div>
                   <div className="mt-1">
                     {bom.approvedAt ? new Date(bom.approvedAt).toLocaleString() : '-'}
                   </div>
@@ -225,7 +225,7 @@ export default function BomDetailPage() {
               )}
               {bom.notes && (
                 <div className="col-span-full">
-                  <div className="text-sm text-gray-500">Notes</div>
+                  <div className="text-sm text-slate-500">Notes</div>
                   <div className="mt-1">{bom.notes}</div>
                 </div>
               )}

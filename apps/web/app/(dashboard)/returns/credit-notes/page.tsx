@@ -92,8 +92,8 @@ export default function CreditNotesPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Credit Notes</h1>
-          <p className="text-gray-500 mt-1">Manage customer credit notes from returns</p>
+          <h1 className="text-2xl font-bold text-slate-900">Credit Notes</h1>
+          <p className="text-slate-500 mt-1">Manage customer credit notes from returns</p>
         </div>
         <Link href="/returns">
           <Button variant="secondary">
@@ -108,25 +108,25 @@ export default function CreditNotesPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-yellow-600">{pendingApproval}</div>
-            <p className="text-sm text-gray-500">Pending Approval</p>
+            <p className="text-sm text-slate-500">Pending Approval</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-green-600">{approved}</div>
-            <p className="text-sm text-gray-500">Approved</p>
+            <p className="text-sm text-slate-500">Approved</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">${totalAmount.toFixed(2)}</div>
-            <p className="text-sm text-gray-500">Total Value</p>
+            <div className="text-2xl font-bold text-slate-900">${totalAmount.toFixed(2)}</div>
+            <p className="text-sm text-slate-500">Total Value</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{data?.meta?.total || 0}</div>
-            <p className="text-sm text-gray-500">Total Credit Notes</p>
+            <div className="text-2xl font-bold text-slate-900">{data?.meta?.total || 0}</div>
+            <p className="text-sm text-slate-500">Total Credit Notes</p>
           </CardContent>
         </Card>
       </div>

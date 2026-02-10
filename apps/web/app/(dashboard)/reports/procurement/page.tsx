@@ -34,8 +34,8 @@ export default function ProcurementReportPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Procurement Report</h1>
-          <p className="text-gray-500 mt-1">Analyze purchase orders and supplier activity.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Procurement Report</h1>
+          <p className="text-slate-500 mt-1">Analyze purchase orders and supplier activity.</p>
         </div>
         <div className="flex items-center gap-4">
           <div>
@@ -96,7 +96,7 @@ export default function ProcurementReportPage() {
               <SimpleBarChart data={report.byMonth} />
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No purchase order data for this period.</p>
+            <p className="text-slate-500 text-center py-8">No purchase order data for this period.</p>
           )}
         </CardContent>
       </Card>
@@ -110,17 +110,17 @@ export default function ProcurementReportPage() {
           <CardContent>
             {report?.topSuppliers && report.topSuppliers.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Supplier</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">POs</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Value</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Supplier</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">POs</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Value</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-slate-200">
                     {report.topSuppliers.map((supplier) => (
-                      <tr key={supplier.id} className="hover:bg-gray-50">
+                      <tr key={supplier.id} className="hover:bg-slate-50">
                         <td className="px-4 py-2 text-sm">
                           <Link href={`/master-data/suppliers/${supplier.id}`} className="text-primary-600 hover:underline">
                             {supplier.code ? `${supplier.code} - ` : ''}{supplier.name}
@@ -136,7 +136,7 @@ export default function ProcurementReportPage() {
                 </table>
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4">No supplier data available.</p>
+              <p className="text-slate-500 text-center py-4">No supplier data available.</p>
             )}
           </CardContent>
         </Card>
@@ -157,10 +157,10 @@ export default function ProcurementReportPage() {
                     <div key={status.status} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <StatusBadge status={status.status} />
-                        <span className="text-sm text-gray-600">{status.count} orders</span>
+                        <span className="text-sm text-slate-600">{status.count} orders</span>
                       </div>
                       <div className="flex items-center gap-4">
-                        <div className="w-32 bg-gray-200 rounded-full h-2">
+                        <div className="w-32 bg-slate-200 rounded-full h-2">
                           <div
                             className="bg-primary-500 h-2 rounded-full"
                             style={{ width: `${percentOfTotal}%` }}
@@ -175,7 +175,7 @@ export default function ProcurementReportPage() {
                 })}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4">No status data available.</p>
+              <p className="text-slate-500 text-center py-4">No status data available.</p>
             )}
           </CardContent>
         </Card>
@@ -187,8 +187,8 @@ export default function ProcurementReportPage() {
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Pending</p>
-                <p className="text-xl font-bold text-gray-900">{report?.summary.pendingPOs ?? 0}</p>
+                <p className="text-sm text-slate-500">Pending</p>
+                <p className="text-xl font-bold text-slate-900">{report?.summary.pendingPOs ?? 0}</p>
               </div>
               <div className="h-10 w-10 bg-yellow-100 rounded-lg flex items-center justify-center text-yellow-600">
                 <ClockIcon />
@@ -200,8 +200,8 @@ export default function ProcurementReportPage() {
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Received</p>
-                <p className="text-xl font-bold text-gray-900">{report?.summary.receivedPOs ?? 0}</p>
+                <p className="text-sm text-slate-500">Received</p>
+                <p className="text-xl font-bold text-slate-900">{report?.summary.receivedPOs ?? 0}</p>
               </div>
               <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
                 <CheckIcon />
@@ -213,8 +213,8 @@ export default function ProcurementReportPage() {
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Receive Rate</p>
-                <p className="text-xl font-bold text-gray-900">
+                <p className="text-sm text-slate-500">Receive Rate</p>
+                <p className="text-xl font-bold text-slate-900">
                   {report?.summary.totalPOs
                     ? ((report.summary.receivedPOs / report.summary.totalPOs) * 100).toFixed(1)
                     : 0}%
@@ -237,8 +237,8 @@ function SummaryCard({ title, value, icon }: { title: string; value: string | nu
       <CardContent className="pt-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">{title}</p>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            <p className="text-sm text-slate-500">{title}</p>
+            <p className="text-2xl font-bold text-slate-900">{value}</p>
           </div>
           <div className="h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600">
             {icon}
@@ -275,7 +275,7 @@ function SimpleBarChart({ data }: { data: Array<{ month: string; monthlyValue: n
               style={{ height: `${Math.max(height, 2)}%` }}
               title={`${item.month}: R ${item.monthlyValue.toLocaleString()}`}
             />
-            <span className="text-xs text-gray-400 mt-2">{item.month.slice(5)}</span>
+            <span className="text-xs text-slate-400 mt-2">{item.month.slice(5)}</span>
           </div>
         );
       })}
