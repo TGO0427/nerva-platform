@@ -347,7 +347,7 @@ export class DispatchRepository extends BaseRepository {
     const placeholders = shipmentIds.map((_, i) => `$${i + 1}`).join(', ');
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT s.id, s.warehouse_id, so.customer_id, c.name as customer_name,
-              c.address_line1, c.city
+              c.shipping_address_line1 as address_line1, c.shipping_city as city
        FROM shipments s
        JOIN sales_orders so ON s.sales_order_id = so.id
        LEFT JOIN customers c ON so.customer_id = c.id
