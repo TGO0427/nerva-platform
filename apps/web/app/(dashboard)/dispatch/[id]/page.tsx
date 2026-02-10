@@ -12,7 +12,8 @@ import { Spinner } from '@/components/ui/spinner';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { useCopy } from '@/lib/hooks/use-copy';
-import { StopsProgress } from '@/components/ui/drawer';
+import { Drawer, StopsProgress } from '@/components/ui/drawer';
+import { Input } from '@/components/ui/input';
 import {
   useTrip,
   useTripStops,
@@ -22,9 +23,25 @@ import {
   useStartTrip,
   useCompleteTrip,
   useCancelTrip,
+  useArriveAtStop,
+  useCompleteStop,
+  useFailStop,
+  useSkipStop,
   TripStop,
 } from '@/lib/queries';
 import type { TripStatus, StopStatus } from '@nerva/shared';
+
+// Exception reason codes for failed deliveries
+const FAILURE_REASONS = [
+  { value: 'NO_ONE_HOME', label: 'No one home' },
+  { value: 'WRONG_ADDRESS', label: 'Wrong address' },
+  { value: 'REFUSED_DELIVERY', label: 'Customer refused delivery' },
+  { value: 'DAMAGED_GOODS', label: 'Goods damaged' },
+  { value: 'ACCESS_DENIED', label: 'Access denied / gate locked' },
+  { value: 'WEATHER', label: 'Weather conditions' },
+  { value: 'VEHICLE_ISSUE', label: 'Vehicle breakdown' },
+  { value: 'OTHER', label: 'Other reason' },
+];
 
 // Consistent date formatting
 function formatDate(dateStr: string | null): string {
@@ -65,10 +82,106 @@ export default function TripDetailPage() {
   const completeTrip = useCompleteTrip();
   const cancelTrip = useCancelTrip();
 
+  // Stop mutations
+  const arriveAtStop = useArriveAtStop();
+  const completeStop = useCompleteStop();
+  const failStop = useFailStop();
+  const skipStop = useSkipStop();
+
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [selectedDriver, setSelectedDriver] = useState('');
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+
+  // POD capture drawer state
+  const [selectedStop, setSelectedStop] = useState<TripStop | null>(null);
+  const [showPodDrawer, setShowPodDrawer] = useState(false);
+  const [podSignature, setPodSignature] = useState('');
+  const [podPhoto, setPodPhoto] = useState('');
+  const [podNotes, setPodNotes] = useState('');
+
+  // Fail stop modal state
+  const [showFailModal, setShowFailModal] = useState(false);
+  const [failReason, setFailReason] = useState('');
+  const [failCustomReason, setFailCustomReason] = useState('');
+
+  // Stop action handlers
+  const handleArriveAtStop = async (stop: TripStop) => {
+    try {
+      await arriveAtStop.mutateAsync({ tripId, stopId: stop.id });
+      addToast('Marked as arrived', 'success');
+    } catch (error) {
+      addToast('Failed to update stop', 'error');
+    }
+  };
+
+  const openPodDrawer = (stop: TripStop) => {
+    setSelectedStop(stop);
+    setPodSignature('');
+    setPodPhoto('');
+    setPodNotes('');
+    setShowPodDrawer(true);
+  };
+
+  const handleCompleteStop = async () => {
+    if (!selectedStop) return;
+    try {
+      await completeStop.mutateAsync({
+        tripId,
+        stopId: selectedStop.id,
+        podSignature: podSignature || undefined,
+        podPhoto: podPhoto || undefined,
+        podNotes: podNotes || undefined,
+      });
+      setShowPodDrawer(false);
+      setSelectedStop(null);
+      addToast('Stop delivered successfully', 'success');
+    } catch (error) {
+      addToast('Failed to complete stop', 'error');
+    }
+  };
+
+  const openFailModal = (stop: TripStop) => {
+    setSelectedStop(stop);
+    setFailReason('');
+    setFailCustomReason('');
+    setShowFailModal(true);
+  };
+
+  const handleFailStop = async () => {
+    if (!selectedStop || !failReason) {
+      addToast('Please select a reason', 'error');
+      return;
+    }
+    const reason = failReason === 'OTHER' ? failCustomReason : FAILURE_REASONS.find(r => r.value === failReason)?.label || failReason;
+    try {
+      await failStop.mutateAsync({ tripId, stopId: selectedStop.id, reason });
+      setShowFailModal(false);
+      setSelectedStop(null);
+      addToast('Stop marked as failed', 'success');
+    } catch (error) {
+      addToast('Failed to update stop', 'error');
+    }
+  };
+
+  const handleSkipStop = async (stop: TripStop) => {
+    const confirmed = await confirm({
+      title: 'Skip Stop',
+      message: `Are you sure you want to skip the delivery to ${stop.customerName || 'this customer'}?`,
+      confirmLabel: 'Skip Stop',
+      variant: 'danger',
+    });
+    if (confirmed) {
+      try {
+        await skipStop.mutateAsync({ tripId, stopId: stop.id, reason: 'Skipped by dispatcher' });
+        addToast('Stop skipped', 'success');
+      } catch (error) {
+        addToast('Failed to skip stop', 'error');
+      }
+    }
+  };
+
+  const isTripActive = trip?.status === 'IN_PROGRESS';
 
   const stopColumns: Column<TripStop>[] = [
     {
@@ -104,8 +217,38 @@ export default function TripDetailPage() {
       header: 'Status',
       width: '120px',
       render: (row) => (
-        <Badge variant={getStopStatusVariant(row.status)}>{row.status}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={getStopStatusVariant(row.status)}>{row.status}</Badge>
+          {row.status === 'FAILED' && row.failureReason && (
+            <span className="text-xs text-red-600" title={row.failureReason}>
+              <ExclamationIcon />
+            </span>
+          )}
+        </div>
       ),
+    },
+    {
+      key: 'pod',
+      header: 'POD',
+      width: '80px',
+      render: (row) => {
+        const hasPod = row.podSignature || row.podPhoto;
+        if (row.status === 'DELIVERED' && hasPod) {
+          return (
+            <span className="text-green-600" title="POD captured">
+              <DocumentCheckIcon />
+            </span>
+          );
+        }
+        if (row.status === 'DELIVERED' && !hasPod) {
+          return (
+            <span className="text-yellow-600" title="No POD">
+              <DocumentIcon />
+            </span>
+          );
+        }
+        return <span className="text-slate-300">-</span>;
+      },
     },
     {
       key: 'arrivedAt',
@@ -120,6 +263,63 @@ export default function TripDetailPage() {
       render: (row) => row.departedAt
         ? new Date(row.departedAt).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
         : '-',
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '180px',
+      render: (row) => {
+        if (!isTripActive) return <span className="text-slate-400 text-xs">Trip not active</span>;
+
+        const isPending = row.status === 'PENDING';
+        const isArrived = row.status === 'ARRIVED';
+        const isCompleted = ['DELIVERED', 'FAILED', 'SKIPPED'].includes(row.status);
+
+        if (isCompleted) {
+          return <span className="text-slate-400 text-xs">Completed</span>;
+        }
+
+        return (
+          <div className="flex items-center gap-1">
+            {isPending && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => handleArriveAtStop(row)}
+                isLoading={arriveAtStop.isPending}
+              >
+                Arrived
+              </Button>
+            )}
+            {isArrived && (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => openPodDrawer(row)}
+                >
+                  Deliver
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => openFailModal(row)}
+                >
+                  Fail
+                </Button>
+              </>
+            )}
+            {(isPending || isArrived) && (
+              <button
+                onClick={() => handleSkipStop(row)}
+                className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                title="Skip stop"
+              >
+                <SkipIcon />
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -420,6 +620,182 @@ export default function TripDetailPage() {
           />
         </CardContent>
       </Card>
+
+      {/* POD Capture Drawer */}
+      <Drawer
+        isOpen={showPodDrawer}
+        onClose={() => setShowPodDrawer(false)}
+        title="Proof of Delivery"
+        subtitle={selectedStop?.customerName || selectedStop?.addressLine1}
+        size="md"
+      >
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-sm font-medium text-slate-700 mb-2">Delivery Details</h3>
+            <div className="bg-slate-50 rounded-lg p-4 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-slate-500">Customer:</span>
+                  <span className="ml-2 font-medium">{selectedStop?.customerName || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Shipment:</span>
+                  <span className="ml-2 font-medium">{selectedStop?.shipmentNo || '-'}</span>
+                </div>
+              </div>
+              <div className="mt-2">
+                <span className="text-slate-500">Address:</span>
+                <span className="ml-2">{selectedStop?.addressLine1}</span>
+                {selectedStop?.city && <span>, {selectedStop.city}</span>}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Recipient Name / Signature
+            </label>
+            <Input
+              value={podSignature}
+              onChange={(e) => setPodSignature(e.target.value)}
+              placeholder="Enter recipient name or signature reference"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Enter the name of the person who received the delivery
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Photo Reference
+            </label>
+            <Input
+              value={podPhoto}
+              onChange={(e) => setPodPhoto(e.target.value)}
+              placeholder="Photo URL or reference"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Enter a reference to the delivery photo (URL or file reference)
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Delivery Notes
+            </label>
+            <textarea
+              value={podNotes}
+              onChange={(e) => setPodNotes(e.target.value)}
+              placeholder="Any additional notes about the delivery..."
+              rows={3}
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t">
+            <Button
+              onClick={handleCompleteStop}
+              isLoading={completeStop.isPending}
+              className="flex-1"
+            >
+              <CheckIcon />
+              Confirm Delivery
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowPodDrawer(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Drawer>
+
+      {/* Fail Stop Modal */}
+      <Drawer
+        isOpen={showFailModal}
+        onClose={() => setShowFailModal(false)}
+        title="Mark Delivery Failed"
+        subtitle={selectedStop?.customerName || selectedStop?.addressLine1}
+        size="sm"
+      >
+        <div className="space-y-6">
+          <div className="bg-red-50 border border-red-100 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-red-600 mt-0.5">
+                <ExclamationIcon />
+              </span>
+              <div>
+                <p className="text-sm font-medium text-red-800">
+                  This will mark the stop as failed
+                </p>
+                <p className="text-sm text-red-600 mt-1">
+                  Please select a reason for the failed delivery attempt.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Failure Reason *
+            </label>
+            <div className="space-y-2">
+              {FAILURE_REASONS.map((reason) => (
+                <label
+                  key={reason.value}
+                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    failReason === reason.value
+                      ? 'border-red-500 bg-red-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="failReason"
+                    value={reason.value}
+                    checked={failReason === reason.value}
+                    onChange={(e) => setFailReason(e.target.value)}
+                    className="text-red-600 focus:ring-red-500"
+                  />
+                  <span className="text-sm">{reason.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {failReason === 'OTHER' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Custom Reason *
+              </label>
+              <Input
+                value={failCustomReason}
+                onChange={(e) => setFailCustomReason(e.target.value)}
+                placeholder="Enter custom reason..."
+              />
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4 border-t">
+            <Button
+              variant="danger"
+              onClick={handleFailStop}
+              isLoading={failStop.isPending}
+              disabled={!failReason || (failReason === 'OTHER' && !failCustomReason)}
+              className="flex-1"
+            >
+              Mark as Failed
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowFailModal(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Drawer>
     </div>
   );
 }
@@ -490,6 +866,39 @@ function XIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function ExclamationIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+    </svg>
+  );
+}
+
+function DocumentCheckIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.125 2.25A9 9 0 0119.5 11.25M9 15l2.25 2.25L15 12" />
+    </svg>
+  );
+}
+
+function DocumentIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+    </svg>
+  );
+}
+
+function SkipIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8.688c0-.864.933-1.405 1.683-.977l7.108 4.062a1.125 1.125 0 010 1.953l-7.108 4.062A1.125 1.125 0 013 16.81V8.688zM12.75 8.688c0-.864.933-1.405 1.683-.977l7.108 4.062a1.125 1.125 0 010 1.953l-7.108 4.062a1.125 1.125 0 01-1.683-.977V8.688z" />
     </svg>
   );
 }
