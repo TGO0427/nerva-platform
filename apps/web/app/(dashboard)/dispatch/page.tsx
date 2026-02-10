@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
@@ -14,6 +14,9 @@ import { Alert } from '@/components/ui/alert';
 import { PageShell, MetricGrid } from '@/components/ui/motion';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
+import { Drawer, StopsProgress } from '@/components/ui/drawer';
+import { useToast } from '@/components/ui/toast';
+import { useCopy } from '@/lib/hooks/use-copy';
 import {
   useTrips,
   useCreateTrip,
@@ -21,8 +24,10 @@ import {
   Trip,
   useReadyForDispatchShipments,
   Shipment,
+  useTripStops,
+  TripStop,
 } from '@/lib/queries';
-import type { TripStatus } from '@nerva/shared';
+import type { TripStatus, StopStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -36,8 +41,29 @@ const STATUS_OPTIONS = [
 
 type Tab = 'trips' | 'ready-shipments';
 
+// Consistent date formatting
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('en-ZA', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function formatTime(dateStr: string | null): string {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleTimeString('en-ZA', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function DispatchPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { addToast } = useToast();
+  const { copy } = useCopy();
   const [activeTab, setActiveTab] = useState<Tab>('trips');
   const [status, setStatus] = useState<TripStatus | ''>('');
   const [date, setDate] = useState('');
@@ -45,6 +71,23 @@ export default function DispatchPage() {
   const [plannedDate, setPlannedDate] = useState('');
   const [error, setError] = useState('');
   const { params, setPage } = useQueryParams();
+
+  // Trip detail drawer state
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const { data: selectedTripStops, isLoading: stopsLoading } = useTripStops(selectedTripId || undefined);
+
+  // Read URL params on mount
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as Tab | null;
+    const statusParam = searchParams.get('status') as TripStatus | null;
+
+    if (tabParam && ['trips', 'ready-shipments'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+    if (statusParam) {
+      setStatus(statusParam);
+    }
+  }, [searchParams]);
 
   const { data: tripsData, isLoading: tripsLoading } = useTrips({
     ...params,
@@ -61,9 +104,15 @@ export default function DispatchPage() {
       header: 'Trip No.',
       sortable: true,
       render: (row) => (
-        <Link href={`/dispatch/${row.id}`} className="font-medium text-primary-600 hover:underline">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            copy(row.tripNo, 'Trip number copied');
+          }}
+          className="font-medium text-primary-600 hover:underline"
+        >
           {row.tripNo}
-        </Link>
+        </button>
       ),
     },
     {
@@ -71,35 +120,51 @@ export default function DispatchPage() {
       header: 'Status',
       width: '130px',
       render: (row) => (
-        <Badge variant={getTripStatusVariant(row.status)}>{row.status?.replace(/_/g, ' ') || row.status}</Badge>
+        <Badge variant={getTripStatusVariant(row.status)}>{formatStatus(row.status)}</Badge>
       ),
     },
     {
       key: 'driverName',
       header: 'Driver',
-      render: (row) => row.driverName || '-',
+      render: (row) => row.driverName || <span className="text-slate-400">Unassigned</span>,
     },
     {
       key: 'vehiclePlate',
       header: 'Vehicle',
-      render: (row) => row.vehiclePlate || '-',
+      render: (row) => row.vehiclePlate || <span className="text-slate-400">-</span>,
     },
     {
       key: 'totalStops',
       header: 'Stops',
-      className: 'text-center',
+      width: '140px',
       render: (row) => (
-        <span>
-          {row.completedStops || 0}/{row.totalStops}
-        </span>
+        <StopsProgress
+          completed={row.completedStops || 0}
+          total={row.totalStops}
+        />
       ),
     },
     {
+      key: 'exceptions',
+      header: 'Issues',
+      width: '80px',
+      className: 'text-center',
+      render: (row) => {
+        // Check if any stops failed (would need backend support, for now show based on status)
+        const hasIssue = row.status === 'CANCELLED';
+        return hasIssue ? (
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-600">
+            <ExclamationIcon />
+          </span>
+        ) : (
+          <span className="text-slate-300">-</span>
+        );
+      },
+    },
+    {
       key: 'plannedDate',
-      header: 'Planned Date',
-      render: (row) => row.plannedDate
-        ? new Date(row.plannedDate).toLocaleDateString()
-        : '-',
+      header: 'Planned',
+      render: (row) => formatDate(row.plannedDate),
     },
   ];
 
@@ -156,7 +221,7 @@ export default function DispatchPage() {
       key: 'status',
       header: 'Status',
       render: (row) => (
-        <Badge variant="warning">{row.status?.replace(/_/g, ' ') || row.status}</Badge>
+        <Badge variant="warning">{formatStatus(row.status)}</Badge>
       ),
     },
     {
@@ -172,12 +237,18 @@ export default function DispatchPage() {
     {
       key: 'createdAt',
       header: 'Created',
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ];
 
   const handleRowClick = (row: Trip) => {
-    router.push(`/dispatch/${row.id}`);
+    setSelectedTripId(row.id);
+  };
+
+  const handleViewFullDetails = () => {
+    if (selectedTripId) {
+      router.push(`/dispatch/${selectedTripId}`);
+    }
   };
 
   const handleCreateTrip = async () => {
@@ -194,6 +265,7 @@ export default function DispatchPage() {
       });
       setSelectedShipments(new Set());
       setPlannedDate('');
+      addToast('Trip created successfully', 'success');
       router.push(`/dispatch/${trip.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create trip');
@@ -215,14 +287,23 @@ export default function DispatchPage() {
       .reduce((sum, s) => sum + (s.totalWeightKg || 0), 0);
   }, [readyShipments, selectedShipments]);
 
+  // Computed values for drawer
+  const drawerTrip = tripsData?.data?.find(t => t.id === selectedTripId);
+
   return (
     <PageShell>
       <PageHeader
         title="Dispatch"
         subtitle="Manage delivery trips and routes"
+        actions={
+          <Button onClick={() => setActiveTab('ready-shipments')}>
+            <PlusIcon />
+            Create Trip
+          </Button>
+        }
       />
 
-      {/* Quick stats */}
+      {/* Quick stats - now clickable work launchers */}
       <MetricGrid className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <StatCard
           title="Ready for Dispatch"
@@ -230,24 +311,28 @@ export default function DispatchPage() {
           icon={<PackageSmIcon />}
           iconColor="orange"
           alert={readyCount > 0}
+          href="/dispatch?tab=ready-shipments"
         />
         <StatCard
           title="Planned Trips"
           value={plannedTrips}
           icon={<CalendarIcon />}
           iconColor="blue"
+          href="/dispatch?tab=trips&status=PLANNED"
         />
         <StatCard
           title="In Progress"
           value={inProgressTrips}
           icon={<PlayIcon />}
           iconColor="yellow"
+          href="/dispatch?tab=trips&status=IN_PROGRESS"
         />
         <StatCard
           title="Completed Today"
           value={completedToday}
           icon={<CheckIcon />}
           iconColor="green"
+          href="/dispatch?tab=trips&status=COMPLETE"
         />
         <StatCard
           title="Total Trips"
@@ -262,7 +347,7 @@ export default function DispatchPage() {
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('trips')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'trips'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -272,7 +357,7 @@ export default function DispatchPage() {
           </button>
           <button
             onClick={() => setActiveTab('ready-shipments')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
               activeTab === 'ready-shipments'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -290,8 +375,8 @@ export default function DispatchPage() {
 
       {activeTab === 'trips' && (
         <>
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 mb-4">
+          {/* Sticky filter bar */}
+          <div className="sticky top-0 z-10 bg-white border-b border-slate-100 -mx-6 px-6 py-3 mb-4 flex flex-wrap items-center gap-4">
             <Select
               value={status}
               onChange={(e) => setStatus(e.target.value as TripStatus | '')}
@@ -307,6 +392,7 @@ export default function DispatchPage() {
             {(status || date) && (
               <Button
                 variant="ghost"
+                size="sm"
                 onClick={() => {
                   setStatus('');
                   setDate('');
@@ -315,6 +401,10 @@ export default function DispatchPage() {
                 Clear Filters
               </Button>
             )}
+            <div className="flex-1" />
+            <span className="text-sm text-slate-500">
+              {totalTrips} trip{totalTrips !== 1 ? 's' : ''}
+            </span>
           </div>
 
           <DataTable
@@ -431,8 +521,100 @@ export default function DispatchPage() {
           )}
         </>
       )}
+
+      {/* Trip Detail Drawer */}
+      <Drawer
+        isOpen={!!selectedTripId}
+        onClose={() => setSelectedTripId(null)}
+        title={drawerTrip?.tripNo || 'Trip Details'}
+        subtitle={drawerTrip ? `${formatStatus(drawerTrip.status)} • ${formatDate(drawerTrip.plannedDate)}` : undefined}
+        size="xl"
+      >
+        {drawerTrip && (
+          <div className="space-y-6">
+            {/* Quick stats */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-50 rounded-lg p-4">
+                <p className="text-sm text-slate-500">Driver</p>
+                <p className="font-medium text-slate-900">
+                  {drawerTrip.driverName || 'Unassigned'}
+                </p>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-4">
+                <p className="text-sm text-slate-500">Vehicle</p>
+                <p className="font-medium text-slate-900">
+                  {drawerTrip.vehiclePlate || '-'}
+                </p>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-4">
+                <p className="text-sm text-slate-500">Total Weight</p>
+                <p className="font-medium text-slate-900">
+                  {drawerTrip.totalWeight || 0} kg
+                </p>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-4">
+                <p className="text-sm text-slate-500">Stops Progress</p>
+                <StopsProgress
+                  completed={drawerTrip.completedStops || 0}
+                  total={drawerTrip.totalStops}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Stops list */}
+            <div>
+              <h3 className="text-sm font-medium text-slate-900 mb-3">Delivery Stops</h3>
+              {stopsLoading ? (
+                <div className="flex justify-center py-4">
+                  <Spinner />
+                </div>
+              ) : selectedTripStops && selectedTripStops.length > 0 ? (
+                <div className="space-y-2">
+                  {selectedTripStops.map((stop) => (
+                    <div
+                      key={stop.id}
+                      className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg"
+                    >
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-xs font-medium text-slate-600">
+                        {stop.sequence}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 truncate">
+                          {stop.customerName || 'Unknown Customer'}
+                        </p>
+                        <p className="text-sm text-slate-500 truncate">
+                          {stop.addressLine1}
+                          {stop.city && `, ${stop.city}`}
+                        </p>
+                      </div>
+                      <Badge variant={getStopStatusVariant(stop.status)} className="flex-shrink-0">
+                        {formatStatus(stop.status)}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">No stops in this trip</p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="pt-4 border-t border-slate-200">
+              <Button onClick={handleViewFullDetails} className="w-full">
+                View Full Details
+                <ArrowRightIcon />
+              </Button>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </PageShell>
   );
+}
+
+function formatStatus(status: string): string {
+  return status?.replace(/_/g, ' ') || status;
 }
 
 function getTripStatusVariant(status: TripStatus): 'default' | 'success' | 'warning' | 'danger' | 'info' {
@@ -440,15 +622,34 @@ function getTripStatusVariant(status: TripStatus): 'default' | 'success' | 'warn
     case 'COMPLETE':
       return 'success';
     case 'IN_PROGRESS':
-      return 'warning';
+      return 'info';
     case 'LOADING':
       return 'warning';
     case 'ASSIGNED':
-      return 'info';
+      return 'default';
     case 'PLANNED':
       return 'default';
     case 'CANCELLED':
       return 'danger';
+    default:
+      return 'default';
+  }
+}
+
+function getStopStatusVariant(status: StopStatus): 'default' | 'success' | 'warning' | 'danger' | 'info' {
+  switch (status) {
+    case 'DELIVERED':
+      return 'success';
+    case 'ARRIVED':
+    case 'EN_ROUTE':
+      return 'info';
+    case 'PENDING':
+      return 'default';
+    case 'FAILED':
+    case 'SKIPPED':
+      return 'danger';
+    case 'PARTIAL':
+      return 'warning';
     default:
       return 'default';
   }
@@ -491,6 +692,22 @@ function TruckSmIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+    </svg>
+  );
+}
+
+function ExclamationIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+    </svg>
+  );
+}
+
+function ArrowRightIcon() {
+  return (
+    <svg className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
     </svg>
   );
 }

@@ -10,16 +10,18 @@ interface DrawerProps {
   onClose: () => void;
   children: ReactNode;
   title?: string;
-  size?: 'sm' | 'md' | 'lg';
+  subtitle?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 const sizeClasses = {
   sm: 'max-w-sm',
   md: 'max-w-md',
   lg: 'max-w-lg',
+  xl: 'max-w-xl',
 };
 
-export function Drawer({ isOpen, onClose, children, title, size = 'md' }: DrawerProps) {
+export function Drawer({ isOpen, onClose, children, title, subtitle, size = 'md' }: DrawerProps) {
   // Handle ESC key
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -81,12 +83,17 @@ export function Drawer({ isOpen, onClose, children, title, size = 'md' }: Drawer
             aria-labelledby={title ? 'drawer-title' : undefined}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-              {title && (
-                <h2 id="drawer-title" className="text-lg font-semibold text-gray-900">
-                  {title}
-                </h2>
-              )}
+            <div className="flex items-start justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+              <div>
+                {title && (
+                  <h2 id="drawer-title" className="text-lg font-semibold text-gray-900">
+                    {title}
+                  </h2>
+                )}
+                {subtitle && (
+                  <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>
+                )}
+              </div>
               <button
                 onClick={onClose}
                 className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors ml-auto"
@@ -110,5 +117,40 @@ function CloseIcon() {
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
+  );
+}
+
+// Progress bar for stops - used by dispatch
+interface StopsProgressProps {
+  completed: number;
+  total: number;
+  failed?: number;
+  className?: string;
+}
+
+export function StopsProgress({ completed, total, failed = 0, className }: StopsProgressProps) {
+  const completedPct = total > 0 ? (completed / total) * 100 : 0;
+  const failedPct = total > 0 ? (failed / total) * 100 : 0;
+
+  return (
+    <div className={`flex items-center gap-2 ${className || ''}`}>
+      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden flex min-w-[60px]">
+        {completedPct > 0 && (
+          <div
+            className="bg-green-500 transition-all"
+            style={{ width: `${completedPct}%` }}
+          />
+        )}
+        {failedPct > 0 && (
+          <div
+            className="bg-red-400 transition-all"
+            style={{ width: `${failedPct}%` }}
+          />
+        )}
+      </div>
+      <span className="text-xs font-medium text-slate-600 tabular-nums whitespace-nowrap">
+        {completed}/{total}
+      </span>
+    </div>
   );
 }

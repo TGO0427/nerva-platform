@@ -9,6 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
+import { useConfirm } from '@/components/ui/confirm-dialog';
+import { useToast } from '@/components/ui/toast';
+import { useCopy } from '@/lib/hooks/use-copy';
+import { StopsProgress } from '@/components/ui/drawer';
 import {
   useTrip,
   useTripStops,
@@ -22,10 +26,34 @@ import {
 } from '@/lib/queries';
 import type { TripStatus, StopStatus } from '@nerva/shared';
 
+// Consistent date formatting
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('en-ZA', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function formatDateTime(dateStr: string | null): string {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleString('en-ZA', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function TripDetailPage() {
   const params = useParams();
   const router = useRouter();
   const tripId = params.id as string;
+  const { confirm } = useConfirm();
+  const { addToast } = useToast();
+  const { copy } = useCopy();
 
   const { data: trip, isLoading: tripLoading } = useTrip(tripId);
   const { data: stops, isLoading: stopsLoading } = useTripStops(tripId);
@@ -40,6 +68,7 @@ export default function TripDetailPage() {
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [selectedDriver, setSelectedDriver] = useState('');
   const [showAssignForm, setShowAssignForm] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   const stopColumns: Column<TripStop>[] = [
     {
@@ -82,21 +111,21 @@ export default function TripDetailPage() {
       key: 'arrivedAt',
       header: 'Arrived',
       render: (row) => row.arrivedAt
-        ? new Date(row.arrivedAt).toLocaleTimeString()
+        ? new Date(row.arrivedAt).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
         : '-',
     },
     {
       key: 'departedAt',
       header: 'Departed',
       render: (row) => row.departedAt
-        ? new Date(row.departedAt).toLocaleTimeString()
+        ? new Date(row.departedAt).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
         : '-',
     },
   ];
 
   const handleAssign = async () => {
     if (!selectedVehicle || !selectedDriver) {
-      alert('Please select both vehicle and driver');
+      addToast('Please select both vehicle and driver', 'error');
       return;
     }
     try {
@@ -106,39 +135,58 @@ export default function TripDetailPage() {
         driverId: selectedDriver,
       });
       setShowAssignForm(false);
+      addToast('Trip assigned successfully', 'success');
     } catch (error) {
-      console.error('Failed to assign trip:', error);
+      addToast('Failed to assign trip', 'error');
     }
   };
 
   const handleStart = async () => {
-    if (confirm('Start this trip?')) {
+    const confirmed = await confirm({
+      title: 'Start Trip',
+      message: 'Are you sure you want to start this trip? The driver will be notified.',
+      confirmLabel: 'Start Trip',
+    });
+    if (confirmed) {
       try {
         await startTrip.mutateAsync(tripId);
+        addToast('Trip started', 'success');
       } catch (error) {
-        console.error('Failed to start trip:', error);
+        addToast('Failed to start trip', 'error');
       }
     }
   };
 
   const handleComplete = async () => {
-    if (confirm('Complete this trip?')) {
+    const confirmed = await confirm({
+      title: 'Complete Trip',
+      message: 'Are you sure you want to mark this trip as complete?',
+      confirmLabel: 'Complete',
+    });
+    if (confirmed) {
       try {
         await completeTrip.mutateAsync(tripId);
+        addToast('Trip completed', 'success');
       } catch (error) {
-        console.error('Failed to complete trip:', error);
+        addToast('Failed to complete trip', 'error');
       }
     }
   };
 
   const handleCancel = async () => {
-    const reason = prompt('Please provide a reason for cancellation:');
-    if (reason) {
+    const confirmed = await confirm({
+      title: 'Cancel Trip',
+      message: 'Are you sure you want to cancel this trip? This action cannot be undone.',
+      confirmLabel: 'Cancel Trip',
+      variant: 'danger',
+    });
+    if (confirmed) {
       try {
-        await cancelTrip.mutateAsync({ tripId, reason });
+        await cancelTrip.mutateAsync({ tripId, reason: 'Cancelled by user' });
+        addToast('Trip cancelled', 'success');
         router.push('/dispatch');
       } catch (error) {
-        console.error('Failed to cancel trip:', error);
+        addToast('Failed to cancel trip', 'error');
       }
     }
   };
@@ -185,15 +233,20 @@ export default function TripDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">{trip.tripNo}</h1>
+            <button
+              onClick={() => copy(trip.tripNo, 'Trip number copied')}
+              className="text-2xl font-bold text-slate-900 hover:text-primary-600 transition-colors"
+            >
+              {trip.tripNo}
+            </button>
             <Badge variant={getTripStatusVariant(trip.status)}>
               {trip.status?.replace(/_/g, ' ') || trip.status}
             </Badge>
           </div>
           <p className="text-slate-500 mt-1">
             {trip.plannedDate
-              ? `Planned for ${new Date(trip.plannedDate).toLocaleDateString()}`
-              : `Created ${new Date(trip.createdAt).toLocaleDateString()}`}
+              ? `Planned for ${formatDate(trip.plannedDate)}`
+              : `Created ${formatDate(trip.createdAt)}`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -266,11 +319,19 @@ export default function TripDetailPage() {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <Card className="lg:col-span-2">
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">{trip.totalStops}</div>
-            <p className="text-sm text-slate-500">Total Stops</p>
+            <p className="text-sm text-slate-500 mb-2">Delivery Progress</p>
+            <StopsProgress
+              completed={completedStops}
+              total={trip.totalStops}
+              failed={failedStops}
+              className="mb-2"
+            />
+            <p className="text-xs text-slate-400">
+              {completedStops} delivered, {pendingStops} pending, {failedStops} failed
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -288,7 +349,7 @@ export default function TripDetailPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-red-600">{failedStops}</div>
-            <p className="text-sm text-slate-500">Failed/Skipped</p>
+            <p className="text-sm text-slate-500">Failed</p>
           </CardContent>
         </Card>
       </div>
@@ -315,21 +376,15 @@ export default function TripDetailPage() {
               </div>
               <div>
                 <dt className="text-slate-500">Planned Date</dt>
-                <dd className="font-medium">
-                  {trip.plannedDate ? new Date(trip.plannedDate).toLocaleDateString() : '-'}
-                </dd>
+                <dd className="font-medium">{formatDate(trip.plannedDate)}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">Started At</dt>
-                <dd className="font-medium">
-                  {trip.startedAt ? new Date(trip.startedAt).toLocaleString() : '-'}
-                </dd>
+                <dd className="font-medium">{formatDateTime(trip.startedAt)}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">Completed At</dt>
-                <dd className="font-medium">
-                  {trip.completedAt ? new Date(trip.completedAt).toLocaleString() : '-'}
-                </dd>
+                <dd className="font-medium">{formatDateTime(trip.completedAt)}</dd>
               </div>
             </dl>
           </CardContent>
