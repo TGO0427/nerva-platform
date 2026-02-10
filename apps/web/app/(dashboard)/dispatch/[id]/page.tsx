@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
@@ -486,23 +486,21 @@ export default function TripDetailPage() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Vehicle *
-                </label>
-                <Select
+                <Combobox
+                  label="Vehicle *"
                   value={selectedVehicle}
-                  onChange={(e) => setSelectedVehicle(e.target.value)}
-                  options={[{ value: '', label: 'Select vehicle...' }, ...vehicleOptions]}
+                  onChange={setSelectedVehicle}
+                  options={vehicleOptions}
+                  placeholder="Search vehicle..."
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Driver *
-                </label>
-                <Select
+                <Combobox
+                  label="Driver *"
                   value={selectedDriver}
-                  onChange={(e) => setSelectedDriver(e.target.value)}
-                  options={[{ value: '', label: 'Select driver...' }, ...driverOptions]}
+                  onChange={setSelectedDriver}
+                  options={driverOptions}
+                  placeholder="Search driver..."
                 />
               </div>
             </div>
