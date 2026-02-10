@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { useToast } from '@/components/ui/toast';
 import { useAdjustments, useCreateAdjustment } from '@/lib/queries/inventory';
 import { useWarehouses } from '@/lib/queries/warehouses';
 import { useQueryParams } from '@/lib/queries';
@@ -32,6 +33,7 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger'
 
 export default function AdjustmentsPage() {
   const router = useRouter();
+  const { addToast } = useToast();
   const { params, setPage } = useQueryParams({ page: 1, limit: 25 });
   const [statusFilter, setStatusFilter] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -56,9 +58,11 @@ export default function AdjustmentsPage() {
       setNewWarehouseId('');
       setNewReason('');
       setNewNotes('');
+      addToast('Adjustment created', 'success');
       router.push(`/inventory/adjustments/${adj.id}`);
     } catch (error) {
       console.error('Failed to create adjustment:', error);
+      addToast('Failed to create adjustment', 'error');
     }
   };
 

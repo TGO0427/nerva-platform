@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
 import {
   useOrder,
   useConfirmOrder,
@@ -23,6 +24,7 @@ import type { SalesOrderStatus } from '@nerva/shared';
 export default function SalesOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { addToast } = useToast();
   const orderId = params.id as string;
 
   const { data: order, isLoading } = useOrder(orderId);
@@ -133,8 +135,10 @@ export default function SalesOrderDetailPage() {
     if (confirm('Are you sure you want to confirm this order?')) {
       try {
         await confirmOrder.mutateAsync(orderId);
+        addToast('Order confirmed', 'success');
       } catch (error) {
         console.error('Failed to confirm order:', error);
+        addToast('Failed to confirm order', 'error');
       }
     }
   };
@@ -143,8 +147,10 @@ export default function SalesOrderDetailPage() {
     if (confirm('Are you sure you want to allocate stock for this order?')) {
       try {
         await allocateOrder.mutateAsync(orderId);
+        addToast('Stock allocated successfully', 'success');
       } catch (error) {
         console.error('Failed to allocate order:', error);
+        addToast('Failed to allocate stock', 'error');
       }
     }
   };
@@ -153,9 +159,11 @@ export default function SalesOrderDetailPage() {
     if (confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
       try {
         await cancelOrder.mutateAsync(orderId);
+        addToast('Order cancelled', 'success');
         router.push('/sales');
       } catch (error) {
         console.error('Failed to cancel order:', error);
+        addToast('Failed to cancel order', 'error');
       }
     }
   };
@@ -170,9 +178,11 @@ export default function SalesOrderDetailPage() {
           warehouseId: order.warehouseId,
           salesOrderId: orderId,
         });
+        addToast('Shipment created', 'success');
         router.push(`/fulfilment/shipments/${shipment.id}`);
       } catch (error) {
         console.error('Failed to create shipment:', error);
+        addToast('Failed to create shipment', 'error');
       }
     }
   };

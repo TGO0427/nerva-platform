@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/components/ui/toast';
 import { useSuppliers, useWarehouses, useCreatePurchaseOrder } from '@/lib/queries';
 
 export default function NewPurchaseOrderPage() {
   const router = useRouter();
+  const { addToast } = useToast();
 
   const [formData, setFormData] = useState({
     supplierId: '',
@@ -42,9 +44,11 @@ export default function NewPurchaseOrderPage() {
         shipToWarehouseId: formData.shipToWarehouseId || undefined,
         notes: formData.notes || undefined,
       });
+      addToast('Purchase order created', 'success');
       router.push(`/procurement/purchase-orders/${po.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create purchase order');
+      addToast('Failed to create purchase order', 'error');
     }
   };
 

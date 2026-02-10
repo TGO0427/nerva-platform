@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { Breadcrumbs } from '@/components/layout';
+import { useToast } from '@/components/ui/toast';
 import { ItemForm, ItemFormData } from '../_components/item-form';
 import { useCreateItem } from '@/lib/queries';
 
 export default function NewItemPage() {
   const createItem = useCreateItem();
+  const { addToast } = useToast();
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (data: ItemFormData) => {
@@ -21,9 +23,11 @@ export default function NewItemPage() {
         widthCm: data.widthCm,
         heightCm: data.heightCm,
       });
+      addToast('Item created successfully', 'success');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create item';
       setError(message);
+      addToast('Failed to create item', 'error');
       throw err;
     }
   };

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { Spinner } from './spinner';
+import { SkeletonTable } from './skeleton';
 import { EmptyState } from './empty-state';
 
 export interface Column<T> {
@@ -129,9 +129,7 @@ export function DataTable<T extends object>({
   if (isLoading) {
     return (
       <div className={containerClass}>
-        <div className="flex items-center justify-center py-12">
-          <Spinner size="lg" />
-        </div>
+        <SkeletonTable rows={10} columns={columns.length} />
       </div>
     );
   }

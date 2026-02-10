@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { Breadcrumbs } from '@/components/layout';
 import { CustomerForm, CustomerFormData } from '../_components/customer-form';
+import { useToast } from '@/components/ui/toast';
 import { useCreateCustomer } from '@/lib/queries';
 
 export default function NewCustomerPage() {
   const createCustomer = useCreateCustomer();
+  const { addToast } = useToast();
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (data: CustomerFormData) => {
@@ -31,9 +33,11 @@ export default function NewCustomerPage() {
         shippingPostalCode: data.shippingPostalCode || undefined,
         shippingCountry: data.shippingCountry || undefined,
       });
+      addToast('Customer created successfully', 'success');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create customer';
       setError(message);
+      addToast('Failed to create customer', 'error');
       throw err;
     }
   };

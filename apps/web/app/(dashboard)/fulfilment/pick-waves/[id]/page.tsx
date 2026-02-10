@@ -11,6 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/toast';
 import {
   usePickWave,
   usePickTasks,
@@ -27,6 +28,7 @@ import { api } from '@/lib/api';
 export default function PickWaveDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { addToast } = useToast();
   const waveId = params.id as string;
 
   // Modal state
@@ -58,8 +60,10 @@ export default function PickWaveDetailPage() {
   const handleAssignTask = async (taskId: string) => {
     try {
       await assignTask.mutateAsync(taskId);
+      addToast('Task assigned', 'success');
     } catch (error) {
       console.error('Failed to assign task:', error);
+      addToast('Failed to assign task', 'error');
     }
   };
 
@@ -91,6 +95,7 @@ export default function PickWaveDetailPage() {
         shortReason: qtyPicked < pickModalTask.qtyToPick ? shortReason : undefined,
       });
       setPickModalTask(null);
+      addToast('Pick confirmed', 'success');
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Failed to confirm pick');
     }
@@ -181,6 +186,7 @@ export default function PickWaveDetailPage() {
     try {
       await releaseWave.mutateAsync(waveId);
       setConfirmAction(null);
+      addToast('Wave released for picking', 'success');
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Failed to release wave');
     }
@@ -191,6 +197,7 @@ export default function PickWaveDetailPage() {
     try {
       await completeWave.mutateAsync(waveId);
       setConfirmAction(null);
+      addToast('Wave completed', 'success');
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Failed to complete wave');
     }
@@ -206,6 +213,7 @@ export default function PickWaveDetailPage() {
     try {
       await cancelWave.mutateAsync({ waveId, reason: cancelReason });
       setCancelModal(false);
+      addToast('Wave cancelled', 'success');
       router.push('/fulfilment');
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Failed to cancel wave');
@@ -219,9 +227,11 @@ export default function PickWaveDetailPage() {
       const shipment = await createShipment.mutateAsync({
         salesOrderId: orderIds[0],
       });
+      addToast('Shipment created', 'success');
       router.push(`/fulfilment/shipments/${shipment.id}`);
     } catch (error) {
       console.error('Failed to create shipment:', error);
+      addToast('Failed to create shipment', 'error');
     }
   };
 

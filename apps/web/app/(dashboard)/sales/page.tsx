@@ -12,6 +12,7 @@ import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
 import { useOrders, useQueryParams, SalesOrderWithCustomer } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
+import { useCopy } from '@/lib/hooks/use-copy';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { SalesOrderStatus } from '@nerva/shared';
 
@@ -30,6 +31,7 @@ const STATUS_OPTIONS = [
 
 export default function SalesOrdersPage() {
   const router = useRouter();
+  const { copy } = useCopy();
   const [status, setStatus] = useState<SalesOrderStatus | ''>('');
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useOrders({ ...params, status: status || undefined });
@@ -55,7 +57,16 @@ export default function SalesOrdersPage() {
       header: 'Order No.',
       sortable: true,
       render: (row) => (
-        <span className="font-medium text-primary-600">{row.orderNo}</span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            copy(row.orderNo, 'Order number copied');
+          }}
+          className="font-medium text-primary-600 hover:underline cursor-pointer"
+          title="Click to copy"
+        >
+          {row.orderNo}
+        </button>
       ),
     },
     {

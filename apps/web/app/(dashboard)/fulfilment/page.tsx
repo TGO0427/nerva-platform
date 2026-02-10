@@ -12,6 +12,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { PageShell, MetricGrid } from '@/components/ui/motion';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
+import { useToast } from '@/components/ui/toast';
 import {
   usePickWaves,
   useShipments,
@@ -50,6 +51,7 @@ type Tab = 'allocated-orders' | 'pick-waves' | 'shipments';
 
 export default function FulfilmentPage() {
   const router = useRouter();
+  const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('allocated-orders');
   const [waveStatus, setWaveStatus] = useState('');
   const [shipmentStatus, setShipmentStatus] = useState('');
@@ -95,6 +97,7 @@ export default function FulfilmentPage() {
         orderIds: Array.from(selectedOrders),
       });
       setSelectedOrders(new Set());
+      addToast('Pick wave created', 'success');
       router.push(`/fulfilment/pick-waves/${wave.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create pick wave');
@@ -268,6 +271,7 @@ export default function FulfilmentPage() {
       });
       setShowNewShipmentForm(false);
       setSelectedOrderForShipment('');
+      addToast('Shipment created', 'success');
       router.push(`/fulfilment/shipments/${shipment.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create shipment');

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { useToast } from '@/components/ui/toast';
 import {
   useCycleCounts,
   useCreateCycleCount,
@@ -34,6 +35,7 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger'
 
 export default function CycleCountsPage() {
   const router = useRouter();
+  const { addToast } = useToast();
   const { params, setPage } = useQueryParams({ page: 1, limit: 25 });
   const [statusFilter, setStatusFilter] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -50,9 +52,11 @@ export default function CycleCountsPage() {
       const cc = await createCycleCount.mutateAsync({ warehouseId: newWarehouseId });
       setShowCreateForm(false);
       setNewWarehouseId('');
+      addToast('Cycle count created', 'success');
       router.push(`/inventory/cycle-counts/${cc.id}`);
     } catch (error) {
       console.error('Failed to create cycle count:', error);
+      addToast('Failed to create cycle count', 'error');
     }
   };
 

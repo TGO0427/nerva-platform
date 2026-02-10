@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
 import {
   useCustomers,
   useItems,
@@ -34,6 +35,7 @@ function uid() {
 
 export default function NewSalesOrderPage() {
   const router = useRouter();
+  const { addToast } = useToast();
   const createOrder = useCreateOrder();
   const generateOrderNo = useGenerateOrderNumber();
 
@@ -209,6 +211,7 @@ export default function NewSalesOrderPage() {
 
     try {
       const order = await createOrder.mutateAsync(orderData);
+      addToast('Order created successfully', 'success');
       router.push(`/sales/${order.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create order');
