@@ -127,6 +127,17 @@ export class DispatchService {
     return trip;
   }
 
+  async assignTrip(tripId: string, data: {
+    vehicleId?: string;
+    driverId?: string;
+    vehiclePlate?: string;
+    driverName?: string;
+  }): Promise<DispatchTrip> {
+    const trip = await this.repository.assignTripManual(tripId, data);
+    if (!trip) throw new NotFoundException('Trip not found');
+    return trip;
+  }
+
   async addStop(data: {
     tenantId: string;
     tripId: string;

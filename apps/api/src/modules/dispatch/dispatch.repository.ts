@@ -10,6 +10,8 @@ export interface DispatchTrip {
   status: string;
   vehicleId: string | null;
   driverId: string | null;
+  driverName: string | null;
+  vehiclePlate: string | null;
   plannedDate: Date | null;
   plannedStart: Date | null;
   actualStart: Date | null;
@@ -168,6 +170,27 @@ export class DispatchRepository extends BaseRepository {
       `UPDATE dispatch_trips SET driver_id = $1, vehicle_id = $2, status = 'ASSIGNED'
        WHERE id = $3 RETURNING *`,
       [driverId, vehicleId || null, tripId],
+    );
+    return row ? this.mapTrip(row) : null;
+  }
+
+  async assignTripManual(tripId: string, data: {
+    vehicleId?: string;
+    driverId?: string;
+    vehiclePlate?: string;
+    driverName?: string;
+  }): Promise<DispatchTrip | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE dispatch_trips
+       SET driver_id = $1, vehicle_id = $2, driver_name = $3, vehicle_plate = $4, status = 'ASSIGNED'
+       WHERE id = $5 RETURNING *`,
+      [
+        data.driverId || null,
+        data.vehicleId || null,
+        data.driverName || null,
+        data.vehiclePlate || null,
+        tripId,
+      ],
     );
     return row ? this.mapTrip(row) : null;
   }
@@ -417,6 +440,8 @@ export class DispatchRepository extends BaseRepository {
       status: row.status as string,
       vehicleId: row.vehicle_id as string | null,
       driverId: row.driver_id as string | null,
+      driverName: row.driver_name as string | null,
+      vehiclePlate: row.vehicle_plate as string | null,
       plannedDate: row.planned_date as Date | null,
       plannedStart: row.planned_start as Date | null,
       actualStart: row.actual_start as Date | null,

@@ -154,10 +154,24 @@ export function useAssignTrip() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ tripId, vehicleId, driverId }: { tripId: string; vehicleId: string; driverId: string }) => {
+    mutationFn: async ({
+      tripId,
+      vehicleId,
+      driverId,
+      vehiclePlate,
+      driverName,
+    }: {
+      tripId: string;
+      vehicleId?: string;
+      driverId?: string;
+      vehiclePlate?: string;
+      driverName?: string;
+    }) => {
       const response = await api.post<Trip>(`/dispatch/trips/${tripId}/assign`, {
         vehicleId,
         driverId,
+        vehiclePlate,
+        driverName,
       });
       return response.data;
     },

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
-import { Combobox } from '@/components/ui/combobox';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
@@ -17,8 +16,6 @@ import { Input } from '@/components/ui/input';
 import {
   useTrip,
   useTripStops,
-  useVehicles,
-  useDrivers,
   useAssignTrip,
   useStartTrip,
   useCompleteTrip,
@@ -74,8 +71,6 @@ export default function TripDetailPage() {
 
   const { data: trip, isLoading: tripLoading } = useTrip(tripId);
   const { data: stops, isLoading: stopsLoading } = useTripStops(tripId);
-  const { data: vehicles } = useVehicles();
-  const { data: drivers } = useDrivers();
 
   const assignTrip = useAssignTrip();
   const startTrip = useStartTrip();
@@ -325,14 +320,14 @@ export default function TripDetailPage() {
 
   const handleAssign = async () => {
     if (!selectedVehicle || !selectedDriver) {
-      addToast('Please select both vehicle and driver', 'error');
+      addToast('Please enter both vehicle and driver', 'error');
       return;
     }
     try {
       await assignTrip.mutateAsync({
         tripId,
-        vehicleId: selectedVehicle,
-        driverId: selectedDriver,
+        vehiclePlate: selectedVehicle,
+        driverName: selectedDriver,
       });
       setShowAssignForm(false);
       addToast('Trip assigned successfully', 'success');
@@ -407,16 +402,6 @@ export default function TripDetailPage() {
     );
   }
 
-  const vehicleOptions = vehicles?.map(v => ({
-    value: v.id,
-    label: `${v.plateNo} - ${v.type}`,
-  })) || [];
-
-  const driverOptions = drivers?.map(d => ({
-    value: d.id,
-    label: d.name,
-  })) || [];
-
   const canAssign = trip.status === 'PLANNED';
   const canStart = trip.status === 'ASSIGNED' || trip.status === 'LOADING';
   const canComplete = trip.status === 'IN_PROGRESS';
@@ -486,21 +471,23 @@ export default function TripDetailPage() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
-                <Combobox
-                  label="Vehicle *"
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Vehicle *
+                </label>
+                <Input
                   value={selectedVehicle}
-                  onChange={setSelectedVehicle}
-                  options={vehicleOptions}
-                  placeholder="Search vehicle..."
+                  onChange={(e) => setSelectedVehicle(e.target.value)}
+                  placeholder="Enter vehicle plate number..."
                 />
               </div>
               <div>
-                <Combobox
-                  label="Driver *"
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Driver *
+                </label>
+                <Input
                   value={selectedDriver}
-                  onChange={setSelectedDriver}
-                  options={driverOptions}
-                  placeholder="Search driver..."
+                  onChange={(e) => setSelectedDriver(e.target.value)}
+                  placeholder="Enter driver name..."
                 />
               </div>
             </div>

@@ -114,9 +114,19 @@ export class DispatchController {
   @ApiOperation({ summary: 'Assign vehicle and driver to trip' })
   async assignTrip(
     @Param('id', UuidValidationPipe) tripId: string,
-    @Body() data: { vehicleId: string; driverId: string },
+    @Body() data: {
+      vehicleId?: string;
+      driverId?: string;
+      vehiclePlate?: string;
+      driverName?: string;
+    },
   ) {
-    return this.service.assignDriver(tripId, data.driverId, data.vehicleId);
+    return this.service.assignTrip(tripId, {
+      vehicleId: data.vehicleId,
+      driverId: data.driverId,
+      vehiclePlate: data.vehiclePlate,
+      driverName: data.driverName,
+    });
   }
 
   @Post('trips/:id/start')
