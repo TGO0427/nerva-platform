@@ -30,6 +30,8 @@ import {
   Shipment,
   useTripStops,
   TripStop,
+  useDispatchActivity,
+  AuditEntryWithActor,
 } from '@/lib/queries';
 import type { TripStatus, StopStatus } from '@nerva/shared';
 
@@ -136,6 +138,7 @@ export default function DispatchPage() {
   });
 
   const { data: readyShipments, isLoading: shipmentsLoading, refetch: refetchShipments } = useReadyForDispatchShipments();
+  const { data: activityData, isLoading: activityLoading } = useDispatchActivity(12);
   const createTrip = useCreateTrip();
   const startTrip = useStartTrip();
   const completeTrip = useCompleteTrip();
@@ -509,66 +512,70 @@ export default function DispatchPage() {
         />
       </MetricGrid>
 
-      {/* Tabs */}
-      <div className="border-b border-slate-200 mb-4">
-        <div className="flex items-center justify-between">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('trips')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'trips'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
-            >
-              Trips
-            </button>
-            <button
-              onClick={() => setActiveTab('ready-shipments')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
-                activeTab === 'ready-shipments'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
-            >
-              Ready for Dispatch
-              {readyCount > 0 && (
-                <span className="bg-orange-100 text-orange-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                  {readyCount}
-                </span>
-              )}
-            </button>
-          </nav>
+      {/* Main content with activity sidebar */}
+      <div className="flex gap-6">
+        {/* Main content area */}
+        <div className="flex-1 min-w-0">
+          {/* Tabs */}
+          <div className="border-b border-slate-200 mb-4">
+            <div className="flex items-center justify-between">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab('trips')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === 'trips'
+                      ? 'border-primary-500 text-primary-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  Trips
+                </button>
+                <button
+                  onClick={() => setActiveTab('ready-shipments')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
+                    activeTab === 'ready-shipments'
+                      ? 'border-primary-500 text-primary-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  Ready for Dispatch
+                  {readyCount > 0 && (
+                    <span className="bg-orange-100 text-orange-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                      {readyCount}
+                    </span>
+                  )}
+                </button>
+              </nav>
 
-          {/* View mode toggle - only show on trips tab */}
-          {activeTab === 'trips' && (
-            <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
-              <button
-                onClick={() => setViewMode('board')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  viewMode === 'board'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <BoardIcon className="h-4 w-4 inline mr-1.5" />
-                Board
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  viewMode === 'table'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <TableIcon className="h-4 w-4 inline mr-1.5" />
-                Table
-              </button>
+              {/* View mode toggle - only show on trips tab */}
+              {activeTab === 'trips' && (
+                <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+                  <button
+                    onClick={() => setViewMode('board')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      viewMode === 'board'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <BoardIcon className="h-4 w-4 inline mr-1.5" />
+                    Board
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      viewMode === 'table'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <TableIcon className="h-4 w-4 inline mr-1.5" />
+                    Table
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
       {activeTab === 'trips' && viewMode === 'table' && (
         <>
@@ -807,6 +814,40 @@ export default function DispatchPage() {
           )}
         </>
       )}
+        </div>
+
+        {/* Activity Feed Sidebar */}
+        <div className="hidden xl:block w-80 flex-shrink-0">
+          <Card className="sticky top-4">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+                <span className="flex items-center gap-1 text-xs text-green-600">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  Live
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {activityLoading ? (
+                <div className="flex justify-center py-4">
+                  <Spinner size="sm" />
+                </div>
+              ) : activityData && activityData.length > 0 ? (
+                <div className="space-y-3">
+                  {activityData.map((entry) => (
+                    <ActivityItem key={entry.id} entry={entry} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 text-center py-4">
+                  No recent activity
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Trip Detail Drawer */}
       <Drawer
@@ -1135,6 +1176,173 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+// Activity Feed Item
+function ActivityItem({ entry }: { entry: AuditEntryWithActor }) {
+  const getActivityInfo = (entry: AuditEntryWithActor) => {
+    const { entityType, action, afterJson } = entry;
+
+    // Determine icon and color based on entity type and action
+    let icon: React.ReactNode;
+    let color: string;
+    let description: string;
+
+    const entityId = afterJson?.tripNo || afterJson?.shipmentNo || afterJson?.orderNo || entry.entityId?.slice(0, 8);
+
+    switch (entityType) {
+      case 'Trip':
+        switch (action) {
+          case 'CREATE':
+            icon = <TruckActivityIcon />;
+            color = 'bg-blue-100 text-blue-600';
+            description = `Trip ${entityId} created`;
+            break;
+          case 'UPDATE':
+            const status = afterJson?.status as string;
+            if (status === 'ASSIGNED') {
+              icon = <UserActivityIcon />;
+              color = 'bg-purple-100 text-purple-600';
+              description = `Driver assigned to ${entityId}`;
+            } else if (status === 'IN_PROGRESS') {
+              icon = <PlayActivityIcon />;
+              color = 'bg-yellow-100 text-yellow-600';
+              description = `Trip ${entityId} started`;
+            } else if (status === 'COMPLETE') {
+              icon = <CheckActivityIcon />;
+              color = 'bg-green-100 text-green-600';
+              description = `Trip ${entityId} completed`;
+            } else {
+              icon = <EditActivityIcon />;
+              color = 'bg-slate-100 text-slate-600';
+              description = `Trip ${entityId} updated`;
+            }
+            break;
+          default:
+            icon = <TruckActivityIcon />;
+            color = 'bg-slate-100 text-slate-600';
+            description = `Trip ${entityId} ${action?.toLowerCase()}`;
+        }
+        break;
+      case 'TripStop':
+        const stopStatus = afterJson?.status as string;
+        if (stopStatus === 'DELIVERED') {
+          icon = <CheckActivityIcon />;
+          color = 'bg-green-100 text-green-600';
+          description = `Stop delivered`;
+        } else if (stopStatus === 'FAILED') {
+          icon = <ExclamationActivityIcon />;
+          color = 'bg-red-100 text-red-600';
+          description = `Delivery failed`;
+        } else if (stopStatus === 'ARRIVED') {
+          icon = <LocationActivityIcon />;
+          color = 'bg-blue-100 text-blue-600';
+          description = `Driver arrived at stop`;
+        } else {
+          icon = <LocationActivityIcon />;
+          color = 'bg-slate-100 text-slate-600';
+          description = `Stop updated`;
+        }
+        break;
+      case 'Shipment':
+        icon = <PackageActivityIcon />;
+        color = 'bg-orange-100 text-orange-600';
+        description = action === 'CREATE'
+          ? `Shipment ${entityId} created`
+          : `Shipment ${entityId} ${action?.toLowerCase()}`;
+        break;
+      default:
+        icon = <EditActivityIcon />;
+        color = 'bg-slate-100 text-slate-600';
+        description = `${entityType} ${action?.toLowerCase()}`;
+    }
+
+    return { icon, color, description };
+  };
+
+  const { icon, color, description } = getActivityInfo(entry);
+
+  return (
+    <div className="flex gap-3">
+      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${color}`}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-slate-900 truncate">{description}</p>
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <span>{entry.actorName || 'System'}</span>
+          <span>•</span>
+          <span>{formatRelativeTime(entry.createdAt)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Activity icons (smaller)
+function TruckActivityIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+    </svg>
+  );
+}
+
+function UserActivityIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+    </svg>
+  );
+}
+
+function PlayActivityIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+    </svg>
+  );
+}
+
+function CheckActivityIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+}
+
+function EditActivityIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+    </svg>
+  );
+}
+
+function LocationActivityIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+    </svg>
+  );
+}
+
+function ExclamationActivityIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+    </svg>
+  );
+}
+
+function PackageActivityIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
     </svg>
   );
 }
