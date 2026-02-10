@@ -35,6 +35,7 @@ export interface SalesOrderLineWithItem extends SalesOrderLine {
 interface OrderFilters {
   status?: SalesOrderStatus;
   customerId?: string;
+  late?: boolean;
 }
 
 // List orders
@@ -47,6 +48,7 @@ export function useOrders(params: QueryParams & OrderFilters) {
       searchParams.set('limit', String(params.limit));
       if (params.status) searchParams.set('status', params.status);
       if (params.customerId) searchParams.set('customerId', params.customerId);
+      if (params.late) searchParams.set('late', 'true');
       if (params.sortBy) searchParams.set('sortBy', params.sortBy);
       if (params.sortOrder) searchParams.set('sortOrder', params.sortOrder);
 

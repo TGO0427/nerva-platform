@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { useNotifications, useUnreadNotificationCount, useMarkNotificationAsRead, useMarkAllNotificationsAsRead } from '@/lib/queries';
 import { useSites } from '@/lib/queries/settings';
+import { GlobalSearch } from './global-search';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -104,8 +105,11 @@ export function Header({ onMenuClick }: HeaderProps) {
         </button>
       </div>
 
-      {/* Right side - Notifications and User menu */}
-      <div className="flex items-center gap-4">
+      {/* Right side - Search, Notifications and User menu */}
+      <div className="flex items-center gap-3">
+        {/* Global search */}
+        <GlobalSearch />
+
         {/* Site selector */}
         {user && sites && sites.length > 0 && (
           <div className="relative hidden sm:block" ref={siteMenuRef}>

@@ -168,7 +168,7 @@ export default function DashboardPage() {
                   value={<AnimatedNumber value={stats?.activePickWaves ?? 0} duration={400} />}
                   sub={stats?.pendingPickTasks ? `${stats.pendingPickTasks} pick tasks` : (stats?.activePickWaves ?? 0) === 0 ? 'Create a pick wave' : undefined}
                   icon={<BoxIcon />}
-                  href="/fulfilment"
+                  href="/fulfilment?tab=allocated-orders"
                   tone={readyToPickTone as 'blue' | 'neutral'}
                 />
               </motion.div>
@@ -219,7 +219,7 @@ export default function DashboardPage() {
                   value={<AnimatedNumber value={stats?.lateOrders ?? 0} duration={400} />}
                   sub={(stats?.lateOrders ?? 0) > 0 ? 'Past requested ship date' : 'All orders on track'}
                   icon={<ClockIcon />}
-                  href="/sales"
+                  href="/sales?late=true"
                   tone={lateOrdersTone as 'red' | 'green'}
                 />
               </div>

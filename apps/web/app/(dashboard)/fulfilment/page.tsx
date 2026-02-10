@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -51,8 +51,17 @@ type Tab = 'allocated-orders' | 'pick-waves' | 'shipments';
 
 export default function FulfilmentPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('allocated-orders');
+
+  // Handle URL query params for tab
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as Tab | null;
+    if (tabParam && ['allocated-orders', 'pick-waves', 'shipments'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
   const [waveStatus, setWaveStatus] = useState('');
   const [shipmentStatus, setShipmentStatus] = useState('');
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
@@ -31,10 +31,24 @@ const STATUS_OPTIONS = [
 
 export default function SalesOrdersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { copy } = useCopy();
   const [status, setStatus] = useState<SalesOrderStatus | ''>('');
+  const [lateOnly, setLateOnly] = useState(false);
   const { params, setPage } = useQueryParams();
-  const { data, isLoading } = useOrders({ ...params, status: status || undefined });
+
+  // Handle URL query params
+  useEffect(() => {
+    if (searchParams.get('late') === 'true') {
+      setLateOnly(true);
+    }
+  }, [searchParams]);
+
+  const { data, isLoading } = useOrders({
+    ...params,
+    status: status || undefined,
+    late: lateOnly || undefined,
+  });
 
   const tableData = data?.data || [];
 
@@ -187,12 +201,25 @@ export default function SalesOrdersPage() {
         },
       ]}
       filters={
-        <Select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as SalesOrderStatus | '')}
-          options={STATUS_OPTIONS}
-          className="max-w-xs"
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <Select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as SalesOrderStatus | '')}
+            options={STATUS_OPTIONS}
+            className="max-w-xs"
+          />
+          <label className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-colors ${
+            lateOnly ? 'bg-red-50 border-red-200 text-red-700' : 'border-slate-200 hover:bg-slate-50'
+          }`}>
+            <input
+              type="checkbox"
+              checked={lateOnly}
+              onChange={(e) => setLateOnly(e.target.checked)}
+              className="rounded border-slate-300 text-red-600 focus:ring-red-500"
+            />
+            <span className="text-sm font-medium">Late only</span>
+          </label>
+        </div>
       }
       filterActions={
         <div className="flex gap-2">
