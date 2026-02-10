@@ -486,4 +486,144 @@ export class FulfilmentRepository extends BaseRepository {
       updatedAt: row.updated_at as Date,
     };
   }
+
+  // PDF Data methods
+  async getPickSlipData(waveId: string): Promise<{
+    waveNo: string;
+    warehouseName: string;
+    createdAt: Date;
+    assignedToName: string | null;
+    tasks: Array<{
+      binCode: string;
+      itemSku: string;
+      itemDescription: string;
+      qtyToPick: number;
+      batchNo: string | null;
+      expiryDate: Date | null;
+    }>;
+  } | null> {
+    // Get wave info with warehouse name
+    const wave = await this.queryOne<Record<string, unknown>>(
+      `SELECT pw.*, w.name AS warehouse_name
+       FROM pick_waves pw
+       JOIN warehouses w ON w.id = pw.warehouse_id
+       WHERE pw.id = $1`,
+      [waveId],
+    );
+
+    if (!wave) return null;
+
+    // Get first assigned user's name for the header
+    const assignee = await this.queryOne<{ name: string }>(
+      `SELECT u.name
+       FROM pick_tasks pt
+       JOIN users u ON u.id = pt.assigned_to
+       WHERE pt.pick_wave_id = $1 AND pt.assigned_to IS NOT NULL
+       LIMIT 1`,
+      [waveId],
+    );
+
+    // Get tasks with bin and item details, sorted by bin location for efficient picking
+    const tasks = await this.queryMany<Record<string, unknown>>(
+      `SELECT
+         b.code AS bin_code,
+         i.sku AS item_sku,
+         i.description AS item_description,
+         pt.qty_to_pick,
+         pt.batch_no,
+         bt.expiry_date
+       FROM pick_tasks pt
+       JOIN bins b ON b.id = pt.from_bin_id
+       JOIN items i ON i.id = pt.item_id
+       LEFT JOIN batches bt ON bt.item_id = pt.item_id AND bt.batch_no = pt.batch_no
+       WHERE pt.pick_wave_id = $1
+         AND pt.status NOT IN ('CANCELLED')
+       ORDER BY b.aisle, b.rack, b.level, b.position, i.sku`,
+      [waveId],
+    );
+
+    return {
+      waveNo: wave.wave_no as string,
+      warehouseName: wave.warehouse_name as string,
+      createdAt: wave.created_at as Date,
+      assignedToName: assignee?.name || null,
+      tasks: tasks.map((row) => ({
+        binCode: row.bin_code as string,
+        itemSku: row.item_sku as string,
+        itemDescription: row.item_description as string,
+        qtyToPick: parseFloat(row.qty_to_pick as string),
+        batchNo: row.batch_no as string | null,
+        expiryDate: row.expiry_date as Date | null,
+      })),
+    };
+  }
+
+  async getPackingSlipData(shipmentId: string): Promise<{
+    shipmentNo: string;
+    orderNo: string;
+    createdAt: Date;
+    customerName: string;
+    shippingAddress: string;
+    lines: Array<{
+      itemSku: string;
+      itemDescription: string;
+      qty: number;
+      batchNo: string | null;
+    }>;
+    totalItems: number;
+    totalWeight: number;
+  } | null> {
+    // Get shipment with order and customer details
+    const shipment = await this.queryOne<Record<string, unknown>>(
+      `SELECT
+         s.shipment_no,
+         s.created_at,
+         s.total_weight_kg,
+         so.order_no,
+         c.name AS customer_name,
+         CONCAT_WS(', ', so.shipping_address_line1, so.shipping_city) AS shipping_address
+       FROM shipments s
+       JOIN sales_orders so ON so.id = s.sales_order_id
+       JOIN customers c ON c.id = so.customer_id
+       WHERE s.id = $1`,
+      [shipmentId],
+    );
+
+    if (!shipment) return null;
+
+    // Get shipment lines with item details
+    const lines = await this.queryMany<Record<string, unknown>>(
+      `SELECT
+         i.sku AS item_sku,
+         i.description AS item_description,
+         sl.qty,
+         sl.batch_no
+       FROM shipment_lines sl
+       JOIN items i ON i.id = sl.item_id
+       WHERE sl.shipment_id = $1
+       ORDER BY i.sku`,
+      [shipmentId],
+    );
+
+    const totalItems = lines.reduce(
+      (sum, row) => sum + parseFloat(row.qty as string),
+      0,
+    );
+
+    return {
+      shipmentNo: shipment.shipment_no as string,
+      orderNo: shipment.order_no as string,
+      createdAt: shipment.created_at as Date,
+      customerName: shipment.customer_name as string,
+      shippingAddress: (shipment.shipping_address as string) || '',
+      lines: lines.map((row) => ({
+        itemSku: row.item_sku as string,
+        itemDescription: row.item_description as string,
+        qty: parseFloat(row.qty as string),
+        batchNo: row.batch_no as string | null,
+      })),
+      totalItems,
+      totalWeight: parseFloat(shipment.total_weight_kg as string) || 0,
+    };
+  }
 }

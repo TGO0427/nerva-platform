@@ -8,9 +8,13 @@ import {
   UseGuards,
   ParseIntPipe,
   DefaultValuePipe,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Response } from 'express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiProduces } from '@nestjs/swagger';
 import { FulfilmentService } from './fulfilment.service';
+import { PdfService } from './pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -24,7 +28,10 @@ import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('fulfilment')
 export class FulfilmentController {
-  constructor(private readonly service: FulfilmentService) {}
+  constructor(
+    private readonly service: FulfilmentService,
+    private readonly pdfService: PdfService,
+  ) {}
 
   // Allocated orders ready for picking
   @Get('allocated-orders')
@@ -101,6 +108,23 @@ export class FulfilmentController {
     @Body() data: { reason: string },
   ) {
     return this.service.cancelPickWave(id, data.reason);
+  }
+
+  @Get('pick-waves/:id/pick-slip')
+  @RequirePermissions('pick_wave.create')
+  @ApiOperation({ summary: 'Download pick slip PDF' })
+  @ApiProduces('application/pdf')
+  async downloadPickSlip(
+    @Param('id', UuidValidationPipe) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.pdfService.generatePickSlip(id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="pick-slip-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
   }
 
   // Pick Tasks
@@ -198,6 +222,23 @@ export class FulfilmentController {
   @ApiOperation({ summary: 'Get shipment lines' })
   async getShipmentLines(@Param('id', UuidValidationPipe) id: string) {
     return this.service.getShipmentLines(id);
+  }
+
+  @Get('shipments/:id/packing-slip')
+  @RequirePermissions('shipment.read')
+  @ApiOperation({ summary: 'Download packing slip PDF' })
+  @ApiProduces('application/pdf')
+  async downloadPackingSlip(
+    @Param('id', UuidValidationPipe) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.pdfService.generatePackingSlip(id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="packing-slip-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
   }
 
   @Post('shipments/:id/pack')
