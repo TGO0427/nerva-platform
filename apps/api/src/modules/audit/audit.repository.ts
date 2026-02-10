@@ -109,7 +109,7 @@ export class AuditRepository extends BaseRepository {
     values.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(
-      `SELECT a.*, u.first_name || ' ' || u.last_name AS actor_name
+      `SELECT a.*, u.display_name AS actor_name
        FROM audit_log a
        LEFT JOIN users u ON u.id = a.actor_user_id
        WHERE ${conditions.join(' AND ')}
