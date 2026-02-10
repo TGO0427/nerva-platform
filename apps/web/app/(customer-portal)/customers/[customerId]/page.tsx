@@ -289,40 +289,98 @@ function OrderIcon({ className }: { className?: string }) {
 
 function SimpleBarChart({
   data,
-  color,
 }: {
   data: Array<{ month: string; count: number }>;
-  color: 'blue' | 'green' | 'orange';
+  color?: string;
 }) {
   const values = data.map(d => d.count);
   const maxValue = Math.max(...values, 1);
+  const chartHeight = 180;
+  const padding = 40;
 
-  const colorClasses = {
-    blue: 'bg-blue-500',
-    green: 'bg-green-500',
-    orange: 'bg-orange-500',
-  };
+  // Calculate points for the line
+  const points = data.map((item, index) => {
+    const x = (index / (data.length - 1)) * 100;
+    const y = maxValue > 0 ? ((maxValue - item.count) / maxValue) * 100 : 100;
+    return { x, y, count: item.count, month: item.month };
+  });
+
+  // Create SVG path for the line
+  const linePath = points.map((point, index) => {
+    const command = index === 0 ? 'M' : 'L';
+    return `${command} ${point.x} ${point.y}`;
+  }).join(' ');
+
+  // Create area fill path
+  const areaPath = `${linePath} L 100 100 L 0 100 Z`;
 
   return (
-    <div className="h-48 flex items-end justify-between gap-2">
-      {data.map((item, index) => {
-        const height = (item.count / maxValue) * 100;
-        return (
-          <div key={index} className="flex-1 flex flex-col items-center">
-            <div className="text-xs text-gray-600 font-medium mb-1">
-              {item.count}
-            </div>
-            <div
-              className={`w-full ${colorClasses[color]} rounded-t transition-all duration-300`}
-              style={{ height: `${Math.max(height, 4)}%` }}
-              title={`${item.month}: ${item.count} orders`}
-            />
-            <span className="text-xs text-gray-500 mt-2">
-              {item.month}
+    <div className="relative" style={{ height: chartHeight + padding }}>
+      {/* Chart area */}
+      <div className="relative" style={{ height: chartHeight }}>
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="w-full h-full"
+        >
+          {/* Grid lines */}
+          <line x1="0" y1="0" x2="100" y2="0" stroke="#e5e7eb" strokeWidth="0.5" />
+          <line x1="0" y1="50" x2="100" y2="50" stroke="#e5e7eb" strokeWidth="0.5" />
+          <line x1="0" y1="100" x2="100" y2="100" stroke="#e5e7eb" strokeWidth="0.5" />
+
+          {/* Area fill */}
+          <path d={areaPath} fill="url(#gradient)" opacity="0.1" />
+
+          {/* Line */}
+          <path
+            d={linePath}
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth="2"
+            vectorEffect="non-scaling-stroke"
+          />
+
+          {/* Gradient definition */}
+          <defs>
+            <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        {/* Data points and values */}
+        {points.map((point, index) => (
+          <div
+            key={index}
+            className="absolute flex flex-col items-center"
+            style={{
+              left: `${point.x}%`,
+              top: `${point.y}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            {/* Value label */}
+            <span
+              className="text-xs text-gray-600 font-medium absolute"
+              style={{ top: '-20px' }}
+            >
+              {point.count}
             </span>
+            {/* Dot */}
+            <div className="w-2 h-2 bg-blue-500 rounded-full border-2 border-white shadow-sm" />
           </div>
-        );
-      })}
+        ))}
+      </div>
+
+      {/* X-axis labels */}
+      <div className="flex justify-between mt-2">
+        {data.map((item, index) => (
+          <span key={index} className="text-xs text-gray-500">
+            {item.month}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
