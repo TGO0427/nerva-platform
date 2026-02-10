@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -85,155 +85,180 @@ export default function CustomerPortalContacts() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Contacts</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900">Contacts</h1>
+          <p className="text-slate-500 mt-1">
             Manage contacts for {customer?.name}
           </p>
         </div>
         {!showForm && (
-          <Button onClick={() => setShowForm(true)}>
+          <motion.button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 shadow-sm transition-all"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
             <PlusIcon className="h-4 w-4 mr-2" />
             Add Contact
-          </Button>
+          </motion.button>
         )}
       </div>
 
       {/* Add/Edit Form */}
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{editingContact ? 'Edit Contact' : 'New Contact'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Contact name"
-                    required
-                  />
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="rounded-2xl bg-white border border-slate-200/70 shadow-sm"
+          >
+            <div className="p-5 border-b border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900">
+                {editingContact ? 'Edit Contact' : 'New Contact'}
+              </h3>
+            </div>
+            <div className="p-5">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Name <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Contact name"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Title
+                    </label>
+                    <Input
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="e.g., Sales Manager"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Email
+                    </label>
+                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="email@example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Phone
+                    </label>
+                    <Input
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="+27 12 345 6789"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Title
-                  </label>
-                  <Input
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="e.g., Sales Manager"
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isPrimary"
+                    checked={formData.isPrimary}
+                    onChange={(e) => setFormData({ ...formData, isPrimary: e.target.checked })}
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
+                  <label htmlFor="isPrimary" className="text-sm text-slate-700">
+                    Primary contact
                   </label>
-                  <Input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="email@example.com"
-                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
-                  </label>
-                  <Input
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+27 12 345 6789"
-                  />
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    type="submit"
+                    isLoading={createContact.isPending || updateContact.isPending}
+                  >
+                    {editingContact ? 'Update' : 'Add'} Contact
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={resetForm}>
+                    Cancel
+                  </Button>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isPrimary"
-                  checked={formData.isPrimary}
-                  onChange={(e) => setFormData({ ...formData, isPrimary: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <label htmlFor="isPrimary" className="text-sm text-gray-700">
-                  Primary contact
-                </label>
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Button
-                  type="submit"
-                  isLoading={createContact.isPending || updateContact.isPending}
-                >
-                  {editingContact ? 'Update' : 'Add'} Contact
-                </Button>
-                <Button type="button" variant="secondary" onClick={resetForm}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+              </form>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Contacts List */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Spinner size="lg" />
+      <motion.div
+        className="rounded-2xl bg-white border border-slate-200/70 shadow-sm hover:shadow-md transition-all overflow-hidden"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        ) : !contacts || contacts.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
+              <ContactIcon className="h-6 w-6" />
             </div>
-          ) : !contacts || contacts.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <ContactIcon className="mx-auto h-12 w-12 mb-4 text-gray-300" />
-              <p className="font-medium">No contacts</p>
-              <p className="text-sm mt-1">Add contacts to this customer</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {contacts.map((contact) => (
-                <div key={contact.id} className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                      <span className="text-primary-700 font-medium">
-                        {contact.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{contact.name}</span>
-                        {contact.isPrimary && (
-                          <Badge variant="info">Primary</Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {contact.title && <span>{contact.title} &bull; </span>}
-                        {contact.email || contact.phone || 'No contact info'}
-                      </div>
-                    </div>
+            <p className="text-slate-600 mt-4 font-medium">No contacts</p>
+            <p className="text-slate-400 text-sm mt-1">Add contacts to this customer</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {contacts.map((contact, index) => (
+              <motion.div
+                key={contact.id}
+                className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: index * 0.05 }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
+                    <span className="text-white font-semibold">
+                      {contact.name.charAt(0).toUpperCase()}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleEdit(contact)}
-                      className="p-2 text-gray-400 hover:text-gray-600"
-                    >
-                      <EditIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(contact.id)}
-                      className="p-2 text-gray-400 hover:text-red-600"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-900">{contact.name}</span>
+                      {contact.isPrimary && (
+                        <Badge variant="info">Primary</Badge>
+                      )}
+                    </div>
+                    <div className="text-sm text-slate-500">
+                      {contact.title && <span>{contact.title} &bull; </span>}
+                      {contact.email || contact.phone || 'No contact info'}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleEdit(contact)}
+                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+                  >
+                    <EditIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(contact.id)}
+                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }

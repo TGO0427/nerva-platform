@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
@@ -46,7 +46,7 @@ export default function CustomerPortalOrders() {
       key: 'orderNo',
       header: 'Order No',
       render: (row) => (
-        <span className="font-medium text-primary-600">{row.orderNo}</span>
+        <span className="font-semibold text-blue-600">{row.orderNo}</span>
       ),
     },
     {
@@ -81,14 +81,19 @@ export default function CustomerPortalOrders() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-slate-900">Orders</h1>
+        <p className="text-slate-500 mt-1">
           All orders for {customer?.name}
         </p>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2">
+      <motion.div
+        className="flex flex-wrap gap-2"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+      >
         {STATUS_FILTERS.map((filter) => (
           <button
             key={filter.value}
@@ -96,68 +101,78 @@ export default function CustomerPortalOrders() {
               setStatusFilter(filter.value);
               setPage(1);
             }}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+            className={`px-3 py-1.5 text-sm font-medium rounded-xl transition-all ${
               statusFilter === filter.value
-                ? 'bg-primary-600 text-white'
-                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
             }`}
           >
             {filter.label}
           </button>
         ))}
-      </div>
+      </motion.div>
 
       {/* Orders Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Spinner size="lg" />
+      <motion.div
+        className="rounded-2xl bg-white border border-slate-200/70 shadow-sm hover:shadow-md transition-all overflow-hidden"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, delay: 0.1 }}
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
+              <OrderIcon className="h-6 w-6" />
             </div>
-          ) : orders.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <OrderIcon className="mx-auto h-12 w-12 mb-4 text-gray-300" />
-              <p className="font-medium">No orders found</p>
-              <p className="text-sm mt-1">
-                {statusFilter
-                  ? `No ${statusFilter.toLowerCase()} orders`
-                  : 'This customer has no orders yet'}
-              </p>
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={orders}
-              keyField="id"
-              onRowClick={(row) => router.push(`/sales/${row.id}`)}
-            />
-          )}
-        </CardContent>
-      </Card>
+            <p className="text-slate-600 mt-4 font-medium">No orders found</p>
+            <p className="text-slate-400 text-sm mt-1">
+              {statusFilter
+                ? `No ${statusFilter.toLowerCase()} orders`
+                : 'This customer has no orders yet'}
+            </p>
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={orders}
+            keyField="id"
+            onRowClick={(row) => router.push(`/sales/${row.id}`)}
+          />
+        )}
+      </motion.div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">
+        <motion.div
+          className="flex items-center justify-between"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2, delay: 0.2 }}
+        >
+          <p className="text-sm text-slate-500">
             Page {page} of {totalPages}
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1.5 text-sm font-medium rounded-xl border border-slate-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 hover:border-slate-300 transition-all"
             >
               Previous
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1.5 text-sm font-medium rounded-xl border border-slate-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 hover:border-slate-300 transition-all"
             >
               Next
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );

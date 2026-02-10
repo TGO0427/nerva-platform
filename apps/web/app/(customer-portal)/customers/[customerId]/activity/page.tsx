@@ -1,12 +1,11 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { useCustomerPortal } from '@/lib/contexts/customer-portal-context';
 import { useCustomerActivity } from '@/lib/queries/customers';
-import type { AuditEntryWithActor } from '@/lib/queries/audit';
 
 export default function CustomerPortalActivity() {
   const params = useParams();
@@ -45,43 +44,56 @@ export default function CustomerPortalActivity() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Activity</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-slate-900">Activity</h1>
+        <p className="text-slate-500 mt-1">
           Activity history for {customer?.name}
         </p>
       </div>
 
       {/* Activity Timeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <motion.div
+        className="rounded-2xl bg-white border border-slate-200/70 shadow-sm hover:shadow-md transition-all"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <div className="p-5 border-b border-slate-100">
+          <h3 className="text-lg font-semibold text-slate-900">Recent Activity</h3>
+        </div>
+        <div className="p-5">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Spinner size="lg" />
             </div>
           ) : !activity || activity.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <ActivityIcon className="mx-auto h-12 w-12 mb-4 text-gray-300" />
-              <p className="font-medium">No activity yet</p>
-              <p className="text-sm mt-1">Activity will be recorded here</p>
+            <div className="text-center py-12">
+              <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
+                <ActivityIcon className="h-6 w-6" />
+              </div>
+              <p className="text-slate-600 mt-4 font-medium">No activity yet</p>
+              <p className="text-slate-400 text-sm mt-1">Activity will be recorded here</p>
             </div>
           ) : (
             <div className="relative">
               {/* Timeline line */}
-              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
+              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-200 via-emerald-200 to-slate-200" />
 
               <div className="space-y-6">
                 {activity.map((entry, index) => (
-                  <div key={entry.id} className="relative flex gap-4">
+                  <motion.div
+                    key={entry.id}
+                    className="relative flex gap-4"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: index * 0.05 }}
+                  >
                     {/* Timeline dot */}
-                    <div className={`relative z-10 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      entry.action === 'CREATE' ? 'bg-green-100' :
-                      entry.action === 'UPDATE' ? 'bg-blue-100' :
-                      entry.action === 'DELETE' ? 'bg-red-100' : 'bg-gray-100'
+                    <div className={`relative z-10 flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center shadow-sm ${
+                      entry.action === 'CREATE' ? 'bg-emerald-100 ring-1 ring-emerald-200' :
+                      entry.action === 'UPDATE' ? 'bg-blue-100 ring-1 ring-blue-200' :
+                      entry.action === 'DELETE' ? 'bg-red-100 ring-1 ring-red-200' : 'bg-slate-100 ring-1 ring-slate-200'
                     }`}>
-                      {entry.action === 'CREATE' && <PlusIcon className="w-4 h-4 text-green-600" />}
+                      {entry.action === 'CREATE' && <PlusIcon className="w-4 h-4 text-emerald-600" />}
                       {entry.action === 'UPDATE' && <EditIcon className="w-4 h-4 text-blue-600" />}
                       {entry.action === 'DELETE' && <TrashIcon className="w-4 h-4 text-red-600" />}
                     </div>
@@ -92,32 +104,32 @@ export default function CustomerPortalActivity() {
                         <Badge variant={getActionVariant(entry.action)}>
                           {getActionLabel(entry.action)}
                         </Badge>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-slate-500">
                           {entry.entityType}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-sm font-medium text-slate-900">
                         {entry.actorName || 'System'}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-slate-500 mt-1">
                         {new Date(entry.createdAt).toLocaleString()}
                       </p>
 
                       {/* Show changes for updates */}
                       {entry.action === 'UPDATE' && entry.beforeJson && entry.afterJson && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded-lg text-xs">
-                          <div className="font-medium text-gray-700 mb-2">Changes:</div>
+                        <div className="mt-3 p-3 bg-slate-50 rounded-xl text-xs ring-1 ring-slate-100">
+                          <div className="font-medium text-slate-700 mb-2">Changes:</div>
                           <div className="space-y-1">
                             {Object.keys(entry.afterJson).map((key) => {
                               const before = entry.beforeJson?.[key];
                               const after = entry.afterJson?.[key];
                               if (before !== after) {
                                 return (
-                                  <div key={key} className="flex items-center gap-2">
-                                    <span className="text-gray-500">{key}:</span>
-                                    <span className="text-red-600 line-through">{String(before || '-')}</span>
-                                    <span className="text-gray-400">&rarr;</span>
-                                    <span className="text-green-600">{String(after || '-')}</span>
+                                  <div key={key} className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-slate-500 font-medium">{key}:</span>
+                                    <span className="text-red-600 line-through bg-red-50 px-1.5 py-0.5 rounded">{String(before || '-')}</span>
+                                    <span className="text-slate-400">&rarr;</span>
+                                    <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">{String(after || '-')}</span>
                                   </div>
                                 );
                               }
@@ -127,13 +139,13 @@ export default function CustomerPortalActivity() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </motion.div>
     </div>
   );
 }

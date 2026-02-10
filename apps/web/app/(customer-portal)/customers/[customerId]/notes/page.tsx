@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
@@ -49,24 +49,30 @@ export default function CustomerPortalNotes() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Notes</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-slate-900">Notes</h1>
+        <p className="text-slate-500 mt-1">
           Notes and comments for {customer?.name}
         </p>
       </div>
 
       {/* Add Note Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Add Note</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <motion.div
+        className="rounded-2xl bg-white border border-slate-200/70 shadow-sm"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <div className="p-5 border-b border-slate-100">
+          <h3 className="text-lg font-semibold text-slate-900">Add Note</h3>
+        </div>
+        <div className="p-5">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Textarea
               value={noteContent}
               onChange={(e) => setNoteContent(e.target.value)}
               placeholder="Write a note about this customer..."
               rows={3}
+              className="resize-none"
             />
             <Button
               type="submit"
@@ -76,50 +82,70 @@ export default function CustomerPortalNotes() {
               Add Note
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </motion.div>
 
       {/* Notes List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Notes</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      <motion.div
+        className="rounded-2xl bg-white border border-slate-200/70 shadow-sm hover:shadow-md transition-all overflow-hidden"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, delay: 0.1 }}
+      >
+        <div className="p-5 border-b border-slate-100">
+          <h3 className="text-lg font-semibold text-slate-900">All Notes</h3>
+        </div>
+        <div>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Spinner size="lg" />
             </div>
           ) : !notes || notes.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <NoteIcon className="mx-auto h-12 w-12 mb-4 text-gray-300" />
-              <p className="font-medium">No notes yet</p>
-              <p className="text-sm mt-1">Add a note above to get started</p>
+            <div className="text-center py-12">
+              <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
+                <NoteIcon className="h-6 w-6" />
+              </div>
+              <p className="text-slate-600 mt-4 font-medium">No notes yet</p>
+              <p className="text-slate-400 text-sm mt-1">Add a note above to get started</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
-              {notes.map((note) => (
-                <div key={note.id} className="p-4">
+            <div className="divide-y divide-slate-100">
+              {notes.map((note, index) => (
+                <motion.div
+                  key={note.id}
+                  className="p-5 hover:bg-slate-50 transition-colors"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <p className="text-gray-900 whitespace-pre-wrap">{note.content}</p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        {note.createdByName || 'Unknown'} &bull;{' '}
-                        {new Date(note.createdAt).toLocaleString()}
-                      </p>
+                      <p className="text-slate-900 whitespace-pre-wrap">{note.content}</p>
+                      <div className="flex items-center gap-2 mt-3">
+                        <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
+                          <span className="text-white text-xs font-semibold">
+                            {(note.createdByName || 'S').charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-500">
+                          {note.createdByName || 'System'} &bull;{' '}
+                          {new Date(note.createdAt).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
                     <button
                       onClick={() => handleDelete(note.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 flex-shrink-0"
+                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all flex-shrink-0 ml-4"
                     >
                       <TrashIcon className="h-4 w-4" />
                     </button>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </motion.div>
     </div>
   );
 }
