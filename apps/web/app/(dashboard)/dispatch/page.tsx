@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -16,10 +17,13 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { Drawer, StopsProgress } from '@/components/ui/drawer';
 import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useCopy } from '@/lib/hooks/use-copy';
 import {
   useTrips,
   useCreateTrip,
+  useStartTrip,
+  useCompleteTrip,
   useQueryParams,
   Trip,
   useReadyForDispatchShipments,
@@ -40,6 +44,10 @@ const STATUS_OPTIONS = [
 ];
 
 type Tab = 'trips' | 'ready-shipments';
+type ViewMode = 'table' | 'board';
+
+// Auto-refresh interval in milliseconds
+const REFRESH_INTERVAL = 25000; // 25 seconds
 
 // Consistent date formatting
 function formatDate(dateStr: string | null): string {
@@ -59,17 +67,44 @@ function formatTime(dateStr: string | null): string {
   });
 }
 
+function formatRelativeTime(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
+// Board column config
+const BOARD_COLUMNS = [
+  { status: 'PLANNED' as TripStatus, label: 'Planned', color: 'bg-slate-100' },
+  { status: 'ASSIGNED' as TripStatus, label: 'Assigned', color: 'bg-blue-50' },
+  { status: 'IN_PROGRESS' as TripStatus, label: 'In Progress', color: 'bg-yellow-50' },
+  { status: 'COMPLETE' as TripStatus, label: 'Completed', color: 'bg-green-50' },
+];
+
 export default function DispatchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const { copy } = useCopy();
   const [activeTab, setActiveTab] = useState<Tab>('trips');
+  const [viewMode, setViewMode] = useState<ViewMode>('board');
   const [status, setStatus] = useState<TripStatus | ''>('');
   const [date, setDate] = useState('');
   const [selectedShipments, setSelectedShipments] = useState<Set<string>>(new Set());
   const [plannedDate, setPlannedDate] = useState('');
   const [error, setError] = useState('');
+  const [isLive, setIsLive] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const { params, setPage } = useQueryParams();
 
   // Trip detail drawer state
@@ -80,6 +115,7 @@ export default function DispatchPage() {
   useEffect(() => {
     const tabParam = searchParams.get('tab') as Tab | null;
     const statusParam = searchParams.get('status') as TripStatus | null;
+    const viewParam = searchParams.get('view') as ViewMode | null;
 
     if (tabParam && ['trips', 'ready-shipments'].includes(tabParam)) {
       setActiveTab(tabParam);
@@ -87,16 +123,98 @@ export default function DispatchPage() {
     if (statusParam) {
       setStatus(statusParam);
     }
+    if (viewParam && ['table', 'board'].includes(viewParam)) {
+      setViewMode(viewParam);
+    }
   }, [searchParams]);
 
-  const { data: tripsData, isLoading: tripsLoading } = useTrips({
+  const { data: tripsData, isLoading: tripsLoading, refetch: refetchTrips } = useTrips({
     ...params,
+    limit: 100, // Get more for board view
     status: status || undefined,
     date: date || undefined,
   });
 
-  const { data: readyShipments, isLoading: shipmentsLoading } = useReadyForDispatchShipments();
+  const { data: readyShipments, isLoading: shipmentsLoading, refetch: refetchShipments } = useReadyForDispatchShipments();
   const createTrip = useCreateTrip();
+  const startTrip = useStartTrip();
+  const completeTrip = useCompleteTrip();
+
+  // Auto-refresh when live mode is enabled
+  useEffect(() => {
+    if (!isLive) return;
+
+    const interval = setInterval(() => {
+      refetchTrips();
+      refetchShipments();
+      setLastRefresh(new Date());
+    }, REFRESH_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [isLive, refetchTrips, refetchShipments]);
+
+  // Manual refresh handler
+  const handleRefresh = useCallback(() => {
+    refetchTrips();
+    refetchShipments();
+    setLastRefresh(new Date());
+    addToast('Data refreshed', 'success', 1500);
+  }, [refetchTrips, refetchShipments, addToast]);
+
+  // Quick action handlers
+  const handleQuickStart = async (trip: Trip, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const confirmed = await confirm({
+      title: 'Start Trip',
+      message: `Start trip ${trip.tripNo}? The driver will be notified.`,
+      confirmLabel: 'Start',
+    });
+    if (confirmed) {
+      try {
+        await startTrip.mutateAsync(trip.id);
+        addToast('Trip started', 'success');
+      } catch {
+        addToast('Failed to start trip', 'error');
+      }
+    }
+  };
+
+  const handleQuickComplete = async (trip: Trip, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const confirmed = await confirm({
+      title: 'Complete Trip',
+      message: `Mark trip ${trip.tripNo} as complete?`,
+      confirmLabel: 'Complete',
+    });
+    if (confirmed) {
+      try {
+        await completeTrip.mutateAsync(trip.id);
+        addToast('Trip completed', 'success');
+      } catch {
+        addToast('Failed to complete trip', 'error');
+      }
+    }
+  };
+
+  // Group trips by status for board view
+  const tripsByStatus = useMemo(() => {
+    const groups: Record<TripStatus, Trip[]> = {
+      PLANNED: [],
+      ASSIGNED: [],
+      LOADING: [],
+      IN_PROGRESS: [],
+      COMPLETE: [],
+      CANCELLED: [],
+    };
+
+    tripsData?.data?.forEach((trip) => {
+      if (groups[trip.status]) {
+        groups[trip.status].push(trip);
+      }
+    });
+
+    return groups;
+  }, [tripsData?.data]);
 
   const tripColumns: Column<Trip>[] = [
     {
@@ -150,7 +268,6 @@ export default function DispatchPage() {
       width: '80px',
       className: 'text-center',
       render: (row) => {
-        // Check if any stops failed (would need backend support, for now show based on status)
         const hasIssue = row.status === 'CANCELLED';
         return hasIssue ? (
           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-600">
@@ -162,9 +279,30 @@ export default function DispatchPage() {
       },
     },
     {
-      key: 'plannedDate',
-      header: 'Planned',
-      render: (row) => formatDate(row.plannedDate),
+      key: 'actions',
+      header: '',
+      width: '120px',
+      render: (row) => (
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {row.status === 'ASSIGNED' && (
+            <Button size="sm" variant="ghost" onClick={(e) => handleQuickStart(row, e)}>
+              Start
+            </Button>
+          )}
+          {row.status === 'IN_PROGRESS' && (
+            <Button size="sm" variant="ghost" onClick={(e) => handleQuickComplete(row, e)}>
+              Complete
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => router.push(`/dispatch/${row.id}`)}
+          >
+            View
+          </Button>
+        </div>
+      ),
     },
   ];
 
@@ -274,9 +412,9 @@ export default function DispatchPage() {
 
   // Stats
   const readyCount = readyShipments?.length || 0;
-  const plannedTrips = tripsData?.data?.filter(t => t.status === 'PLANNED').length || 0;
-  const inProgressTrips = tripsData?.data?.filter(t => t.status === 'IN_PROGRESS').length || 0;
-  const completedToday = tripsData?.data?.filter(t => t.status === 'COMPLETE').length || 0;
+  const plannedTrips = tripsByStatus.PLANNED.length;
+  const inProgressTrips = tripsByStatus.IN_PROGRESS.length;
+  const completedToday = tripsByStatus.COMPLETE.length;
   const totalTrips = tripsData?.meta?.total || 0;
 
   // Calculate total weight of selected shipments
@@ -290,16 +428,45 @@ export default function DispatchPage() {
   // Computed values for drawer
   const drawerTrip = tripsData?.data?.find(t => t.id === selectedTripId);
 
+  // Undelivered stops for drawer
+  const undeliveredStops = useMemo(() => {
+    if (!selectedTripStops) return [];
+    return selectedTripStops.filter(s => !['DELIVERED'].includes(s.status));
+  }, [selectedTripStops]);
+
   return (
     <PageShell>
       <PageHeader
         title="Dispatch"
         subtitle="Manage delivery trips and routes"
         actions={
-          <Button onClick={() => setActiveTab('ready-shipments')}>
-            <PlusIcon />
-            Create Trip
-          </Button>
+          <div className="flex items-center gap-3">
+            {/* Live indicator */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsLive(!isLive)}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                  isLive
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`} />
+                {isLive ? 'Live' : 'Paused'}
+              </button>
+              <button
+                onClick={handleRefresh}
+                className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                title="Refresh now"
+              >
+                <RefreshIcon />
+              </button>
+            </div>
+            <Button onClick={() => setActiveTab('ready-shipments')}>
+              <PlusIcon />
+              Create Trip
+            </Button>
+          </div>
         }
       />
 
@@ -344,36 +511,66 @@ export default function DispatchPage() {
 
       {/* Tabs */}
       <div className="border-b border-slate-200 mb-4">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('trips')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'trips'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            Trips
-          </button>
-          <button
-            onClick={() => setActiveTab('ready-shipments')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
-              activeTab === 'ready-shipments'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            Ready for Dispatch
-            {readyCount > 0 && (
-              <span className="bg-orange-100 text-orange-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                {readyCount}
-              </span>
-            )}
-          </button>
-        </nav>
+        <div className="flex items-center justify-between">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('trips')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'trips'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              Trips
+            </button>
+            <button
+              onClick={() => setActiveTab('ready-shipments')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
+                activeTab === 'ready-shipments'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              Ready for Dispatch
+              {readyCount > 0 && (
+                <span className="bg-orange-100 text-orange-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                  {readyCount}
+                </span>
+              )}
+            </button>
+          </nav>
+
+          {/* View mode toggle - only show on trips tab */}
+          {activeTab === 'trips' && (
+            <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+              <button
+                onClick={() => setViewMode('board')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  viewMode === 'board'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <BoardIcon className="h-4 w-4 inline mr-1.5" />
+                Board
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  viewMode === 'table'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <TableIcon className="h-4 w-4 inline mr-1.5" />
+                Table
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {activeTab === 'trips' && (
+      {activeTab === 'trips' && viewMode === 'table' && (
         <>
           {/* Sticky filter bar */}
           <div className="sticky top-0 z-10 bg-white border-b border-slate-100 -mx-6 px-6 py-3 mb-4 flex flex-wrap items-center gap-4">
@@ -429,6 +626,95 @@ export default function DispatchPage() {
             }}
           />
         </>
+      )}
+
+      {activeTab === 'trips' && viewMode === 'board' && (
+        <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2">
+          {BOARD_COLUMNS.map((column) => (
+            <div key={column.status} className="flex-shrink-0 w-72">
+              <div className={`rounded-lg ${column.color} p-3`}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-slate-700">{column.label}</h3>
+                  <span className="text-sm font-medium text-slate-500 bg-white px-2 py-0.5 rounded-full">
+                    {tripsByStatus[column.status].length}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <AnimatePresence mode="popLayout">
+                    {tripsByStatus[column.status].map((trip) => (
+                      <motion.div
+                        key={trip.id}
+                        layout
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        onClick={() => setSelectedTripId(trip.id)}
+                        className="bg-white rounded-lg p-3 shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="font-medium text-slate-900">{trip.tripNo}</span>
+                          {trip.status === 'CANCELLED' && (
+                            <span className="w-2 h-2 rounded-full bg-red-500" title="Has issues" />
+                          )}
+                        </div>
+
+                        <div className="text-sm text-slate-600 mb-2">
+                          <div className="flex items-center gap-1.5">
+                            <UserIcon className="h-3.5 w-3.5 text-slate-400" />
+                            {trip.driverName || 'Unassigned'}
+                          </div>
+                          {trip.vehiclePlate && (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <TruckSmIcon2 className="h-3.5 w-3.5 text-slate-400" />
+                              {trip.vehiclePlate}
+                            </div>
+                          )}
+                        </div>
+
+                        <StopsProgress
+                          completed={trip.completedStops || 0}
+                          total={trip.totalStops}
+                          className="mb-2"
+                        />
+
+                        <div className="flex items-center justify-between text-xs text-slate-400">
+                          <span>{formatRelativeTime(trip.updatedAt)}</span>
+
+                          {/* Quick actions */}
+                          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                            {trip.status === 'ASSIGNED' && (
+                              <button
+                                onClick={(e) => handleQuickStart(trip, e)}
+                                className="px-2 py-0.5 bg-primary-50 text-primary-600 rounded hover:bg-primary-100 transition-colors"
+                              >
+                                Start
+                              </button>
+                            )}
+                            {trip.status === 'IN_PROGRESS' && (
+                              <button
+                                onClick={(e) => handleQuickComplete(trip, e)}
+                                className="px-2 py-0.5 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
+                              >
+                                Complete
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+
+                  {tripsByStatus[column.status].length === 0 && (
+                    <div className="text-center py-6 text-sm text-slate-400">
+                      No trips
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {activeTab === 'ready-shipments' && (
@@ -562,9 +848,60 @@ export default function DispatchPage() {
               </div>
             </div>
 
-            {/* Stops list */}
+            {/* Quick actions */}
+            {(drawerTrip.status === 'ASSIGNED' || drawerTrip.status === 'IN_PROGRESS') && (
+              <div className="flex gap-2">
+                {drawerTrip.status === 'ASSIGNED' && (
+                  <Button
+                    onClick={(e) => handleQuickStart(drawerTrip, e)}
+                    className="flex-1"
+                    isLoading={startTrip.isPending}
+                  >
+                    <PlaySmIcon />
+                    Start Trip
+                  </Button>
+                )}
+                {drawerTrip.status === 'IN_PROGRESS' && (
+                  <Button
+                    onClick={(e) => handleQuickComplete(drawerTrip, e)}
+                    className="flex-1"
+                    isLoading={completeTrip.isPending}
+                  >
+                    <CheckSmIcon />
+                    Complete Trip
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Undelivered stops section */}
+            {undeliveredStops.length > 0 && (
+              <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                <h3 className="text-sm font-medium text-amber-800 mb-2 flex items-center gap-2">
+                  <ExclamationIcon className="text-amber-600" />
+                  Stops Not Delivered ({undeliveredStops.length})
+                </h3>
+                <div className="space-y-1">
+                  {undeliveredStops.slice(0, 3).map((stop) => (
+                    <div key={stop.id} className="text-sm text-amber-700">
+                      #{stop.sequence} - {stop.customerName || 'Unknown'}
+                      <Badge variant={getStopStatusVariant(stop.status)} className="ml-2 text-xs">
+                        {stop.status}
+                      </Badge>
+                    </div>
+                  ))}
+                  {undeliveredStops.length > 3 && (
+                    <div className="text-sm text-amber-600">
+                      +{undeliveredStops.length - 3} more
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* All stops list */}
             <div>
-              <h3 className="text-sm font-medium text-slate-900 mb-3">Delivery Stops</h3>
+              <h3 className="text-sm font-medium text-slate-900 mb-3">All Delivery Stops</h3>
               {stopsLoading ? (
                 <div className="flex justify-center py-4">
                   <Spinner />
@@ -574,9 +911,17 @@ export default function DispatchPage() {
                   {selectedTripStops.map((stop) => (
                     <div
                       key={stop.id}
-                      className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg"
+                      className={`flex items-center gap-3 p-3 rounded-lg ${
+                        stop.status === 'DELIVERED' ? 'bg-green-50' :
+                        ['FAILED', 'SKIPPED'].includes(stop.status) ? 'bg-red-50' :
+                        'bg-slate-50'
+                      }`}
                     >
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-xs font-medium text-slate-600">
+                      <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                        stop.status === 'DELIVERED' ? 'bg-green-200 text-green-700' :
+                        ['FAILED', 'SKIPPED'].includes(stop.status) ? 'bg-red-200 text-red-700' :
+                        'bg-slate-200 text-slate-600'
+                      }`}>
                         {stop.sequence}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -655,6 +1000,63 @@ function getStopStatusVariant(status: StopStatus): 'default' | 'success' | 'warn
   }
 }
 
+// Icons
+function RefreshIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+  );
+}
+
+function BoardIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+    </svg>
+  );
+}
+
+function TableIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+    </svg>
+  );
+}
+
+function UserIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+    </svg>
+  );
+}
+
+function TruckSmIcon2({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+    </svg>
+  );
+}
+
+function PlaySmIcon() {
+  return (
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+    </svg>
+  );
+}
+
+function CheckSmIcon() {
+  return (
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+}
+
 // Stat card icons (small)
 function PackageSmIcon() {
   return (
@@ -696,9 +1098,9 @@ function TruckSmIcon() {
   );
 }
 
-function ExclamationIcon() {
+function ExclamationIcon({ className }: { className?: string }) {
   return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className={className || "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
     </svg>
   );
