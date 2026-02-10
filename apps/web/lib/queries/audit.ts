@@ -57,7 +57,8 @@ export function useDispatchActivity(limit = 15) {
     queryKey: [AUDIT_KEY, 'dispatch-activity', limit],
     queryFn: async () => {
       // Fetch recent activity for dispatch-related entities
-      const results = await Promise.all(
+      // Use Promise.allSettled to handle failures gracefully
+      const results = await Promise.allSettled(
         DISPATCH_ENTITY_TYPES.map(async (entityType) => {
           const { data } = await api.get<{
             data: AuditEntryWithActor[];
@@ -65,12 +66,18 @@ export function useDispatchActivity(limit = 15) {
           return data.data;
         })
       );
+      // Extract successful results, ignore failures
+      const successfulResults = results
+        .filter((r): r is PromiseFulfilledResult<AuditEntryWithActor[]> => r.status === 'fulfilled')
+        .map(r => r.value);
+
       // Merge and sort by createdAt descending
-      const merged = results.flat().sort(
+      const merged = successfulResults.flat().sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       return merged.slice(0, limit);
     },
     refetchInterval: 30000, // Auto-refresh every 30 seconds
+    retry: false, // Don't retry on failure
   });
 }
