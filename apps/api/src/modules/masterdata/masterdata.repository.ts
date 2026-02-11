@@ -1583,6 +1583,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async createPurchaseOrder(data: {
     tenantId: string;
+    siteId: string;
     supplierId: string;
     poNo: string;
     orderDate?: Date;
@@ -1593,11 +1594,12 @@ export class MasterDataRepository extends BaseRepository {
   }): Promise<PurchaseOrder> {
     const row = await this.queryOne<Record<string, unknown>>(
       `INSERT INTO purchase_orders (
-        tenant_id, supplier_id, po_no, order_date, expected_date, ship_to_warehouse_id, notes, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        tenant_id, site_id, supplier_id, po_no, order_date, expected_date, ship_to_warehouse_id, notes, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [
         data.tenantId,
+        data.siteId,
         data.supplierId,
         data.poNo,
         data.orderDate || new Date(),

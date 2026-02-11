@@ -516,6 +516,7 @@ export class MasterDataService {
 
   async createPurchaseOrder(data: {
     tenantId: string;
+    siteId: string;
     supplierId: string;
     orderDate?: Date;
     expectedDate?: Date;

@@ -59,11 +59,13 @@ export class PurchaseOrdersController {
   @ApiOperation({ summary: 'Create purchase order' })
   async create(
     @TenantId() tenantId: string,
+    @SiteId() siteId: string,
     @Body() data: CreatePurchaseOrderDto,
     @CurrentUser() user: { id: string },
   ) {
     return this.service.createPurchaseOrder({
       tenantId,
+      siteId,
       supplierId: data.supplierId,
       orderDate: data.orderDate ? new Date(data.orderDate) : undefined,
       expectedDate: data.expectedDate ? new Date(data.expectedDate) : undefined,
