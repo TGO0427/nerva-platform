@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { EntityHistory } from '@/components/ui/entity-history';
 import {
   usePurchaseOrder,
   usePurchaseOrderLines,
@@ -192,7 +193,7 @@ export default function PurchaseOrderDetailPage() {
 
       {/* Notes */}
       {po.notes && (
-        <Card>
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle>Notes</CardTitle>
           </CardHeader>
@@ -201,6 +202,9 @@ export default function PurchaseOrderDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* History */}
+      <EntityHistory entityType="PurchaseOrder" entityId={id} />
     </div>
   );
 }

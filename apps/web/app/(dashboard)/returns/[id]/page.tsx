@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
+import { EntityHistory } from '@/components/ui/entity-history';
 import {
   useRma,
   useRmaLines,
@@ -277,7 +278,7 @@ export default function RmaDetailPage() {
       </Card>
 
       {/* Line items */}
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle>Return Items</CardTitle>
         </CardHeader>
@@ -294,6 +295,9 @@ export default function RmaDetailPage() {
           />
         </CardContent>
       </Card>
+
+      {/* History */}
+      <EntityHistory entityType="Rma" entityId={rmaId} />
     </div>
   );
 }

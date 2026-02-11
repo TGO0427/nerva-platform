@@ -49,6 +49,21 @@ export function useAuditLogs(params: AuditSearchParams) {
   });
 }
 
+// Entity-specific history for detail pages
+export function useEntityHistory(entityType: string, entityId: string | undefined, limit = 20) {
+  return useQuery({
+    queryKey: [AUDIT_KEY, 'entity-history', entityType, entityId, limit],
+    queryFn: async () => {
+      if (!entityId) return [];
+      const { data } = await api.get<{
+        data: AuditEntryWithActor[];
+      }>(`/audit?entityType=${entityType}&entityId=${entityId}&limit=${limit}`);
+      return data.data;
+    },
+    enabled: !!entityId,
+  });
+}
+
 // Dispatch-specific activity feed
 const DISPATCH_ENTITY_TYPES = ['Trip', 'TripStop', 'Shipment'];
 

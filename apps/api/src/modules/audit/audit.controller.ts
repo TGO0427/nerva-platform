@@ -27,6 +27,7 @@ export class AuditController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('entityType') entityType?: string,
+    @Query('entityId') entityId?: string,
     @Query('action') action?: string,
     @Query('actorUserId') actorUserId?: string,
     @Query('fromDate') fromDate?: string,
@@ -38,6 +39,7 @@ export class AuditController {
 
     const filters = {
       entityType: entityType || undefined,
+      entityId: entityId || undefined,
       action: action || undefined,
       actorUserId: actorUserId || undefined,
       fromDate: fromDate ? new Date(fromDate) : undefined,

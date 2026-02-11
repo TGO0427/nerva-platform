@@ -10,6 +10,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { EntityHistory } from '@/components/ui/entity-history';
 import {
   useOrder,
   useConfirmOrder,
@@ -422,7 +423,7 @@ export default function SalesOrderDetailPage() {
       )}
 
       {/* Line items */}
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle>Order Lines</CardTitle>
         </CardHeader>
@@ -438,6 +439,9 @@ export default function SalesOrderDetailPage() {
           />
         </CardContent>
       </Card>
+
+      {/* History */}
+      <EntityHistory entityType="SalesOrder" entityId={orderId} />
     </div>
   );
 }

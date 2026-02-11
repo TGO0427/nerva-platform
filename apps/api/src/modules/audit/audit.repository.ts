@@ -21,6 +21,7 @@ export interface AuditEntryWithActor extends AuditEntry {
 
 export interface AuditSearchFilters {
   entityType?: string;
+  entityId?: string;
   action?: string;
   actorUserId?: string;
   fromDate?: Date;
@@ -150,6 +151,10 @@ export class AuditRepository extends BaseRepository {
     if (filters.entityType) {
       conditions.push(`${col('entity_type')} = $${idx++}`);
       values.push(filters.entityType);
+    }
+    if (filters.entityId) {
+      conditions.push(`${col('entity_id')} = $${idx++}`);
+      values.push(filters.entityId);
     }
     if (filters.action) {
       conditions.push(`${col('action')} = $${idx++}`);
