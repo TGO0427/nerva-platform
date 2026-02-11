@@ -309,6 +309,36 @@ INSERT INTO dispatch_stops (id, tenant_id, trip_id, sequence, customer_id, addre
 ON CONFLICT (tenant_id, trip_id, sequence) DO NOTHING;
 
 -- ================
+-- Purchase Orders
+-- ================
+INSERT INTO purchase_orders (id, tenant_id, site_id, supplier_id, po_no, status, order_date, expected_date, ship_to_warehouse_id, subtotal, tax_amount, total_amount, notes, created_by) VALUES
+  ('pppppppp-pppp-pppp-pppp-ppppppppp001', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222201', '99999999-9999-9999-9999-999999999901', 'PO-2024-0001', 'DRAFT', CURRENT_DATE, CURRENT_DATE + INTERVAL '14 days', '55555555-5555-5555-5555-555555555501', 5000.00, 750.00, 5750.00, 'Initial stock order for Q1', '44444444-4444-4444-4444-444444444401'),
+  ('pppppppp-pppp-pppp-pppp-ppppppppp002', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222201', '99999999-9999-9999-9999-999999999902', 'PO-2024-0002', 'SENT', CURRENT_DATE - INTERVAL '5 days', CURRENT_DATE + INTERVAL '10 days', '55555555-5555-5555-5555-555555555501', 12500.00, 1875.00, 14375.00, 'Urgent electronics order', '44444444-4444-4444-4444-444444444401'),
+  ('pppppppp-pppp-pppp-pppp-ppppppppp003', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222201', '99999999-9999-9999-9999-999999999903', 'PO-2024-0003', 'CONFIRMED', CURRENT_DATE - INTERVAL '10 days', CURRENT_DATE + INTERVAL '3 days', '55555555-5555-5555-5555-555555555501', 3200.00, 480.00, 3680.00, 'Regular monthly order', '44444444-4444-4444-4444-444444444401'),
+  ('pppppppp-pppp-pppp-pppp-ppppppppp004', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222201', '99999999-9999-9999-9999-999999999901', 'PO-2024-0004', 'PARTIAL', CURRENT_DATE - INTERVAL '20 days', CURRENT_DATE - INTERVAL '5 days', '55555555-5555-5555-5555-555555555501', 8000.00, 1200.00, 9200.00, 'Partial delivery received', '44444444-4444-4444-4444-444444444401'),
+  ('pppppppp-pppp-pppp-pppp-ppppppppp005', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222201', '99999999-9999-9999-9999-999999999902', 'PO-2024-0005', 'RECEIVED', CURRENT_DATE - INTERVAL '30 days', CURRENT_DATE - INTERVAL '15 days', '55555555-5555-5555-5555-555555555501', 15000.00, 2250.00, 17250.00, 'Completed order', '44444444-4444-4444-4444-444444444401')
+ON CONFLICT (tenant_id, po_no) DO NOTHING;
+
+INSERT INTO purchase_order_lines (id, tenant_id, purchase_order_id, line_no, item_id, qty_ordered, qty_received, unit_cost) VALUES
+  -- PO-2024-0001 lines (Draft)
+  ('polllll-llll-llll-llll-lllllllll001', '11111111-1111-1111-1111-111111111111', 'pppppppp-pppp-pppp-pppp-ppppppppp001', 1, '77777777-7777-7777-7777-777777777701', 50, 0, 80.00),
+  ('polllll-llll-llll-llll-lllllllll002', '11111111-1111-1111-1111-111111111111', 'pppppppp-pppp-pppp-pppp-ppppppppp001', 2, '77777777-7777-7777-7777-777777777702', 20, 0, 125.00),
+  -- PO-2024-0002 lines (Sent)
+  ('polllll-llll-llll-llll-lllllllll003', '11111111-1111-1111-1111-111111111111', 'pppppppp-pppp-pppp-pppp-ppppppppp002', 1, '77777777-7777-7777-7777-777777777707', 500, 0, 15.00),
+  ('polllll-llll-llll-llll-lllllllll004', '11111111-1111-1111-1111-111111111111', 'pppppppp-pppp-pppp-pppp-ppppppppp002', 2, '77777777-7777-7777-7777-777777777708', 250, 0, 20.00),
+  -- PO-2024-0003 lines (Confirmed)
+  ('polllll-llll-llll-llll-lllllllll005', '11111111-1111-1111-1111-111111111111', 'pppppppp-pppp-pppp-pppp-ppppppppp003', 1, '77777777-7777-7777-7777-777777777705', 200, 0, 8.00),
+  ('polllll-llll-llll-llll-lllllllll006', '11111111-1111-1111-1111-111111111111', 'pppppppp-pppp-pppp-pppp-ppppppppp003', 2, '77777777-7777-7777-7777-777777777706', 100, 0, 16.00),
+  -- PO-2024-0004 lines (Partial)
+  ('polllll-llll-llll-llll-lllllllll007', '11111111-1111-1111-1111-111111111111', 'pppppppp-pppp-pppp-pppp-ppppppppp004', 1, '77777777-7777-7777-7777-777777777703', 100, 60, 40.00),
+  ('polllll-llll-llll-llll-lllllllll008', '11111111-1111-1111-1111-111111111111', 'pppppppp-pppp-pppp-pppp-ppppppppp004', 2, '77777777-7777-7777-7777-777777777704', 20, 15, 200.00),
+  -- PO-2024-0005 lines (Received)
+  ('polllll-llll-llll-llll-lllllllll009', '11111111-1111-1111-1111-111111111111', 'pppppppp-pppp-pppp-pppp-ppppppppp005', 1, '77777777-7777-7777-7777-777777777701', 100, 100, 80.00),
+  ('polllll-llll-llll-llll-lllllllll010', '11111111-1111-1111-1111-111111111111', 'pppppppp-pppp-pppp-pppp-ppppppppp005', 2, '77777777-7777-7777-7777-777777777703', 150, 150, 40.00),
+  ('polllll-llll-llll-llll-lllllllll011', '11111111-1111-1111-1111-111111111111', 'pppppppp-pppp-pppp-pppp-ppppppppp005', 3, '77777777-7777-7777-7777-777777777709', 50, 50, 10.00)
+ON CONFLICT DO NOTHING;
+
+-- ================
 -- RMAs (Returns)
 -- ================
 INSERT INTO rmas (id, tenant_id, site_id, warehouse_id, customer_id, rma_no, status, return_type, notes, created_by) VALUES
@@ -349,6 +379,7 @@ COMMIT;
 -- 3 Suppliers
 -- Inventory in stock_snapshot (K58 warehouse)
 -- 5 Sales Orders (various statuses, K58 site)
+-- 5 Purchase Orders (DRAFT, SENT, CONFIRMED, PARTIAL, RECEIVED)
 -- 2 Pick Waves with tasks
 -- 4 Shipments (various statuses, K58 site)
 -- 3 Vehicles (2 K58, 1 PTA)
