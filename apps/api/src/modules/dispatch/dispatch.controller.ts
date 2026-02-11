@@ -145,8 +145,11 @@ export class DispatchController {
   @Post('trips/:id/complete')
   @RequirePermissions('dispatch.execute')
   @ApiOperation({ summary: 'Complete trip' })
-  async completeTrip(@Param('id', UuidValidationPipe) tripId: string) {
-    return this.service.completeTrip(tripId);
+  async completeTrip(
+    @Param('id', UuidValidationPipe) tripId: string,
+    @Body() data?: { forceComplete?: boolean },
+  ) {
+    return this.service.completeTrip(tripId, data?.forceComplete);
   }
 
   @Post('trips/:id/cancel')

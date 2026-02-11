@@ -234,11 +234,31 @@ export class DispatchService {
     return updated!;
   }
 
-  async completeTrip(tripId: string): Promise<DispatchTrip> {
+  async completeTrip(tripId: string, forceComplete = false): Promise<DispatchTrip> {
     const trip = await this.getTrip(tripId);
     if (trip.status !== 'IN_PROGRESS') {
       throw new BadRequestException('Trip must be in progress to complete');
     }
+
+    // Check for pending stops
+    const stops = await this.repository.findStopsByTrip(tripId);
+    const pendingStops = stops.filter(s => ['PENDING', 'EN_ROUTE', 'ARRIVED'].includes(s.status));
+
+    if (pendingStops.length > 0 && !forceComplete) {
+      throw new BadRequestException(
+        `Cannot complete trip with ${pendingStops.length} undelivered stop(s). ` +
+        `Mark all stops as delivered/failed/skipped first, or use force complete.`
+      );
+    }
+
+    // If force completing, mark all pending stops as SKIPPED
+    if (pendingStops.length > 0 && forceComplete) {
+      for (const stop of pendingStops) {
+        await this.repository.updateStopStatus(stop.id, 'SKIPPED');
+      }
+      console.log(`Force completed trip ${trip.tripNo}: ${pendingStops.length} stops auto-skipped`);
+    }
+
     const updated = await this.repository.updateTripStatus(tripId, 'COMPLETE');
     return updated!;
   }

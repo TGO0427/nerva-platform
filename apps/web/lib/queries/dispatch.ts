@@ -214,13 +214,16 @@ export function useCompleteTrip() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (tripId: string) => {
-      const response = await api.post<Trip>(`/dispatch/trips/${tripId}/complete`);
+    mutationFn: async ({ tripId, forceComplete }: { tripId: string; forceComplete?: boolean }) => {
+      const response = await api.post<Trip>(`/dispatch/trips/${tripId}/complete`, {
+        forceComplete,
+      });
       return response.data;
     },
-    onSuccess: (_, tripId) => {
+    onSuccess: (_, { tripId }) => {
       queryClient.invalidateQueries({ queryKey: [TRIPS_KEY] });
       queryClient.invalidateQueries({ queryKey: [TRIPS_KEY, tripId] });
+      queryClient.invalidateQueries({ queryKey: [TRIPS_KEY, tripId, 'stops'] });
     },
   });
 }

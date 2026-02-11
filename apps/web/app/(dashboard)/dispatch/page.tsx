@@ -191,10 +191,29 @@ export default function DispatchPage() {
     });
     if (confirmed) {
       try {
-        await completeTrip.mutateAsync(trip.id);
+        await completeTrip.mutateAsync({ tripId: trip.id });
         addToast('Trip completed', 'success');
-      } catch {
-        addToast('Failed to complete trip', 'error');
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Failed to complete trip';
+        // Check if it's a pending stops error
+        if (errorMsg.includes('undelivered stop')) {
+          const forceConfirmed = await confirm({
+            title: 'Undelivered Stops',
+            message: `${errorMsg}\n\nDo you want to force complete and skip all pending stops?`,
+            confirmLabel: 'Force Complete',
+            variant: 'danger',
+          });
+          if (forceConfirmed) {
+            try {
+              await completeTrip.mutateAsync({ tripId: trip.id, forceComplete: true });
+              addToast('Trip completed (pending stops skipped)', 'success');
+            } catch (forceError) {
+              addToast(forceError instanceof Error ? forceError.message : 'Failed to force complete', 'error');
+            }
+          }
+        } else {
+          addToast(errorMsg, 'error');
+        }
       }
     }
   };

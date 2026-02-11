@@ -353,17 +353,33 @@ export default function TripDetailPage() {
   };
 
   const handleComplete = async () => {
+    // Check for pending stops first
+    const pendingCount = stops?.filter(s => ['PENDING', 'EN_ROUTE', 'ARRIVED'].includes(s.status)).length || 0;
+
+    const message = pendingCount > 0
+      ? `This trip has ${pendingCount} undelivered stop(s). Are you sure you want to complete it?`
+      : 'Are you sure you want to mark this trip as complete?';
+
     const confirmed = await confirm({
       title: 'Complete Trip',
-      message: 'Are you sure you want to mark this trip as complete?',
-      confirmLabel: 'Complete',
+      message,
+      confirmLabel: pendingCount > 0 ? 'Complete Anyway' : 'Complete',
+      variant: pendingCount > 0 ? 'danger' : undefined,
     });
+
     if (confirmed) {
       try {
-        await completeTrip.mutateAsync(tripId);
-        addToast('Trip completed', 'success');
+        // If there are pending stops, use forceComplete
+        await completeTrip.mutateAsync({ tripId, forceComplete: pendingCount > 0 });
+        addToast(
+          pendingCount > 0
+            ? `Trip completed (${pendingCount} stop(s) auto-skipped)`
+            : 'Trip completed',
+          'success'
+        );
       } catch (error) {
-        addToast('Failed to complete trip', 'error');
+        const errorMsg = error instanceof Error ? error.message : 'Failed to complete trip';
+        addToast(errorMsg, 'error');
       }
     }
   };
