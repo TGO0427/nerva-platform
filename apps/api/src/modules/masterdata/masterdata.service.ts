@@ -496,10 +496,11 @@ export class MasterDataService {
   // Purchase Orders
   async listPurchaseOrders(
     tenantId: string,
+    siteId: string | undefined,
     params: PaginationParams & { status?: string; supplierId?: string; search?: string },
   ) {
     const { page, limit, offset } = normalizePagination(params);
-    const filters = { status: params.status, supplierId: params.supplierId, search: params.search };
+    const filters = { status: params.status, supplierId: params.supplierId, search: params.search, siteId };
     const [orders, total] = await Promise.all([
       this.repository.findPurchaseOrders(tenantId, limit, offset, filters),
       this.repository.countPurchaseOrders(tenantId, filters),

@@ -15,7 +15,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { TenantId } from '../../common/decorators/tenant.decorator';
+import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 import {
@@ -37,13 +37,14 @@ export class PurchaseOrdersController {
   @ApiOperation({ summary: 'List purchase orders' })
   async list(
     @TenantId() tenantId: string,
+    @SiteId() siteId: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: string,
     @Query('supplierId') supplierId?: string,
     @Query('search') search?: string,
   ) {
-    return this.service.listPurchaseOrders(tenantId, { page, limit, status, supplierId, search });
+    return this.service.listPurchaseOrders(tenantId, siteId, { page, limit, status, supplierId, search });
   }
 
   @Get(':id')

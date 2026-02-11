@@ -56,12 +56,13 @@ export class ReturnsService {
 
   async listRmas(
     tenantId: string,
+    siteId: string | undefined,
     filters: { status?: string; customerId?: string },
     page = 1,
     limit = 50,
   ) {
     const offset = (page - 1) * limit;
-    const rmas = await this.repository.findRmasByTenant(tenantId, filters, limit, offset);
+    const rmas = await this.repository.findRmasByTenant(tenantId, { ...filters, siteId }, limit, offset);
     return { data: rmas, meta: { page, limit } };
   }
 

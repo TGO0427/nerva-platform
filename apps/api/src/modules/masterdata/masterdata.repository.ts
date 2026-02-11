@@ -1491,7 +1491,7 @@ export class MasterDataRepository extends BaseRepository {
     tenantId: string,
     limit: number,
     offset: number,
-    filters?: { status?: string; supplierId?: string; search?: string },
+    filters?: { status?: string; supplierId?: string; search?: string; siteId?: string },
   ): Promise<PurchaseOrder[]> {
     let sql = `
       SELECT po.*,
@@ -1508,6 +1508,10 @@ export class MasterDataRepository extends BaseRepository {
     const params: unknown[] = [tenantId];
     let paramIdx = 2;
 
+    if (filters?.siteId) {
+      sql += ` AND po.site_id = $${paramIdx++}`;
+      params.push(filters.siteId);
+    }
     if (filters?.status) {
       sql += ` AND po.status = $${paramIdx++}`;
       params.push(filters.status);
@@ -1529,7 +1533,7 @@ export class MasterDataRepository extends BaseRepository {
     return rows.map(this.mapPurchaseOrder);
   }
 
-  async countPurchaseOrders(tenantId: string, filters?: { status?: string; supplierId?: string; search?: string }): Promise<number> {
+  async countPurchaseOrders(tenantId: string, filters?: { status?: string; supplierId?: string; search?: string; siteId?: string }): Promise<number> {
     let sql = `
       SELECT COUNT(*) as count
       FROM purchase_orders po
@@ -1539,6 +1543,10 @@ export class MasterDataRepository extends BaseRepository {
     const params: unknown[] = [tenantId];
     let paramIdx = 2;
 
+    if (filters?.siteId) {
+      sql += ` AND po.site_id = $${paramIdx++}`;
+      params.push(filters.siteId);
+    }
     if (filters?.status) {
       sql += ` AND po.status = $${paramIdx++}`;
       params.push(filters.status);

@@ -102,7 +102,7 @@ export class ReturnsRepository extends BaseRepository {
 
   async findRmasByTenant(
     tenantId: string,
-    filters: { status?: string; customerId?: string },
+    filters: { status?: string; customerId?: string; siteId?: string },
     limit = 50,
     offset = 0,
   ): Promise<Rma[]> {
@@ -110,6 +110,10 @@ export class ReturnsRepository extends BaseRepository {
     const params: unknown[] = [tenantId];
     let idx = 2;
 
+    if (filters.siteId) {
+      sql += ` AND site_id = $${idx++}`;
+      params.push(filters.siteId);
+    }
     if (filters.status) {
       sql += ` AND status = $${idx++}`;
       params.push(filters.status);

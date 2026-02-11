@@ -29,12 +29,13 @@ export class ReturnsController {
   @ApiOperation({ summary: 'List RMAs' })
   async list(
     @TenantId() tenantId: string,
+    @SiteId() siteId: string,
     @Query('status') status?: string,
     @Query('customerId') customerId?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.service.listRmas(tenantId, { status, customerId }, page, limit);
+    return this.service.listRmas(tenantId, siteId, { status, customerId }, page, limit);
   }
 
   @Get(':id')
