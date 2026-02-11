@@ -12,19 +12,22 @@ import { ReturnsService } from './returns.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { SiteAccessGuard } from '../../common/guards/site-access.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { SkipSiteAccessCheck } from '../../common/decorators/skip-site-access.decorator';
 import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 
 @ApiTags('returns')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard, SiteAccessGuard)
 @Controller('returns/rmas')
 export class ReturnsController {
   constructor(private readonly service: ReturnsService) {}
 
   @Get()
+  @SkipSiteAccessCheck()
   @RequirePermissions('rma.create')
   @ApiOperation({ summary: 'List RMAs' })
   async list(
@@ -39,6 +42,7 @@ export class ReturnsController {
   }
 
   @Get(':id')
+  @SkipSiteAccessCheck()
   @RequirePermissions('rma.create')
   @ApiOperation({ summary: 'Get RMA with lines' })
   async get(@Param('id', UuidValidationPipe) id: string) {
