@@ -385,8 +385,13 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   site_id uuid NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
   supplier_id uuid NOT NULL REFERENCES suppliers(id) ON DELETE RESTRICT,
   po_no text NOT NULL,
-  status text NOT NULL DEFAULT 'OPEN', -- OPEN, PARTIAL, RECEIVED, CANCELLED
+  status text NOT NULL DEFAULT 'DRAFT', -- DRAFT, SENT, CONFIRMED, PARTIAL, RECEIVED, CANCELLED
+  order_date date NOT NULL DEFAULT CURRENT_DATE,
   expected_date date,
+  ship_to_warehouse_id uuid REFERENCES warehouses(id) ON DELETE SET NULL,
+  subtotal numeric(14,2) DEFAULT 0,
+  tax_amount numeric(14,2) DEFAULT 0,
+  total_amount numeric(14,2) DEFAULT 0,
   notes text,
   created_by uuid REFERENCES users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
