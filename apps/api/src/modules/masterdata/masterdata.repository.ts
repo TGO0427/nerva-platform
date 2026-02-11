@@ -2192,10 +2192,58 @@ export class MasterDataRepository extends BaseRepository {
         -- Late orders (past requested_ship_date, not yet shipped)
         (SELECT COUNT(*) FROM sales_orders
          WHERE tenant_id = $1 AND status NOT IN ('SHIPPED', 'DELIVERED', 'CANCELLED')
-         AND requested_ship_date IS NOT NULL AND requested_ship_date < CURRENT_DATE) as late_orders
+         AND requested_ship_date IS NOT NULL AND requested_ship_date < CURRENT_DATE) as late_orders,
+
+        -- OPERATIONAL KPIs
+        -- OTIF % (On-Time In-Full): orders shipped on/before requested date / total shipped+delivered
+        (SELECT COUNT(*) FROM sales_orders
+         WHERE tenant_id = $1 AND status IN ('SHIPPED', 'DELIVERED')
+         AND requested_ship_date IS NOT NULL
+         AND DATE(updated_at) <= requested_ship_date) as orders_on_time,
+        (SELECT COUNT(*) FROM sales_orders
+         WHERE tenant_id = $1 AND status IN ('SHIPPED', 'DELIVERED')
+         AND requested_ship_date IS NOT NULL) as orders_with_ship_date,
+
+        -- Returns Rate %: (returns value / weekly sales value) * 100
+        (SELECT COALESCE(SUM(rl.qty_received * COALESCE(rl.unit_credit_amount, 0)), 0)
+         FROM rma_lines rl
+         JOIN rmas r ON rl.rma_id = r.id
+         WHERE r.tenant_id = $1 AND r.created_at >= NOW() - INTERVAL '7 days') as weekly_returns_value,
+
+        -- POD Completion %: stops with POD / total delivered stops
+        (SELECT COUNT(*) FROM dispatch_stops ds
+         JOIN dispatch_trips dt ON ds.trip_id = dt.id
+         WHERE dt.tenant_id = $1 AND ds.status = 'DELIVERED') as total_delivered_stops,
+        (SELECT COUNT(DISTINCT ds.id) FROM dispatch_stops ds
+         JOIN dispatch_trips dt ON ds.trip_id = dt.id
+         JOIN pods p ON p.stop_id = ds.id
+         WHERE dt.tenant_id = $1 AND ds.status = 'DELIVERED') as stops_with_pod,
+
+        -- Avg Dispatch Cycle: avg hours from trip creation to completion (last 30 days)
+        (SELECT COALESCE(
+           AVG(EXTRACT(EPOCH FROM (actual_end - created_at)) / 3600), 0)
+         FROM dispatch_trips
+         WHERE tenant_id = $1 AND status = 'COMPLETE'
+         AND actual_end IS NOT NULL
+         AND created_at >= NOW() - INTERVAL '30 days') as avg_dispatch_cycle_hours
       `,
       [tenantId],
     );
+
+    // Calculate derived KPIs
+    const ordersOnTime = parseInt(result?.orders_on_time as string || '0', 10);
+    const ordersWithShipDate = parseInt(result?.orders_with_ship_date as string || '0', 10);
+    const otifPercent = ordersWithShipDate > 0 ? Math.round((ordersOnTime / ordersWithShipDate) * 100) : 0;
+
+    const weeklyReturnsValue = parseFloat(result?.weekly_returns_value as string || '0');
+    const weeklySalesValue = parseFloat(result?.weekly_sales_value as string || '0');
+    const returnsRate = weeklySalesValue > 0 ? Math.round((weeklyReturnsValue / weeklySalesValue) * 1000) / 10 : 0;
+
+    const totalDeliveredStops = parseInt(result?.total_delivered_stops as string || '0', 10);
+    const stopsWithPod = parseInt(result?.stops_with_pod as string || '0', 10);
+    const podCompletionPercent = totalDeliveredStops > 0 ? Math.round((stopsWithPod / totalDeliveredStops) * 100) : 0;
+
+    const avgDispatchCycleHours = Math.round(parseFloat(result?.avg_dispatch_cycle_hours as string || '0') * 10) / 10;
 
     return {
       pendingOrders: parseInt(result?.pending_orders as string || '0', 10),
@@ -2207,11 +2255,16 @@ export class MasterDataRepository extends BaseRepository {
       lowStockItems: parseInt(result?.low_stock_items as string || '0', 10),
       expiringItems: parseInt(result?.expiring_items as string || '0', 10),
       openNCRs: parseInt(result?.open_ncrs as string || '0', 10),
-      weeklySalesValue: parseFloat(result?.weekly_sales_value as string || '0'),
+      weeklySalesValue,
       weeklyOrdersCount: parseInt(result?.weekly_orders_count as string || '0', 10),
       tripsInProgress: parseInt(result?.trips_in_progress as string || '0', 10),
       tripsCompletedToday: parseInt(result?.trips_completed_today as string || '0', 10),
       lateOrders: parseInt(result?.late_orders as string || '0', 10),
+      // Operational KPIs
+      otifPercent,
+      returnsRate,
+      podCompletionPercent,
+      avgDispatchCycleHours,
     };
   }
 
@@ -2712,6 +2765,11 @@ export interface DashboardStats {
   tripsInProgress: number;
   tripsCompletedToday: number;
   lateOrders: number;
+  // Operational KPIs
+  otifPercent: number;
+  returnsRate: number;
+  podCompletionPercent: number;
+  avgDispatchCycleHours: number;
 }
 
 export interface RecentActivity {

@@ -7,6 +7,7 @@ interface AnimatedNumberProps {
   value: number;
   duration?: number;
   delay?: number;
+  decimals?: number;
   formatFn?: (value: number) => string;
   className?: string;
 }
@@ -15,9 +16,15 @@ export function AnimatedNumber({
   value,
   duration = 500,
   delay = 0,
-  formatFn = (v) => v.toLocaleString(),
+  decimals,
+  formatFn,
   className = '',
 }: AnimatedNumberProps) {
+  const defaultFormat = (v: number) =>
+    decimals !== undefined
+      ? v.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+      : v.toLocaleString();
+  const format = formatFn || defaultFormat;
   const [displayValue, setDisplayValue] = useState(0);
   const [hasAnimated, setHasAnimated] = useState(false);
   const prefersReducedMotion = useReducedMotion();
@@ -64,6 +71,7 @@ export function AnimatedNumber({
   const animateValue = (start: number, end: number, animDuration: number) => {
     const startTime = performance.now();
     const diff = end - start;
+    const multiplier = decimals !== undefined ? Math.pow(10, decimals) : 1;
 
     const step = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -71,7 +79,11 @@ export function AnimatedNumber({
 
       // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.round(start + diff * eased);
+      const rawValue = start + diff * eased;
+      // Round to the correct number of decimal places
+      const current = decimals !== undefined
+        ? Math.round(rawValue * multiplier) / multiplier
+        : Math.round(rawValue);
 
       setDisplayValue(current);
 
@@ -85,7 +97,7 @@ export function AnimatedNumber({
 
   return (
     <span ref={elementRef} className={className}>
-      {formatFn(displayValue)}
+      {format(displayValue)}
     </span>
   );
 }

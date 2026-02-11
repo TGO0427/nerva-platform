@@ -254,6 +254,41 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
+
+            {/* Operational KPIs */}
+            <div className="mb-6">
+              <h2 className="text-sm font-semibold text-slate-700 tracking-tight uppercase mb-3">Performance Metrics</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiCard
+                  title="OTIF %"
+                  value={<><AnimatedNumber value={stats?.otifPercent ?? 0} duration={400} />%</>}
+                  sub="On-time in-full delivery"
+                  icon={<TargetIcon />}
+                  tone={(stats?.otifPercent ?? 0) >= 95 ? 'green' : (stats?.otifPercent ?? 0) >= 80 ? 'blue' : 'amber'}
+                />
+                <KpiCard
+                  title="POD Rate"
+                  value={<><AnimatedNumber value={stats?.podCompletionPercent ?? 0} duration={400} />%</>}
+                  sub="Proof of delivery captured"
+                  icon={<CheckCircleIcon />}
+                  tone={(stats?.podCompletionPercent ?? 0) >= 95 ? 'green' : (stats?.podCompletionPercent ?? 0) >= 80 ? 'blue' : 'amber'}
+                />
+                <KpiCard
+                  title="Returns Rate"
+                  value={<><AnimatedNumber value={stats?.returnsRate ?? 0} duration={400} decimals={1} />%</>}
+                  sub="Weekly return value ratio"
+                  icon={<ReturnIcon />}
+                  tone={(stats?.returnsRate ?? 0) <= 2 ? 'green' : (stats?.returnsRate ?? 0) <= 5 ? 'amber' : 'red'}
+                />
+                <KpiCard
+                  title="Dispatch Cycle"
+                  value={<><AnimatedNumber value={stats?.avgDispatchCycleHours ?? 0} duration={400} decimals={1} />h</>}
+                  sub="Avg trip duration (30d)"
+                  icon={<CycleIcon />}
+                  tone={(stats?.avgDispatchCycleHours ?? 0) <= 8 ? 'green' : (stats?.avgDispatchCycleHours ?? 0) <= 24 ? 'blue' : 'amber'}
+                />
+              </div>
+            </div>
           </>
         )}
 
@@ -457,6 +492,41 @@ function ActivityEmptyIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+// Operational KPI Icons
+function TargetIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 12h.01" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function ReturnIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+    </svg>
+  );
+}
+
+function CycleIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
     </svg>
   );
 }

@@ -18,6 +18,11 @@ export interface DashboardStats {
   tripsInProgress: number;
   tripsCompletedToday: number;
   lateOrders: number;
+  // Operational KPIs
+  otifPercent: number;
+  returnsRate: number;
+  podCompletionPercent: number;
+  avgDispatchCycleHours: number;
 }
 
 export interface RecentActivity {
