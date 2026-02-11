@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { MasterDataService } from './masterdata.service';
@@ -63,6 +64,9 @@ export class PurchaseOrdersController {
     @Body() data: CreatePurchaseOrderDto,
     @CurrentUser() user: { id: string },
   ) {
+    if (!siteId) {
+      throw new BadRequestException('Please select a site before creating a purchase order');
+    }
     return this.service.createPurchaseOrder({
       tenantId,
       siteId,

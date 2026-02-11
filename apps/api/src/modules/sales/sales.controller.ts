@@ -6,6 +6,7 @@ import {
   Body,
   Query,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SalesService } from './sales.service';
@@ -77,6 +78,9 @@ export class SalesController {
       }>;
     },
   ) {
+    if (!siteId) {
+      throw new BadRequestException('Please select a site before creating a sales order');
+    }
     return this.service.createOrder({
       tenantId,
       siteId,

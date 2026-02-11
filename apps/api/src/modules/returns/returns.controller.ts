@@ -6,6 +6,7 @@ import {
   Body,
   Query,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ReturnsService } from './returns.service';
@@ -69,6 +70,9 @@ export class ReturnsController {
       }>;
     },
   ) {
+    if (!siteId) {
+      throw new BadRequestException('Please select a site before creating an RMA');
+    }
     return this.service.createRma({
       tenantId,
       siteId,
