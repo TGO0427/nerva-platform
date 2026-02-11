@@ -61,7 +61,10 @@ export class DispatchController {
       shipmentIds?: string[];
     },
   ) {
-    return this.service.createTripFromShipments({
+    // Log incoming request for debugging
+    console.log(`Creating trip for tenant ${tenantId} with ${data.shipmentIds?.length || 0} shipments`);
+
+    const result = await this.service.createTripFromShipments({
       tenantId,
       siteId,
       warehouseId: data.warehouseId,
@@ -73,6 +76,9 @@ export class DispatchController {
       shipmentIds: data.shipmentIds || [],
       createdBy: user.id,
     });
+
+    console.log(`Trip ${result.tripNo} created successfully with ID ${result.id}`);
+    return result;
   }
 
   @Get('trips/:id')

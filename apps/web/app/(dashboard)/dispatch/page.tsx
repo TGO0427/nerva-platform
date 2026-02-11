@@ -395,21 +395,45 @@ export default function DispatchPage() {
   const handleCreateTrip = async () => {
     if (selectedShipments.size === 0) {
       setError('Please select at least one shipment');
+      addToast('Please select at least one shipment', 'error');
       return;
     }
 
     setError('');
+    const shipmentIds = Array.from(selectedShipments);
+
     try {
       const trip = await createTrip.mutateAsync({
-        shipmentIds: Array.from(selectedShipments),
+        shipmentIds,
         plannedDate: plannedDate || undefined,
       });
+
+      // Verify the trip was created with an ID
+      if (!trip?.id) {
+        throw new Error('Trip creation returned no data');
+      }
+
       setSelectedShipments(new Set());
       setPlannedDate('');
-      addToast('Trip created successfully', 'success');
+      addToast(`Trip ${trip.tripNo} created successfully`, 'success');
       router.push(`/dispatch/${trip.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create trip');
+      // Extract the most useful error message
+      let errorMessage = 'Failed to create trip';
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      // Log the full error for debugging
+      console.error('Trip creation failed:', err);
+
+      // Show both inline error and toast for visibility
+      setError(errorMessage);
+      addToast(errorMessage, 'error', 5000);
+
+      // Refresh the shipments list in case some state changed
+      refetchShipments();
     }
   };
 

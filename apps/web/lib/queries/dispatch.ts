@@ -141,11 +141,24 @@ export function useCreateTrip() {
       notes?: string;
       shipmentIds: string[];
     }) => {
+      // Validate input before sending
+      if (!data.shipmentIds || data.shipmentIds.length === 0) {
+        throw new Error('At least one shipment is required to create a trip');
+      }
+
       const response = await api.post<Trip>('/dispatch/trips', data);
+
+      // Verify we got a valid trip back
+      if (!response.data?.id) {
+        throw new Error('Trip was created but no ID was returned. Please refresh and check if the trip exists.');
+      }
+
       return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [TRIPS_KEY] });
+      // Also invalidate shipments as they may have changed status
+      queryClient.invalidateQueries({ queryKey: ['ready-shipments'] });
     },
   });
 }

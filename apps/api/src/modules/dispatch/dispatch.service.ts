@@ -44,57 +44,115 @@ export class DispatchService {
     shipmentIds: string[];
     createdBy?: string;
   }): Promise<DispatchTrip> {
+    // Validate shipmentIds
+    if (!data.shipmentIds || data.shipmentIds.length === 0) {
+      throw new BadRequestException('At least one shipment ID is required to create a trip');
+    }
+
     // If shipmentIds provided, get warehouse and customer info from shipments
     let warehouseId = data.warehouseId;
     let shipments: ShipmentInfo[] = [];
 
-    if (data.shipmentIds.length > 0) {
+    try {
       shipments = await this.repository.getShipmentInfoForTrip(data.shipmentIds);
-      if (shipments.length === 0) {
-        throw new BadRequestException('No valid shipments found');
-      }
-      // Use warehouse from first shipment if not provided
-      if (!warehouseId) {
-        warehouseId = shipments[0].warehouseId;
-      }
+    } catch (error) {
+      console.error('Failed to fetch shipment info:', error);
+      throw new BadRequestException(
+        `Failed to fetch shipment information: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+
+    if (shipments.length === 0) {
+      throw new BadRequestException(
+        `No valid shipments found for IDs: ${data.shipmentIds.slice(0, 3).join(', ')}${data.shipmentIds.length > 3 ? '...' : ''}`
+      );
+    }
+
+    if (shipments.length !== data.shipmentIds.length) {
+      console.warn(
+        `Shipment count mismatch: requested ${data.shipmentIds.length}, found ${shipments.length}`
+      );
+    }
+
+    // Use warehouse from first shipment if not provided
+    if (!warehouseId) {
+      warehouseId = shipments[0].warehouseId;
     }
 
     if (!warehouseId) {
-      throw new BadRequestException('warehouseId is required when not providing shipmentIds');
+      throw new BadRequestException(
+        'Unable to determine warehouse. Please ensure shipments have a valid warehouse assigned.'
+      );
     }
 
     // Create the trip
-    const tripNo = await this.repository.generateTripNo(data.tenantId);
-    const trip = await this.repository.createTrip({
-      tenantId: data.tenantId,
-      siteId: data.siteId,
-      warehouseId,
-      tripNo,
-      vehicleId: data.vehicleId,
-      driverId: data.driverId,
-      plannedDate: data.plannedDate,
-      plannedStart: data.plannedStart,
-      notes: data.notes,
-      createdBy: data.createdBy,
-    });
+    let tripNo: string;
+    let trip: DispatchTrip;
+
+    try {
+      tripNo = await this.repository.generateTripNo(data.tenantId);
+    } catch (error) {
+      console.error('Failed to generate trip number:', error);
+      throw new BadRequestException('Failed to generate trip number. Please try again.');
+    }
+
+    try {
+      trip = await this.repository.createTrip({
+        tenantId: data.tenantId,
+        siteId: data.siteId,
+        warehouseId,
+        tripNo,
+        vehicleId: data.vehicleId,
+        driverId: data.driverId,
+        plannedDate: data.plannedDate,
+        plannedStart: data.plannedStart,
+        notes: data.notes,
+        createdBy: data.createdBy,
+      });
+    } catch (error) {
+      console.error('Failed to create trip:', error);
+      throw new BadRequestException(
+        `Failed to create trip: ${error instanceof Error ? error.message : 'Database error'}`
+      );
+    }
 
     // Create stops from shipments
+    let stopsCreated = 0;
     for (let i = 0; i < shipments.length; i++) {
       const shipment = shipments[i];
-      await this.repository.addStopFromShipment({
-        tenantId: data.tenantId,
-        tripId: trip.id,
-        sequence: i + 1,
-        shipmentId: shipment.id,
-        customerId: shipment.customerId || undefined,
-        addressLine1: shipment.addressLine1 || 'Address not provided',
-        city: shipment.city || undefined,
-      });
+      try {
+        await this.repository.addStopFromShipment({
+          tenantId: data.tenantId,
+          tripId: trip.id,
+          sequence: i + 1,
+          shipmentId: shipment.id,
+          customerId: shipment.customerId || undefined,
+          addressLine1: shipment.addressLine1 || 'Address not provided',
+          city: shipment.city || undefined,
+        });
+        stopsCreated++;
+      } catch (error) {
+        console.error(`Failed to create stop for shipment ${shipment.id}:`, error);
+        // Continue creating other stops even if one fails
+      }
+    }
+
+    if (stopsCreated === 0) {
+      console.error(`Trip ${tripNo} created but no stops were added`);
+      throw new BadRequestException(
+        'Trip was created but failed to add delivery stops. Please check shipment data.'
+      );
     }
 
     // Update trip total stops
-    await this.repository.updateTripStopCount(trip.id, shipments.length);
+    try {
+      await this.repository.updateTripStopCount(trip.id, stopsCreated);
+    } catch (error) {
+      console.error('Failed to update trip stop count:', error);
+      // Non-critical error, continue
+    }
 
+    console.log(`Trip ${tripNo} created successfully with ${stopsCreated} stops`);
     return this.getTrip(trip.id);
   }
 

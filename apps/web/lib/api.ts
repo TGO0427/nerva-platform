@@ -30,15 +30,65 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Custom error class with better message extraction
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
+// Extract readable error message from API response
+function extractErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error) && error.response?.data) {
+    const data = error.response.data;
+    // Handle NestJS validation errors
+    if (Array.isArray(data.message)) {
+      return data.message.join(', ');
+    }
+    // Handle standard error message
+    if (typeof data.message === 'string') {
+      return data.message;
+    }
+    // Handle error field
+    if (typeof data.error === 'string') {
+      return data.error;
+    }
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'An unexpected error occurred';
+}
+
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('accessToken');
-        window.location.href = '/login';
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status || 500;
+      const message = extractErrorMessage(error);
+      const code = error.response?.data?.code;
+
+      // Handle 401 - redirect to login
+      if (status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('accessToken');
+          window.location.href = '/login';
+        }
       }
+
+      // Log error for debugging (only in development)
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`API Error [${status}]:`, message, error.response?.data);
+      }
+
+      return Promise.reject(new ApiError(message, status, code));
     }
     return Promise.reject(error);
   }
