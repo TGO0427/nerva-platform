@@ -14,9 +14,7 @@ import { MasterDataService } from './masterdata.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { SiteAccessGuard } from '../../common/guards/site-access.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { SkipSiteAccessCheck } from '../../common/decorators/skip-site-access.decorator';
 import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
@@ -29,14 +27,13 @@ import {
 
 @ApiTags('purchase-orders')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard, SiteAccessGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('purchase-orders')
 export class PurchaseOrdersController {
   constructor(private readonly service: MasterDataService) {}
 
   @Get()
-  @SkipSiteAccessCheck()
-  @RequirePermissions('purchase_order.read')
+    @RequirePermissions('purchase_order.read')
   @ApiOperation({ summary: 'List purchase orders' })
   async list(
     @TenantId() tenantId: string,
@@ -51,8 +48,7 @@ export class PurchaseOrdersController {
   }
 
   @Get(':id')
-  @SkipSiteAccessCheck()
-  @RequirePermissions('purchase_order.read')
+    @RequirePermissions('purchase_order.read')
   @ApiOperation({ summary: 'Get purchase order by ID' })
   async get(@Param('id', UuidValidationPipe) id: string) {
     return this.service.getPurchaseOrder(id);
@@ -104,8 +100,7 @@ export class PurchaseOrdersController {
 
   // Lines
   @Get(':id/lines')
-  @SkipSiteAccessCheck()
-  @RequirePermissions('purchase_order.read')
+    @RequirePermissions('purchase_order.read')
   @ApiOperation({ summary: 'List purchase order lines' })
   async listLines(@Param('id', UuidValidationPipe) purchaseOrderId: string) {
     return this.service.listPurchaseOrderLines(purchaseOrderId);
