@@ -181,4 +181,15 @@ export class UsersRepository extends BaseRepository {
       [userId],
     );
   }
+
+  async getUserSites(userId: string): Promise<{ id: string; name: string; code: string; isActive: boolean }[]> {
+    return this.queryMany<{ id: string; name: string; code: string; isActive: boolean }>(
+      `SELECT s.id, s.name, s.code, s.is_active as "isActive"
+       FROM sites s
+       JOIN user_sites us ON us.site_id = s.id
+       WHERE us.user_id = $1
+       ORDER BY s.name`,
+      [userId],
+    );
+  }
 }

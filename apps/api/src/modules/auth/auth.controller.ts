@@ -38,4 +38,12 @@ export class AuthController {
       permissions: user.permissions,
     };
   }
+
+  @Get('my-sites')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get sites assigned to current user' })
+  async mySites(@CurrentUser() user: CurrentUserData) {
+    return this.authService.getUserSites(user.id);
+  }
 }

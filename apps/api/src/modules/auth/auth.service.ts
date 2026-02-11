@@ -93,4 +93,8 @@ export class AuthService {
     }
     return argon2.hash(password);
   }
+
+  async getUserSites(userId: string) {
+    return this.usersService.getUserSites(userId);
+  }
 }

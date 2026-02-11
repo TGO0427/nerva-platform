@@ -284,6 +284,18 @@ export function useSites() {
   return useQuery({
     queryKey: [SITES_KEY],
     queryFn: async () => {
+      // Use my-sites endpoint to only get sites user is assigned to
+      const response = await api.get<Site[]>('/auth/my-sites');
+      return response.data;
+    },
+  });
+}
+
+export function useAllSites() {
+  return useQuery({
+    queryKey: [SITES_KEY, 'all'],
+    queryFn: async () => {
+      // Admin endpoint to get all sites in tenant
       const response = await api.get<Site[]>('/admin/sites');
       return response.data;
     },

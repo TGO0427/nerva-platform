@@ -100,6 +100,10 @@ export class UsersService {
     return this.usersRepository.getUserRoles(userId);
   }
 
+  async getUserSites(userId: string) {
+    return this.usersRepository.getUserSites(userId);
+  }
+
   private sanitizeUser(user: User) {
     const { passwordHash, ...rest } = user;
     return rest;
