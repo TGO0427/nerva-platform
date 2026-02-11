@@ -272,6 +272,104 @@ export class DispatchService {
     return updated!;
   }
 
+  // Stop status updates
+  async arriveAtStop(tripId: string, stopId: string): Promise<DispatchStop> {
+    const trip = await this.getTrip(tripId);
+    if (trip.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Trip must be in progress to update stops');
+    }
+
+    const stop = await this.repository.findStopById(stopId);
+    if (!stop) throw new NotFoundException('Stop not found');
+    if (stop.tripId !== tripId) throw new BadRequestException('Stop does not belong to this trip');
+    if (stop.status !== 'PENDING') {
+      throw new BadRequestException(`Stop is already ${stop.status}`);
+    }
+
+    const updated = await this.repository.updateStopStatus(stopId, 'ARRIVED');
+    return updated!;
+  }
+
+  async completeStopWithPod(
+    tripId: string,
+    stopId: string,
+    tenantId: string,
+    data: {
+      podSignature?: string;
+      podPhoto?: string;
+      podNotes?: string;
+    },
+  ): Promise<DispatchStop> {
+    const trip = await this.getTrip(tripId);
+    if (trip.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Trip must be in progress to update stops');
+    }
+
+    const stop = await this.repository.findStopById(stopId);
+    if (!stop) throw new NotFoundException('Stop not found');
+    if (stop.tripId !== tripId) throw new BadRequestException('Stop does not belong to this trip');
+    if (!['PENDING', 'ARRIVED'].includes(stop.status)) {
+      throw new BadRequestException(`Stop is already ${stop.status}`);
+    }
+
+    // Create POD if any data provided
+    if (data.podSignature || data.podPhoto || data.podNotes) {
+      await this.repository.createPod({
+        tenantId,
+        stopId,
+        status: 'DELIVERED',
+        recipientName: data.podSignature,
+        signatureRef: data.podSignature,
+        notes: data.podNotes,
+        photoRefs: data.podPhoto ? [data.podPhoto] : [],
+      });
+    }
+
+    const updated = await this.repository.updateStopStatus(stopId, 'DELIVERED');
+
+    // Update trip completed stops count
+    const stops = await this.repository.findStopsByTrip(tripId);
+    const completedCount = stops.filter(s => s.status === 'DELIVERED').length;
+    await this.repository.updateTripCompletedStops(tripId, completedCount);
+
+    return updated!;
+  }
+
+  async failStop(tripId: string, stopId: string, reason: string): Promise<DispatchStop> {
+    const trip = await this.getTrip(tripId);
+    if (trip.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Trip must be in progress to update stops');
+    }
+
+    const stop = await this.repository.findStopById(stopId);
+    if (!stop) throw new NotFoundException('Stop not found');
+    if (stop.tripId !== tripId) throw new BadRequestException('Stop does not belong to this trip');
+    if (!['PENDING', 'ARRIVED'].includes(stop.status)) {
+      throw new BadRequestException(`Stop is already ${stop.status}`);
+    }
+
+    // Update stop with failure reason
+    const updated = await this.repository.updateStopWithFailure(stopId, reason);
+    return updated!;
+  }
+
+  async skipStop(tripId: string, stopId: string, reason: string): Promise<DispatchStop> {
+    const trip = await this.getTrip(tripId);
+    if (trip.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Trip must be in progress to update stops');
+    }
+
+    const stop = await this.repository.findStopById(stopId);
+    if (!stop) throw new NotFoundException('Stop not found');
+    if (stop.tripId !== tripId) throw new BadRequestException('Stop does not belong to this trip');
+    if (!['PENDING', 'ARRIVED'].includes(stop.status)) {
+      throw new BadRequestException(`Stop is already ${stop.status}`);
+    }
+
+    const updated = await this.repository.updateStopWithFailure(stopId, reason, 'SKIPPED');
+    return updated!;
+  }
+
   async listVehicles(tenantId: string) {
     return this.repository.findVehicles(tenantId);
   }

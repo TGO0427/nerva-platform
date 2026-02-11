@@ -40,6 +40,7 @@ export interface DispatchStop {
   gpsLng: number | null;
   status: string;
   notes: string | null;
+  failureReason: string | null;
   eta: Date | null;
   arrivedAt: Date | null;
   completedAt: Date | null;
@@ -440,6 +441,28 @@ export class DispatchRepository extends BaseRepository {
     );
   }
 
+  async updateTripCompletedStops(tripId: string, count: number): Promise<void> {
+    await this.query(
+      'UPDATE dispatch_trips SET completed_stops = $1 WHERE id = $2',
+      [count, tripId],
+    );
+  }
+
+  async updateStopWithFailure(
+    stopId: string,
+    reason: string,
+    status = 'FAILED',
+  ): Promise<DispatchStop | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE dispatch_stops
+       SET status = $1, failure_reason = $2, completed_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [status, reason, stopId],
+    );
+    return row ? this.mapStop(row) : null;
+  }
+
   private mapTrip(row: Record<string, unknown>): DispatchTrip {
     return {
       id: row.id as string,
@@ -482,6 +505,7 @@ export class DispatchRepository extends BaseRepository {
       gpsLng: row.gps_lng ? parseFloat(row.gps_lng as string) : null,
       status: row.status as string,
       notes: row.notes as string | null,
+      failureReason: row.failure_reason as string | null,
       eta: row.eta as Date | null,
       arrivedAt: row.arrived_at as Date | null,
       completedAt: row.completed_at as Date | null,

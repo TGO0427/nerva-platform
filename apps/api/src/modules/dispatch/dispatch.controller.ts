@@ -172,6 +172,55 @@ export class DispatchController {
     return this.service.resequenceStops(tripId, data.stopIds);
   }
 
+  // Stop action endpoints
+  @Post('trips/:tripId/stops/:stopId/arrive')
+  @RequirePermissions('dispatch.execute')
+  @ApiOperation({ summary: 'Mark stop as arrived' })
+  async arriveAtStop(
+    @Param('tripId', UuidValidationPipe) tripId: string,
+    @Param('stopId', UuidValidationPipe) stopId: string,
+  ) {
+    return this.service.arriveAtStop(tripId, stopId);
+  }
+
+  @Post('trips/:tripId/stops/:stopId/complete')
+  @RequirePermissions('dispatch.execute')
+  @ApiOperation({ summary: 'Complete stop with POD' })
+  async completeStop(
+    @TenantId() tenantId: string,
+    @Param('tripId', UuidValidationPipe) tripId: string,
+    @Param('stopId', UuidValidationPipe) stopId: string,
+    @Body() data: {
+      podSignature?: string;
+      podPhoto?: string;
+      podNotes?: string;
+    },
+  ) {
+    return this.service.completeStopWithPod(tripId, stopId, tenantId, data);
+  }
+
+  @Post('trips/:tripId/stops/:stopId/fail')
+  @RequirePermissions('dispatch.execute')
+  @ApiOperation({ summary: 'Mark stop as failed' })
+  async failStop(
+    @Param('tripId', UuidValidationPipe) tripId: string,
+    @Param('stopId', UuidValidationPipe) stopId: string,
+    @Body() data: { reason: string },
+  ) {
+    return this.service.failStop(tripId, stopId, data.reason);
+  }
+
+  @Post('trips/:tripId/stops/:stopId/skip')
+  @RequirePermissions('dispatch.execute')
+  @ApiOperation({ summary: 'Skip stop' })
+  async skipStop(
+    @Param('tripId', UuidValidationPipe) tripId: string,
+    @Param('stopId', UuidValidationPipe) stopId: string,
+    @Body() data: { reason: string },
+  ) {
+    return this.service.skipStop(tripId, stopId, data.reason);
+  }
+
   @Get('vehicles')
   @RequirePermissions('dispatch.plan')
   @ApiOperation({ summary: 'List vehicles' })
