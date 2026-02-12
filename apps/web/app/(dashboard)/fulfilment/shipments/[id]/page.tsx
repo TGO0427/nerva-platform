@@ -18,7 +18,8 @@ import {
 } from '@/lib/queries';
 import { api } from '@/lib/api';
 import { DataTable, type Column } from '@/components/ui/data-table';
-import { PrinterIcon } from '@/components/ui/export-actions';
+import { DownloadIcon } from '@/components/ui/export-actions';
+import { downloadPdf } from '@/lib/utils/export';
 import type { ShipmentLine } from '@/lib/queries/fulfilment';
 
 const shipmentLineColumns: Column<ShipmentLine>[] = [
@@ -159,12 +160,12 @@ export default function ShipmentDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
-            <PrinterIcon />
-            Print
+          <Button variant="secondary" onClick={() => downloadPdf(`/fulfilment/shipments/${shipmentId}/delivery-note`, `DN-${shipment.shipmentNo}.pdf`)} className="print:hidden">
+            <DownloadIcon />
+            Download Delivery Note
           </Button>
           <Button variant="secondary" onClick={handlePrintPackingSlip}>
-            <PrinterIcon />
+            <DownloadIcon />
             Packing Slip
           </Button>
           {canPack && (

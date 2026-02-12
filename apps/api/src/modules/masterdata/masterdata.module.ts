@@ -9,6 +9,7 @@ import { ReportsController } from './reports.controller';
 import { NotificationsController } from './notifications.controller';
 import { MasterDataService } from './masterdata.service';
 import { MasterDataRepository } from './masterdata.repository';
+import { PurchaseOrderPdfService } from './purchase-order-pdf.service';
 
 @Module({
   controllers: [
@@ -21,7 +22,7 @@ import { MasterDataRepository } from './masterdata.repository';
     ReportsController,
     NotificationsController,
   ],
-  providers: [MasterDataService, MasterDataRepository],
+  providers: [MasterDataService, MasterDataRepository, PurchaseOrderPdfService],
   exports: [MasterDataService],
 })
 export class MasterDataModule {}

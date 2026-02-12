@@ -22,6 +22,21 @@ CREATE TABLE IF NOT EXISTS tenants (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   code text UNIQUE,
+  -- Company profile
+  address_line1 text,
+  address_line2 text,
+  city text,
+  postal_code text,
+  country text,
+  phone text,
+  email text,
+  vat_no text,
+  registration_no text,
+  logo_url text,
+  -- Bank details
+  bank_name text,
+  bank_account_no text,
+  bank_branch_code text,
   is_active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()

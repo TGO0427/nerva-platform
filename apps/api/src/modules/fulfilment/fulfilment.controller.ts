@@ -241,6 +241,24 @@ export class FulfilmentController {
     return new StreamableFile(pdfBuffer);
   }
 
+  @Get('shipments/:id/delivery-note')
+  @RequirePermissions('shipment.read')
+  @ApiOperation({ summary: 'Download delivery note PDF' })
+  @ApiProduces('application/pdf')
+  async downloadDeliveryNote(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.pdfService.generateDeliveryNote(id, tenantId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="delivery-note-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
+  }
+
   @Post('shipments/:id/pack')
   @RequirePermissions('shipment.update')
   @ApiOperation({ summary: 'Mark shipment as packed' })

@@ -7,9 +7,13 @@ import {
   Query,
   UseGuards,
   BadRequestException,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Response } from 'express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
 import { SalesService } from './sales.service';
+import { SalesPdfService } from './sales-pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -23,7 +27,10 @@ import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('sales/orders')
 export class SalesController {
-  constructor(private readonly service: SalesService) {}
+  constructor(
+    private readonly service: SalesService,
+    private readonly pdfService: SalesPdfService,
+  ) {}
 
   @Get()
     @RequirePermissions('sales_order.read')
@@ -51,6 +58,24 @@ export class SalesController {
   @ApiOperation({ summary: 'Get sales order with lines' })
   async get(@Param('id', UuidValidationPipe) id: string) {
     return this.service.getOrderWithLines(id);
+  }
+
+  @Get(':id/pdf')
+  @RequirePermissions('sales_order.read')
+  @ApiOperation({ summary: 'Download sales order PDF' })
+  @ApiProduces('application/pdf')
+  async downloadPdf(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.pdfService.generate(id, tenantId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="sales-order-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
   }
 
   @Post()

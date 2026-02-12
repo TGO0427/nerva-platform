@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { DetailPageTemplate } from '@/components/templates';
-import { PrinterIcon } from '@/components/ui/export-actions';
+import { DownloadIcon } from '@/components/ui/export-actions';
+import { downloadPdf } from '@/lib/utils/export';
 import {
   useWorkOrder,
   useReleaseWorkOrder,
@@ -166,9 +167,9 @@ export default function WorkOrderDetailPage() {
       headerActions={
         workOrder && (
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
-              <PrinterIcon />
-              Print
+            <Button variant="secondary" onClick={() => downloadPdf(`/manufacturing/work-orders/${id}/pdf`, `WO-${workOrder.workOrderNo}.pdf`)} className="print:hidden">
+              <DownloadIcon />
+              Download PDF
             </Button>
             {workOrder.status === 'DRAFT' && (
               <>

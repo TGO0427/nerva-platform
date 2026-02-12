@@ -5,9 +5,13 @@ import {
   Param,
   Query,
   UseGuards,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Response } from 'express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
 import { ReturnsService } from './returns.service';
+import { CreditNotePdfService } from './credit-note-pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -21,7 +25,10 @@ import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('finance/credits')
 export class CreditsController {
-  constructor(private readonly service: ReturnsService) {}
+  constructor(
+    private readonly service: ReturnsService,
+    private readonly pdfService: CreditNotePdfService,
+  ) {}
 
   @Get()
   @RequirePermissions('credit.create')
@@ -40,6 +47,24 @@ export class CreditsController {
   @ApiOperation({ summary: 'Get credit note' })
   async get(@Param('id', UuidValidationPipe) id: string) {
     return this.service.getCreditNote(id);
+  }
+
+  @Get(':id/pdf')
+  @RequirePermissions('credit.create')
+  @ApiOperation({ summary: 'Download credit note PDF' })
+  @ApiProduces('application/pdf')
+  async downloadPdf(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.pdfService.generate(id, tenantId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="credit-note-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
   }
 
   @Post('from-rma/:rmaId')

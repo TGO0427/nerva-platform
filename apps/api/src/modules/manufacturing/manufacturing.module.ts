@@ -6,6 +6,8 @@ import { BomRepository } from './repositories/bom.repository';
 import { RoutingRepository } from './repositories/routing.repository';
 import { WorkOrderRepository } from './repositories/work-order.repository';
 import { ProductionLedgerRepository } from './repositories/production-ledger.repository';
+import { WorkOrderPdfService } from './work-order-pdf.service';
+import { BomPdfService } from './bom-pdf.service';
 import { InventoryModule } from '../inventory/inventory.module';
 import { MasterDataModule } from '../masterdata/masterdata.module';
 
@@ -19,6 +21,8 @@ import { MasterDataModule } from '../masterdata/masterdata.module';
     RoutingRepository,
     WorkOrderRepository,
     ProductionLedgerRepository,
+    WorkOrderPdfService,
+    BomPdfService,
   ],
   exports: [ManufacturingService],
 })

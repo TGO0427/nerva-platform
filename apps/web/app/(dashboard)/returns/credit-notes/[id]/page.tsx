@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
-import { PrinterIcon } from '@/components/ui/export-actions';
+import { DownloadIcon } from '@/components/ui/export-actions';
+import { downloadPdf } from '@/lib/utils/export';
 import {
   useCreditNote,
   useApproveCreditNote,
@@ -95,9 +96,9 @@ export default function CreditNoteDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
-            <PrinterIcon />
-            Print
+          <Button variant="secondary" onClick={() => downloadPdf(`/finance/credits/${creditNoteId}/pdf`, `CN-${creditNote.creditNoteNo}.pdf`)} className="print:hidden">
+            <DownloadIcon />
+            Download PDF
           </Button>
           {canApprove && (
             <Button onClick={handleApprove} isLoading={approveCreditNote.isPending}>

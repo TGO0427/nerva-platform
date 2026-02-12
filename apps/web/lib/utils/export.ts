@@ -1,3 +1,22 @@
+import { api } from '@/lib/api';
+
+/**
+ * Download a PDF from an API endpoint
+ */
+export async function downloadPdf(url: string, filename: string): Promise<void> {
+  const response = await api.get(url, { responseType: 'blob' });
+  const blobUrl = window.URL.createObjectURL(
+    new Blob([response.data], { type: 'application/pdf' }),
+  );
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
+}
+
 /**
  * CSV Export Utilities
  */

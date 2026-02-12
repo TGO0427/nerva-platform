@@ -10,8 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { PrinterIcon } from '@/components/ui/export-actions';
+import { DownloadIcon } from '@/components/ui/export-actions';
 import { EntityHistory } from '@/components/ui/entity-history';
+import { downloadPdf } from '@/lib/utils/export';
 import {
   usePurchaseOrder,
   usePurchaseOrderLines,
@@ -68,9 +69,13 @@ export default function PurchaseOrderDetailPage() {
             </p>
           </div>
           <div className="flex gap-2 items-start">
-            <Button variant="secondary" onClick={() => window.print()} className="print:hidden bg-white text-purple-700 hover:bg-purple-50">
-              <PrinterIcon />
-              Print
+            <Button
+              variant="secondary"
+              onClick={() => downloadPdf(`/purchase-orders/${id}/pdf`, `PO-${po.poNo}.pdf`)}
+              className="print:hidden bg-white text-purple-700 hover:bg-purple-50"
+            >
+              <DownloadIcon />
+              Download PDF
             </Button>
             <StatusActions po={po} />
           </div>

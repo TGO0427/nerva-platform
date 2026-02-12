@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 
 // Core modules
 import { DatabaseModule } from './common/db/database.module';
+import { PdfHelpersModule } from './common/pdf/pdf.module';
 
 // Feature modules
 import { AuthModule } from './modules/auth/auth.module';
@@ -49,6 +50,9 @@ import { ManufacturingModule } from './modules/manufacturing/manufacturing.modul
 
     // Database
     DatabaseModule,
+
+    // Shared modules
+    PdfHelpersModule,
 
     // Feature modules
     AuthModule,

@@ -8,9 +8,14 @@ import {
   Body,
   Query,
   UseGuards,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Response } from 'express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
 import { ManufacturingService } from './manufacturing.service';
+import { WorkOrderPdfService } from './work-order-pdf.service';
+import { BomPdfService } from './bom-pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -24,7 +29,11 @@ import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('manufacturing')
 export class ManufacturingController {
-  constructor(private readonly service: ManufacturingService) {}
+  constructor(
+    private readonly service: ManufacturingService,
+    private readonly workOrderPdfService: WorkOrderPdfService,
+    private readonly bomPdfService: BomPdfService,
+  ) {}
 
   // ============ Workstations ============
   @Get('workstations')
@@ -112,6 +121,24 @@ export class ManufacturingController {
   @ApiOperation({ summary: 'Get BOM with lines' })
   async getBom(@Param('id', UuidValidationPipe) id: string) {
     return this.service.getBom(id);
+  }
+
+  @Get('boms/:id/pdf')
+  @RequirePermissions('bom.view')
+  @ApiOperation({ summary: 'Download BOM PDF' })
+  @ApiProduces('application/pdf')
+  async downloadBomPdf(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.bomPdfService.generate(id, tenantId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="bom-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
   }
 
   @Post('boms')
@@ -360,6 +387,24 @@ export class ManufacturingController {
   @ApiOperation({ summary: 'Get work order with operations and materials' })
   async getWorkOrder(@Param('id', UuidValidationPipe) id: string) {
     return this.service.getWorkOrder(id);
+  }
+
+  @Get('work-orders/:id/pdf')
+  @RequirePermissions('work_order.view')
+  @ApiOperation({ summary: 'Download work order PDF' })
+  @ApiProduces('application/pdf')
+  async downloadWorkOrderPdf(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.workOrderPdfService.generate(id, tenantId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="work-order-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
   }
 
   @Post('work-orders/next-number')

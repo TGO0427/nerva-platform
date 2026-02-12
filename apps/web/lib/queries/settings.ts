@@ -342,6 +342,52 @@ export function useUpdateSite() {
   });
 }
 
+// ============ Company Profile ============
+
+export interface TenantProfile {
+  name: string;
+  code?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  postalCode?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+  vatNo?: string;
+  registrationNo?: string;
+  logoUrl?: string;
+  bankName?: string;
+  bankAccountNo?: string;
+  bankBranchCode?: string;
+}
+
+const TENANT_PROFILE_KEY = 'tenant-profile';
+
+export function useTenantProfile() {
+  return useQuery({
+    queryKey: [TENANT_PROFILE_KEY],
+    queryFn: async () => {
+      const response = await api.get<TenantProfile>('/auth/tenant-profile');
+      return response.data;
+    },
+  });
+}
+
+export function useUpdateTenantProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Partial<TenantProfile>) => {
+      const response = await api.patch<TenantProfile>('/auth/tenant-profile', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [TENANT_PROFILE_KEY] });
+    },
+  });
+}
+
 // ============ Tenant Settings ============
 
 interface UpdateTenantData {

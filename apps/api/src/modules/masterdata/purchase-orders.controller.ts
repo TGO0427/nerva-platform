@@ -9,9 +9,13 @@ import {
   Query,
   UseGuards,
   BadRequestException,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Response } from 'express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
 import { MasterDataService } from './masterdata.service';
+import { PurchaseOrderPdfService } from './purchase-order-pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -31,7 +35,10 @@ import {
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('purchase-orders')
 export class PurchaseOrdersController {
-  constructor(private readonly service: MasterDataService) {}
+  constructor(
+    private readonly service: MasterDataService,
+    private readonly pdfService: PurchaseOrderPdfService,
+  ) {}
 
   @Get()
     @RequirePermissions('purchase_order.read')
@@ -53,6 +60,24 @@ export class PurchaseOrdersController {
   @ApiOperation({ summary: 'Get purchase order by ID' })
   async get(@Param('id', UuidValidationPipe) id: string) {
     return this.service.getPurchaseOrder(id);
+  }
+
+  @Get(':id/pdf')
+  @RequirePermissions('purchase_order.read')
+  @ApiOperation({ summary: 'Download purchase order PDF' })
+  @ApiProduces('application/pdf')
+  async downloadPdf(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.pdfService.generate(id, tenantId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="purchase-order-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
   }
 
   @Post()

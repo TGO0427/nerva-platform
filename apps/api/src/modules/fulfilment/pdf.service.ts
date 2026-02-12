@@ -1,6 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import * as PDFDocument from 'pdfkit';
+import { Pool } from 'pg';
+import { DATABASE_POOL } from '../../common/db/database.module';
 import { FulfilmentRepository } from './fulfilment.repository';
+import { TenantProfileService } from '../../common/pdf/tenant-profile.service';
+import {
+  createPdfDocument,
+  pdfToBuffer,
+  renderCompanyHeader,
+  renderDocumentTitle,
+  renderDocumentMeta,
+  renderAddressBlock,
+  renderTable,
+  renderTotals,
+  renderSignatureBlock,
+  formatDate,
+} from '../../common/pdf/pdf-helpers';
 
 export interface PickSlipTask {
   binCode: string;
@@ -39,7 +54,11 @@ export interface PackingSlipData {
 
 @Injectable()
 export class PdfService {
-  constructor(private readonly repository: FulfilmentRepository) {}
+  constructor(
+    private readonly repository: FulfilmentRepository,
+    private readonly tenantProfile: TenantProfileService,
+    @Inject(DATABASE_POOL) private readonly pool: Pool,
+  ) {}
 
   async generatePickSlip(waveId: string): Promise<Buffer> {
     const data = await this.repository.getPickSlipData(waveId);
@@ -217,5 +236,142 @@ export class PdfService {
 
       doc.end();
     });
+  }
+
+  async generateDeliveryNote(shipmentId: string, tenantId: string): Promise<Buffer> {
+    // Fetch shipment with order info
+    const shipment = await this.repository.findShipmentById(shipmentId);
+    if (!shipment) {
+      throw new NotFoundException('Shipment not found');
+    }
+
+    // Fetch shipment lines
+    const lines = await this.repository.findShipmentLinesByShipment(shipmentId);
+
+    // Fetch tenant profile
+    const profile = await this.tenantProfile.getProfile(tenantId);
+
+    // Fetch customer billing & shipping addresses from sales order + customer
+    const customerResult = await this.pool.query(
+      `SELECT
+         c.name AS customer_name,
+         c.billing_address_line1, c.billing_address_line2,
+         c.billing_city, c.billing_postal_code, c.billing_country,
+         c.shipping_address_line1, c.shipping_address_line2,
+         c.shipping_city, c.shipping_postal_code, c.shipping_country,
+         c.contact_person, c.phone, c.email, c.vat_no,
+         so.shipping_address_line1 AS order_ship_line1,
+         so.shipping_city AS order_ship_city
+       FROM shipments s
+       JOIN sales_orders so ON so.id = s.sales_order_id
+       JOIN customers c ON c.id = so.customer_id
+       WHERE s.id = $1`,
+      [shipmentId],
+    );
+    const customer = customerResult.rows[0];
+
+    // Calculate total weight
+    const totalWeight = await this.repository.sumShipmentWeight(shipmentId);
+    const totalItems = lines.reduce((sum, l) => sum + l.qty, 0);
+
+    const doc = createPdfDocument();
+    const bufferPromise = pdfToBuffer(doc);
+
+    // Company header
+    let y = renderCompanyHeader(doc, profile);
+
+    // Document title
+    y = renderDocumentTitle(doc, 'DELIVERY NOTE', y);
+
+    // Meta info
+    y = renderDocumentMeta(
+      doc,
+      [
+        { label: 'Shipment #', value: shipment.shipmentNo },
+        { label: 'Date', value: formatDate(shipment.createdAt) },
+        { label: 'Order #', value: shipment.orderNo || '-' },
+      ],
+      [
+        { label: 'Status', value: shipment.status },
+        { label: 'Carrier', value: shipment.carrier || '-' },
+        { label: 'Tracking #', value: shipment.trackingNo || '-' },
+      ],
+      y,
+    );
+
+    y += 5;
+
+    // Customer addresses - Bill To / Ship To
+    if (customer) {
+      const billToY = renderAddressBlock(
+        doc,
+        'Bill To:',
+        {
+          name: customer.customer_name,
+          addressLine1: customer.billing_address_line1 || undefined,
+          addressLine2: customer.billing_address_line2 || undefined,
+          city: customer.billing_city || undefined,
+          postalCode: customer.billing_postal_code || undefined,
+          country: customer.billing_country || undefined,
+          vatNo: customer.vat_no || undefined,
+          contactPerson: customer.contact_person || undefined,
+          phone: customer.phone || undefined,
+          email: customer.email || undefined,
+        },
+        40,
+        y,
+      );
+
+      const shipToY = renderAddressBlock(
+        doc,
+        'Ship To:',
+        {
+          name: customer.customer_name,
+          addressLine1: customer.order_ship_line1 || customer.shipping_address_line1 || undefined,
+          addressLine2: customer.shipping_address_line2 || undefined,
+          city: customer.order_ship_city || customer.shipping_city || undefined,
+          postalCode: customer.shipping_postal_code || undefined,
+          country: customer.shipping_country || undefined,
+        },
+        310,
+        y,
+      );
+
+      y = Math.max(billToY, shipToY) + 10;
+    }
+
+    // Line items table
+    y = renderTable(doc, {
+      columns: [
+        { key: 'lineNo', header: '#', width: 30, align: 'center' },
+        { key: 'sku', header: 'SKU', width: 100 },
+        { key: 'description', header: 'Description', width: 220 },
+        { key: 'qty', header: 'Qty', width: 50, align: 'right' },
+        { key: 'batch', header: 'Batch #', width: 115 },
+      ],
+      rows: lines.map((line, i) => ({
+        lineNo: String(i + 1),
+        sku: line.itemSku || '-',
+        description: (line.itemDescription || '-').substring(0, 45),
+        qty: String(line.qty),
+        batch: line.batchNo || '-',
+      })),
+      startY: y,
+    });
+
+    // Totals summary
+    y = renderTotals(doc, [
+      { label: 'Total Items', value: String(totalItems) },
+      { label: 'Total Weight', value: `${totalWeight.toFixed(2)} kg`, bold: true },
+    ], y);
+
+    // Recipient signature block
+    y = renderSignatureBlock(doc, y, 'Received by', 'Date');
+
+    // Driver signature block
+    renderSignatureBlock(doc, y, 'Driver Signature', 'Date');
+
+    doc.end();
+    return bufferPromise;
   }
 }

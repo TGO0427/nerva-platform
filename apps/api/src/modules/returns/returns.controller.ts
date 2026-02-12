@@ -7,9 +7,13 @@ import {
   Query,
   UseGuards,
   BadRequestException,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Response } from 'express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
 import { ReturnsService } from './returns.service';
+import { RmaPdfService } from './rma-pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -23,7 +27,10 @@ import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('returns/rmas')
 export class ReturnsController {
-  constructor(private readonly service: ReturnsService) {}
+  constructor(
+    private readonly service: ReturnsService,
+    private readonly rmaPdfService: RmaPdfService,
+  ) {}
 
   @Get()
     @RequirePermissions('rma.create')
@@ -44,6 +51,24 @@ export class ReturnsController {
   @ApiOperation({ summary: 'Get RMA with lines' })
   async get(@Param('id', UuidValidationPipe) id: string) {
     return this.service.getRmaWithLines(id);
+  }
+
+  @Get(':id/pdf')
+  @RequirePermissions('rma.create')
+  @ApiOperation({ summary: 'Download RMA PDF' })
+  @ApiProduces('application/pdf')
+  async downloadPdf(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.rmaPdfService.generate(id, tenantId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="rma-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
   }
 
   @Post()

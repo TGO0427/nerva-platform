@@ -3,12 +3,13 @@ import { DispatchController } from './dispatch.controller';
 import { DriverController } from './driver.controller';
 import { DispatchService } from './dispatch.service';
 import { DispatchRepository } from './dispatch.repository';
+import { DispatchPdfService } from './dispatch-pdf.service';
 import { FulfilmentModule } from '../fulfilment/fulfilment.module';
 
 @Module({
   imports: [FulfilmentModule],
   controllers: [DispatchController, DriverController],
-  providers: [DispatchService, DispatchRepository],
+  providers: [DispatchService, DispatchRepository, DispatchPdfService],
   exports: [DispatchService],
 })
 export class DispatchModule {}

@@ -6,9 +6,13 @@ import {
   Body,
   Query,
   UseGuards,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Response } from 'express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
 import { InventoryService } from './inventory.service';
+import { GrnPdfService } from './grn-pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -22,7 +26,10 @@ import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('receiving/grns')
 export class GrnController {
-  constructor(private readonly service: InventoryService) {}
+  constructor(
+    private readonly service: InventoryService,
+    private readonly pdfService: GrnPdfService,
+  ) {}
 
   @Get()
   @RequirePermissions('grn.create')
@@ -41,6 +48,24 @@ export class GrnController {
   @ApiOperation({ summary: 'Get GRN by ID' })
   async get(@Param('id', UuidValidationPipe) id: string) {
     return this.service.getGrn(id);
+  }
+
+  @Get(':id/pdf')
+  @RequirePermissions('grn.create')
+  @ApiOperation({ summary: 'Download GRN PDF' })
+  @ApiProduces('application/pdf')
+  async downloadPdf(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.pdfService.generate(id, tenantId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="grn-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
   }
 
   @Post()

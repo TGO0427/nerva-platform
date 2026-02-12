@@ -5,10 +5,14 @@ import {
   Param,
   Body,
   Query,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Response } from 'express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
 import { DispatchService } from './dispatch.service';
+import { DispatchPdfService } from './dispatch-pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -22,7 +26,10 @@ import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('dispatch')
 export class DispatchController {
-  constructor(private readonly service: DispatchService) {}
+  constructor(
+    private readonly service: DispatchService,
+    private readonly pdfService: DispatchPdfService,
+  ) {}
 
   @Get('trips')
   @RequirePermissions('dispatch.plan')
@@ -86,6 +93,24 @@ export class DispatchController {
   @ApiOperation({ summary: 'Get trip by ID' })
   async getTrip(@Param('id', UuidValidationPipe) id: string) {
     return this.service.getTrip(id);
+  }
+
+  @Get('trips/:id/pdf')
+  @RequirePermissions('dispatch.plan')
+  @ApiOperation({ summary: 'Download dispatch manifest PDF' })
+  @ApiProduces('application/pdf')
+  async downloadManifestPdf(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.pdfService.generate(id, tenantId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="dispatch-manifest-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
   }
 
   @Get('trips/:id/stops')
