@@ -67,6 +67,23 @@ const navigation: NavGroup[] = [
     ],
   },
   {
+    name: 'Finance',
+    items: [
+      {
+        name: 'Invoices',
+        href: '/finance/invoices',
+        icon: <InvoiceIcon />,
+        permissions: [PERMISSIONS.INVOICE_READ],
+      },
+      {
+        name: 'Credit Notes',
+        href: '/returns/credit-notes',
+        icon: <CreditNoteIcon />,
+        permissions: [PERMISSIONS.CREDIT_CREATE],
+      },
+    ],
+  },
+  {
     name: 'Manufacturing',
     items: [
       {
@@ -145,23 +162,6 @@ const navigation: NavGroup[] = [
         href: '/inventory/expiry-alerts',
         icon: <ClockIcon />,
         permissions: [PERMISSIONS.INVENTORY_READ],
-      },
-    ],
-  },
-  {
-    name: 'Finance',
-    items: [
-      {
-        name: 'Invoices',
-        href: '/finance/invoices',
-        icon: <InvoiceIcon />,
-        permissions: [PERMISSIONS.INVOICE_READ],
-      },
-      {
-        name: 'Credit Notes',
-        href: '/returns/credit-notes',
-        icon: <CreditNoteIcon />,
-        permissions: [PERMISSIONS.CREDIT_CREATE],
       },
     ],
   },
