@@ -8,9 +8,11 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { ColumnToggle } from '@/components/ui/column-toggle';
+import { ExportActions } from '@/components/ui/export-actions';
 import { ListPageTemplate } from '@/components/templates';
 import { useBoms, useQueryParams } from '@/lib/queries';
 import { useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { BomHeader, BomStatus } from '@nerva/shared';
 
 type BomWithMeta = BomHeader & { itemSku?: string; itemDescription?: string; lineCount?: number };
@@ -110,6 +112,49 @@ export default function BomsPage() {
     router.push(`/manufacturing/boms/${row.id}`);
   };
 
+  const handleExport = () => {
+    const exportColumns = [
+      { key: 'itemSku', header: 'Product SKU' },
+      { key: 'itemDescription', header: 'Description' },
+      {
+        key: 'version',
+        header: 'Version',
+        getValue: (row: BomWithMeta) => `V${row.version} Rev ${row.revision}`,
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        getValue: (row: BomWithMeta) => formatStatus(row.status),
+      },
+      {
+        key: 'lineCount',
+        header: 'Components',
+        getValue: (row: BomWithMeta) => row.lineCount || 0,
+      },
+      {
+        key: 'baseQty',
+        header: 'Base Qty',
+        getValue: (row: BomWithMeta) => `${row.baseQty} ${row.uom}`,
+      },
+      {
+        key: 'effectiveFrom',
+        header: 'Effective From',
+        getValue: (row: BomWithMeta) => formatDateForExport(row.effectiveFrom),
+      },
+      {
+        key: 'effectiveTo',
+        header: 'Effective To',
+        getValue: (row: BomWithMeta) => formatDateForExport(row.effectiveTo),
+      },
+      {
+        key: 'createdAt',
+        header: 'Created',
+        getValue: (row: BomWithMeta) => formatDateForExport(row.createdAt),
+      },
+    ];
+    exportToCSV(tableData, exportColumns, generateExportFilename('boms'));
+  };
+
   const totalBoms = data?.meta?.total || 0;
   const draftCount = tableData.filter(b => b.status === 'DRAFT').length;
   const pendingCount = tableData.filter(b => b.status === 'PENDING_APPROVAL').length;
@@ -162,13 +207,14 @@ export default function BomsPage() {
         />
       }
       filterActions={
-        <div className="flex gap-2">
+        <div className="flex gap-2 print:hidden">
           <Link href="/manufacturing/boms/compare">
             <Button variant="secondary" size="sm">
               <CompareIcon />
               Compare BOMs
             </Button>
           </Link>
+          <ExportActions onExport={handleExport} />
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}

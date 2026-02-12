@@ -65,3 +65,37 @@ body {
     @apply badge bg-blue-100 text-blue-800;
   }
 }
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  .shadow-sm, .shadow {
+    box-shadow: none !important;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  h1 {
+    font-size: 18pt !important;
+  }
+}

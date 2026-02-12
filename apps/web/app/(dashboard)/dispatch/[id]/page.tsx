@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
+import { PrinterIcon } from '@/components/ui/export-actions';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { useCopy } from '@/lib/hooks/use-copy';
@@ -451,6 +452,10 @@ export default function TripDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
+            <PrinterIcon />
+            Print
+          </Button>
           {canAssign && !showAssignForm && (
             <Button onClick={() => setShowAssignForm(true)}>
               <UserIcon />

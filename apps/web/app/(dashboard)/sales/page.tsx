@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { ExportActions } from '@/components/ui/export-actions';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
@@ -222,7 +223,7 @@ export default function SalesOrdersPage() {
         </div>
       }
       filterActions={
-        <div className="flex gap-2">
+        <div className="flex gap-2 print:hidden">
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}
@@ -230,10 +231,7 @@ export default function SalesOrdersPage() {
             onReset={resetColumns}
             alwaysVisible={['orderNo']}
           />
-          <Button variant="secondary" size="sm" onClick={handleExport}>
-            <DownloadIcon />
-            {selectedCount > 0 ? `Export (${selectedCount})` : 'Export'}
-          </Button>
+          <ExportActions onExport={handleExport} selectedCount={selectedCount} />
         </div>
       }
     >
@@ -242,10 +240,7 @@ export default function SalesOrdersPage() {
           selectedCount={selectedCount}
           onClearSelection={clearSelection}
         >
-          <Button variant="secondary" size="sm" onClick={handleExport}>
-            <DownloadIcon />
-            Export Selected
-          </Button>
+          <ExportActions onExport={handleExport} />
         </BulkActionBar>
       )}
 
@@ -325,14 +320,6 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-    </svg>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
   );
 }

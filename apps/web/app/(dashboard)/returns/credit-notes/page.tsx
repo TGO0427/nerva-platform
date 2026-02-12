@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
+import { ExportActions } from '@/components/ui/export-actions';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { useCreditNotes, useQueryParams, CreditNote } from '@/lib/queries';
+import { exportToCSV, generateExportFilename, formatDateForExport, formatCurrencyForExport } from '@/lib/utils/export';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -81,6 +83,20 @@ export default function CreditNotesPage() {
     router.push(`/returns/credit-notes/${row.id}`);
   };
 
+  const handleExport = () => {
+    const exportColumns = [
+      { key: 'creditNoteNo', header: 'Credit Note No.' },
+      { key: 'status', header: 'Status', getValue: (row: CreditNote) => row.status?.replace(/_/g, ' ') },
+      { key: 'rmaNo', header: 'RMA', getValue: (row: CreditNote) => row.rmaNo || row.rmaId.slice(0, 8) },
+      { key: 'customerName', header: 'Customer', getValue: (row: CreditNote) => row.customerName || row.customerId.slice(0, 8) },
+      { key: 'currency', header: 'Currency' },
+      { key: 'amount', header: 'Amount', getValue: (row: CreditNote) => formatCurrencyForExport(row.amount) },
+      { key: 'createdAt', header: 'Created', getValue: (row: CreditNote) => formatDateForExport(row.createdAt) },
+    ];
+
+    exportToCSV(data?.data || [], exportColumns, generateExportFilename('credit-notes'));
+  };
+
   // Stats
   const pendingApproval = data?.data?.filter(c => c.status === 'PENDING_APPROVAL').length || 0;
   const approved = data?.data?.filter(c => c.status === 'APPROVED').length || 0;
@@ -95,12 +111,15 @@ export default function CreditNotesPage() {
           <h1 className="text-2xl font-bold text-slate-900">Credit Notes</h1>
           <p className="text-slate-500 mt-1">Manage customer credit notes from returns</p>
         </div>
-        <Link href="/returns">
-          <Button variant="secondary">
-            <ArrowLeftIcon />
-            Back to RMAs
-          </Button>
-        </Link>
+        <div className="flex gap-2 print:hidden">
+          <ExportActions onExport={handleExport} />
+          <Link href="/returns">
+            <Button variant="secondary">
+              <ArrowLeftIcon />
+              Back to RMAs
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Quick stats */}

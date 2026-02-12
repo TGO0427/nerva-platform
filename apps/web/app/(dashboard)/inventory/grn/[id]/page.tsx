@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
+import { PrinterIcon } from '@/components/ui/export-actions';
 import {
   useGrn,
   useGrnLines,
@@ -170,8 +171,13 @@ export default function GrnDetailPage() {
             Created {new Date(grn.createdAt).toLocaleDateString()}
           </p>
         </div>
-        {['DRAFT', 'OPEN', 'PARTIAL', 'RECEIVED', 'PUTAWAY_PENDING'].includes(grn.status) && (
-          <div className="flex gap-2">
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
+            <PrinterIcon />
+            Print
+          </Button>
+          {['DRAFT', 'OPEN', 'PARTIAL', 'RECEIVED', 'PUTAWAY_PENDING'].includes(grn.status) && (
+            <>
             {grn.status !== 'PUTAWAY_PENDING' && (
               <Button variant="secondary" onClick={() => router.push(`/inventory/grn/${grnId}/receive`)}>
                 <ScanIcon />
@@ -188,8 +194,9 @@ export default function GrnDetailPage() {
                 Complete GRN
               </Button>
             )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Summary */}

@@ -5,10 +5,12 @@ import { Breadcrumbs } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ExportActions } from '@/components/ui/export-actions';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuditLogs, type AuditEntryWithActor } from '@/lib/queries/audit';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 
 const ENTITY_TYPES = [
   { value: '', label: 'All Entities' },
@@ -188,15 +190,33 @@ export default function AuditLogPage() {
   const totalPages = data ? Math.ceil(data.total / limit) : 0;
   const entries = data?.data || [];
 
+  const handleExport = () => {
+    const exportColumns = [
+      { key: 'createdAt', header: 'Timestamp', getValue: (row: AuditEntryWithActor) => formatDateForExport(row.createdAt) },
+      { key: 'actorName', header: 'User', getValue: (row: AuditEntryWithActor) => row.actorName || 'System' },
+      { key: 'action', header: 'Action' },
+      { key: 'entityType', header: 'Entity Type', getValue: (row: AuditEntryWithActor) => formatEntityType(row.entityType) },
+      { key: 'entityId', header: 'Entity ID', getValue: (row: AuditEntryWithActor) => row.entityId || '' },
+      { key: 'summary', header: 'Summary', getValue: (row: AuditEntryWithActor) => generateSummary(row) },
+    ];
+
+    exportToCSV(entries, exportColumns, generateExportFilename('audit-log'));
+  };
+
   return (
     <div className="space-y-6">
       <Breadcrumbs />
 
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Audit Log</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          View all system activity and changes across the platform
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Audit Log</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            View all system activity and changes across the platform
+          </p>
+        </div>
+        <div className="flex justify-end gap-2 print:hidden">
+          <ExportActions onExport={handleExport} />
+        </div>
       </div>
 
       <Card>

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { ExportActions } from '@/components/ui/export-actions';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +34,7 @@ import {
   useDispatchActivity,
   AuditEntryWithActor,
 } from '@/lib/queries';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { TripStatus, StopStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -217,6 +219,26 @@ export default function DispatchPage() {
       }
     }
   };
+
+  // Export trips to CSV
+  const handleExportTrips = useCallback(() => {
+    const trips = tripsData?.data || [];
+    const exportColumns = [
+      { key: 'tripNo', header: 'Trip No.' },
+      { key: 'status', header: 'Status', getValue: (row: Trip) => formatStatus(row.status) },
+      { key: 'driverName', header: 'Driver', getValue: (row: Trip) => row.driverName || 'Unassigned' },
+      { key: 'vehiclePlate', header: 'Vehicle', getValue: (row: Trip) => row.vehiclePlate || '' },
+      { key: 'totalStops', header: 'Total Stops' },
+      { key: 'completedStops', header: 'Completed Stops' },
+      { key: 'totalWeight', header: 'Total Weight (kg)' },
+      { key: 'plannedDate', header: 'Planned Date', getValue: (row: Trip) => formatDateForExport(row.plannedDate) },
+      { key: 'startedAt', header: 'Started At', getValue: (row: Trip) => formatDateForExport(row.startedAt) },
+      { key: 'completedAt', header: 'Completed At', getValue: (row: Trip) => formatDateForExport(row.completedAt) },
+      { key: 'notes', header: 'Notes', getValue: (row: Trip) => row.notes || '' },
+      { key: 'createdAt', header: 'Created', getValue: (row: Trip) => formatDateForExport(row.createdAt) },
+    ];
+    exportToCSV(trips, exportColumns, generateExportFilename('dispatch-trips'));
+  }, [tripsData?.data]);
 
   // Group trips by status for board view
   const tripsByStatus = useMemo(() => {
@@ -590,31 +612,34 @@ export default function DispatchPage() {
                 </button>
               </nav>
 
-              {/* View mode toggle - only show on trips tab */}
+              {/* View mode toggle + export - only show on trips tab */}
               {activeTab === 'trips' && (
-                <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
-                  <button
-                    onClick={() => setViewMode('board')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                      viewMode === 'board'
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    <BoardIcon className="h-4 w-4 inline mr-1.5" />
-                    Board
-                  </button>
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                      viewMode === 'table'
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    <TableIcon className="h-4 w-4 inline mr-1.5" />
-                    Table
-                  </button>
+                <div className="flex items-center gap-2 print:hidden">
+                  <ExportActions onExport={handleExportTrips} />
+                  <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+                    <button
+                      onClick={() => setViewMode('board')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        viewMode === 'board'
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <BoardIcon className="h-4 w-4 inline mr-1.5" />
+                      Board
+                    </button>
+                    <button
+                      onClick={() => setViewMode('table')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        viewMode === 'table'
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <TableIcon className="h-4 w-4 inline mr-1.5" />
+                      Table
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

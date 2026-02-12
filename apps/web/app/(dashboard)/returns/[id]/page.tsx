@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
 import { EntityHistory } from '@/components/ui/entity-history';
+import { PrinterIcon } from '@/components/ui/export-actions';
 import {
   useRma,
   useRmaLines,
@@ -160,6 +161,10 @@ export default function RmaDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
+            <PrinterIcon />
+            Print
+          </Button>
           {canCompleteDisposition && (
             <Button onClick={handleCompleteDisposition} isLoading={completeDisposition.isPending}>
               <CheckIcon />

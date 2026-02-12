@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
+import { PrinterIcon } from '@/components/ui/export-actions';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { EntityHistory } from '@/components/ui/entity-history';
@@ -261,6 +262,10 @@ export default function SalesOrderDetailPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
+            <PrinterIcon />
+            Print
+          </Button>
           {canConfirm && (
             <Button onClick={handleConfirm} isLoading={confirmOrder.isPending}>
               <CheckIcon />
