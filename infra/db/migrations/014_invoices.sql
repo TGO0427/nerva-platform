@@ -33,6 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_invoices_customer ON invoices(customer_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_sales_order ON invoices(sales_order_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_due_date ON invoices(tenant_id, due_date);
 
+DROP TRIGGER IF EXISTS trg_invoices_updated ON invoices;
 CREATE TRIGGER trg_invoices_updated
 BEFORE UPDATE ON invoices
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
