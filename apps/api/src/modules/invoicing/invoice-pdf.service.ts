@@ -77,7 +77,6 @@ export class InvoicePdfService {
         'Bill To:',
         {
           name: customer.name,
-          contactPerson: customer.contact_person || undefined,
           addressLine1: customer.billing_address_line1 || undefined,
           addressLine2: customer.billing_address_line2 || undefined,
           city: customer.billing_city || undefined,
@@ -168,7 +167,7 @@ export class InvoicePdfService {
 
   private async getCustomer(customerId: string): Promise<Record<string, any> | null> {
     const result = await this.pool.query(
-      `SELECT name, contact_person, phone, email, vat_no,
+      `SELECT name, phone, email, vat_no,
               billing_address_line1, billing_address_line2, billing_city,
               billing_postal_code, billing_country,
               shipping_address_line1, shipping_city
