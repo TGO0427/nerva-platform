@@ -75,7 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_invoice_payments_invoice ON invoice_payments(invo
 -- =================
 -- Permissions
 -- =================
-INSERT INTO permissions (id, code, name, description, module) VALUES
-  (gen_random_uuid(), 'invoice.read', 'View Invoices', 'View invoices and payment history', 'invoicing'),
-  (gen_random_uuid(), 'invoice.create', 'Manage Invoices', 'Create, send, and manage invoices', 'invoicing')
+INSERT INTO permissions (id, code, description) VALUES
+  (gen_random_uuid(), 'invoice.read', 'View invoices and payment history'),
+  (gen_random_uuid(), 'invoice.create', 'Create, send, and manage invoices')
 ON CONFLICT (code) DO NOTHING;
