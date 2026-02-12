@@ -242,7 +242,7 @@ export function useCreditNotes(params: QueryParams & { status?: string; customer
       if (params.customerId) searchParams.set('customerId', params.customerId);
 
       const response = await api.get<PaginatedResult<CreditNote>>(
-        `/returns/credit-notes?${searchParams.toString()}`
+        `/finance/credits?${searchParams.toString()}`
       );
       return response.data;
     },
@@ -253,7 +253,7 @@ export function useCreditNote(id: string | undefined) {
   return useQuery({
     queryKey: [CREDIT_NOTES_KEY, id],
     queryFn: async () => {
-      const response = await api.get<CreditNote>(`/returns/credit-notes/${id}`);
+      const response = await api.get<CreditNote>(`/finance/credits/${id}`);
       return response.data;
     },
     enabled: !!id,
@@ -270,7 +270,7 @@ export function useCreateCreditNote() {
       reason: string;
       notes?: string;
     }) => {
-      const response = await api.post<CreditNote>('/returns/credit-notes', data);
+      const response = await api.post<CreditNote>('/finance/credits', data);
       return response.data;
     },
     onSuccess: () => {
@@ -284,7 +284,7 @@ export function useApproveCreditNote() {
 
   return useMutation({
     mutationFn: async (creditNoteId: string) => {
-      const response = await api.post<CreditNote>(`/returns/credit-notes/${creditNoteId}/approve`);
+      const response = await api.post<CreditNote>(`/finance/credits/${creditNoteId}/approve`);
       return response.data;
     },
     onSuccess: (_, creditNoteId) => {
@@ -299,7 +299,7 @@ export function usePostCreditNote() {
 
   return useMutation({
     mutationFn: async (creditNoteId: string) => {
-      const response = await api.post<CreditNote>(`/returns/credit-notes/${creditNoteId}/post`);
+      const response = await api.post<CreditNote>(`/finance/credits/${creditNoteId}/post`);
       return response.data;
     },
     onSuccess: (_, creditNoteId) => {
@@ -314,7 +314,7 @@ export function useCancelCreditNote() {
 
   return useMutation({
     mutationFn: async ({ creditNoteId, reason }: { creditNoteId: string; reason: string }) => {
-      const response = await api.post<CreditNote>(`/returns/credit-notes/${creditNoteId}/cancel`, { reason });
+      const response = await api.post<CreditNote>(`/finance/credits/${creditNoteId}/cancel`, { reason });
       return response.data;
     },
     onSuccess: (_, { creditNoteId }) => {

@@ -146,12 +146,6 @@ export default function ReturnsPage() {
               Credit Notes
             </Button>
           </Link>
-          <Link href="/returns/new">
-            <Button>
-              <PlusIcon />
-              New RMA
-            </Button>
-          </Link>
         </div>
       }
       stats={[
@@ -238,11 +232,7 @@ export default function ReturnsPage() {
           description: status
             ? 'No RMAs match the selected filter'
             : 'Create an RMA to process customer returns',
-          action: !status && (
-            <Link href="/returns/new">
-              <Button>Create RMA</Button>
-            </Link>
-          ),
+          action: undefined,
         }}
       />
     </ListPageTemplate>
