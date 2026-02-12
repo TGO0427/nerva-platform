@@ -57,7 +57,7 @@ export default function PurchaseOrderDetailPage() {
       <Breadcrumbs />
 
       {/* Header */}
-      <div className="bg-purple-700 text-white p-6 rounded-t-lg -mx-6 -mt-6 mb-6">
+      <div className="bg-purple-700 text-white p-6 rounded-lg mb-6">
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3">

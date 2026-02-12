@@ -68,7 +68,7 @@ export default function CustomerDetailPage() {
       <Breadcrumbs />
 
       {/* Header */}
-      <div className="bg-blue-700 text-white p-6 rounded-t-lg -mx-6 -mt-6 mb-6">
+      <div className="bg-blue-700 text-white p-6 rounded-lg mb-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold">{customer.name}</h1>
