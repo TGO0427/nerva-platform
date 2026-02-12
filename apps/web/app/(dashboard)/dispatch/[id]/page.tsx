@@ -453,7 +453,7 @@ export default function TripDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => downloadPdf(`/dispatch/trips/${id}/pdf`, `MANIFEST-${trip.tripNo}.pdf`)} className="print:hidden">
+          <Button variant="secondary" onClick={() => downloadPdf(`/dispatch/trips/${tripId}/pdf`, `MANIFEST-${trip.tripNo}.pdf`)} className="print:hidden">
             <DownloadIcon />
             Download PDF
           </Button>
