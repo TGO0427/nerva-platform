@@ -94,6 +94,10 @@ export const PERMISSIONS = {
   PRODUCTION_ISSUE_MATERIAL: 'production.issue_material',
   PRODUCTION_RECORD_OUTPUT: 'production.record_output',
   PRODUCTION_VIEW_LEDGER: 'production.view_ledger',
+
+  // Invoicing
+  INVOICE_READ: 'invoice.read',
+  INVOICE_CREATE: 'invoice.create',
 } as const;
 
 // Reason codes for returns

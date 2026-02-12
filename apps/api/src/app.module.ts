@@ -20,6 +20,7 @@ import { ReturnsModule } from './modules/returns/returns.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ManufacturingModule } from './modules/manufacturing/manufacturing.module';
+import { InvoicingModule } from './modules/invoicing/invoicing.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { ManufacturingModule } from './modules/manufacturing/manufacturing.modul
     IntegrationsModule,
     AuditModule,
     ManufacturingModule,
+    InvoicingModule,
   ],
 })
 export class AppModule {}

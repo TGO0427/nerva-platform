@@ -1,7 +1,7 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { Pool } from 'pg';
 import { DATABASE_POOL } from '../../common/db/database.module';
-import { SalesRepository } from './sales.repository';
+import { InvoicingRepository } from './invoicing.repository';
 import { TenantProfileService } from '../../common/pdf/tenant-profile.service';
 import {
   createPdfDocument,
@@ -20,22 +20,23 @@ import {
 } from '../../common/pdf/pdf-helpers';
 
 @Injectable()
-export class SalesPdfService {
+export class InvoicePdfService {
   constructor(
-    private readonly repository: SalesRepository,
+    private readonly repository: InvoicingRepository,
     private readonly tenantProfile: TenantProfileService,
     @Inject(DATABASE_POOL) private readonly pool: Pool,
   ) {}
 
-  async generate(orderId: string, tenantId: string): Promise<Buffer> {
-    const order = await this.repository.findOrderById(orderId);
-    if (!order) throw new NotFoundException('Sales order not found');
+  async generate(invoiceId: string, tenantId: string): Promise<Buffer> {
+    const invoice = await this.repository.findInvoiceById(invoiceId);
+    if (!invoice) throw new NotFoundException('Invoice not found');
 
-    const lines = await this.repository.getOrderLines(orderId);
+    const lines = await this.repository.getInvoiceLines(invoiceId);
+    const payments = await this.repository.getPayments(invoiceId);
     const profile = await this.tenantProfile.getProfile(tenantId);
 
     // Fetch customer details
-    const customer = await this.getCustomer(order.customerId);
+    const customer = await this.getCustomer(invoice.customerId);
 
     // Fetch item details for each line (SKU + description)
     const itemIds = [...new Set(lines.map((l) => l.itemId))];
@@ -48,22 +49,24 @@ export class SalesPdfService {
     let y = renderCompanyHeader(doc, profile);
 
     // Document title
-    y = renderDocumentTitle(doc, 'SALES ORDER', y);
+    y = renderDocumentTitle(doc, 'TAX INVOICE', y);
 
     // Meta info
-    y = renderDocumentMeta(
-      doc,
-      [
-        { label: 'Order No', value: order.orderNo },
-        { label: 'Date', value: formatDate(order.createdAt) },
-        { label: 'Requested Ship Date', value: formatDate(order.requestedShipDate) },
-      ],
-      [
-        { label: 'Priority', value: String(order.priority) },
-        { label: 'Status', value: order.status },
-      ],
-      y,
-    );
+    const leftMeta = [
+      { label: 'Invoice No', value: invoice.invoiceNo },
+      { label: 'Invoice Date', value: formatDate(invoice.invoiceDate) },
+      { label: 'Due Date', value: formatDate(invoice.dueDate) },
+      { label: 'Payment Terms', value: invoice.paymentTerms || '-' },
+    ];
+
+    const rightMeta: { label: string; value: string }[] = [
+      { label: 'Status', value: invoice.status },
+    ];
+    if (invoice.salesOrderId) {
+      rightMeta.push({ label: 'Order Ref', value: invoice.orderNo || invoice.salesOrderId });
+    }
+
+    y = renderDocumentMeta(doc, leftMeta, rightMeta, y);
 
     y += 5;
 
@@ -89,24 +92,25 @@ export class SalesPdfService {
       );
     }
 
-    // Ship To address (from order or customer shipping address)
-    const shipToName = customer?.name || 'Customer';
-    const shipToLine1 = order.shippingAddressLine1 || customer?.shipping_address_line1 || undefined;
-    const shipToCity = order.shippingCity || customer?.shipping_city || undefined;
+    // Ship To address
+    if (customer) {
+      const shipToLine1 = customer.shipping_address_line1 || undefined;
+      const shipToCity = customer.shipping_city || undefined;
 
-    if (shipToLine1 || shipToCity) {
-      y = renderAddressBlock(
-        doc,
-        'Ship To:',
-        {
-          name: shipToName,
-          addressLine1: shipToLine1,
-          city: shipToCity,
-        },
-        300,
-        y - (customer ? 60 : 0),
-        220,
-      );
+      if (shipToLine1 || shipToCity) {
+        y = renderAddressBlock(
+          doc,
+          'Ship To:',
+          {
+            name: customer.name,
+            addressLine1: shipToLine1,
+            city: shipToCity,
+          },
+          300,
+          y - (customer ? 60 : 0),
+          220,
+        );
+      }
     }
 
     y += 10;
@@ -116,43 +120,41 @@ export class SalesPdfService {
       columns: [
         { key: 'lineNo', header: '#', width: 30, align: 'center' },
         { key: 'sku', header: 'SKU', width: 80 },
-        { key: 'description', header: 'Description', width: 200 },
+        { key: 'description', header: 'Description', width: 180 },
         { key: 'qty', header: 'Qty', width: 50, align: 'right' },
-        { key: 'unitPrice', header: 'Unit Price', width: 75, align: 'right' },
+        { key: 'unitPrice', header: 'Unit Price', width: 70, align: 'right' },
+        { key: 'discountPct', header: 'Disc %', width: 45, align: 'right' },
         { key: 'lineTotal', header: 'Line Total', width: 80, align: 'right' },
       ],
       rows: lines.map((line, i) => {
         const item = items.get(line.itemId);
-        const unitPrice = line.unitPrice || 0;
-        const lineTotal = unitPrice * line.qtyOrdered;
         return {
           lineNo: String(i + 1),
-          sku: item?.sku || '-',
-          description: (item?.description || '-').substring(0, 40),
-          qty: String(line.qtyOrdered),
-          unitPrice: formatCurrency(unitPrice),
-          lineTotal: formatCurrency(lineTotal),
+          sku: item?.sku || line.sku || '-',
+          description: (item?.description || line.itemDescription || line.description || '-').substring(0, 40),
+          qty: String(line.qty),
+          unitPrice: formatCurrency(line.unitPrice),
+          discountPct: line.discountPct > 0 ? `${line.discountPct}%` : '-',
+          lineTotal: formatCurrency(line.lineTotal),
         };
       }),
       startY: y,
     });
 
     // Totals
-    const subtotal = lines.reduce((sum, l) => {
-      const unitPrice = l.unitPrice || 0;
-      return sum + unitPrice * l.qtyOrdered;
-    }, 0);
-    const taxAmount = subtotal * 0.15;
-    const totalAmount = subtotal + taxAmount;
+    const amountPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+    const balanceDue = invoice.totalAmount - amountPaid;
 
     y = renderTotals(doc, [
-      { label: 'Subtotal', value: formatCurrency(subtotal) },
-      { label: 'VAT (15%)', value: formatCurrency(taxAmount) },
-      { label: 'Total', value: formatCurrency(totalAmount), bold: true },
+      { label: 'Subtotal', value: formatCurrency(invoice.subtotal) },
+      { label: 'VAT (15%)', value: formatCurrency(invoice.taxAmount) },
+      { label: 'Total', value: formatCurrency(invoice.totalAmount), bold: true },
+      { label: 'Amount Paid', value: formatCurrency(amountPaid) },
+      { label: 'Balance Due', value: formatCurrency(balanceDue), bold: true },
     ], y);
 
     // Notes
-    y = renderNotes(doc, order.notes, y);
+    y = renderNotes(doc, invoice.notes, y);
 
     // Bank details
     y = renderBankDetails(doc, profile, y);
