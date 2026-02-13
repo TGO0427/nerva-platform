@@ -27,14 +27,12 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
   useEffect(() => {
     // After a short delay, show session expired message or redirect
     if (!isLoading && !isAuthenticated) {
-      // Check if user previously had a session (had a token that's now invalid)
       const hadSession = typeof window !== 'undefined' && sessionStorage.getItem('nerva_had_session');
 
       if (hadSession) {
         setShowExpiredMessage(true);
         sessionStorage.removeItem('nerva_had_session');
       } else {
-        // Fast redirect for fresh visits
         router.replace('/login');
       }
     }
@@ -44,6 +42,13 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
       sessionStorage.setItem('nerva_had_session', 'true');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  // Redirect if user type doesn't match required type
+  useEffect(() => {
+    if (user && requiredUserType && user.userType !== requiredUserType) {
+      router.replace(getHomeRoute(user.userType));
+    }
+  }, [user, requiredUserType, router]);
 
   // Show session expired message
   if (showExpiredMessage) {
@@ -79,17 +84,10 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
     );
   }
 
-  // Not authenticated and not showing expired message - will redirect
+  // Not authenticated - will redirect via useEffect
   if (!isAuthenticated) {
     return null;
   }
-
-  // Redirect if user type doesn't match required type
-  useEffect(() => {
-    if (user && requiredUserType && user.userType !== requiredUserType) {
-      router.replace(getHomeRoute(user.userType));
-    }
-  }, [user, requiredUserType, router]);
 
   // Wait for user data to be loaded before rendering
   if (!user) {
@@ -103,7 +101,7 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
     );
   }
 
-  // Don't render children if user type doesn't match
+  // Don't render children if user type doesn't match - redirect happens via useEffect
   if (requiredUserType && user.userType !== requiredUserType) {
     return null;
   }
