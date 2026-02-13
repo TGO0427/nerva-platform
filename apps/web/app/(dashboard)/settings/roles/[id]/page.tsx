@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,80 @@ import {
   useSetRolePermissions,
   Permission,
 } from '@/lib/queries';
+
+// Map permission code prefixes to friendly module names
+const MODULE_LABELS: Record<string, string> = {
+  order: 'Sales Orders',
+  customer: 'Customers',
+  supplier: 'Suppliers',
+  item: 'Items',
+  inventory: 'Inventory',
+  warehouse: 'Warehouses',
+  purchase_order: 'Purchase Orders',
+  invoice: 'Invoices',
+  credit: 'Credit Notes',
+  rma: 'Returns (RMA)',
+  pick_wave: 'Pick Waves',
+  pick_task: 'Pick Tasks',
+  shipment: 'Shipments',
+  dispatch: 'Dispatch',
+  cycle_count: 'Cycle Counts',
+  putaway: 'Putaway',
+  ibt: 'Inter-Branch Transfers',
+  bom: 'Bills of Materials',
+  work_order: 'Work Orders',
+  routing: 'Routings',
+  workstation: 'Workstations',
+  production: 'Production',
+  user: 'Users',
+  tenant: 'Tenant / Company',
+  site: 'Sites',
+  audit: 'Audit Log',
+  integration: 'Integrations',
+  system: 'System',
+  portal: 'Customer Portal',
+  driver: 'Driver App',
+};
+
+// Map action keywords to friendly category names + sort order
+const ACTION_CATEGORIES: Record<string, { label: string; order: number }> = {
+  read: { label: 'View', order: 1 },
+  view: { label: 'View', order: 1 },
+  create: { label: 'Create', order: 2 },
+  write: { label: 'Edit', order: 3 },
+  edit: { label: 'Edit', order: 3 },
+  execute: { label: 'Execute', order: 4 },
+  start: { label: 'Execute', order: 4 },
+  complete: { label: 'Execute', order: 4 },
+  capture: { label: 'Execute', order: 4 },
+  update: { label: 'Edit', order: 3 },
+  approve: { label: 'Approve', order: 5 },
+  delete: { label: 'Delete', order: 6 },
+  manage: { label: 'Manage', order: 7 },
+  assign: { label: 'Manage', order: 7 },
+  plan: { label: 'Manage', order: 7 },
+  receive: { label: 'Execute', order: 4 },
+  download: { label: 'View', order: 1 },
+  upload: { label: 'Create', order: 2 },
+};
+
+function getModuleFromCode(code: string): string {
+  // Handle multi-part prefixes like "pick_wave", "pick_task", "purchase_order", etc.
+  const parts = code.split('.');
+  if (parts.length < 2) return code;
+  const action = parts[parts.length - 1];
+  const moduleParts = parts.slice(0, -1);
+  return moduleParts.join('_');
+}
+
+function getActionFromCode(code: string): string {
+  const parts = code.split('.');
+  return parts[parts.length - 1] || '';
+}
+
+function getActionCategory(action: string): { label: string; order: number } {
+  return ACTION_CATEGORIES[action] || { label: 'Other', order: 99 };
+}
 
 export default function RoleDetailPage() {
   const params = useParams();
@@ -32,8 +106,8 @@ export default function RoleDetailPage() {
   const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set());
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [hasPermissionChanges, setHasPermissionChanges] = useState(false);
+  const [search, setSearch] = useState('');
 
-  // Initialize form when role data loads
   useEffect(() => {
     if (role) {
       setName(role.name);
@@ -41,7 +115,6 @@ export default function RoleDetailPage() {
     }
   }, [role]);
 
-  // Initialize selected permissions when role permissions load
   useEffect(() => {
     if (rolePermissions) {
       setSelectedPermissions(new Set(rolePermissions.map(p => p.id)));
@@ -72,6 +145,19 @@ export default function RoleDetailPage() {
     setHasPermissionChanges(true);
   };
 
+  const handleToggleCategory = (permissions: Permission[], allChecked: boolean) => {
+    const newSelected = new Set(selectedPermissions);
+    for (const p of permissions) {
+      if (allChecked) {
+        newSelected.delete(p.id);
+      } else {
+        newSelected.add(p.id);
+      }
+    }
+    setSelectedPermissions(newSelected);
+    setHasPermissionChanges(true);
+  };
+
   const handleSavePermissions = async () => {
     try {
       await setRolePermissions.mutateAsync({
@@ -84,15 +170,46 @@ export default function RoleDetailPage() {
     }
   };
 
-  // Group permissions by module
-  const groupedPermissions = (allPermissions || []).reduce((acc, permission) => {
-    const module = permission.module || 'Other';
-    if (!acc[module]) {
-      acc[module] = [];
+  // Group permissions by module, then by action category
+  const groupedPermissions = useMemo(() => {
+    const perms = allPermissions || [];
+    const filtered = search
+      ? perms.filter(p =>
+          p.code.toLowerCase().includes(search.toLowerCase()) ||
+          (p.description || '').toLowerCase().includes(search.toLowerCase()) ||
+          (p.name || '').toLowerCase().includes(search.toLowerCase())
+        )
+      : perms;
+
+    const modules: Record<string, Record<string, Permission[]>> = {};
+
+    for (const p of filtered) {
+      const moduleKey = getModuleFromCode(p.code);
+      const action = getActionFromCode(p.code);
+      const category = getActionCategory(action);
+
+      if (!modules[moduleKey]) modules[moduleKey] = {};
+      if (!modules[moduleKey][category.label]) modules[moduleKey][category.label] = [];
+      modules[moduleKey][category.label].push(p);
     }
-    acc[module].push(permission);
-    return acc;
-  }, {} as Record<string, Permission[]>);
+
+    // Sort modules alphabetically, sort categories by order
+    const sorted = Object.entries(modules)
+      .sort(([a], [b]) => (MODULE_LABELS[a] || a).localeCompare(MODULE_LABELS[b] || b))
+      .map(([moduleKey, categories]) => ({
+        moduleKey,
+        label: MODULE_LABELS[moduleKey] || moduleKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        categories: Object.entries(categories)
+          .sort(([a], [b]) => {
+            const orderA = Object.values(ACTION_CATEGORIES).find(c => c.label === a)?.order || 99;
+            const orderB = Object.values(ACTION_CATEGORIES).find(c => c.label === b)?.order || 99;
+            return orderA - orderB;
+          })
+          .map(([catLabel, perms]) => ({ label: catLabel, permissions: perms })),
+      }));
+
+    return sorted;
+  }, [allPermissions, search]);
 
   if (roleLoading) {
     return (
@@ -214,56 +331,87 @@ export default function RoleDetailPage() {
                 </Button>
               )}
             </div>
+            <div className="mt-3">
+              <div className="relative">
+                <SearchIcon />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search permissions..."
+                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {permissionsLoading || rolePermissionsLoading ? (
               <div className="flex justify-center py-8">
                 <Spinner />
               </div>
-            ) : Object.keys(groupedPermissions).length > 0 ? (
+            ) : groupedPermissions.length > 0 ? (
               <div className="space-y-6">
-                {Object.entries(groupedPermissions).map(([module, permissions]) => (
-                  <div key={module}>
-                    <h4 className="text-sm font-medium text-slate-700 mb-3 uppercase tracking-wide">
-                      {module}
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {permissions.map((permission) => (
-                        <label
-                          key={permission.id}
-                          className={`flex items-start p-3 border rounded-lg cursor-pointer transition-colors ${
-                            selectedPermissions.has(permission.id)
-                              ? 'border-primary-300 bg-primary-50'
-                              : 'border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedPermissions.has(permission.id)}
-                            onChange={() => handleTogglePermission(permission.id)}
-                            className="mt-0.5 h-4 w-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
-                          />
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-slate-900">
-                              {permission.name}
+                {groupedPermissions.map((module) => (
+                  <div key={module.moduleKey} className="border border-slate-200 rounded-lg overflow-hidden">
+                    <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200">
+                      <h4 className="text-sm font-semibold text-slate-800">
+                        {module.label}
+                      </h4>
+                    </div>
+                    <div className="p-4 space-y-4">
+                      {module.categories.map((cat) => {
+                        const allChecked = cat.permissions.every(p => selectedPermissions.has(p.id));
+                        const someChecked = cat.permissions.some(p => selectedPermissions.has(p.id));
+                        return (
+                          <div key={cat.label}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <input
+                                type="checkbox"
+                                checked={allChecked}
+                                ref={(el) => { if (el) el.indeterminate = someChecked && !allChecked; }}
+                                onChange={() => handleToggleCategory(cat.permissions, allChecked)}
+                                className="h-4 w-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
+                              />
+                              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                {cat.label}
+                              </span>
                             </div>
-                            <div className="text-xs text-slate-500">
-                              {permission.code}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 ml-6">
+                              {cat.permissions.map((permission) => (
+                                <label
+                                  key={permission.id}
+                                  className={`flex items-center gap-2.5 px-3 py-2 border rounded-md cursor-pointer transition-colors text-sm ${
+                                    selectedPermissions.has(permission.id)
+                                      ? 'border-primary-300 bg-primary-50 text-primary-800'
+                                      : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedPermissions.has(permission.id)}
+                                    onChange={() => handleTogglePermission(permission.id)}
+                                    className="h-3.5 w-3.5 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="font-medium truncate">
+                                      {permission.description || permission.code}
+                                    </div>
+                                    <div className="text-xs text-slate-400">{permission.code}</div>
+                                  </div>
+                                </label>
+                              ))}
                             </div>
-                            {permission.description && (
-                              <div className="text-xs text-slate-400 mt-1">
-                                {permission.description}
-                              </div>
-                            )}
                           </div>
-                        </label>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-slate-500 text-center py-8">No permissions available</p>
+              <p className="text-slate-500 text-center py-8">
+                {search ? 'No permissions match your search' : 'No permissions available'}
+              </p>
             )}
           </CardContent>
         </Card>
@@ -284,6 +432,14 @@ function SaveIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
     </svg>
   );
 }
