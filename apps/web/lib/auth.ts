@@ -78,8 +78,10 @@ export const useAuth = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {
-        // After hydration completes, set isLoading to false
-        state?.setHasHydrated(true);
+        // Defer to avoid React #301 (state update during render)
+        queueMicrotask(() => {
+          state?.setHasHydrated(true);
+        });
       },
     }
   )
