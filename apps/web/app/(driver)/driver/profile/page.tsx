@@ -3,6 +3,7 @@
 import { useAuth } from '@/lib/auth';
 import { useDriverTrips } from '@/lib/queries';
 import { Button } from '@/components/ui/button';
+import { ChangePasswordForm } from '@/components/change-password-form';
 
 export default function DriverProfilePage() {
   const { user, logout } = useAuth();
@@ -37,6 +38,11 @@ export default function DriverProfilePage() {
           <p className="text-2xl font-bold text-gray-900">{totalStops}</p>
           <p className="text-xs text-gray-500">Total Stops</p>
         </div>
+      </div>
+
+      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Change Password</h2>
+        <ChangePasswordForm />
       </div>
 
       <Button

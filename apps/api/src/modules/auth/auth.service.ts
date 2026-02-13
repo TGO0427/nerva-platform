@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 export interface JwtPayload {
   sub: string;
@@ -100,6 +101,20 @@ export class AuthService {
       );
     }
     return argon2.hash(password);
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const isCurrentValid = await argon2.verify(user.passwordHash, dto.currentPassword);
+    if (!isCurrentValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    await this.usersService.update(userId, { password: dto.newPassword });
   }
 
   async getUserSites(userId: string) {

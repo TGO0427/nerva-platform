@@ -84,6 +84,13 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
     return null;
   }
 
+  // Redirect if user type doesn't match required type
+  useEffect(() => {
+    if (user && requiredUserType && user.userType !== requiredUserType) {
+      router.replace(getHomeRoute(user.userType));
+    }
+  }, [user, requiredUserType, router]);
+
   // Wait for user data to be loaded before rendering
   if (!user) {
     return (
@@ -96,9 +103,8 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
     );
   }
 
-  // Redirect if user type doesn't match required type
+  // Don't render children if user type doesn't match
   if (requiredUserType && user.userType !== requiredUserType) {
-    router.replace(getHomeRoute(user.userType));
     return null;
   }
 

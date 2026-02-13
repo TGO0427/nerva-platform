@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChangePasswordForm } from '@/components/change-password-form';
 
 const SETTINGS_SECTIONS = [
   {
@@ -32,6 +34,8 @@ const SETTINGS_SECTIONS = [
 ];
 
 export default function SettingsPage() {
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+
   return (
     <div>
       <Breadcrumbs />
@@ -59,7 +63,39 @@ export default function SettingsPage() {
             </Card>
           </Link>
         ))}
+
+        <div onClick={() => setShowPasswordForm(true)} className="cursor-pointer">
+          <Card className="hover:border-primary-300 hover:shadow-md transition-all h-full">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary-50 rounded-lg">
+                  <KeyIcon />
+                </div>
+                <CardTitle className="text-lg">Change Password</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-500 text-sm">Update your account password</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      {showPasswordForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPasswordForm(false)}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-900">Change Password</h2>
+              <button onClick={() => setShowPasswordForm(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <ChangePasswordForm />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -84,6 +120,14 @@ function BuildingIcon() {
   return (
     <svg className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+    </svg>
+  );
+}
+
+function KeyIcon() {
+  return (
+    <svg className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
     </svg>
   );
 }

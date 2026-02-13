@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/portal/documents', label: 'Documents' },
   { href: '/portal/deliveries', label: 'Deliveries' },
   { href: '/portal/returns', label: 'Returns' },
+  { href: '/portal/settings', label: 'Settings' },
 ];
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
