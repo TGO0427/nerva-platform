@@ -23,6 +23,12 @@ export class AuthController {
     private readonly tenantProfileService: TenantProfileService,
   ) {}
 
+  @Get('debug-db')
+  @ApiOperation({ summary: 'Temporary DB diagnostic' })
+  async debugDb() {
+    return this.authService.debugDb();
+  }
+
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Authenticate user and get JWT token' })

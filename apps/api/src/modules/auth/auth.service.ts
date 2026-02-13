@@ -37,6 +37,21 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  async debugDb() {
+    const users = await Promise.all([
+      this.usersService.findByEmail('e28898d1-6466-4f36-8d56-3e8f0cad68b2', 'admin@demo.com'),
+      this.usersService.findByEmail('e28898d1-6466-4f36-8d56-3e8f0cad68b2', 'portal@acme.com'),
+    ]);
+    return {
+      adminExists: !!users[0],
+      adminEmail: users[0]?.email,
+      adminType: users[0]?.userType,
+      portalExists: !!users[1],
+      portalEmail: users[1]?.email,
+      portalType: users[1]?.userType,
+    };
+  }
+
   async login(dto: LoginDto): Promise<AuthResponse> {
     const user = await this.usersService.findByEmail(dto.tenantId, dto.email);
 
