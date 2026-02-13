@@ -41,6 +41,8 @@ export class AuthController {
       displayName: user.displayName,
       tenantId: user.tenantId,
       permissions: user.permissions,
+      userType: user.userType,
+      customerId: user.customerId,
     };
   }
 

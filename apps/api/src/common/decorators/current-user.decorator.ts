@@ -6,6 +6,8 @@ export interface CurrentUserData {
   email: string;
   displayName: string;
   permissions: string[];
+  userType: 'internal' | 'customer' | 'driver';
+  customerId: string | null;
 }
 
 export const CurrentUser = createParamDecorator(

@@ -98,6 +98,24 @@ export const PERMISSIONS = {
   // Invoicing
   INVOICE_READ: 'invoice.read',
   INVOICE_CREATE: 'invoice.create',
+
+  // Portal (customer self-service)
+  PORTAL_ORDERS_READ: 'portal.orders.read',
+  PORTAL_INVOICES_READ: 'portal.invoices.read',
+  PORTAL_INVOICES_DOWNLOAD: 'portal.invoices.download',
+  PORTAL_POD_READ: 'portal.pod.read',
+  PORTAL_POD_DOWNLOAD: 'portal.pod.download',
+  PORTAL_TRACKING_READ: 'portal.tracking.read',
+  PORTAL_RETURNS_CREATE: 'portal.returns.create',
+  PORTAL_RETURNS_READ: 'portal.returns.read',
+
+  // Driver app
+  DRIVER_TRIPS_READ: 'driver.trips.read',
+  DRIVER_TRIPS_START: 'driver.trips.start',
+  DRIVER_TRIPS_COMPLETE: 'driver.trips.complete',
+  DRIVER_STOPS_UPDATE: 'driver.stops.update',
+  DRIVER_POD_CAPTURE: 'driver.pod.capture',
+  DRIVER_UPLOAD: 'driver.upload',
 } as const;
 
 // Reason codes for returns

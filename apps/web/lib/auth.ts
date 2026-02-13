@@ -100,3 +100,11 @@ export function hasAnyPermission(
 ): boolean {
   return permissions.some((p) => hasPermission(user, p));
 }
+
+export function getHomeRoute(userType: string): string {
+  switch (userType) {
+    case 'customer': return '/portal';
+    case 'driver': return '/driver';
+    default: return '/dashboard';
+  }
+}

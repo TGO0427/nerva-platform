@@ -3,15 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/lib/auth';
+import { useAuth, getHomeRoute } from '@/lib/auth';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 
 interface AuthGuardProps {
   children: React.ReactNode;
+  requiredUserType?: 'internal' | 'customer' | 'driver';
 }
 
-export function AuthGuard({ children }: AuthGuardProps) {
+export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
   const router = useRouter();
   const { isAuthenticated, isLoading, user, fetchUser } = useAuth();
   const [showExpiredMessage, setShowExpiredMessage] = useState(false);
@@ -80,6 +81,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   // Not authenticated and not showing expired message - will redirect
   if (!isAuthenticated) {
+    return null;
+  }
+
+  // Redirect if user type doesn't match required type
+  if (requiredUserType && user?.userType && user.userType !== requiredUserType) {
+    router.replace(getHomeRoute(user.userType));
     return null;
   }
 

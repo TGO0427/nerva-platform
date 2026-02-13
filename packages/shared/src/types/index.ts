@@ -34,6 +34,8 @@ export interface AuthResponse {
     email: string;
     displayName: string;
     tenantId: string;
+    userType: 'internal' | 'customer' | 'driver';
+    customerId: string | null;
   };
 }
 
@@ -43,6 +45,8 @@ export interface CurrentUser {
   email: string;
   displayName: string;
   permissions: string[];
+  userType: 'internal' | 'customer' | 'driver';
+  customerId: string | null;
 }
 
 // Master Data

@@ -370,6 +370,13 @@ export class DispatchService {
     return updated!;
   }
 
+  async updateStopStatus(stopId: string, status: string): Promise<DispatchStop> {
+    const stop = await this.repository.findStopById(stopId);
+    if (!stop) throw new NotFoundException('Stop not found');
+    const updated = await this.repository.updateStopStatus(stopId, status);
+    return updated!;
+  }
+
   async listVehicles(tenantId: string) {
     return this.repository.findVehicles(tenantId);
   }

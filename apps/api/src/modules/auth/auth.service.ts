@@ -14,6 +14,8 @@ export interface JwtPayload {
   email: string;
   displayName: string;
   permissions: string[];
+  userType: 'internal' | 'customer' | 'driver';
+  customerId: string | null;
 }
 
 export interface AuthResponse {
@@ -23,6 +25,8 @@ export interface AuthResponse {
     email: string;
     displayName: string;
     tenantId: string;
+    userType: 'internal' | 'customer' | 'driver';
+    customerId: string | null;
   };
 }
 
@@ -62,6 +66,8 @@ export class AuthService {
       email: user.email,
       displayName: user.displayName,
       permissions,
+      userType: user.userType,
+      customerId: user.customerId,
     };
 
     const accessToken = this.jwtService.sign(payload);
@@ -73,6 +79,8 @@ export class AuthService {
         email: user.email,
         displayName: user.displayName,
         tenantId: user.tenantId,
+        userType: user.userType,
+        customerId: user.customerId,
       },
     };
   }

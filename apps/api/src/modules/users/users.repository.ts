@@ -8,6 +8,8 @@ export interface UserRow {
   display_name: string;
   password_hash: string;
   is_active: boolean;
+  user_type: 'internal' | 'customer' | 'driver';
+  customer_id: string | null;
   last_login_at: Date | null;
   created_at: Date;
   updated_at: Date;
@@ -20,6 +22,8 @@ export interface User {
   displayName: string;
   passwordHash: string;
   isActive: boolean;
+  userType: 'internal' | 'customer' | 'driver';
+  customerId: string | null;
   lastLoginAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -35,6 +39,8 @@ export class UsersRepository extends BaseRepository {
       displayName: row.display_name,
       passwordHash: row.password_hash,
       isActive: row.is_active,
+      userType: row.user_type || 'internal',
+      customerId: row.customer_id || null,
       lastLoginAt: row.last_login_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -85,12 +91,14 @@ export class UsersRepository extends BaseRepository {
     email: string;
     displayName: string;
     passwordHash: string;
+    userType?: 'internal' | 'customer' | 'driver';
+    customerId?: string;
   }): Promise<User> {
     const row = await this.queryOne<UserRow>(
-      `INSERT INTO users (tenant_id, email, display_name, password_hash)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO users (tenant_id, email, display_name, password_hash, user_type, customer_id)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [data.tenantId, data.email, data.displayName, data.passwordHash],
+      [data.tenantId, data.email, data.displayName, data.passwordHash, data.userType || 'internal', data.customerId || null],
     );
     return this.mapRowToUser(row!);
   }

@@ -138,6 +138,14 @@ export class DispatchRepository extends BaseRepository {
     return rows.map(this.mapTrip);
   }
 
+  async findDriverByUserId(userId: string): Promise<{ id: string; name: string; tenantId: string } | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      'SELECT id, name, tenant_id FROM drivers WHERE user_id = $1 AND is_active = true LIMIT 1',
+      [userId],
+    );
+    return row ? { id: row.id as string, name: row.name as string, tenantId: row.tenant_id as string } : null;
+  }
+
   async findDriverTrips(driverId: string, status?: string): Promise<DispatchTrip[]> {
     let sql = 'SELECT * FROM dispatch_trips WHERE driver_id = $1';
     const params: unknown[] = [driverId];

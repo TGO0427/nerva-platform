@@ -18,3 +18,5 @@ export * from './ibt';
 export * from './manufacturing';
 export * from './audit';
 export * from './invoices';
+export * from './portal';
+export * from './driver';

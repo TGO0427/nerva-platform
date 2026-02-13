@@ -73,6 +73,8 @@ CREATE TABLE IF NOT EXISTS users (
   display_name text NOT NULL,
   password_hash text NOT NULL,
   is_active boolean NOT NULL DEFAULT true,
+  user_type text NOT NULL DEFAULT 'internal', -- 'internal', 'customer', 'driver'
+  customer_id uuid REFERENCES customers(id) ON DELETE SET NULL,
   last_login_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -80,6 +82,8 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_users_customer ON users(customer_id);
+CREATE INDEX IF NOT EXISTS idx_users_user_type ON users(tenant_id, user_type);
 
 CREATE TRIGGER trg_users_updated
 BEFORE UPDATE ON users
@@ -933,6 +937,25 @@ CREATE TABLE IF NOT EXISTS pod_exceptions (
 CREATE INDEX IF NOT EXISTS idx_pod_exceptions_pod ON pod_exceptions(pod_id);
 
 -- ==================
+-- Documents (S3 files)
+-- ==================
+CREATE TABLE IF NOT EXISTS documents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  entity_type text NOT NULL,    -- 'pod', 'invoice', 'rma', 'signature', 'photo'
+  entity_id uuid,
+  file_name text NOT NULL,
+  file_type text NOT NULL,      -- MIME type
+  file_size_bytes bigint,
+  s3_key text NOT NULL,
+  s3_bucket text NOT NULL,
+  uploaded_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_documents_entity ON documents(tenant_id, entity_type, entity_id);
+
+-- ==================
 -- Returns / Credits
 -- ==================
 CREATE TABLE IF NOT EXISTS rmas (
@@ -1209,7 +1232,25 @@ INSERT INTO permissions (code, description) VALUES
   -- Reporting
   ('report.operational', 'View operational reports'),
   ('report.financial', 'View financial reports'),
-  ('audit.read', 'View audit logs')
+  ('audit.read', 'View audit logs'),
+
+  -- Portal (customer self-service)
+  ('portal.orders.read', 'View own orders in customer portal'),
+  ('portal.invoices.read', 'View own invoices in customer portal'),
+  ('portal.invoices.download', 'Download invoice PDFs from portal'),
+  ('portal.pod.read', 'View proof of delivery in portal'),
+  ('portal.pod.download', 'Download POD documents from portal'),
+  ('portal.tracking.read', 'Track deliveries in portal'),
+  ('portal.returns.create', 'Raise return requests from portal'),
+  ('portal.returns.read', 'View return status in portal'),
+
+  -- Driver app
+  ('driver.trips.read', 'View assigned trips'),
+  ('driver.trips.start', 'Start assigned trips'),
+  ('driver.trips.complete', 'Complete trips'),
+  ('driver.stops.update', 'Update stop status'),
+  ('driver.pod.capture', 'Capture proof of delivery'),
+  ('driver.upload', 'Upload photos and signatures')
 ON CONFLICT (code) DO NOTHING;
 
 COMMIT;

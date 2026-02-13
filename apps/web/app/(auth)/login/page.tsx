@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/lib/auth';
+import { useAuth, getHomeRoute } from '@/lib/auth';
 import type { ApiError } from '@nerva/shared';
 import { AxiosError } from 'axios';
 
@@ -78,7 +78,8 @@ export default function LoginPage() {
 
     try {
       await login({ tenantId, email, password });
-      router.push('/dashboard');
+      const user = useAuth.getState().user;
+      router.push(getHomeRoute(user?.userType || 'internal'));
     } catch (err) {
       const axiosError = err as AxiosError<ApiError>;
       if (axiosError.response?.data?.message) {

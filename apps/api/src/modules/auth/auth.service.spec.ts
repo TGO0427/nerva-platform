@@ -19,6 +19,8 @@ describe('AuthService', () => {
     displayName: 'Test User',
     passwordHash: 'hashed_password',
     isActive: true,
+    userType: 'internal' as const,
+    customerId: null as string | null,
     lastLoginAt: null as Date | null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -80,6 +82,8 @@ describe('AuthService', () => {
           email: mockUser.email,
           displayName: mockUser.displayName,
           tenantId: mockUser.tenantId,
+          userType: 'internal',
+          customerId: null,
         },
       });
       expect(usersService.findByEmail).toHaveBeenCalledWith(
@@ -136,6 +140,8 @@ describe('AuthService', () => {
         email: mockUser.email,
         displayName: mockUser.displayName,
         permissions: mockPermissions,
+        userType: 'internal',
+        customerId: null,
       });
     });
   });
