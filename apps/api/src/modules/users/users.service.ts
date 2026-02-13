@@ -112,6 +112,18 @@ export class UsersService {
     await this.usersRepository.removeSite(userId, siteId);
   }
 
+  async getUserWarehouses(userId: string) {
+    return this.usersRepository.getUserWarehouses(userId);
+  }
+
+  async assignWarehouse(userId: string, warehouseId: string): Promise<void> {
+    await this.usersRepository.assignWarehouse(userId, warehouseId);
+  }
+
+  async removeWarehouse(userId: string, warehouseId: string): Promise<void> {
+    await this.usersRepository.removeWarehouse(userId, warehouseId);
+  }
+
   private sanitizeUser(user: User) {
     const { passwordHash, ...rest } = user;
     return rest;

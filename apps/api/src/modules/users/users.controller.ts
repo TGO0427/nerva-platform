@@ -108,4 +108,33 @@ export class UsersController {
     await this.usersService.removeSite(userId, siteId);
     return { success: true };
   }
+
+  @Get(':id/warehouses')
+  @RequirePermissions('user.manage')
+  @ApiOperation({ summary: 'Get warehouses assigned to user' })
+  async getWarehouses(@Param('id', UuidValidationPipe) userId: string) {
+    return this.usersService.getUserWarehouses(userId);
+  }
+
+  @Post(':id/warehouses/:warehouseId')
+  @RequirePermissions('user.manage')
+  @ApiOperation({ summary: 'Assign warehouse to user' })
+  async assignWarehouse(
+    @Param('id', UuidValidationPipe) userId: string,
+    @Param('warehouseId', UuidValidationPipe) warehouseId: string,
+  ) {
+    await this.usersService.assignWarehouse(userId, warehouseId);
+    return { success: true };
+  }
+
+  @Delete(':id/warehouses/:warehouseId')
+  @RequirePermissions('user.manage')
+  @ApiOperation({ summary: 'Remove warehouse from user' })
+  async removeWarehouse(
+    @Param('id', UuidValidationPipe) userId: string,
+    @Param('warehouseId', UuidValidationPipe) warehouseId: string,
+  ) {
+    await this.usersService.removeWarehouse(userId, warehouseId);
+    return { success: true };
+  }
 }

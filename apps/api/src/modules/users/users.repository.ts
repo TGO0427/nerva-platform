@@ -216,4 +216,32 @@ export class UsersRepository extends BaseRepository {
       [userId, siteId],
     );
   }
+
+  async getUserWarehouses(userId: string): Promise<{ id: string; name: string; code: string; siteId: string; siteName: string; isActive: boolean }[]> {
+    return this.queryMany<{ id: string; name: string; code: string; siteId: string; siteName: string; isActive: boolean }>(
+      `SELECT w.id, w.name, w.code, w.site_id as "siteId", s.name as "siteName", w.is_active as "isActive"
+       FROM warehouses w
+       JOIN user_warehouses uw ON uw.warehouse_id = w.id
+       JOIN sites s ON s.id = w.site_id
+       WHERE uw.user_id = $1
+       ORDER BY s.name, w.name`,
+      [userId],
+    );
+  }
+
+  async assignWarehouse(userId: string, warehouseId: string): Promise<void> {
+    await this.execute(
+      `INSERT INTO user_warehouses (user_id, warehouse_id)
+       VALUES ($1, $2)
+       ON CONFLICT DO NOTHING`,
+      [userId, warehouseId],
+    );
+  }
+
+  async removeWarehouse(userId: string, warehouseId: string): Promise<void> {
+    await this.execute(
+      'DELETE FROM user_warehouses WHERE user_id = $1 AND warehouse_id = $2',
+      [userId, warehouseId],
+    );
+  }
 }

@@ -18,7 +18,11 @@ import {
   useAllSites,
   useAssignUserSite,
   useRemoveUserSite,
+  useUserWarehouses,
+  useAssignUserWarehouse,
+  useRemoveUserWarehouse,
 } from '@/lib/queries';
+import { useWarehouses } from '@/lib/queries/warehouses';
 
 export default function UserDetailPage() {
   const params = useParams();
@@ -30,10 +34,14 @@ export default function UserDetailPage() {
   const { data: allRoles } = useRoles();
   const { data: userSites, isLoading: sitesLoading } = useUserSites(userId);
   const { data: allSites } = useAllSites();
+  const { data: userWarehouses, isLoading: warehousesLoading } = useUserWarehouses(userId);
+  const { data: allWarehouses } = useWarehouses();
   const updateUser = useUpdateUser();
   const assignRole = useAssignUserRole();
   const assignSite = useAssignUserSite();
   const removeSite = useRemoveUserSite();
+  const assignWarehouse = useAssignUserWarehouse();
+  const removeWarehouse = useRemoveUserWarehouse();
 
   const [displayName, setDisplayName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -96,6 +104,22 @@ export default function UserDetailPage() {
     }
   };
 
+  const handleAssignWarehouse = async (warehouseId: string) => {
+    try {
+      await assignWarehouse.mutateAsync({ userId, warehouseId });
+    } catch (error) {
+      console.error('Failed to assign warehouse:', error);
+    }
+  };
+
+  const handleRemoveWarehouse = async (warehouseId: string) => {
+    try {
+      await removeWarehouse.mutateAsync({ userId, warehouseId });
+    } catch (error) {
+      console.error('Failed to remove warehouse:', error);
+    }
+  };
+
   if (userLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -119,6 +143,8 @@ export default function UserDetailPage() {
   const availableRoles = allRoles?.filter(r => !assignedRoleIds.includes(r.id)) || [];
   const assignedSiteIds = userSites?.map(s => s.id) || [];
   const availableSites = allSites?.filter(s => !assignedSiteIds.includes(s.id)) || [];
+  const assignedWarehouseIds = userWarehouses?.map(w => w.id) || [];
+  const availableWarehouses = allWarehouses?.filter(w => !assignedWarehouseIds.includes(w.id)) || [];
 
   return (
     <div>
@@ -147,8 +173,8 @@ export default function UserDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* User Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left column: User Details */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -221,7 +247,8 @@ export default function UserDetailPage() {
           </CardContent>
         </Card>
 
-        {/* User Roles */}
+        {/* Right column: Roles, Sites, Warehouses */}
+        <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Assigned Roles</CardTitle>
@@ -340,6 +367,73 @@ export default function UserDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Warehouse Access */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Warehouse Access</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {warehousesLoading ? (
+              <div className="flex justify-center py-4">
+                <Spinner />
+              </div>
+            ) : (
+              <>
+                {userWarehouses && userWarehouses.length > 0 ? (
+                  <div className="space-y-2 mb-4">
+                    {userWarehouses.map((wh) => (
+                      <div
+                        key={wh.id}
+                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                      >
+                        <div>
+                          <div className="font-medium">{wh.name}</div>
+                          <div className="text-xs text-slate-500">
+                            {wh.code && <span className="mr-2">{wh.code}</span>}
+                            {wh.siteName}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveWarehouse(wh.id)}
+                          className="text-slate-400 hover:text-red-500 transition-colors"
+                          title="Remove warehouse"
+                        >
+                          <XIcon />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm mb-4">
+                    No warehouses assigned — user can access all warehouses
+                  </p>
+                )}
+
+                {availableWarehouses.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-700 mb-2">Add Warehouse</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {availableWarehouses.map((wh) => (
+                        <Button
+                          key={wh.id}
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleAssignWarehouse(wh.id)}
+                          isLoading={assignWarehouse.isPending}
+                        >
+                          <PlusIcon />
+                          {wh.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+        </div>
       </div>
     </div>
   );

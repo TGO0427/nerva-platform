@@ -192,6 +192,53 @@ export function useRemoveUserSite() {
   });
 }
 
+interface UserWarehouse {
+  id: string;
+  name: string;
+  code: string;
+  siteId: string;
+  siteName: string;
+  isActive: boolean;
+}
+
+export function useUserWarehouses(userId: string | undefined) {
+  return useQuery({
+    queryKey: [USERS_KEY, userId, 'warehouses'],
+    queryFn: async () => {
+      const response = await api.get<UserWarehouse[]>(`/admin/users/${userId}/warehouses`);
+      return response.data;
+    },
+    enabled: !!userId,
+  });
+}
+
+export function useAssignUserWarehouse() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, warehouseId }: { userId: string; warehouseId: string }) => {
+      const response = await api.post(`/admin/users/${userId}/warehouses/${warehouseId}`);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [USERS_KEY, variables.userId, 'warehouses'] });
+    },
+  });
+}
+
+export function useRemoveUserWarehouse() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, warehouseId }: { userId: string; warehouseId: string }) => {
+      await api.delete(`/admin/users/${userId}/warehouses/${warehouseId}`);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [USERS_KEY, variables.userId, 'warehouses'] });
+    },
+  });
+}
+
 // ============ Roles ============
 
 interface CreateRoleData {
