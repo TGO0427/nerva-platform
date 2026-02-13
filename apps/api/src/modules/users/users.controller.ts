@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Patch,
   Param,
   Body,
@@ -77,5 +78,34 @@ export class UsersController {
   @ApiOperation({ summary: 'Get user roles' })
   async getRoles(@Param('id', UuidValidationPipe) userId: string) {
     return this.usersService.getUserRoles(userId);
+  }
+
+  @Get(':id/sites')
+  @RequirePermissions('user.manage')
+  @ApiOperation({ summary: 'Get sites assigned to user' })
+  async getSites(@Param('id', UuidValidationPipe) userId: string) {
+    return this.usersService.getUserSites(userId);
+  }
+
+  @Post(':id/sites/:siteId')
+  @RequirePermissions('user.manage')
+  @ApiOperation({ summary: 'Assign site to user' })
+  async assignSite(
+    @Param('id', UuidValidationPipe) userId: string,
+    @Param('siteId', UuidValidationPipe) siteId: string,
+  ) {
+    await this.usersService.assignSite(userId, siteId);
+    return { success: true };
+  }
+
+  @Delete(':id/sites/:siteId')
+  @RequirePermissions('user.manage')
+  @ApiOperation({ summary: 'Remove site from user' })
+  async removeSite(
+    @Param('id', UuidValidationPipe) userId: string,
+    @Param('siteId', UuidValidationPipe) siteId: string,
+  ) {
+    await this.usersService.removeSite(userId, siteId);
+    return { success: true };
   }
 }

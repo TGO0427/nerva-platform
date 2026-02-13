@@ -104,6 +104,14 @@ export class UsersService {
     return this.usersRepository.getUserSites(userId);
   }
 
+  async assignSite(userId: string, siteId: string): Promise<void> {
+    await this.usersRepository.assignSite(userId, siteId);
+  }
+
+  async removeSite(userId: string, siteId: string): Promise<void> {
+    await this.usersRepository.removeSite(userId, siteId);
+  }
+
   private sanitizeUser(user: User) {
     const { passwordHash, ...rest } = user;
     return rest;

@@ -14,6 +14,10 @@ import {
   useUserRoles,
   useRoles,
   useAssignUserRole,
+  useUserSites,
+  useAllSites,
+  useAssignUserSite,
+  useRemoveUserSite,
 } from '@/lib/queries';
 
 export default function UserDetailPage() {
@@ -24,8 +28,12 @@ export default function UserDetailPage() {
   const { data: user, isLoading: userLoading } = useUser(userId);
   const { data: userRoles, isLoading: rolesLoading } = useUserRoles(userId);
   const { data: allRoles } = useRoles();
+  const { data: userSites, isLoading: sitesLoading } = useUserSites(userId);
+  const { data: allSites } = useAllSites();
   const updateUser = useUpdateUser();
   const assignRole = useAssignUserRole();
+  const assignSite = useAssignUserSite();
+  const removeSite = useRemoveUserSite();
 
   const [displayName, setDisplayName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -72,6 +80,22 @@ export default function UserDetailPage() {
     }
   };
 
+  const handleAssignSite = async (siteId: string) => {
+    try {
+      await assignSite.mutateAsync({ userId, siteId });
+    } catch (error) {
+      console.error('Failed to assign site:', error);
+    }
+  };
+
+  const handleRemoveSite = async (siteId: string) => {
+    try {
+      await removeSite.mutateAsync({ userId, siteId });
+    } catch (error) {
+      console.error('Failed to remove site:', error);
+    }
+  };
+
   if (userLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -93,6 +117,8 @@ export default function UserDetailPage() {
 
   const assignedRoleIds = userRoles?.map(r => r.id) || [];
   const availableRoles = allRoles?.filter(r => !assignedRoleIds.includes(r.id)) || [];
+  const assignedSiteIds = userSites?.map(s => s.id) || [];
+  const availableSites = allSites?.filter(s => !assignedSiteIds.includes(s.id)) || [];
 
   return (
     <div>
@@ -121,7 +147,7 @@ export default function UserDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* User Details */}
         <Card>
           <CardHeader>
@@ -251,6 +277,69 @@ export default function UserDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Site Access */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Site Access</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {sitesLoading ? (
+              <div className="flex justify-center py-4">
+                <Spinner />
+              </div>
+            ) : (
+              <>
+                {userSites && userSites.length > 0 ? (
+                  <div className="space-y-2 mb-4">
+                    {userSites.map((site) => (
+                      <div
+                        key={site.id}
+                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                      >
+                        <div>
+                          <div className="font-medium">{site.name}</div>
+                          <div className="text-xs text-slate-500">{site.code}</div>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveSite(site.id)}
+                          className="text-slate-400 hover:text-red-500 transition-colors"
+                          title="Remove site"
+                        >
+                          <XIcon />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm mb-4">
+                    No sites assigned — user can access all sites
+                  </p>
+                )}
+
+                {availableSites.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-700 mb-2">Add Site</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {availableSites.map((site) => (
+                        <Button
+                          key={site.id}
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleAssignSite(site.id)}
+                          isLoading={assignSite.isPending}
+                        >
+                          <PlusIcon />
+                          {site.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -268,6 +357,14 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   );
 }

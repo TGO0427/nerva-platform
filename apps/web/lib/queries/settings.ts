@@ -154,6 +154,44 @@ export function useAssignUserRole() {
   });
 }
 
+export function useUserSites(userId: string | undefined) {
+  return useQuery({
+    queryKey: [USERS_KEY, userId, 'sites'],
+    queryFn: async () => {
+      const response = await api.get<Site[]>(`/admin/users/${userId}/sites`);
+      return response.data;
+    },
+    enabled: !!userId,
+  });
+}
+
+export function useAssignUserSite() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, siteId }: { userId: string; siteId: string }) => {
+      const response = await api.post(`/admin/users/${userId}/sites/${siteId}`);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [USERS_KEY, variables.userId, 'sites'] });
+    },
+  });
+}
+
+export function useRemoveUserSite() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, siteId }: { userId: string; siteId: string }) => {
+      await api.delete(`/admin/users/${userId}/sites/${siteId}`);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [USERS_KEY, variables.userId, 'sites'] });
+    },
+  });
+}
+
 // ============ Roles ============
 
 interface CreateRoleData {

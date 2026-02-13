@@ -200,4 +200,20 @@ export class UsersRepository extends BaseRepository {
       [userId],
     );
   }
+
+  async assignSite(userId: string, siteId: string): Promise<void> {
+    await this.execute(
+      `INSERT INTO user_sites (user_id, site_id)
+       VALUES ($1, $2)
+       ON CONFLICT DO NOTHING`,
+      [userId, siteId],
+    );
+  }
+
+  async removeSite(userId: string, siteId: string): Promise<void> {
+    await this.execute(
+      'DELETE FROM user_sites WHERE user_id = $1 AND site_id = $2',
+      [userId, siteId],
+    );
+  }
 }
