@@ -39,8 +39,8 @@ export class AuthService {
 
   async debugDb() {
     const dbUrl = process.env.DATABASE_URL || 'NOT SET';
-    // Mask the password
-    const maskedUrl = dbUrl.replace(/:([^@]+)@/, ':***@');
+    // Show full URL for diagnosis (temporary)
+    const maskedUrl = dbUrl;
     const users = await Promise.all([
       this.usersService.findByEmail('e28898d1-6466-4f36-8d56-3e8f0cad68b2', 'admin@demo.com'),
       this.usersService.findByEmail('e28898d1-6466-4f36-8d56-3e8f0cad68b2', 'portal@acme.com'),
