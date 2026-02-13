@@ -18,71 +18,133 @@ import {
 
 // Map permission code prefixes to friendly module names
 const MODULE_LABELS: Record<string, string> = {
-  order: 'Sales Orders',
+  // Sales & CRM
+  sales_order: 'Sales Orders',
   customer: 'Customers',
   supplier: 'Suppliers',
   item: 'Items',
-  inventory: 'Inventory',
-  warehouse: 'Warehouses',
+  // Procurement
   purchase_order: 'Purchase Orders',
+  grn: 'Goods Received Notes',
+  // Invoicing & Finance
   invoice: 'Invoices',
   credit: 'Credit Notes',
-  rma: 'Returns (RMA)',
-  pick_wave: 'Pick Waves',
-  pick_task: 'Pick Tasks',
-  shipment: 'Shipments',
-  dispatch: 'Dispatch',
+  posting: 'Posting Queue',
+  // Inventory & Warehouse
+  inventory: 'Inventory',
+  warehouse: 'Warehouses',
   cycle_count: 'Cycle Counts',
   putaway: 'Putaway',
   ibt: 'Inter-Branch Transfers',
+  // Fulfilment
+  pick_wave: 'Pick Waves',
+  pick_task: 'Pick Tasks',
+  pack: 'Packing',
+  shipment: 'Shipments',
+  // Dispatch & Delivery
+  dispatch: 'Dispatch',
+  pod: 'Proof of Delivery',
+  // Returns
+  rma: 'Returns (RMA)',
+  // Manufacturing
   bom: 'Bills of Materials',
   work_order: 'Work Orders',
   routing: 'Routings',
   workstation: 'Workstations',
   production: 'Production',
+  // Reporting
+  report: 'Reports',
+  audit: 'Audit Log',
+  // Administration
   user: 'Users',
   tenant: 'Tenant / Company',
   site: 'Sites',
-  audit: 'Audit Log',
   integration: 'Integrations',
   system: 'System',
+  // Portal & Driver
   portal: 'Customer Portal',
   driver: 'Driver App',
 };
 
 // Map action keywords to friendly category names + sort order
 const ACTION_CATEGORIES: Record<string, { label: string; order: number }> = {
+  // View
   read: { label: 'View', order: 1 },
   view: { label: 'View', order: 1 },
+  download: { label: 'View', order: 1 },
+  view_ledger: { label: 'View', order: 1 },
+  // Create
   create: { label: 'Create', order: 2 },
+  upload: { label: 'Create', order: 2 },
+  // Edit
   write: { label: 'Edit', order: 3 },
   edit: { label: 'Edit', order: 3 },
+  update: { label: 'Edit', order: 3 },
+  adjust: { label: 'Edit', order: 3 },
+  // Execute
   execute: { label: 'Execute', order: 4 },
   start: { label: 'Execute', order: 4 },
   complete: { label: 'Execute', order: 4 },
   capture: { label: 'Execute', order: 4 },
-  update: { label: 'Edit', order: 3 },
+  receive: { label: 'Execute', order: 4 },
+  ready: { label: 'Execute', order: 4 },
+  release: { label: 'Execute', order: 4 },
+  allocate: { label: 'Execute', order: 4 },
+  issue_material: { label: 'Execute', order: 4 },
+  record_output: { label: 'Execute', order: 4 },
+  retry: { label: 'Execute', order: 4 },
+  // Approve
   approve: { label: 'Approve', order: 5 },
-  delete: { label: 'Delete', order: 6 },
+  // Cancel / Delete
+  cancel: { label: 'Cancel / Delete', order: 6 },
+  delete: { label: 'Cancel / Delete', order: 6 },
+  // Manage
   manage: { label: 'Manage', order: 7 },
   assign: { label: 'Manage', order: 7 },
   plan: { label: 'Manage', order: 7 },
-  receive: { label: 'Execute', order: 4 },
-  download: { label: 'View', order: 1 },
-  upload: { label: 'Create', order: 2 },
+  disposition: { label: 'Manage', order: 7 },
+  admin: { label: 'Manage', order: 7 },
 };
 
+// Top-level module prefixes that contain sub-modules (portal.orders.read → module "portal")
+const GROUPED_PREFIXES = ['portal', 'driver'];
+
 function getModuleFromCode(code: string): string {
-  // Handle multi-part prefixes like "pick_wave", "pick_task", "purchase_order", etc.
   const parts = code.split('.');
   if (parts.length < 2) return code;
-  const action = parts[parts.length - 1];
-  const moduleParts = parts.slice(0, -1);
-  return moduleParts.join('_');
+
+  // For portal.* and driver.* → always group under the top-level prefix
+  if (GROUPED_PREFIXES.includes(parts[0])) {
+    return parts[0];
+  }
+
+  // For 3-part codes like inventory.adjust.approve → module is first part only
+  if (parts.length >= 3) {
+    return parts[0];
+  }
+
+  // Standard 2-part code: module.action (e.g. sales_order.read)
+  return parts[0];
 }
 
 function getActionFromCode(code: string): string {
   const parts = code.split('.');
+  if (parts.length < 2) return '';
+
+  // For portal/driver 3-part codes (portal.orders.read) → action is last part
+  // For inventory.adjust.approve → combine last two parts as compound action
+  if (GROUPED_PREFIXES.includes(parts[0])) {
+    return parts[parts.length - 1];
+  }
+
+  // For 3-part codes like inventory.adjust.approve → use compound "adjust.approve"
+  // But check if the compound matches an action, otherwise use last part
+  if (parts.length >= 3) {
+    const compound = parts.slice(1).join('_');
+    if (ACTION_CATEGORIES[compound]) return compound;
+    return parts[parts.length - 1];
+  }
+
   return parts[parts.length - 1] || '';
 }
 
