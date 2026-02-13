@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -27,21 +27,21 @@ export default function UserDetailPage() {
   const updateUser = useUpdateUser();
   const assignRole = useAssignUserRole();
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
   // Initialize form when user data loads
-  if (user && !isEditing && !firstName && !lastName) {
-    setFirstName(user.firstName);
-    setLastName(user.lastName);
-  }
+  useEffect(() => {
+    if (user && !isEditing) {
+      setDisplayName(user.displayName || '');
+    }
+  }, [user, isEditing]);
 
   const handleSave = async () => {
     try {
       await updateUser.mutateAsync({
         id: userId,
-        data: { firstName, lastName },
+        data: { displayName },
       });
       setIsEditing(false);
     } catch (error) {
@@ -140,20 +140,11 @@ export default function UserDetailPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    First Name
+                    Display Name
                   </label>
                   <Input
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Last Name
-                  </label>
-                  <Input
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
                   />
                 </div>
                 <div className="flex gap-2">
@@ -164,8 +155,7 @@ export default function UserDetailPage() {
                     variant="secondary"
                     onClick={() => {
                       setIsEditing(false);
-                      setFirstName(user.firstName);
-                      setLastName(user.lastName);
+                      setDisplayName(user.displayName || '');
                     }}
                   >
                     Cancel
@@ -180,11 +170,21 @@ export default function UserDetailPage() {
                 </div>
                 <div>
                   <dt className="text-slate-500">Name</dt>
-                  <dd className="font-medium">{user.firstName} {user.lastName}</dd>
+                  <dd className="font-medium">{user.displayName}</dd>
                 </div>
                 <div>
                   <dt className="text-slate-500">Status</dt>
                   <dd className="font-medium">{user.isActive ? 'Active' : 'Inactive'}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">User Type</dt>
+                  <dd className="font-medium capitalize">{user.userType}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Last Login</dt>
+                  <dd className="font-medium">
+                    {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-slate-500">Last Updated</dt>

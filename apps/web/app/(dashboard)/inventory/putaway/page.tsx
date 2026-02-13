@@ -153,7 +153,7 @@ export default function PutawayPage() {
                     <Select
                       value={assignUserId}
                       onChange={(e) => setAssignUserId(e.target.value)}
-                      options={users?.data?.map((u) => ({ value: u.id, label: `${u.firstName} ${u.lastName}` })) || []}
+                      options={users?.data?.map((u) => ({ value: u.id, label: u.displayName || u.email })) || []}
                       placeholder="User"
                     />
                   </div>

@@ -45,9 +45,9 @@ export default function UsersPage() {
       ),
     },
     {
-      key: 'firstName',
+      key: 'displayName',
       header: 'Name',
-      render: (row) => `${row.firstName} ${row.lastName}`,
+      render: (row) => row.displayName || '-',
     },
     {
       key: 'isActive',
@@ -86,8 +86,7 @@ export default function UsersPage() {
 
     const exportColumns = [
       { key: 'email', header: 'Email' },
-      { key: 'firstName', header: 'First Name' },
-      { key: 'lastName', header: 'Last Name' },
+      { key: 'displayName', header: 'Name' },
       { key: 'isActive', header: 'Status', getValue: (row: User) => row.isActive ? 'Active' : 'Inactive' },
       { key: 'createdAt', header: 'Created', getValue: (row: User) => formatDateForExport(row.createdAt) },
     ];

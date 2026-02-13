@@ -7,9 +7,11 @@ import type { QueryParams } from './use-query-params';
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  displayName: string;
   isActive: boolean;
+  userType: 'internal' | 'customer' | 'driver';
+  customerId: string | null;
+  lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -63,13 +65,11 @@ const TENANT_KEY = 'tenant';
 interface CreateUserData {
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
+  displayName: string;
 }
 
 interface UpdateUserData {
-  firstName?: string;
-  lastName?: string;
+  displayName?: string;
   isActive?: boolean;
 }
 
