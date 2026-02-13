@@ -84,8 +84,20 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
     return null;
   }
 
+  // Wait for user data to be loaded before rendering
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Spinner size="lg" />
+          <p className="mt-4 text-sm text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Redirect if user type doesn't match required type
-  if (requiredUserType && user?.userType && user.userType !== requiredUserType) {
+  if (requiredUserType && user.userType !== requiredUserType) {
     router.replace(getHomeRoute(user.userType));
     return null;
   }
