@@ -38,19 +38,29 @@ export class AuthService {
   ) {}
 
   async debugDb() {
-    const dbUrl = process.env.DATABASE_URL || 'NOT SET';
-    // Show full URL for diagnosis (temporary)
-    const maskedUrl = dbUrl;
-    const users = await Promise.all([
-      this.usersService.findByEmail('e28898d1-6466-4f36-8d56-3e8f0cad68b2', 'admin@demo.com'),
-      this.usersService.findByEmail('e28898d1-6466-4f36-8d56-3e8f0cad68b2', 'portal@acme.com'),
-    ]);
+    // Find the actual tenant
+    const allUsers = await this.usersService.findByEmail(
+      'e28898d1-6466-4f36-8d56-3e8f0cad68b2', 'admin@demo.com'
+    );
+    // Try to find admin by iterating known approaches
+    let adminUser = allUsers;
+    let tenantId = 'unknown';
+    if (!adminUser) {
+      // The tenant ID might be different — check via raw query
+      const { Pool } = require('pg');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+      const tenantRes = await pool.query("SELECT id FROM tenants LIMIT 1");
+      if (tenantRes.rows.length > 0) {
+        tenantId = tenantRes.rows[0].id;
+        const userRes = await pool.query("SELECT email, user_type FROM users WHERE tenant_id = $1", [tenantId]);
+        await pool.end();
+        return { tenantId, users: userRes.rows };
+      }
+      await pool.end();
+    }
     return {
-      dbHost: maskedUrl,
-      adminExists: !!users[0],
-      adminEmail: users[0]?.email,
-      portalExists: !!users[1],
-      portalEmail: users[1]?.email,
+      tenantId: 'e28898d1-6466-4f36-8d56-3e8f0cad68b2',
+      adminExists: !!adminUser,
     };
   }
 
