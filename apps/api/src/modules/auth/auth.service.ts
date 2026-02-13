@@ -38,17 +38,19 @@ export class AuthService {
   ) {}
 
   async debugDb() {
+    const dbUrl = process.env.DATABASE_URL || 'NOT SET';
+    // Mask the password
+    const maskedUrl = dbUrl.replace(/:([^@]+)@/, ':***@');
     const users = await Promise.all([
       this.usersService.findByEmail('e28898d1-6466-4f36-8d56-3e8f0cad68b2', 'admin@demo.com'),
       this.usersService.findByEmail('e28898d1-6466-4f36-8d56-3e8f0cad68b2', 'portal@acme.com'),
     ]);
     return {
+      dbHost: maskedUrl,
       adminExists: !!users[0],
       adminEmail: users[0]?.email,
-      adminType: users[0]?.userType,
       portalExists: !!users[1],
       portalEmail: users[1]?.email,
-      portalType: users[1]?.userType,
     };
   }
 
