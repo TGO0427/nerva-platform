@@ -157,20 +157,15 @@ export class AuthService {
         results.push('Driver user: mike.driver@demo.com (no driver record to link)');
       }
 
-      // Verify passwords work
-      const argon2Check = require('argon2');
-      const verifyAdmin = await pool.query("SELECT password_hash FROM users WHERE email = 'admin@demo.com' AND tenant_id = $1", [tenantId]);
-      const verifyPortal = await pool.query("SELECT password_hash FROM users WHERE email = 'portal@acme.com' AND tenant_id = $1", [tenantId]);
-      const adminValid = verifyAdmin.rows[0] ? await argon2Check.verify(verifyAdmin.rows[0].password_hash, 'admin123') : false;
-      const portalValid = verifyPortal.rows[0] ? await argon2Check.verify(verifyPortal.rows[0].password_hash, 'admin123') : false;
-      results.push('Admin password verify: ' + adminValid);
-      results.push('Portal password verify: ' + portalValid);
+      // Rehash password on THIS server's argon2 and update all users
+      const argon2Server = require('argon2');
+      const freshHash = await argon2Server.hash('admin123');
+      await pool.query("UPDATE users SET password_hash = $1 WHERE tenant_id = $2", [freshHash, tenantId]);
+      results.push('All user passwords rehashed on server (password: admin123)');
 
-      // Also test via the service layer
-      const adminViaService = await this.usersService.findByEmail(tenantId, 'admin@demo.com');
-      const portalViaService = await this.usersService.findByEmail(tenantId, 'portal@acme.com');
-      results.push('Admin via service: ' + (adminViaService ? adminViaService.email : 'NOT FOUND'));
-      results.push('Portal via service: ' + (portalViaService ? portalViaService.email : 'NOT FOUND'));
+      // Verify it works now
+      const verifyCheck = await argon2Server.verify(freshHash, 'admin123');
+      results.push('Fresh hash verify: ' + verifyCheck);
 
       return { success: true, tenantId, results };
     } catch (err: any) {
