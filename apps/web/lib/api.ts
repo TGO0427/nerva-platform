@@ -75,9 +75,11 @@ api.interceptors.response.use(
       const message = extractErrorMessage(error);
       const code = error.response?.data?.code;
 
-      // Handle 401 - redirect to login
+      // Handle 401 - redirect to login (skip for auth endpoints to avoid loops)
       if (status === 401) {
-        if (typeof window !== 'undefined') {
+        const requestUrl = error.config?.url || '';
+        const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/me');
+        if (typeof window !== 'undefined' && !isAuthEndpoint && !window.location.pathname.startsWith('/login')) {
           localStorage.removeItem('accessToken');
           window.location.href = '/login';
         }
