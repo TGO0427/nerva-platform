@@ -15,20 +15,25 @@ interface AuthGuardProps {
 export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
   const router = useRouter();
   const { isAuthenticated, isLoading, user, fetchUser } = useAuth();
+  const [hydrated, setHydrated] = useState(false);
   const [showExpiredMessage, setShowExpiredMessage] = useState(false);
 
+  // Wait for client-side hydration
   useEffect(() => {
-    // If we have a token but no user, try to fetch the user
-    if (isAuthenticated && !user && !isLoading) {
+    setHydrated(true);
+  }, []);
+
+  // If we have a token but no user, try to fetch the user
+  useEffect(() => {
+    if (hydrated && isAuthenticated && !user && !isLoading) {
       fetchUser();
     }
-  }, [isAuthenticated, user, isLoading, fetchUser]);
+  }, [hydrated, isAuthenticated, user, isLoading, fetchUser]);
 
+  // Handle unauthenticated state
   useEffect(() => {
-    // After a short delay, show session expired message or redirect
-    if (!isLoading && !isAuthenticated) {
-      const hadSession = typeof window !== 'undefined' && sessionStorage.getItem('nerva_had_session');
-
+    if (hydrated && !isLoading && !isAuthenticated) {
+      const hadSession = sessionStorage.getItem('nerva_had_session');
       if (hadSession) {
         setShowExpiredMessage(true);
         sessionStorage.removeItem('nerva_had_session');
@@ -37,20 +42,23 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
       }
     }
 
-    // Track that user has an active session
-    if (isAuthenticated && typeof window !== 'undefined') {
+    if (hydrated && isAuthenticated) {
       sessionStorage.setItem('nerva_had_session', 'true');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [hydrated, isAuthenticated, isLoading, router]);
 
-  // Redirect if user type doesn't match required type
+  // Redirect if user type doesn't match
   useEffect(() => {
     if (user && requiredUserType && user.userType !== requiredUserType) {
       router.replace(getHomeRoute(user.userType));
     }
   }, [user, requiredUserType, router]);
 
-  // Show session expired message
+  // Wait for hydration before showing anything
+  if (!hydrated) {
+    return null;
+  }
+
   if (showExpiredMessage) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -72,8 +80,7 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
     );
   }
 
-  // Show loading spinner while checking auth
-  if (isLoading) {
+  if (isLoading || (!isAuthenticated && !showExpiredMessage)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -84,12 +91,6 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
     );
   }
 
-  // Not authenticated - will redirect via useEffect
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  // Wait for user data to be loaded before rendering
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -101,7 +102,6 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
     );
   }
 
-  // Don't render children if user type doesn't match - redirect happens via useEffect
   if (requiredUserType && user.userType !== requiredUserType) {
     return null;
   }

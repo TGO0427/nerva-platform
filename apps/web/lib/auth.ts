@@ -8,11 +8,9 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  _hasHydrated: boolean;
   login: (data: LoginRequest) => Promise<void>;
   logout: () => void;
   fetchUser: () => Promise<void>;
-  setHasHydrated: (state: boolean) => void;
 }
 
 export const useAuth = create<AuthState>()(
@@ -21,12 +19,7 @@ export const useAuth = create<AuthState>()(
       user: null,
       accessToken: null,
       isAuthenticated: false,
-      isLoading: true, // Start as true until hydration completes
-      _hasHydrated: false,
-
-      setHasHydrated: (state: boolean) => {
-        set({ _hasHydrated: state, isLoading: false });
-      },
+      isLoading: false,
 
       login: async (data: LoginRequest) => {
         set({ isLoading: true });
@@ -77,12 +70,6 @@ export const useAuth = create<AuthState>()(
         accessToken: state.accessToken,
         isAuthenticated: state.isAuthenticated,
       }),
-      onRehydrateStorage: () => (state) => {
-        // Defer to avoid React #301 (state update during render)
-        queueMicrotask(() => {
-          state?.setHasHydrated(true);
-        });
-      },
     }
   )
 );
