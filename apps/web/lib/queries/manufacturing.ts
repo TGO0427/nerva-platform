@@ -552,6 +552,85 @@ export function useRecordOutput() {
   });
 }
 
+export function useReturnMaterial() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ workOrderId, ...data }: {
+      workOrderId: string;
+      materialId: string;
+      qty: number;
+      binId: string;
+      batchNo?: string;
+      reasonCode?: string;
+    }) => {
+      const response = await api.post<WorkOrderMaterial>(`/manufacturing/work-orders/${workOrderId}/return-material`, data);
+      return response.data;
+    },
+    onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
+    },
+  });
+}
+
+export function useRecordScrap() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ workOrderId, ...data }: {
+      workOrderId: string;
+      itemId: string;
+      qty: number;
+      binId?: string;
+      batchNo?: string;
+      operationId?: string;
+      reasonCode?: string;
+      notes?: string;
+    }) => {
+      const response = await api.post(`/manufacturing/work-orders/${workOrderId}/record-scrap`, data);
+      return response.data;
+    },
+    onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
+    },
+  });
+}
+
+export function useStartOperation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ workOrderId, operationId }: {
+      workOrderId: string;
+      operationId: string;
+    }) => {
+      const response = await api.post(`/manufacturing/work-orders/${workOrderId}/operations/${operationId}/start`);
+      return response.data;
+    },
+    onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
+    },
+  });
+}
+
+export function useCompleteOperation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ workOrderId, operationId, ...data }: {
+      workOrderId: string;
+      operationId: string;
+      qtyCompleted: number;
+      qtyScrapped?: number;
+      setupTimeActual?: number;
+      runTimeActual?: number;
+      notes?: string;
+    }) => {
+      const response = await api.post(`/manufacturing/work-orders/${workOrderId}/operations/${operationId}/complete`, data);
+      return response.data;
+    },
+    onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
+    },
+  });
+}
+
 // ============ Production Ledger ============
 interface ProductionLedgerFilters {
   workOrderId?: string;

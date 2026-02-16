@@ -16,7 +16,14 @@ import {
   useStartWorkOrder,
   useCompleteWorkOrder,
   useCancelWorkOrder,
+  useIssueMaterial,
+  useRecordOutput,
+  useStartOperation,
+  useCompleteOperation,
 } from '@/lib/queries/manufacturing';
+import { useBins } from '@/lib/queries/warehouses';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import type { WorkOrderStatus, WorkOrderOperation, WorkOrderMaterial } from '@nerva/shared';
 
 type OperationWithMeta = WorkOrderOperation & { workstationCode?: string; workstationName?: string; assignedUserName?: string };
@@ -28,10 +35,32 @@ export default function WorkOrderDetailPage() {
   const { data: workOrder, isLoading, error } = useWorkOrder(id);
   const [activeTab, setActiveTab] = useState<'operations' | 'materials'>('materials');
 
+  const [issuingMaterialId, setIssuingMaterialId] = useState<string | null>(null);
+  const [issueQty, setIssueQty] = useState('');
+  const [issueBinId, setIssueBinId] = useState('');
+  const [issueBatchNo, setIssueBatchNo] = useState('');
+
+  const [showRecordOutput, setShowRecordOutput] = useState(false);
+  const [outputQty, setOutputQty] = useState('');
+  const [outputBinId, setOutputBinId] = useState('');
+  const [outputBatchNo, setOutputBatchNo] = useState('');
+  const [outputNotes, setOutputNotes] = useState('');
+
+  const [completingOpId, setCompletingOpId] = useState<string | null>(null);
+  const [opCompletedQty, setOpCompletedQty] = useState('');
+  const [opScrappedQty, setOpScrappedQty] = useState('');
+  const [opNotes, setOpNotes] = useState('');
+
   const releaseWorkOrder = useReleaseWorkOrder();
   const startWorkOrder = useStartWorkOrder();
   const completeWorkOrder = useCompleteWorkOrder();
   const cancelWorkOrder = useCancelWorkOrder();
+  const issueMaterial = useIssueMaterial();
+  const recordOutput = useRecordOutput();
+  const startOperation = useStartOperation();
+  const completeOperation = useCompleteOperation();
+
+  const { data: bins } = useBins(workOrder?.warehouseId);
 
   if (error) {
     return (
@@ -105,6 +134,29 @@ export default function WorkOrderDetailPage() {
       header: 'Assigned To',
       render: (row) => row.assignedUserName || '-',
     },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '160px',
+      render: (row) => {
+        if (workOrder?.status !== 'IN_PROGRESS') return null;
+        if (row.status === 'PENDING') {
+          return (
+            <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); startOperation.mutateAsync({ workOrderId: id!, operationId: row.id }); }}>
+              Start
+            </Button>
+          );
+        }
+        if (row.status === 'IN_PROGRESS') {
+          return (
+            <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); setCompletingOpId(row.id); setOpCompletedQty(String(workOrder.qtyOrdered)); }}>
+              Complete
+            </Button>
+          );
+        }
+        return null;
+      },
+    },
   ];
 
   const materialColumns: Column<MaterialWithMeta>[] = [
@@ -153,6 +205,21 @@ export default function WorkOrderDetailPage() {
         </Badge>
       ),
     },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '120px',
+      render: (row) => {
+        if (workOrder?.status !== 'IN_PROGRESS') return null;
+        const remaining = row.qtyRequired - row.qtyIssued + row.qtyReturned;
+        if (remaining <= 0) return <span className="text-xs text-green-600">Fully issued</span>;
+        return (
+          <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); setIssuingMaterialId(row.id); setIssueQty(String(remaining)); }}>
+            Issue
+          </Button>
+        );
+      },
+    },
   ];
 
   const progressPercentage = workOrder
@@ -187,9 +254,14 @@ export default function WorkOrderDetailPage() {
               </Button>
             )}
             {workOrder.status === 'IN_PROGRESS' && (
-              <Button onClick={handleComplete} disabled={completeWorkOrder.isPending}>
-                {completeWorkOrder.isPending ? 'Completing...' : 'Complete'}
-              </Button>
+              <>
+                <Button variant="secondary" onClick={() => setShowRecordOutput(!showRecordOutput)}>
+                  Record Output
+                </Button>
+                <Button onClick={handleComplete} disabled={completeWorkOrder.isPending}>
+                  {completeWorkOrder.isPending ? 'Completing...' : 'Complete'}
+                </Button>
+              </>
             )}
             {['DRAFT', 'RELEASED', 'ON_HOLD'].includes(workOrder.status) && (
               <Button variant="danger" onClick={handleCancel} disabled={cancelWorkOrder.isPending}>
@@ -239,6 +311,39 @@ export default function WorkOrderDetailPage() {
               </div>
             </Card>
           </div>
+
+          {showRecordOutput && workOrder.status === 'IN_PROGRESS' && (
+            <Card className="p-4 border-blue-200 bg-blue-50">
+              <h3 className="text-sm font-medium text-blue-800 mb-3">Record Production Output</h3>
+              <div className="grid grid-cols-5 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-600 mb-1">Quantity</label>
+                  <Input type="number" min="0.01" step="any" value={outputQty} onChange={(e) => setOutputQty(e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-600 mb-1">Destination Bin</label>
+                  <Select value={outputBinId} onChange={(e) => setOutputBinId(e.target.value)} options={[{ value: '', label: 'Select bin...' }, ...(bins || []).map(b => ({ value: b.id, label: b.code }))]} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-600 mb-1">Batch No</label>
+                  <Input value={outputBatchNo} onChange={(e) => setOutputBatchNo(e.target.value)} placeholder="Optional" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-600 mb-1">Notes</label>
+                  <Input value={outputNotes} onChange={(e) => setOutputNotes(e.target.value)} placeholder="Optional" />
+                </div>
+                <div className="flex items-end gap-2">
+                  <Button size="sm" disabled={!outputQty || !outputBinId || recordOutput.isPending} onClick={async () => {
+                    await recordOutput.mutateAsync({ workOrderId: id!, qty: parseFloat(outputQty), binId: outputBinId, batchNo: outputBatchNo || undefined, notes: outputNotes || undefined });
+                    setShowRecordOutput(false); setOutputQty(''); setOutputBinId(''); setOutputBatchNo(''); setOutputNotes('');
+                  }}>
+                    {recordOutput.isPending ? 'Recording...' : 'Record'}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setShowRecordOutput(false)}>Cancel</Button>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Details Grid */}
           <Card className="p-6">
@@ -317,30 +422,90 @@ export default function WorkOrderDetailPage() {
 
             <div className="p-4">
               {activeTab === 'materials' && (
-                <DataTable
-                  columns={materialColumns}
-                  data={workOrder.materials || []}
-                  keyField="id"
-                  variant="embedded"
-                  emptyState={{
-                    icon: <BoxIcon />,
-                    title: 'No materials',
-                    description: 'No materials are required for this work order',
-                  }}
-                />
+                <>
+                  <DataTable
+                    columns={materialColumns}
+                    data={workOrder.materials || []}
+                    keyField="id"
+                    variant="embedded"
+                    emptyState={{
+                      icon: <BoxIcon />,
+                      title: 'No materials',
+                      description: 'No materials are required for this work order',
+                    }}
+                  />
+                  {issuingMaterialId && (
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <h4 className="text-sm font-medium text-blue-800 mb-3">Issue Material</h4>
+                      <div className="grid grid-cols-4 gap-3">
+                        <div>
+                          <label className="block text-xs text-slate-600 mb-1">Quantity</label>
+                          <Input type="number" min="0.01" step="any" value={issueQty} onChange={(e) => setIssueQty(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-600 mb-1">Bin</label>
+                          <Select value={issueBinId} onChange={(e) => setIssueBinId(e.target.value)} options={[{ value: '', label: 'Select bin...' }, ...(bins || []).map(b => ({ value: b.id, label: b.code }))]} />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-600 mb-1">Batch No</label>
+                          <Input value={issueBatchNo} onChange={(e) => setIssueBatchNo(e.target.value)} placeholder="Optional" />
+                        </div>
+                        <div className="flex items-end gap-2">
+                          <Button size="sm" disabled={!issueQty || !issueBinId || issueMaterial.isPending} onClick={async () => {
+                            await issueMaterial.mutateAsync({ workOrderId: id!, materialId: issuingMaterialId, qty: parseFloat(issueQty), binId: issueBinId, batchNo: issueBatchNo || undefined });
+                            setIssuingMaterialId(null); setIssueQty(''); setIssueBinId(''); setIssueBatchNo('');
+                          }}>
+                            {issueMaterial.isPending ? 'Issuing...' : 'Confirm'}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => { setIssuingMaterialId(null); setIssueQty(''); setIssueBinId(''); setIssueBatchNo(''); }}>Cancel</Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
               {activeTab === 'operations' && (
-                <DataTable
-                  columns={operationColumns}
-                  data={workOrder.operations || []}
-                  keyField="id"
-                  variant="embedded"
-                  emptyState={{
-                    icon: <OperationIcon />,
-                    title: 'No operations',
-                    description: 'No operations defined for this work order',
-                  }}
-                />
+                <>
+                  <DataTable
+                    columns={operationColumns}
+                    data={workOrder.operations || []}
+                    keyField="id"
+                    variant="embedded"
+                    emptyState={{
+                      icon: <OperationIcon />,
+                      title: 'No operations',
+                      description: 'No operations defined for this work order',
+                    }}
+                  />
+                  {completingOpId && (
+                    <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <h4 className="text-sm font-medium text-green-800 mb-3">Complete Operation</h4>
+                      <div className="grid grid-cols-4 gap-3">
+                        <div>
+                          <label className="block text-xs text-slate-600 mb-1">Qty Completed</label>
+                          <Input type="number" min="0" step="any" value={opCompletedQty} onChange={(e) => setOpCompletedQty(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-600 mb-1">Qty Scrapped</label>
+                          <Input type="number" min="0" step="any" value={opScrappedQty} onChange={(e) => setOpScrappedQty(e.target.value)} placeholder="0" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-600 mb-1">Notes</label>
+                          <Input value={opNotes} onChange={(e) => setOpNotes(e.target.value)} placeholder="Optional" />
+                        </div>
+                        <div className="flex items-end gap-2">
+                          <Button size="sm" disabled={!opCompletedQty || completeOperation.isPending} onClick={async () => {
+                            await completeOperation.mutateAsync({ workOrderId: id!, operationId: completingOpId, qtyCompleted: parseFloat(opCompletedQty), qtyScrapped: opScrappedQty ? parseFloat(opScrappedQty) : undefined, notes: opNotes || undefined });
+                            setCompletingOpId(null); setOpCompletedQty(''); setOpScrappedQty(''); setOpNotes('');
+                          }}>
+                            {completeOperation.isPending ? 'Completing...' : 'Confirm'}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => { setCompletingOpId(null); setOpCompletedQty(''); setOpScrappedQty(''); setOpNotes(''); }}>Cancel</Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </Card>
