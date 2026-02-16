@@ -7,6 +7,7 @@ export interface SalesOrder {
   siteId: string;
   warehouseId: string;
   customerId: string;
+  customerName: string | null;
   orderNo: string;
   externalRef: string | null;
   status: string;
@@ -77,7 +78,10 @@ export class SalesRepository extends BaseRepository {
 
   async findOrderById(id: string): Promise<SalesOrder | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM sales_orders WHERE id = $1',
+      `SELECT so.*, c.name as customer_name
+       FROM sales_orders so
+       LEFT JOIN customers c ON c.id = so.customer_id AND c.tenant_id = so.tenant_id
+       WHERE so.id = $1`,
       [id],
     );
     return row ? this.mapOrder(row) : null;
@@ -89,20 +93,23 @@ export class SalesRepository extends BaseRepository {
     limit = 50,
     offset = 0,
   ): Promise<SalesOrder[]> {
-    let sql = 'SELECT * FROM sales_orders WHERE tenant_id = $1';
+    let sql = `SELECT so.*, c.name as customer_name
+               FROM sales_orders so
+               LEFT JOIN customers c ON c.id = so.customer_id AND c.tenant_id = so.tenant_id
+               WHERE so.tenant_id = $1`;
     const params: unknown[] = [tenantId];
     let idx = 2;
 
     if (filters.status) {
-      sql += ` AND status = $${idx++}`;
+      sql += ` AND so.status = $${idx++}`;
       params.push(filters.status);
     }
     if (filters.customerId) {
-      sql += ` AND customer_id = $${idx++}`;
+      sql += ` AND so.customer_id = $${idx++}`;
       params.push(filters.customerId);
     }
 
-    sql += ` ORDER BY priority ASC, created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
+    sql += ` ORDER BY so.priority ASC, so.created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
     params.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
@@ -176,6 +183,7 @@ export class SalesRepository extends BaseRepository {
       siteId: row.site_id as string,
       warehouseId: row.warehouse_id as string,
       customerId: row.customer_id as string,
+      customerName: (row.customer_name as string) || null,
       orderNo: row.order_no as string,
       externalRef: row.external_ref as string | null,
       status: row.status as string,

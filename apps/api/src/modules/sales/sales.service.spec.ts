@@ -17,6 +17,7 @@ describe('SalesService', () => {
     siteId: 'site-123',
     warehouseId: 'warehouse-123',
     customerId: 'customer-123',
+    customerName: 'Test Customer',
     orderNo: 'SO-000001',
     status: 'DRAFT',
     externalRef: null,
