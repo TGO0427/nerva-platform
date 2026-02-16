@@ -2,9 +2,8 @@
 
 import { ReactNode } from 'react';
 import Link from 'next/link';
-import { Card, CardContent } from './card';
 import { AnimatedNumber } from './animated-number';
-import { IconBadge, IconColor } from './icon-badge';
+import { IconColor } from './icon-badge';
 import { cn } from '@/lib/utils';
 
 export interface StatCardProps {
@@ -19,6 +18,16 @@ export interface StatCardProps {
   emptyHint?: string;
   className?: string;
 }
+
+const borderColors: Record<IconColor, string> = {
+  gray: 'border-l-slate-400',
+  blue: 'border-l-blue-500',
+  green: 'border-l-emerald-500',
+  red: 'border-l-red-500',
+  yellow: 'border-l-amber-500',
+  purple: 'border-l-violet-500',
+  orange: 'border-l-orange-500',
+};
 
 const subtitleColors = {
   positive: 'text-green-600',
@@ -42,11 +51,19 @@ export function StatCard({
   const isNumeric = typeof value === 'number';
 
   const content = (
-    <Card hover={!!href} alert={alert} className={cn(href && 'cursor-pointer', className)}>
-      <CardContent className="flex items-center justify-between pt-4">
+    <div
+      className={cn(
+        'rounded-xl bg-white border border-slate-200/70 border-l-[3px] shadow-sm p-4',
+        'hover:shadow-md hover:-translate-y-0.5 transition-all',
+        alert ? 'border-l-red-500' : borderColors[iconColor],
+        href && 'cursor-pointer',
+        className,
+      )}
+    >
+      <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="text-3xl font-bold text-slate-900 mt-1">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{title}</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1.5">
             {isNumeric ? (
               <AnimatedNumber value={value} duration={400} />
             ) : (
@@ -54,18 +71,20 @@ export function StatCard({
             )}
           </p>
           {showEmpty ? (
-            <p className="text-xs text-slate-400 mt-1">{emptyHint}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{emptyHint}</p>
           ) : subtitle ? (
-            <p className={cn('text-sm mt-1', subtitleColors[subtitleType])}>
+            <p className={cn('text-xs mt-0.5', subtitleColors[subtitleType])}>
               {subtitle}
             </p>
           ) : null}
         </div>
         {icon && (
-          <IconBadge icon={icon} color={iconColor} />
+          <div className="text-slate-400 flex-shrink-0 ml-3">
+            {icon}
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 
   if (href) {

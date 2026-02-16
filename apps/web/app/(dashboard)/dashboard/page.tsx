@@ -1,12 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { useAuth, hasPermission } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Breadcrumbs } from '@/components/layout';
 import { Spinner } from '@/components/ui/spinner';
-import { AnimatedNumber, AnimatedCurrency } from '@/components/ui/animated-number';
+import { StatCard } from '@/components/ui/stat-card';
 import {
   useDashboardStats,
   useRecentActivity,
@@ -59,6 +58,8 @@ export default function DashboardPage() {
   const { data: statusDist } = useStatusDistribution();
   const { data: warehouseData } = useOrdersByWarehouse();
   const { data: topCustomers } = useTopCustomers();
+
+  const weeklySalesDisplay = `R ${((stats?.weeklySalesValue ?? 0) / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const quickActions = [
     {
@@ -124,59 +125,50 @@ export default function DashboardPage() {
           <Spinner />
         </div>
       ) : (
-        <motion.div
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6"
-          initial="hidden"
-          animate="show"
-          variants={{
-            hidden: { opacity: 0 },
-            show: { opacity: 1, transition: { staggerChildren: 0.04 } }
-          }}
-        >
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
           <StatCard
-            label="Pending Orders"
+            title="Pending Orders"
             value={stats?.pendingOrders ?? 0}
-            sub={stats?.allocatedOrders ? `${stats.allocatedOrders} allocated` : undefined}
-            color="blue"
+            subtitle={stats?.allocatedOrders ? `${stats.allocatedOrders} allocated` : undefined}
+            iconColor="blue"
             href="/sales"
           />
           <StatCard
-            label="Weekly Sales"
-            value={stats?.weeklySalesValue ?? 0}
-            isCurrency
-            sub="Last 7 days"
-            color="emerald"
+            title="Weekly Sales"
+            value={weeklySalesDisplay}
+            iconColor="green"
+            subtitle="Last 7 days"
             href="/sales"
           />
           <StatCard
-            label="Trips Active"
+            title="Trips Active"
             value={stats?.tripsInProgress ?? 0}
-            sub={stats?.tripsCompletedToday ? `${stats.tripsCompletedToday} done today` : undefined}
-            color="cyan"
+            subtitle={stats?.tripsCompletedToday ? `${stats.tripsCompletedToday} done today` : undefined}
+            iconColor="blue"
             href="/dispatch"
           />
           <StatCard
-            label="Open Returns"
+            title="Open Returns"
             value={stats?.openReturns ?? 0}
-            sub={(stats?.openReturns ?? 0) > 0 ? 'Awaiting processing' : 'All clear'}
-            color="amber"
+            subtitle={(stats?.openReturns ?? 0) > 0 ? 'Awaiting processing' : 'All clear'}
+            iconColor="yellow"
             href="/returns"
           />
           <StatCard
-            label="Late Orders"
+            title="Late Orders"
             value={stats?.lateOrders ?? 0}
-            sub={(stats?.lateOrders ?? 0) > 0 ? 'Past ship date' : 'On track'}
-            color="red"
+            subtitle={(stats?.lateOrders ?? 0) > 0 ? 'Past ship date' : 'On track'}
+            iconColor="red"
             href="/sales?late=true"
           />
           <StatCard
-            label="Stock Alerts"
+            title="Stock Alerts"
             value={(stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)}
-            sub={stats?.lowStockItems ? `${stats.lowStockItems} low stock` : 'Healthy'}
-            color="violet"
+            subtitle={stats?.lowStockItems ? `${stats.lowStockItems} low stock` : 'Healthy'}
+            iconColor="purple"
             href="/inventory/expiry-alerts"
           />
-        </motion.div>
+        </div>
       )}
 
       {/* Charts Section - 2x2 grid */}
@@ -359,52 +351,6 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-// --- Stat Card with colored left border ---
-const STAT_COLORS = {
-  blue: 'border-l-blue-500',
-  emerald: 'border-l-emerald-500',
-  cyan: 'border-l-cyan-500',
-  amber: 'border-l-amber-500',
-  red: 'border-l-red-500',
-  violet: 'border-l-violet-500',
-} as const;
-
-function StatCard({
-  label,
-  value,
-  isCurrency,
-  sub,
-  color,
-  href,
-}: {
-  label: string;
-  value: number;
-  isCurrency?: boolean;
-  sub?: string;
-  color: keyof typeof STAT_COLORS;
-  href: string;
-}) {
-  return (
-    <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
-      <Link href={href}>
-        <div
-          className={`rounded-xl bg-white border border-slate-200/70 border-l-[3px] ${STAT_COLORS[color]} shadow-sm p-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer`}
-        >
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</div>
-          <div className="mt-1.5 text-2xl font-bold text-slate-900">
-            {isCurrency ? (
-              <AnimatedCurrency value={value} duration={500} />
-            ) : (
-              <AnimatedNumber value={value} duration={400} />
-            )}
-          </div>
-          {sub && <div className="mt-0.5 text-xs text-slate-400">{sub}</div>}
-        </div>
-      </Link>
-    </motion.div>
   );
 }
 
