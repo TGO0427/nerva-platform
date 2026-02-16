@@ -130,6 +130,31 @@ export class ReturnsRepository extends BaseRepository {
     return rows.map(this.mapRma);
   }
 
+  async countRmasByTenant(
+    tenantId: string,
+    filters: { status?: string; customerId?: string; siteId?: string },
+  ): Promise<number> {
+    let sql = 'SELECT COUNT(*) as count FROM rmas WHERE tenant_id = $1';
+    const params: unknown[] = [tenantId];
+    let idx = 2;
+
+    if (filters.siteId) {
+      sql += ` AND site_id = $${idx++}`;
+      params.push(filters.siteId);
+    }
+    if (filters.status) {
+      sql += ` AND status = $${idx++}`;
+      params.push(filters.status);
+    }
+    if (filters.customerId) {
+      sql += ` AND customer_id = $${idx++}`;
+      params.push(filters.customerId);
+    }
+
+    const result = await this.queryOne<{ count: string }>(sql, params);
+    return parseInt(result?.count || '0', 10);
+  }
+
   async updateRmaStatus(id: string, status: string): Promise<Rma | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       'UPDATE rmas SET status = $1 WHERE id = $2 RETURNING *',
@@ -267,6 +292,17 @@ export class ReturnsRepository extends BaseRepository {
 
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
     return rows.map(this.mapCreditNote);
+  }
+
+  async countCreditNotesByTenant(tenantId: string, status?: string): Promise<number> {
+    let sql = 'SELECT COUNT(*) as count FROM credit_notes_draft WHERE tenant_id = $1';
+    const params: unknown[] = [tenantId];
+    if (status) {
+      sql += ' AND status = $2';
+      params.push(status);
+    }
+    const result = await this.queryOne<{ count: string }>(sql, params);
+    return parseInt(result?.count || '0', 10);
   }
 
   async approveCreditNote(id: string, approvedBy: string): Promise<CreditNoteDraft | null> {

@@ -64,8 +64,11 @@ export class MasterDataService {
   // Customers
   async listCustomers(tenantId: string, params: PaginationParams & { search?: string }) {
     const { page, limit, offset } = normalizePagination(params);
-    const customers = await this.repository.findCustomers(tenantId, limit, offset, params.search);
-    return { data: customers, meta: { page, limit } };
+    const [customers, total] = await Promise.all([
+      this.repository.findCustomers(tenantId, limit, offset, params.search),
+      this.repository.countCustomers(tenantId, params.search),
+    ]);
+    return buildPaginatedResult(customers, total, page, limit);
   }
 
   async getCustomer(id: string): Promise<Customer> {
@@ -124,8 +127,11 @@ export class MasterDataService {
   // Suppliers
   async listSuppliers(tenantId: string, params: PaginationParams & { search?: string }) {
     const { page, limit, offset } = normalizePagination(params);
-    const suppliers = await this.repository.findSuppliers(tenantId, limit, offset, params.search);
-    return { data: suppliers, meta: { page, limit } };
+    const [suppliers, total] = await Promise.all([
+      this.repository.findSuppliers(tenantId, limit, offset, params.search),
+      this.repository.countSuppliers(tenantId, params.search),
+    ]);
+    return buildPaginatedResult(suppliers, total, page, limit);
   }
 
   async getSupplier(id: string): Promise<Supplier> {

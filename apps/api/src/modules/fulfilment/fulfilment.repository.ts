@@ -231,6 +231,17 @@ export class FulfilmentRepository extends BaseRepository {
     return rows.map((row) => this.mapShipment(row));
   }
 
+  async countShipmentsByTenant(tenantId: string, status?: string): Promise<number> {
+    let sql = 'SELECT COUNT(*) as count FROM shipments WHERE tenant_id = $1';
+    const params: unknown[] = [tenantId];
+    if (status) {
+      sql += ' AND status = $2';
+      params.push(status);
+    }
+    const result = await this.queryOne<{ count: string }>(sql, params);
+    return parseInt(result?.count || '0', 10);
+  }
+
   async updateShipmentStatus(id: string, status: string): Promise<Shipment | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       'UPDATE shipments SET status = $1 WHERE id = $2 RETURNING *',

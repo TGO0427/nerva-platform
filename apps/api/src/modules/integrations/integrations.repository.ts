@@ -156,6 +156,17 @@ export class IntegrationsRepository extends BaseRepository {
     return rows.map(this.mapQueueItem);
   }
 
+  async countQueueByTenant(tenantId: string, status?: string): Promise<number> {
+    let sql = 'SELECT COUNT(*) as count FROM posting_queue WHERE tenant_id = $1';
+    const params: unknown[] = [tenantId];
+    if (status) {
+      sql += ' AND status = $2';
+      params.push(status);
+    }
+    const result = await this.queryOne<{ count: string }>(sql, params);
+    return parseInt(result?.count || '0', 10);
+  }
+
   async markProcessing(id: string): Promise<PostingQueueItem | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE posting_queue SET status = 'PROCESSING', attempts = attempts + 1

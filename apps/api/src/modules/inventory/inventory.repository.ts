@@ -121,6 +121,17 @@ export class InventoryRepository extends BaseRepository {
     return rows.map(this.mapGrn);
   }
 
+  async countGrnsByTenant(tenantId: string, status?: string): Promise<number> {
+    let sql = 'SELECT COUNT(*) as count FROM grns WHERE tenant_id = $1';
+    const params: unknown[] = [tenantId];
+    if (status) {
+      sql += ' AND status = $2';
+      params.push(status);
+    }
+    const result = await this.queryOne<{ count: string }>(sql, params);
+    return parseInt(result?.count || '0', 10);
+  }
+
   async updateGrnStatus(id: string, status: string): Promise<Grn | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE grns SET status = $1, received_at = CASE WHEN $1 = 'RECEIVED' THEN NOW() ELSE received_at END
@@ -224,6 +235,17 @@ export class InventoryRepository extends BaseRepository {
 
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
     return rows.map(this.mapAdjustment);
+  }
+
+  async countAdjustmentsByTenant(tenantId: string, status?: string): Promise<number> {
+    let sql = 'SELECT COUNT(*) as count FROM adjustments WHERE tenant_id = $1';
+    const params: unknown[] = [tenantId];
+    if (status) {
+      sql += ' AND status = $2';
+      params.push(status);
+    }
+    const result = await this.queryOne<{ count: string }>(sql, params);
+    return parseInt(result?.count || '0', 10);
   }
 
   async approveAdjustment(id: string, approvedBy: string): Promise<Adjustment | null> {

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { FulfilmentRepository, PickWave, PickTask, Shipment, ShipmentLine, ShippableOrder } from './fulfilment.repository';
 import { StockLedgerService } from '../inventory/stock-ledger.service';
 import { SalesService } from '../sales/sales.service';
+import { buildPaginatedResult } from '../../common/utils/pagination';
 
 @Injectable()
 export class FulfilmentService {
@@ -229,8 +230,11 @@ export class FulfilmentService {
 
   async listShipments(tenantId: string, status?: string, page = 1, limit = 50) {
     const offset = (page - 1) * limit;
-    const shipments = await this.repository.findShipmentsByTenant(tenantId, status, limit, offset);
-    return { data: shipments, meta: { page, limit } };
+    const [data, total] = await Promise.all([
+      this.repository.findShipmentsByTenant(tenantId, status, limit, offset),
+      this.repository.countShipmentsByTenant(tenantId, status),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async markShipmentReady(id: string): Promise<Shipment> {

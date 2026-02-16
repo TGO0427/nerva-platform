@@ -40,9 +40,7 @@ export function useAuditLogs(params: AuditSearchParams) {
       if (params.toDate) query.set('toDate', params.toDate);
       const { data } = await api.get<{
         data: AuditEntryWithActor[];
-        total: number;
-        page: number;
-        limit: number;
+        meta: { page: number; limit: number; total: number; totalPages: number };
       }>(`/audit?${query.toString()}`);
       return data;
     },

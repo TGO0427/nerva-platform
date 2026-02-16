@@ -138,6 +138,31 @@ export class DispatchRepository extends BaseRepository {
     return rows.map(this.mapTrip);
   }
 
+  async countTripsByTenant(
+    tenantId: string,
+    filters: { status?: string; driverId?: string; date?: Date },
+  ): Promise<number> {
+    let sql = 'SELECT COUNT(*) as count FROM dispatch_trips WHERE tenant_id = $1';
+    const params: unknown[] = [tenantId];
+    let idx = 2;
+
+    if (filters.status) {
+      sql += ` AND status = $${idx++}`;
+      params.push(filters.status);
+    }
+    if (filters.driverId) {
+      sql += ` AND driver_id = $${idx++}`;
+      params.push(filters.driverId);
+    }
+    if (filters.date) {
+      sql += ` AND planned_date = $${idx++}`;
+      params.push(filters.date);
+    }
+
+    const result = await this.queryOne<{ count: string }>(sql, params);
+    return parseInt(result?.count || '0', 10);
+  }
+
   async findDriverByUserId(userId: string): Promise<{ id: string; name: string; tenantId: string } | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       'SELECT id, name, tenant_id FROM drivers WHERE user_id = $1 AND is_active = true LIMIT 1',

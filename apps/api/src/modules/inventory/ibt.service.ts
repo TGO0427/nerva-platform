@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { IbtRepository, IbtDetail, IbtLineDetail, IbtFilters } from './ibt.repository';
 import { StockLedgerService } from './stock-ledger.service';
 import { MasterDataService } from '../masterdata/masterdata.service';
+import { buildPaginatedResult } from '../../common/utils/pagination';
 
 @Injectable()
 export class IbtService {
@@ -50,13 +51,13 @@ export class IbtService {
     filters: IbtFilters,
     page = 1,
     limit = 25,
-  ): Promise<{ data: IbtDetail[]; total: number; page: number; limit: number }> {
+  ) {
     const offset = (page - 1) * limit;
     const [data, total] = await Promise.all([
       this.ibtRepo.findByTenant(tenantId, filters, limit, offset),
       this.ibtRepo.countByTenant(tenantId, filters),
     ]);
-    return { data, total, page, limit };
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async getLines(ibtId: string): Promise<IbtLineDetail[]> {

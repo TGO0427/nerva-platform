@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { SalesRepository, SalesOrder, SalesOrderLine } from './sales.repository';
 import { StockLedgerService } from '../inventory/stock-ledger.service';
 import { MasterDataService } from '../masterdata/masterdata.service';
+import { buildPaginatedResult } from '../../common/utils/pagination';
 
 @Injectable()
 export class SalesService {
@@ -97,8 +98,11 @@ export class SalesService {
     limit = 50,
   ) {
     const offset = (page - 1) * limit;
-    const orders = await this.repository.findOrdersByTenant(tenantId, filters, limit, offset);
-    return { data: orders, meta: { page, limit } };
+    const [data, total] = await Promise.all([
+      this.repository.findOrdersByTenant(tenantId, filters, limit, offset),
+      this.repository.countOrdersByTenant(tenantId, filters),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async confirmOrder(id: string): Promise<SalesOrder> {

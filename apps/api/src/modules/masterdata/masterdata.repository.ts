@@ -391,6 +391,17 @@ export class MasterDataRepository extends BaseRepository {
     return rows.map(this.mapCustomer);
   }
 
+  async countCustomers(tenantId: string, search?: string): Promise<number> {
+    let sql = 'SELECT COUNT(*) as count FROM customers WHERE tenant_id = $1';
+    const params: unknown[] = [tenantId];
+    if (search) {
+      sql += ` AND (name ILIKE $2 OR code ILIKE $2)`;
+      params.push(`%${search}%`);
+    }
+    const result = await this.queryOne<{ count: string }>(sql, params);
+    return parseInt(result?.count || '0', 10);
+  }
+
   async findCustomerById(id: string): Promise<Customer | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       'SELECT * FROM customers WHERE id = $1',
@@ -513,6 +524,17 @@ export class MasterDataRepository extends BaseRepository {
 
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
     return rows.map(this.mapSupplier);
+  }
+
+  async countSuppliers(tenantId: string, search?: string): Promise<number> {
+    let sql = 'SELECT COUNT(*) as count FROM suppliers WHERE tenant_id = $1';
+    const params: unknown[] = [tenantId];
+    if (search) {
+      sql += ` AND (name ILIKE $2 OR code ILIKE $2)`;
+      params.push(`%${search}%`);
+    }
+    const result = await this.queryOne<{ count: string }>(sql, params);
+    return parseInt(result?.count || '0', 10);
   }
 
   async findSupplierById(id: string): Promise<Supplier | null> {

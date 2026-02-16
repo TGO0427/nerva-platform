@@ -308,6 +308,14 @@ export class StockLedgerService {
     return result.rows;
   }
 
+  async countLedgerHistory(tenantId: string, itemId: string): Promise<number> {
+    const result = await this.pool.query<{ count: string }>(
+      'SELECT COUNT(*) as count FROM stock_ledger WHERE tenant_id = $1 AND item_id = $2',
+      [tenantId, itemId],
+    );
+    return parseInt(result.rows[0]?.count || '0', 10);
+  }
+
   /**
    * Get paginated stock snapshots with search support
    * Searches across SKU, description, batch number, bin code, and warehouse name

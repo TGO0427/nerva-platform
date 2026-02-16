@@ -116,6 +116,27 @@ export class SalesRepository extends BaseRepository {
     return rows.map(this.mapOrder);
   }
 
+  async countOrdersByTenant(
+    tenantId: string,
+    filters: { status?: string; customerId?: string },
+  ): Promise<number> {
+    let sql = 'SELECT COUNT(*) as count FROM sales_orders WHERE tenant_id = $1';
+    const params: unknown[] = [tenantId];
+    let idx = 2;
+
+    if (filters.status) {
+      sql += ` AND status = $${idx++}`;
+      params.push(filters.status);
+    }
+    if (filters.customerId) {
+      sql += ` AND customer_id = $${idx++}`;
+      params.push(filters.customerId);
+    }
+
+    const result = await this.queryOne<{ count: string }>(sql, params);
+    return parseInt(result?.count || '0', 10);
+  }
+
   async updateOrderStatus(id: string, status: string): Promise<SalesOrder | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       'UPDATE sales_orders SET status = $1 WHERE id = $2 RETURNING *',

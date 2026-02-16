@@ -5,6 +5,7 @@ import { PutawayRepository, PutawayTaskDetail, PutawayFilters } from './putaway.
 import { StockLedgerService } from './stock-ledger.service';
 import { BatchRepository } from './batch.repository';
 import { MasterDataService } from '../masterdata/masterdata.service';
+import { buildPaginatedResult } from '../../common/utils/pagination';
 
 @Injectable()
 export class InventoryService {
@@ -49,8 +50,11 @@ export class InventoryService {
 
   async listGrns(tenantId: string, status?: string, page = 1, limit = 50) {
     const offset = (page - 1) * limit;
-    const grns = await this.repository.findGrnsByTenant(tenantId, status, limit, offset);
-    return { data: grns, meta: { page, limit } };
+    const [data, total] = await Promise.all([
+      this.repository.findGrnsByTenant(tenantId, status, limit, offset),
+      this.repository.countGrnsByTenant(tenantId, status),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async receiveGrnLine(
@@ -155,8 +159,11 @@ export class InventoryService {
 
   async getLedgerHistory(tenantId: string, itemId: string, page = 1, limit = 50) {
     const offset = (page - 1) * limit;
-    const history = await this.stockLedger.getLedgerHistory(tenantId, itemId, limit, offset);
-    return { data: history, meta: { page, limit } };
+    const [data, total] = await Promise.all([
+      this.stockLedger.getLedgerHistory(tenantId, itemId, limit, offset),
+      this.stockLedger.countLedgerHistory(tenantId, itemId),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   // Transfer between bins
@@ -210,8 +217,11 @@ export class InventoryService {
 
   async listAdjustments(tenantId: string, status?: string, page = 1, limit = 50) {
     const offset = (page - 1) * limit;
-    const adjustments = await this.repository.findAdjustmentsByTenant(tenantId, status, limit, offset);
-    return { data: adjustments, meta: { page, limit } };
+    const [data, total] = await Promise.all([
+      this.repository.findAdjustmentsByTenant(tenantId, status, limit, offset),
+      this.repository.countAdjustmentsByTenant(tenantId, status),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async approveAdjustment(id: string, approvedBy: string): Promise<Adjustment> {

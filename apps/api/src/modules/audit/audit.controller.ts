@@ -11,6 +11,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { TenantId } from '../../common/decorators/tenant.decorator';
+import { buildPaginatedResult } from '../../common/utils/pagination';
 
 @ApiTags('audit')
 @ApiBearerAuth()
@@ -51,6 +52,6 @@ export class AuditController {
       this.auditService.count(tenantId, filters),
     ]);
 
-    return { data, total, page: pageNum, limit: limitNum };
+    return buildPaginatedResult(data, total, pageNum, limitNum);
   }
 }

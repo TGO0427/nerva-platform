@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DispatchRepository, DispatchTrip, DispatchStop, Pod } from './dispatch.repository';
+import { buildPaginatedResult } from '../../common/utils/pagination';
 
 interface ShipmentInfo {
   id: string;
@@ -175,8 +176,11 @@ export class DispatchService {
     limit = 50,
   ) {
     const offset = (page - 1) * limit;
-    const trips = await this.repository.findTripsByTenant(tenantId, filters, limit, offset);
-    return { data: trips, meta: { page, limit } };
+    const [data, total] = await Promise.all([
+      this.repository.findTripsByTenant(tenantId, filters, limit, offset),
+      this.repository.countTripsByTenant(tenantId, filters),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async assignDriver(tripId: string, driverId: string, vehicleId?: string): Promise<DispatchTrip> {

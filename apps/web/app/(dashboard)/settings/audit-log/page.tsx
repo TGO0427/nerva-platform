@@ -187,7 +187,7 @@ export default function AuditLogPage() {
   };
 
   const hasFilters = entityType || action || fromDate || toDate;
-  const totalPages = data ? Math.ceil(data.total / limit) : 0;
+  const totalPages = data?.meta?.totalPages || 0;
   const entries = data?.data || [];
 
   const handleExport = () => {
@@ -359,11 +359,11 @@ export default function AuditLogPage() {
         </CardContent>
       </Card>
 
-      {data && data.total > 0 && (
+      {data && (data.meta?.total || 0) > 0 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-slate-500">
-            Showing {(page - 1) * limit + 1}&ndash;{Math.min(page * limit, data.total)} of{' '}
-            {data.total} entries
+            Showing {(page - 1) * limit + 1}&ndash;{Math.min(page * limit, data.meta?.total || 0)} of{' '}
+            {data.meta?.total || 0} entries
           </p>
           <div className="flex gap-2">
             <Button

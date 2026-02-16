@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ReturnsRepository, Rma, RmaLine, CreditNoteDraft } from './returns.repository';
 import { StockLedgerService } from '../inventory/stock-ledger.service';
+import { buildPaginatedResult } from '../../common/utils/pagination';
 
 @Injectable()
 export class ReturnsService {
@@ -62,8 +63,11 @@ export class ReturnsService {
     limit = 50,
   ) {
     const offset = (page - 1) * limit;
-    const rmas = await this.repository.findRmasByTenant(tenantId, { ...filters, siteId }, limit, offset);
-    return { data: rmas, meta: { page, limit } };
+    const [data, total] = await Promise.all([
+      this.repository.findRmasByTenant(tenantId, { ...filters, siteId }, limit, offset),
+      this.repository.countRmasByTenant(tenantId, { ...filters, siteId }),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async receiveRmaLine(
@@ -198,8 +202,11 @@ export class ReturnsService {
 
   async listCreditNotes(tenantId: string, status?: string, page = 1, limit = 50) {
     const offset = (page - 1) * limit;
-    const notes = await this.repository.findCreditNotesByTenant(tenantId, status, limit, offset);
-    return { data: notes, meta: { page, limit } };
+    const [data, total] = await Promise.all([
+      this.repository.findCreditNotesByTenant(tenantId, status, limit, offset),
+      this.repository.countCreditNotesByTenant(tenantId, status),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async approveCreditNote(id: string, approvedBy: string): Promise<CreditNoteDraft> {

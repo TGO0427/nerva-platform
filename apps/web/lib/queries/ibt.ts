@@ -35,7 +35,7 @@ export function useIbts(params: {
       if (params.status) query.set('status', params.status);
       if (params.fromWarehouseId) query.set('fromWarehouseId', params.fromWarehouseId);
 
-      const { data } = await api.get<{ data: IbtDetail[]; total: number }>(
+      const { data } = await api.get<{ data: IbtDetail[]; meta: { page: number; limit: number; total: number; totalPages: number } }>(
         `/inventory/ibts?${query.toString()}`,
       );
       return data;

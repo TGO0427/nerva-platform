@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { IntegrationsRepository, PostingQueueItem } from './integrations.repository';
+import { buildPaginatedResult } from '../../common/utils/pagination';
 
 @Injectable()
 export class PostingQueueService {
@@ -27,8 +28,11 @@ export class PostingQueueService {
 
   async listQueue(tenantId: string, status?: string, page = 1, limit = 50) {
     const offset = (page - 1) * limit;
-    const items = await this.repository.findQueueByTenant(tenantId, status, limit, offset);
-    return { data: items, meta: { page, limit } };
+    const [data, total] = await Promise.all([
+      this.repository.findQueueByTenant(tenantId, status, limit, offset),
+      this.repository.countQueueByTenant(tenantId, status),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async getPendingItems(integrationId: string, limit = 50): Promise<PostingQueueItem[]> {

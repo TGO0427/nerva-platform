@@ -111,13 +111,13 @@ export default function IbtListPage() {
     },
   ];
 
-  const totalPages = data ? Math.ceil(data.total / limit) : 0;
+  const totalPages = data?.meta?.totalPages || 0;
 
   // Stats
   const draftCount = data?.data?.filter(i => i.status === 'DRAFT').length || 0;
   const pendingApproval = data?.data?.filter(i => i.status === 'PENDING_APPROVAL').length || 0;
   const inTransitCount = data?.data?.filter(i => i.status === 'IN_TRANSIT').length || 0;
-  const totalIbts = data?.total || 0;
+  const totalIbts = data?.meta?.total || 0;
 
   return (
     <PageShell>
@@ -247,10 +247,10 @@ export default function IbtListPage() {
         </CardContent>
       </Card>
 
-      {data && data.total > 0 && (
+      {data && (data.meta?.total || 0) > 0 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-slate-500">
-            Page {page} of {totalPages} ({data.total} total)
+            Page {page} of {totalPages} ({data.meta?.total || 0} total)
           </p>
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
