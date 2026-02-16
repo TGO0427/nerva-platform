@@ -57,3 +57,72 @@ export function useRecentActivity(limit: number = 10) {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 }
+
+// Weekly trend (orders + shipments per week)
+export interface WeeklyTrend {
+  week: string;
+  orders: number;
+  shipments: number;
+}
+
+export function useWeeklyTrend() {
+  return useQuery({
+    queryKey: [DASHBOARD_KEY, 'weekly-trend'],
+    queryFn: async () => {
+      const response = await api.get<WeeklyTrend[]>('/dashboard/weekly-trend');
+      return response.data;
+    },
+    refetchInterval: 60000,
+  });
+}
+
+// Status distribution (order statuses)
+export interface StatusDistribution {
+  status: string;
+  count: number;
+}
+
+export function useStatusDistribution() {
+  return useQuery({
+    queryKey: [DASHBOARD_KEY, 'status-distribution'],
+    queryFn: async () => {
+      const response = await api.get<StatusDistribution[]>('/dashboard/status-distribution');
+      return response.data;
+    },
+    refetchInterval: 60000,
+  });
+}
+
+// Orders by warehouse
+export interface WarehouseBreakdown {
+  warehouse: string;
+  orders: number;
+}
+
+export function useOrdersByWarehouse() {
+  return useQuery({
+    queryKey: [DASHBOARD_KEY, 'by-warehouse'],
+    queryFn: async () => {
+      const response = await api.get<WarehouseBreakdown[]>('/dashboard/by-warehouse');
+      return response.data;
+    },
+    refetchInterval: 60000,
+  });
+}
+
+// Top customers
+interface DashboardTopCustomer {
+  name: string;
+  orders: number;
+}
+
+export function useTopCustomers() {
+  return useQuery({
+    queryKey: [DASHBOARD_KEY, 'top-customers'],
+    queryFn: async () => {
+      const response = await api.get<DashboardTopCustomer[]>('/dashboard/top-customers');
+      return response.data;
+    },
+    refetchInterval: 60000,
+  });
+}

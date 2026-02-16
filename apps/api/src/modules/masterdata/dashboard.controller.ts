@@ -31,4 +31,28 @@ export class DashboardController {
   ) {
     return this.service.getRecentActivity(tenantId, limit || 10);
   }
+
+  @Get('weekly-trend')
+  @ApiOperation({ summary: 'Get weekly order/shipment trend' })
+  async getWeeklyTrend(@TenantId() tenantId: string) {
+    return this.service.getWeeklyTrend(tenantId);
+  }
+
+  @Get('status-distribution')
+  @ApiOperation({ summary: 'Get order status distribution' })
+  async getStatusDistribution(@TenantId() tenantId: string) {
+    return this.service.getStatusDistribution(tenantId);
+  }
+
+  @Get('by-warehouse')
+  @ApiOperation({ summary: 'Get orders by warehouse' })
+  async getByWarehouse(@TenantId() tenantId: string) {
+    return this.service.getOrdersByWarehouse(tenantId);
+  }
+
+  @Get('top-customers')
+  @ApiOperation({ summary: 'Get top customers by order count' })
+  async getTopCustomers(@TenantId() tenantId: string) {
+    return this.service.getTopCustomers(tenantId);
+  }
 }

@@ -3,62 +3,38 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useAuth, hasPermission } from '@/lib/auth';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Breadcrumbs } from '@/components/layout';
 import { Spinner } from '@/components/ui/spinner';
-import { KpiCard } from '@/components/ui/kpi-card';
 import { AnimatedNumber, AnimatedCurrency } from '@/components/ui/animated-number';
-import { useDashboardStats, useRecentActivity } from '@/lib/queries';
+import {
+  useDashboardStats,
+  useRecentActivity,
+  useWeeklyTrend,
+  useStatusDistribution,
+  useOrdersByWarehouse,
+  useTopCustomers,
+} from '@/lib/queries';
 import { PERMISSIONS } from '@nerva/shared';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell,
+  BarChart, Bar,
+} from 'recharts';
+import type { PieLabelRenderProps } from 'recharts';
 
-interface QuickActionProps {
-  title: string;
-  description: string;
-  href: string;
-  icon: React.ReactNode;
-  primary?: boolean;
-}
+const STATUS_COLORS: Record<string, string> = {
+  PENDING: '#f59e0b',
+  CONFIRMED: '#3b82f6',
+  ALLOCATED: '#8b5cf6',
+  PICKING: '#6366f1',
+  PACKED: '#06b6d4',
+  SHIPPED: '#10b981',
+  DELIVERED: '#22c55e',
+  INVOICED: '#14b8a6',
+};
 
-function QuickAction({ title, description, href, icon, primary }: QuickActionProps) {
-  if (primary) {
-    return (
-      <Link href={href}>
-        <motion.div
-          className="flex items-center p-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl text-white shadow-md hover:shadow-lg"
-          whileHover={{ y: -2, boxShadow: '0 8px 20px rgba(59,130,246,0.3)' }}
-          transition={{ type: 'spring', stiffness: 550, damping: 35 }}
-        >
-          <div className="h-11 w-11 bg-white/20 rounded-xl flex items-center justify-center mr-4">
-            {icon}
-          </div>
-          <div>
-            <p className="font-semibold">{title}</p>
-            <p className="text-sm text-blue-100">{description}</p>
-          </div>
-        </motion.div>
-      </Link>
-    );
-  }
-
-  return (
-    <Link href={href}>
-      <motion.div
-        className="flex items-center p-4 bg-white rounded-2xl border border-slate-200/70 hover:border-slate-300 transition-all"
-        whileHover={{ y: -2, boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
-        transition={{ type: 'spring', stiffness: 550, damping: 35 }}
-      >
-        <div className="h-11 w-11 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 mr-4">
-          {icon}
-        </div>
-        <div>
-          <p className="font-medium text-slate-900">{title}</p>
-          <p className="text-sm text-slate-500">{description}</p>
-        </div>
-      </motion.div>
-    </Link>
-  );
-}
+const PIE_FALLBACK_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#ec4899', '#f97316'];
 
 function getTimeAgo(dateString: string): string {
   const date = new Date(dateString);
@@ -78,6 +54,10 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: activity, isLoading: activityLoading } = useRecentActivity(8);
+  const { data: weeklyTrend } = useWeeklyTrend();
+  const { data: statusDist } = useStatusDistribution();
+  const { data: warehouseData } = useOrdersByWarehouse();
+  const { data: topCustomers } = useTopCustomers();
 
   const quickActions = [
     {
@@ -111,23 +91,12 @@ export default function DashboardPage() {
     },
   ].filter(action => hasPermission(user, action.permission));
 
-  // Determine tones based on values
-  const pendingOrdersTone = (stats?.pendingOrders ?? 0) > 0 ? 'blue' : 'neutral';
-  const readyToPickTone = (stats?.activePickWaves ?? 0) > 0 ? 'blue' : 'neutral';
-  const openReturnsTone = (stats?.openReturns ?? 0) > 0 ? 'amber' : 'neutral';
-  const stockAlertsTone = ((stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)) > 0 ? 'red' : 'green';
-  const lateOrdersTone = (stats?.lateOrders ?? 0) > 0 ? 'red' : 'green';
-  const openNCRsTone = (stats?.openNCRs ?? 0) > 0 ? 'amber' : 'neutral';
-
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Brand Strip */}
-      <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-emerald-500 to-blue-500" />
+    <div>
+      <Breadcrumbs />
 
-      <div className="p-6">
-        <Breadcrumbs />
-
-        <div className="mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+        <div>
           <p className="text-sm text-slate-500">
             Welcome back, {user?.displayName?.split(' ')[0] || 'User'}
           </p>
@@ -135,237 +104,357 @@ export default function DashboardPage() {
             Operations Overview
           </h1>
         </div>
+        {/* Quick action buttons inline */}
+        <div className="flex gap-2">
+          {quickActions.slice(0, 2).map((action) => (
+            <Link key={action.title} href={action.href}>
+              <Button variant={action.primary ? 'primary' : 'secondary'} size="sm">
+                {action.icon}
+                <span className="ml-1.5">{action.title}</span>
+              </Button>
+            </Link>
+          ))}
+        </div>
+      </div>
 
-        {/* KPI Cards */}
-        {statsLoading ? (
-          <div className="flex justify-center py-8">
-            <Spinner />
-          </div>
-        ) : (
-          <>
-            <motion.div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
-              initial="hidden"
-              animate="show"
-              variants={{
-                hidden: { opacity: 0 },
-                show: { opacity: 1, transition: { staggerChildren: 0.05 } }
-              }}
-            >
-              <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
-                <KpiCard
-                  title="Pending Orders"
-                  value={<AnimatedNumber value={stats?.pendingOrders ?? 0} duration={400} />}
-                  sub={stats?.allocatedOrders ? `${stats.allocatedOrders} allocated` : (stats?.pendingOrders ?? 0) === 0 ? 'Create an order to start' : undefined}
-                  icon={<ClipboardIcon />}
-                  href="/sales"
-                  tone={pendingOrdersTone as 'blue' | 'neutral'}
-                />
-              </motion.div>
-              <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
-                <KpiCard
-                  title="Ready to Pick"
-                  value={<AnimatedNumber value={stats?.activePickWaves ?? 0} duration={400} />}
-                  sub={stats?.pendingPickTasks ? `${stats.pendingPickTasks} pick tasks` : (stats?.activePickWaves ?? 0) === 0 ? 'Create a pick wave' : undefined}
-                  icon={<BoxIcon />}
-                  href="/fulfilment?tab=allocated-orders"
-                  tone={readyToPickTone as 'blue' | 'neutral'}
-                />
-              </motion.div>
-              <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
-                <KpiCard
-                  title="Open Returns"
-                  value={<AnimatedNumber value={stats?.openReturns ?? 0} duration={400} />}
-                  sub={(stats?.openReturns ?? 0) > 0 ? 'Awaiting processing' : 'No returns to process'}
-                  icon={<RefreshIcon />}
-                  href="/returns"
-                  tone={openReturnsTone as 'amber' | 'neutral'}
-                />
-              </motion.div>
-              <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
-                <KpiCard
-                  title="Stock Alerts"
-                  value={<AnimatedNumber value={(stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)} duration={400} />}
-                  sub={stats?.lowStockItems ? `${stats.lowStockItems} low stock` : 'All stock levels healthy'}
-                  icon={<AlertIcon />}
-                  href="/inventory/expiry-alerts"
-                  tone={stockAlertsTone as 'red' | 'green'}
-                />
-              </motion.div>
-            </motion.div>
+      {/* Stat Cards - single row with colored left borders */}
+      {statsLoading ? (
+        <div className="flex justify-center py-8">
+          <Spinner />
+        </div>
+      ) : (
+        <motion.div
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6"
+          initial="hidden"
+          animate="show"
+          variants={{
+            hidden: { opacity: 0 },
+            show: { opacity: 1, transition: { staggerChildren: 0.04 } }
+          }}
+        >
+          <StatCard
+            label="Pending Orders"
+            value={stats?.pendingOrders ?? 0}
+            sub={stats?.allocatedOrders ? `${stats.allocatedOrders} allocated` : undefined}
+            color="blue"
+            href="/sales"
+          />
+          <StatCard
+            label="Weekly Sales"
+            value={stats?.weeklySalesValue ?? 0}
+            isCurrency
+            sub="Last 7 days"
+            color="emerald"
+            href="/sales"
+          />
+          <StatCard
+            label="Trips Active"
+            value={stats?.tripsInProgress ?? 0}
+            sub={stats?.tripsCompletedToday ? `${stats.tripsCompletedToday} done today` : undefined}
+            color="cyan"
+            href="/dispatch"
+          />
+          <StatCard
+            label="Open Returns"
+            value={stats?.openReturns ?? 0}
+            sub={(stats?.openReturns ?? 0) > 0 ? 'Awaiting processing' : 'All clear'}
+            color="amber"
+            href="/returns"
+          />
+          <StatCard
+            label="Late Orders"
+            value={stats?.lateOrders ?? 0}
+            sub={(stats?.lateOrders ?? 0) > 0 ? 'Past ship date' : 'On track'}
+            color="red"
+            href="/sales?late=true"
+          />
+          <StatCard
+            label="Stock Alerts"
+            value={(stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)}
+            sub={stats?.lowStockItems ? `${stats.lowStockItems} low stock` : 'Healthy'}
+            color="violet"
+            href="/inventory/expiry-alerts"
+          />
+        </motion.div>
+      )}
 
-            {/* Today's Ops */}
-            <div className="mb-6">
-              <h2 className="text-sm font-semibold text-slate-700 tracking-tight uppercase mb-3">Today&apos;s Ops</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <KpiCard
-                  title="Trips in Progress"
-                  value={<AnimatedNumber value={stats?.tripsInProgress ?? 0} duration={400} />}
-                  sub={stats?.tripsCompletedToday ? `${stats.tripsCompletedToday} completed today` : 'No trips completed yet'}
-                  icon={<TruckIcon />}
-                  href="/dispatch"
-                  tone={(stats?.tripsInProgress ?? 0) > 0 ? 'blue' : 'neutral'}
-                />
-                <KpiCard
-                  title="Open NCRs"
-                  value={<AnimatedNumber value={stats?.openNCRs ?? 0} duration={400} />}
-                  sub={(stats?.openNCRs ?? 0) > 0 ? 'Requires attention' : 'All clear'}
-                  icon={<WarningIcon />}
-                  href="/returns"
-                  tone={openNCRsTone as 'amber' | 'neutral'}
-                />
-                <KpiCard
-                  title="Late Orders"
-                  value={<AnimatedNumber value={stats?.lateOrders ?? 0} duration={400} />}
-                  sub={(stats?.lateOrders ?? 0) > 0 ? 'Past requested ship date' : 'All orders on track'}
-                  icon={<ClockIcon />}
-                  href="/sales?late=true"
-                  tone={lateOrdersTone as 'red' | 'green'}
-                />
-              </div>
-            </div>
+      {/* Charts Section - 2x2 grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        {/* Weekly Trend Line Chart */}
+        <ChartCard title="Weekly Trend" subtitle="Orders vs Shipments">
+          {weeklyTrend && weeklyTrend.length > 0 ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={weeklyTrend} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="week" tick={{ fontSize: 12, fill: '#64748b' }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }} />
+                <Legend wrapperStyle={{ fontSize: 13 }} />
+                <Line type="monotone" dataKey="orders" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Orders" />
+                <Line type="monotone" dataKey="shipments" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Shipments" />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty label="No trend data yet" />
+          )}
+        </ChartCard>
 
-            {/* Weekly Summary */}
-            <div className="mb-6">
-              <h2 className="text-sm font-semibold text-slate-700 tracking-tight uppercase mb-3">Weekly Summary</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <KpiCard
-                  title="Weekly Sales"
-                  value={<AnimatedCurrency value={stats?.weeklySalesValue ?? 0} duration={500} />}
-                  sub="Last 7 days"
-                  icon={<CurrencyIcon />}
-                  tone="green"
-                  sparkline={[4, 7, 5, 9, 6, 8, 10]}
-                />
-                <KpiCard
-                  title="Weekly Orders"
-                  value={<AnimatedNumber value={stats?.weeklyOrdersCount ?? 0} duration={400} />}
-                  sub="Last 7 days"
-                  icon={<TrendingIcon />}
-                  tone="blue"
-                  sparkline={[3, 5, 4, 7, 6, 8, 9]}
-                />
-                <KpiCard
-                  title="Shipped This Week"
-                  value={<AnimatedNumber value={stats?.shippedOrders ?? 0} duration={400} />}
-                  sub="Completed shipments"
-                  icon={<ShipIcon />}
-                  tone="green"
-                />
-              </div>
-            </div>
-
-            {/* Operational KPIs */}
-            <div className="mb-6">
-              <h2 className="text-sm font-semibold text-slate-700 tracking-tight uppercase mb-3">Performance Metrics</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiCard
-                  title="OTIF %"
-                  value={<><AnimatedNumber value={stats?.otifPercent ?? 0} duration={400} />%</>}
-                  sub="On-time in-full delivery"
-                  icon={<TargetIcon />}
-                  tone={(stats?.otifPercent ?? 0) >= 95 ? 'green' : (stats?.otifPercent ?? 0) >= 80 ? 'blue' : 'amber'}
-                />
-                <KpiCard
-                  title="POD Rate"
-                  value={<><AnimatedNumber value={stats?.podCompletionPercent ?? 0} duration={400} />%</>}
-                  sub="Proof of delivery captured"
-                  icon={<CheckCircleIcon />}
-                  tone={(stats?.podCompletionPercent ?? 0) >= 95 ? 'green' : (stats?.podCompletionPercent ?? 0) >= 80 ? 'blue' : 'amber'}
-                />
-                <KpiCard
-                  title="Returns Rate"
-                  value={<><AnimatedNumber value={stats?.returnsRate ?? 0} duration={400} decimals={1} />%</>}
-                  sub="Weekly return value ratio"
-                  icon={<ReturnIcon />}
-                  tone={(stats?.returnsRate ?? 0) <= 2 ? 'green' : (stats?.returnsRate ?? 0) <= 5 ? 'amber' : 'red'}
-                />
-                <KpiCard
-                  title="Dispatch Cycle"
-                  value={<><AnimatedNumber value={stats?.avgDispatchCycleHours ?? 0} duration={400} decimals={1} />h</>}
-                  sub="Avg trip duration (30d)"
-                  icon={<CycleIcon />}
-                  tone={(stats?.avgDispatchCycleHours ?? 0) <= 8 ? 'green' : (stats?.avgDispatchCycleHours ?? 0) <= 24 ? 'blue' : 'amber'}
-                />
-              </div>
-            </div>
-          </>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Quick Actions */}
-          <div className="lg:col-span-2">
-            <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm">
-              <div className="p-5 border-b border-slate-100">
-                <h3 className="text-lg font-semibold text-slate-900">Quick Actions</h3>
-              </div>
-              <div className="p-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {quickActions.map((action) => (
-                    <QuickAction key={action.title} {...action} />
+        {/* Status Distribution Pie Chart */}
+        <ChartCard title="Order Status" subtitle="Distribution">
+          {statusDist && statusDist.length > 0 ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={statusDist}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={95}
+                  paddingAngle={3}
+                  dataKey="count"
+                  nameKey="status"
+                  label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${props.value ?? 0})`}
+                >
+                  {statusDist.map((entry, index) => (
+                    <Cell
+                      key={entry.status}
+                      fill={STATUS_COLORS[entry.status] || PIE_FALLBACK_COLORS[index % PIE_FALLBACK_COLORS.length]}
+                    />
                   ))}
-                </div>
-                {quickActions.length === 0 && (
-                  <p className="text-slate-500 text-center py-4">
-                    No actions available with your current permissions.
-                  </p>
-                )}
-              </div>
+                </Pie>
+                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty label="No orders yet" />
+          )}
+        </ChartCard>
+
+        {/* Orders by Warehouse Bar Chart */}
+        <ChartCard title="By Warehouse" subtitle="Order volume">
+          {warehouseData && warehouseData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={warehouseData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="warehouse" tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }} />
+                <Bar dataKey="orders" fill="#8b5cf6" radius={[6, 6, 0, 0]} name="Orders" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty label="No warehouse data" />
+          )}
+        </ChartCard>
+
+        {/* Top Customers */}
+        <ChartCard title="Top Customers" subtitle="By order count">
+          {topCustomers && topCustomers.length > 0 ? (
+            <div className="space-y-3 pt-1">
+              {topCustomers.map((c, i) => {
+                const maxOrders = topCustomers[0]?.orders || 1;
+                const pct = Math.round((c.orders / maxOrders) * 100);
+                const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-violet-500', 'bg-cyan-500'];
+                return (
+                  <div key={c.name}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-slate-700 truncate mr-2">{c.name}</span>
+                      <span className="text-sm font-semibold text-slate-900">{c.orders}</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${colors[i % colors.length]}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          ) : (
+            <ChartEmpty label="No customer data" />
+          )}
+        </ChartCard>
+      </div>
+
+      {/* Bottom section: Performance + Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Performance Metrics */}
+        <div className="lg:col-span-2 rounded-2xl bg-white border border-slate-200/70 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-tight mb-4">Performance</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <MetricCard
+              label="OTIF"
+              value={`${stats?.otifPercent ?? 0}%`}
+              sub="On-time in-full"
+              good={(stats?.otifPercent ?? 0) >= 90}
+            />
+            <MetricCard
+              label="POD Rate"
+              value={`${stats?.podCompletionPercent ?? 0}%`}
+              sub="Delivery proof"
+              good={(stats?.podCompletionPercent ?? 0) >= 90}
+            />
+            <MetricCard
+              label="Returns"
+              value={`${(stats?.returnsRate ?? 0).toFixed(1)}%`}
+              sub="Return ratio"
+              good={(stats?.returnsRate ?? 0) <= 3}
+            />
+            <MetricCard
+              label="Cycle Time"
+              value={`${(stats?.avgDispatchCycleHours ?? 0).toFixed(1)}h`}
+              sub="Avg dispatch"
+              good={(stats?.avgDispatchCycleHours ?? 0) <= 12}
+            />
           </div>
 
-          {/* Recent Activity */}
-          <div>
-            <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm">
-              <div className="p-5 border-b border-slate-100">
-                <h3 className="text-lg font-semibold text-slate-900">Recent Activity</h3>
-              </div>
-              <div className="p-5">
-                {activityLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Spinner />
+          {/* Quick Actions Row */}
+          <div className="mt-5 pt-5 border-t border-slate-100">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {quickActions.map((action) => (
+                <Link key={action.title} href={action.href}>
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-sm text-slate-700 hover:text-slate-900">
+                    <div className="text-slate-500">{action.icon}</div>
+                    <span className="font-medium truncate">{action.title}</span>
                   </div>
-                ) : activity && activity.length > 0 ? (
-                  <motion.div
-                    className="space-y-4"
-                    initial="hidden"
-                    animate="show"
-                    variants={{
-                      hidden: { opacity: 0 },
-                      show: { opacity: 1, transition: { staggerChildren: 0.05 } }
-                    }}
-                  >
-                    {activity.map((item) => (
-                      <motion.div
-                        key={`${item.type}-${item.id}`}
-                        className="flex items-start"
-                        variants={{
-                          hidden: { opacity: 0, x: -10 },
-                          show: { opacity: 1, x: 0, transition: { duration: 0.15 } }
-                        }}
-                      >
-                        <ActivityIcon type={item.type} />
-                        <div className="flex-1 min-w-0 ml-3">
-                          <p className="text-sm text-slate-900">{item.message}</p>
-                          <p className="text-xs text-slate-500">{getTimeAgo(item.createdAt)}</p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                ) : (
-                  <div className="text-center py-6">
-                    <div className="h-11 w-11 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
-                      <ActivityEmptyIcon />
-                    </div>
-                    <p className="text-slate-500 mt-3 text-sm">No recent activity</p>
-                    <p className="text-slate-400 text-xs mt-1">Activity will appear as you create orders and process stock.</p>
-                  </div>
-                )}
-              </div>
+                </Link>
+              ))}
             </div>
           </div>
         </div>
+
+        {/* Recent Activity */}
+        <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm">
+          <div className="p-4 border-b border-slate-100">
+            <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-tight">Recent Activity</h3>
+          </div>
+          <div className="p-4">
+            {activityLoading ? (
+              <div className="flex justify-center py-8">
+                <Spinner />
+              </div>
+            ) : activity && activity.length > 0 ? (
+              <div className="space-y-3">
+                {activity.map((item) => (
+                  <div
+                    key={`${item.type}-${item.id}`}
+                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    <ActivityIcon type={item.type} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-800 leading-snug">{item.message}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{getTimeAgo(item.createdAt)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-slate-400 text-sm">No recent activity</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+    </div>
+  );
+}
+
+// --- Stat Card with colored left border ---
+const STAT_COLORS = {
+  blue: 'border-l-blue-500',
+  emerald: 'border-l-emerald-500',
+  cyan: 'border-l-cyan-500',
+  amber: 'border-l-amber-500',
+  red: 'border-l-red-500',
+  violet: 'border-l-violet-500',
+} as const;
+
+function StatCard({
+  label,
+  value,
+  isCurrency,
+  sub,
+  color,
+  href,
+}: {
+  label: string;
+  value: number;
+  isCurrency?: boolean;
+  sub?: string;
+  color: keyof typeof STAT_COLORS;
+  href: string;
+}) {
+  return (
+    <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+      <Link href={href}>
+        <div
+          className={`rounded-xl bg-white border border-slate-200/70 border-l-[3px] ${STAT_COLORS[color]} shadow-sm p-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer`}
+        >
+          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</div>
+          <div className="mt-1.5 text-2xl font-bold text-slate-900">
+            {isCurrency ? (
+              <AnimatedCurrency value={value} duration={500} />
+            ) : (
+              <AnimatedNumber value={value} duration={400} />
+            )}
+          </div>
+          {sub && <div className="mt-0.5 text-xs text-slate-400">{sub}</div>}
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
+// --- Chart card wrapper ---
+function ChartCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm p-5">
+      <div className="flex items-baseline gap-2 mb-4">
+        <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
+        <span className="text-xs text-slate-400">{subtitle}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ChartEmpty({ label }: { label: string }) {
+  return (
+    <div className="flex items-center justify-center h-[260px] text-slate-400 text-sm">
+      {label}
+    </div>
+  );
+}
+
+// --- Performance metric card ---
+function MetricCard({
+  label,
+  value,
+  sub,
+  good,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  good: boolean;
+}) {
+  return (
+    <div className="text-center p-3 rounded-xl bg-slate-50">
+      <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</div>
+      <div className={`text-2xl font-bold mt-1 ${good ? 'text-emerald-600' : 'text-amber-600'}`}>
+        {value}
+      </div>
+      <div className="text-xs text-slate-400 mt-0.5">{sub}</div>
     </div>
   );
 }
@@ -384,34 +473,10 @@ function ActivityIcon({ type }: { type: string }) {
 }
 
 // Icons
-function ClipboardIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
-    </svg>
-  );
-}
-
 function BoxIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-    </svg>
-  );
-}
-
-function RefreshIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-    </svg>
-  );
-}
-
-function AlertIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
     </svg>
   );
 }
@@ -440,93 +505,3 @@ function InventoryIcon() {
   );
 }
 
-function TruckIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-3a2.25 2.25 0 00-2.25-2.25h-1.5v-3.75a.75.75 0 00-.75-.75H9.75a.75.75 0 00-.75.75v7.5H3.375c-.621 0-1.125.504-1.125 1.125v.75M8.25 18.75h6" />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function CurrencyIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function TrendingIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-    </svg>
-  );
-}
-
-function ShipIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-    </svg>
-  );
-}
-
-function WarningIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-    </svg>
-  );
-}
-
-function ActivityEmptyIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-// Operational KPI Icons
-function TargetIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 12h.01" />
-    </svg>
-  );
-}
-
-function CheckCircleIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function ReturnIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-    </svg>
-  );
-}
-
-function CycleIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
-    </svg>
-  );
-}

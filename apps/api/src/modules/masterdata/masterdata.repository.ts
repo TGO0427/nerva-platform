@@ -2744,6 +2744,80 @@ export class MasterDataRepository extends BaseRepository {
       readAt: row.read_at ? (row.read_at as Date).toISOString() : null,
     };
   }
+
+  async getWeeklyTrend(tenantId: string): Promise<{ week: string; orders: number; shipments: number }[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT
+        'W' || EXTRACT(WEEK FROM d.dt)::int as week,
+        (SELECT COUNT(*) FROM sales_orders WHERE tenant_id = $1
+         AND created_at >= d.dt AND created_at < d.dt + INTERVAL '7 days') as orders,
+        (SELECT COUNT(*) FROM shipments WHERE tenant_id = $1
+         AND created_at >= d.dt AND created_at < d.dt + INTERVAL '7 days') as shipments
+      FROM (
+        SELECT generate_series(
+          date_trunc('week', NOW() - INTERVAL '5 weeks'),
+          date_trunc('week', NOW()),
+          '1 week'::interval
+        ) as dt
+      ) d
+      ORDER BY d.dt`,
+      [tenantId],
+    );
+    return rows.map(r => ({
+      week: r.week as string,
+      orders: parseInt(r.orders as string || '0', 10),
+      shipments: parseInt(r.shipments as string || '0', 10),
+    }));
+  }
+
+  async getStatusDistribution(tenantId: string): Promise<{ status: string; count: number }[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT status, COUNT(*) as count
+       FROM sales_orders
+       WHERE tenant_id = $1 AND status NOT IN ('CANCELLED')
+       GROUP BY status
+       ORDER BY count DESC`,
+      [tenantId],
+    );
+    return rows.map(r => ({
+      status: r.status as string,
+      count: parseInt(r.count as string || '0', 10),
+    }));
+  }
+
+  async getOrdersByWarehouse(tenantId: string): Promise<{ warehouse: string; orders: number }[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT w.name as warehouse, COUNT(so.id) as orders
+       FROM sales_orders so
+       JOIN warehouses w ON w.id = so.warehouse_id AND w.tenant_id = $1
+       WHERE so.tenant_id = $1 AND so.status NOT IN ('CANCELLED')
+       GROUP BY w.name
+       ORDER BY orders DESC
+       LIMIT 10`,
+      [tenantId],
+    );
+    return rows.map(r => ({
+      warehouse: r.warehouse as string,
+      orders: parseInt(r.orders as string || '0', 10),
+    }));
+  }
+
+  async getTopCustomers(tenantId: string): Promise<{ name: string; orders: number }[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT c.name, COUNT(so.id) as orders
+       FROM sales_orders so
+       JOIN customers c ON c.id = so.customer_id
+       WHERE so.tenant_id = $1 AND so.status NOT IN ('CANCELLED')
+       GROUP BY c.name
+       ORDER BY orders DESC
+       LIMIT 5`,
+      [tenantId],
+    );
+    return rows.map(r => ({
+      name: r.name as string,
+      orders: parseInt(r.orders as string || '0', 10),
+    }));
+  }
 }
 
 export interface Notification {

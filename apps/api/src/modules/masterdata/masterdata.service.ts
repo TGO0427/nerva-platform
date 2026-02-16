@@ -634,6 +634,22 @@ export class MasterDataService {
     return this.repository.getRecentActivity(tenantId, limit);
   }
 
+  async getWeeklyTrend(tenantId: string) {
+    return this.repository.getWeeklyTrend(tenantId);
+  }
+
+  async getStatusDistribution(tenantId: string) {
+    return this.repository.getStatusDistribution(tenantId);
+  }
+
+  async getOrdersByWarehouse(tenantId: string) {
+    return this.repository.getOrdersByWarehouse(tenantId);
+  }
+
+  async getTopCustomers(tenantId: string) {
+    return this.repository.getTopCustomers(tenantId);
+  }
+
   // Reports
   async getSalesReport(tenantId: string, startDate: Date, endDate: Date) {
     return this.repository.getSalesReport(tenantId, startDate, endDate);
