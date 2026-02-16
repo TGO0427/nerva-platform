@@ -6,7 +6,7 @@ import { Breadcrumbs } from '@/components/layout';
 import { ExportActions } from '@/components/ui/export-actions';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { StatCard } from '@/components/ui/stat-card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { useInvoices, useInvoiceStats, useQueryParams, Invoice } from '@/lib/queries';
 import { exportToCSV, generateExportFilename, formatDateForExport, formatCurrencyForExport } from '@/lib/utils/export';
@@ -142,42 +142,30 @@ export default function InvoicesPage() {
 
       {/* Quick stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">
-              {safeStats.outstandingCount}
-            </div>
-            <p className="text-sm text-slate-500">
-              Outstanding ({formatAmount(safeStats.outstandingAmount)})
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-red-600">
-              {safeStats.overdueCount}
-            </div>
-            <p className="text-sm text-red-600">
-              Overdue ({formatAmount(safeStats.overdueAmount)})
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">
-              {formatAmount(safeStats.paidThisMonth)}
-            </div>
-            <p className="text-sm text-slate-500">Paid This Month</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">
-              {formatAmount(safeStats.totalThisMonth)}
-            </div>
-            <p className="text-sm text-slate-500">Total This Month</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Outstanding"
+          value={safeStats.outstandingCount}
+          subtitle={formatAmount(safeStats.outstandingAmount)}
+          iconColor="blue"
+        />
+        <StatCard
+          title="Overdue"
+          value={safeStats.overdueCount}
+          subtitle={formatAmount(safeStats.overdueAmount)}
+          subtitleType="negative"
+          iconColor="red"
+          alert={safeStats.overdueCount > 0}
+        />
+        <StatCard
+          title="Paid This Month"
+          value={formatAmount(safeStats.paidThisMonth)}
+          iconColor="green"
+        />
+        <StatCard
+          title="Total This Month"
+          value={formatAmount(safeStats.totalThisMonth)}
+          iconColor="purple"
+        />
       </div>
 
       <div className="mb-4">

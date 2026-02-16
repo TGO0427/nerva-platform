@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ExportActions } from '@/components/ui/export-actions';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { StatCard } from '@/components/ui/stat-card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { useCreditNotes, useQueryParams, CreditNote } from '@/lib/queries';
 import { exportToCSV, generateExportFilename, formatDateForExport, formatCurrencyForExport } from '@/lib/utils/export';
@@ -124,30 +124,26 @@ export default function CreditNotesPage() {
 
       {/* Quick stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-yellow-600">{pendingApproval}</div>
-            <p className="text-sm text-slate-500">Pending Approval</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">{approved}</div>
-            <p className="text-sm text-slate-500">Approved</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">${totalAmount.toFixed(2)}</div>
-            <p className="text-sm text-slate-500">Total Value</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">{data?.meta?.total || 0}</div>
-            <p className="text-sm text-slate-500">Total Credit Notes</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Pending Approval"
+          value={pendingApproval}
+          iconColor="yellow"
+        />
+        <StatCard
+          title="Approved"
+          value={approved}
+          iconColor="green"
+        />
+        <StatCard
+          title="Total Value"
+          value={`R ${totalAmount.toFixed(2)}`}
+          iconColor="blue"
+        />
+        <StatCard
+          title="Total Credit Notes"
+          value={data?.meta?.total || 0}
+          iconColor="purple"
+        />
       </div>
 
       <div className="mb-4">
