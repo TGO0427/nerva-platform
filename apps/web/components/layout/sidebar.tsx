@@ -315,7 +315,7 @@ export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 transform transition-transform duration-200 ease-in-out lg:hidden print:hidden',
+          'fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-slate-950 to-slate-900 transform transition-transform duration-200 ease-in-out lg:hidden print:hidden',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -333,7 +333,7 @@ export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
       <motion.aside
         animate={{ width: collapsed ? 72 : 256 }}
         transition={springs.snappy}
-        className="hidden lg:block h-screen shrink-0 overflow-hidden bg-slate-900 print:!hidden"
+        className="hidden lg:block h-screen shrink-0 overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900 print:!hidden"
       >
         <SidebarContent
           collapsed={collapsed}
@@ -417,7 +417,7 @@ function SidebarContent({
                       {isActive && (
                         <motion.div
                           layoutId="navActiveIndicator"
-                          className="absolute inset-0 bg-white/10 rounded-md border-l-2 border-emerald-400"
+                          className="absolute inset-0 bg-white/[0.08] rounded-md border-l-[3px] border-emerald-400"
                           transition={springs.snappy}
                         />
                       )}
