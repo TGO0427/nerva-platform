@@ -24,6 +24,7 @@ import {
 import type { PieLabelRenderProps } from 'recharts';
 
 const STATUS_COLORS: Record<string, string> = {
+  DRAFT: '#94a3b8',
   PENDING: '#f59e0b',
   CONFIRMED: '#3b82f6',
   ALLOCATED: '#8b5cf6',
