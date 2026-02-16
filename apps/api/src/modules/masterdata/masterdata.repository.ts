@@ -2818,6 +2818,95 @@ export class MasterDataRepository extends BaseRepository {
       orders: parseInt(r.orders as string || '0', 10),
     }));
   }
+
+  async globalSearch(tenantId: string, search: string, limit: number = 5) {
+    const term = `%${search}%`;
+
+    const [orders, purchaseOrders, customers, items, suppliers, trips, shipments, invoices, rmas, workOrders] = await Promise.all([
+      // Sales Orders
+      this.queryMany(
+        `SELECT so.id, so.order_no, so.status, c.name as customer_name
+         FROM sales_orders so
+         LEFT JOIN customers c ON c.id = so.customer_id AND c.tenant_id = so.tenant_id
+         WHERE so.tenant_id = $1 AND (so.order_no ILIKE $2 OR c.name ILIKE $2)
+         ORDER BY so.created_at DESC LIMIT $3`,
+        [tenantId, term, limit],
+      ),
+      // Purchase Orders
+      this.queryMany(
+        `SELECT po.id, po.po_no, po.status, s.name as supplier_name
+         FROM purchase_orders po
+         LEFT JOIN suppliers s ON s.id = po.supplier_id AND s.tenant_id = po.tenant_id
+         WHERE po.tenant_id = $1 AND (po.po_no ILIKE $2 OR s.name ILIKE $2)
+         ORDER BY po.created_at DESC LIMIT $3`,
+        [tenantId, term, limit],
+      ),
+      // Customers
+      this.queryMany(
+        `SELECT id, name, code FROM customers
+         WHERE tenant_id = $1 AND (name ILIKE $2 OR code ILIKE $2)
+         ORDER BY name LIMIT $3`,
+        [tenantId, term, limit],
+      ),
+      // Items
+      this.queryMany(
+        `SELECT id, sku, description FROM items
+         WHERE tenant_id = $1 AND (sku ILIKE $2 OR description ILIKE $2)
+         ORDER BY sku LIMIT $3`,
+        [tenantId, term, limit],
+      ),
+      // Suppliers
+      this.queryMany(
+        `SELECT id, name, code FROM suppliers
+         WHERE tenant_id = $1 AND (name ILIKE $2 OR code ILIKE $2)
+         ORDER BY name LIMIT $3`,
+        [tenantId, term, limit],
+      ),
+      // Dispatch Trips
+      this.queryMany(
+        `SELECT id, trip_no, status FROM dispatch_trips
+         WHERE tenant_id = $1 AND trip_no ILIKE $2
+         ORDER BY created_at DESC LIMIT $3`,
+        [tenantId, term, limit],
+      ),
+      // Shipments
+      this.queryMany(
+        `SELECT id, shipment_no, status FROM shipments
+         WHERE tenant_id = $1 AND shipment_no ILIKE $2
+         ORDER BY created_at DESC LIMIT $3`,
+        [tenantId, term, limit],
+      ),
+      // Invoices
+      this.queryMany(
+        `SELECT i.id, i.invoice_no, i.status, c.name as customer_name
+         FROM invoices i
+         LEFT JOIN customers c ON c.id = i.customer_id AND c.tenant_id = i.tenant_id
+         WHERE i.tenant_id = $1 AND (i.invoice_no ILIKE $2 OR c.name ILIKE $2)
+         ORDER BY i.created_at DESC LIMIT $3`,
+        [tenantId, term, limit],
+      ),
+      // RMAs
+      this.queryMany(
+        `SELECT r.id, r.rma_no, r.status, c.name as customer_name
+         FROM rmas r
+         LEFT JOIN customers c ON c.id = r.customer_id AND c.tenant_id = r.tenant_id
+         WHERE r.tenant_id = $1 AND (r.rma_no ILIKE $2 OR c.name ILIKE $2)
+         ORDER BY r.created_at DESC LIMIT $3`,
+        [tenantId, term, limit],
+      ),
+      // Work Orders
+      this.queryMany(
+        `SELECT wo.id, wo.work_order_no, wo.status, i.sku as item_sku
+         FROM work_orders wo
+         LEFT JOIN items i ON i.id = wo.item_id AND i.tenant_id = wo.tenant_id
+         WHERE wo.tenant_id = $1 AND (wo.work_order_no ILIKE $2 OR i.sku ILIKE $2)
+         ORDER BY wo.created_at DESC LIMIT $3`,
+        [tenantId, term, limit],
+      ),
+    ]);
+
+    return { orders, purchaseOrders, customers, items, suppliers, trips, shipments, invoices, rmas, workOrders };
+  }
 }
 
 export interface Notification {

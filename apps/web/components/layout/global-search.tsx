@@ -7,7 +7,10 @@ import { useDebounce } from '@/lib/hooks/use-debounce';
 import { api } from '@/lib/api';
 
 // Types for search results
-type ResultType = 'order' | 'customer' | 'item' | 'trip' | 'purchase_order' | 'shipment' | 'supplier' | 'command' | 'recent';
+type ResultType =
+  | 'order' | 'customer' | 'item' | 'trip' | 'purchase_order' | 'shipment'
+  | 'supplier' | 'invoice' | 'rma' | 'work_order'
+  | 'command' | 'recent';
 
 interface SearchResult {
   type: ResultType;
@@ -18,16 +21,34 @@ interface SearchResult {
   icon?: string;
 }
 
-// Command definitions
+// Command definitions — all navigation + create actions
 const COMMANDS: SearchResult[] = [
+  // Create actions
   { type: 'command', id: 'new-order', title: 'Create Sales Order', subtitle: 'Start a new customer order', href: '/sales/new', icon: 'plus' },
   { type: 'command', id: 'new-po', title: 'Create Purchase Order', subtitle: 'Order from supplier', href: '/procurement/purchase-orders/new', icon: 'plus' },
   { type: 'command', id: 'new-customer', title: 'Create Customer', subtitle: 'Add new customer', href: '/master-data/customers/new', icon: 'plus' },
   { type: 'command', id: 'new-item', title: 'Create Item', subtitle: 'Add new product/SKU', href: '/master-data/items/new', icon: 'plus' },
-  { type: 'command', id: 'dispatch', title: 'Go to Dispatch', subtitle: 'Manage delivery trips', href: '/dispatch', icon: 'truck' },
-  { type: 'command', id: 'inventory', title: 'Go to Inventory', subtitle: 'View stock levels', href: '/inventory', icon: 'box' },
-  { type: 'command', id: 'fulfilment', title: 'Go to Fulfilment', subtitle: 'Picking & packing', href: '/fulfilment', icon: 'clipboard' },
+  { type: 'command', id: 'new-supplier', title: 'Create Supplier', subtitle: 'Add new supplier', href: '/master-data/suppliers/new', icon: 'plus' },
+  { type: 'command', id: 'new-wo', title: 'Create Work Order', subtitle: 'Start production', href: '/manufacturing/work-orders/new', icon: 'plus' },
+  { type: 'command', id: 'new-bom', title: 'Create BOM', subtitle: 'New bill of materials', href: '/manufacturing/boms/new', icon: 'plus' },
+  // Navigation
   { type: 'command', id: 'dashboard', title: 'Go to Dashboard', subtitle: 'Overview & KPIs', href: '/dashboard', icon: 'home' },
+  { type: 'command', id: 'sales', title: 'Go to Sales', subtitle: 'Sales orders', href: '/sales', icon: 'nav' },
+  { type: 'command', id: 'dispatch', title: 'Go to Dispatch', subtitle: 'Manage delivery trips', href: '/dispatch', icon: 'truck' },
+  { type: 'command', id: 'fulfilment', title: 'Go to Fulfilment', subtitle: 'Picking & packing', href: '/fulfilment', icon: 'clipboard' },
+  { type: 'command', id: 'inventory', title: 'Go to Inventory', subtitle: 'View stock levels', href: '/inventory', icon: 'box' },
+  { type: 'command', id: 'procurement', title: 'Go to Procurement', subtitle: 'Purchase orders', href: '/procurement/purchase-orders', icon: 'nav' },
+  { type: 'command', id: 'invoices', title: 'Go to Invoices', subtitle: 'Customer invoices', href: '/finance/invoices', icon: 'nav' },
+  { type: 'command', id: 'returns', title: 'Go to Returns', subtitle: 'RMAs & credit notes', href: '/returns', icon: 'nav' },
+  { type: 'command', id: 'manufacturing', title: 'Go to Manufacturing', subtitle: 'Work orders & BOMs', href: '/manufacturing/work-orders', icon: 'nav' },
+  { type: 'command', id: 'customers', title: 'Go to Customers', subtitle: 'Customer master data', href: '/master-data/customers', icon: 'nav' },
+  { type: 'command', id: 'items', title: 'Go to Items', subtitle: 'Product catalogue', href: '/master-data/items', icon: 'nav' },
+  { type: 'command', id: 'suppliers', title: 'Go to Suppliers', subtitle: 'Supplier master data', href: '/master-data/suppliers', icon: 'nav' },
+  { type: 'command', id: 'warehouses', title: 'Go to Warehouses', subtitle: 'Warehouse management', href: '/master-data/warehouses', icon: 'nav' },
+  { type: 'command', id: 'reports', title: 'Go to Reports', subtitle: 'Analytics & reporting', href: '/reports/sales', icon: 'nav' },
+  { type: 'command', id: 'settings', title: 'Go to Settings', subtitle: 'System configuration', href: '/settings', icon: 'nav' },
+  { type: 'command', id: 'notifications', title: 'Go to Notifications', subtitle: 'View all notifications', href: '/notifications', icon: 'nav' },
+  { type: 'command', id: 'audit-log', title: 'Go to Audit Log', subtitle: 'Activity audit trail', href: '/settings/audit-log', icon: 'nav' },
 ];
 
 // Recent items storage key
@@ -57,6 +78,20 @@ function saveRecentItem(item: SearchResult) {
   }
 }
 
+// Result type group order and labels
+const RESULT_TYPE_CONFIG: { type: ResultType; label: string }[] = [
+  { type: 'order', label: 'Sales Orders' },
+  { type: 'purchase_order', label: 'Purchase Orders' },
+  { type: 'customer', label: 'Customers' },
+  { type: 'item', label: 'Items' },
+  { type: 'supplier', label: 'Suppliers' },
+  { type: 'trip', label: 'Trips' },
+  { type: 'shipment', label: 'Shipments' },
+  { type: 'invoice', label: 'Invoices' },
+  { type: 'rma', label: 'Returns (RMA)' },
+  { type: 'work_order', label: 'Work Orders' },
+];
+
 export function GlobalSearch() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -67,6 +102,7 @@ export function GlobalSearch() {
   const [recentItems, setRecentItems] = useState<SearchResult[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const debouncedQuery = useDebounce(query, 200);
 
@@ -83,6 +119,9 @@ export function GlobalSearch() {
     if (q.startsWith('trip-') || q.startsWith('trip ')) return 'trip';
     if (q.startsWith('po-') || q.startsWith('po ')) return 'purchase_order';
     if (q.startsWith('shp-') || q.startsWith('shp ')) return 'shipment';
+    if (q.startsWith('inv-') || q.startsWith('inv ')) return 'invoice';
+    if (q.startsWith('rma-') || q.startsWith('rma ')) return 'rma';
+    if (q.startsWith('wo-') || q.startsWith('wo ')) return 'work_order';
     if (q.startsWith('@')) return 'customer';
     if (q.startsWith('#')) return 'item';
     return 'all';
@@ -98,7 +137,7 @@ export function GlobalSearch() {
     );
   }, [query, queryMode]);
 
-  // Search API
+  // Search API — single unified endpoint
   useEffect(() => {
     // Handle command mode locally
     if (queryMode === 'command') {
@@ -113,137 +152,144 @@ export function GlobalSearch() {
       return;
     }
 
+    // Cancel previous request
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     const search = async () => {
       setIsLoading(true);
       try {
+        // Strip prefix from query
+        const searchTerm = debouncedQuery
+          .replace(/^[@#]/, '')
+          .replace(/^(so|trip|po|shp|inv|rma|wo)[-\s]/i, '')
+          .trim();
+
+        if (!searchTerm) {
+          setResults([]);
+          return;
+        }
+
+        const res = await api.get('/dashboard/search', {
+          params: { q: searchTerm, limit: 5 },
+          signal: controller.signal,
+        });
+
+        const data = res.data;
         const searchResults: SearchResult[] = [];
-        const searchTerm = debouncedQuery.replace(/^[@#]/, '').replace(/^(so|trip|po|shp)[-\s]/i, '');
 
-        // Search based on mode or search all
-        const shouldSearchOrders = queryMode === 'all' || queryMode === 'order';
-        const shouldSearchCustomers = queryMode === 'all' || queryMode === 'customer';
-        const shouldSearchItems = queryMode === 'all' || queryMode === 'item';
-        const shouldSearchTrips = queryMode === 'all' || queryMode === 'trip';
-        const shouldSearchPOs = queryMode === 'all' || queryMode === 'purchase_order';
-        const shouldSearchShipments = queryMode === 'all' || queryMode === 'shipment';
+        // Map backend response to SearchResult format
+        // Only include types matching the current mode
+        const shouldInclude = (type: ResultType) => queryMode === 'all' || queryMode === type;
 
-        // Parallel searches
-        const promises: Promise<void>[] = [];
-
-        if (shouldSearchOrders) {
-          promises.push(
-            api.get('/sales/orders', { params: { search: searchTerm, limit: 5 } })
-              .then(res => {
-                res.data?.data?.forEach((order: { id: string; orderNo: string; customerName?: string; status: string }) => {
-                  searchResults.push({
-                    type: 'order',
-                    id: order.id,
-                    title: order.orderNo,
-                    subtitle: `${order.customerName || 'No customer'} • ${order.status}`,
-                    href: `/sales/${order.id}`,
-                  });
-                });
-              })
-              .catch(() => {})
-          );
+        if (shouldInclude('order')) {
+          data.orders?.forEach((o: { id: string; order_no: string; status: string; customer_name?: string }) => {
+            searchResults.push({
+              type: 'order', id: o.id, title: o.order_no,
+              subtitle: `${o.customer_name || 'No customer'} • ${o.status}`,
+              href: `/sales/${o.id}`,
+            });
+          });
         }
 
-        if (shouldSearchCustomers) {
-          promises.push(
-            api.get('/master-data/customers', { params: { search: searchTerm, limit: 3 } })
-              .then(res => {
-                res.data?.data?.forEach((customer: { id: string; name: string; code?: string }) => {
-                  searchResults.push({
-                    type: 'customer',
-                    id: customer.id,
-                    title: customer.name,
-                    subtitle: customer.code || 'Customer',
-                    href: `/master-data/customers/${customer.id}`,
-                  });
-                });
-              })
-              .catch(() => {})
-          );
+        if (shouldInclude('purchase_order')) {
+          data.purchaseOrders?.forEach((po: { id: string; po_no: string; status: string; supplier_name?: string }) => {
+            searchResults.push({
+              type: 'purchase_order', id: po.id, title: po.po_no,
+              subtitle: `${po.supplier_name || 'No supplier'} • ${po.status}`,
+              href: `/procurement/purchase-orders/${po.id}`,
+            });
+          });
         }
 
-        if (shouldSearchItems) {
-          promises.push(
-            api.get('/master-data/items', { params: { search: searchTerm, limit: 3 } })
-              .then(res => {
-                res.data?.data?.forEach((item: { id: string; sku: string; description: string }) => {
-                  searchResults.push({
-                    type: 'item',
-                    id: item.id,
-                    title: item.sku,
-                    subtitle: item.description || 'Item',
-                    href: `/master-data/items/${item.id}`,
-                  });
-                });
-              })
-              .catch(() => {})
-          );
+        if (shouldInclude('customer')) {
+          data.customers?.forEach((c: { id: string; name: string; code?: string }) => {
+            searchResults.push({
+              type: 'customer', id: c.id, title: c.name,
+              subtitle: c.code || 'Customer',
+              href: `/master-data/customers/${c.id}`,
+            });
+          });
         }
 
-        if (shouldSearchTrips) {
-          promises.push(
-            api.get('/dispatch/trips', { params: { limit: 50 } })
-              .then(res => {
-                res.data?.data?.filter((trip: { tripNo: string }) =>
-                  trip.tripNo.toLowerCase().includes(searchTerm.toLowerCase())
-                ).slice(0, 5).forEach((trip: { id: string; tripNo: string; status: string; driverName?: string }) => {
-                  searchResults.push({
-                    type: 'trip',
-                    id: trip.id,
-                    title: trip.tripNo,
-                    subtitle: `${trip.driverName || 'Unassigned'} • ${trip.status}`,
-                    href: `/dispatch/${trip.id}`,
-                  });
-                });
-              })
-              .catch(() => {})
-          );
+        if (shouldInclude('item')) {
+          data.items?.forEach((i: { id: string; sku: string; description?: string }) => {
+            searchResults.push({
+              type: 'item', id: i.id, title: i.sku,
+              subtitle: i.description || 'Item',
+              href: `/master-data/items/${i.id}`,
+            });
+          });
         }
 
-        if (shouldSearchPOs) {
-          promises.push(
-            api.get('/procurement/purchase-orders', { params: { search: searchTerm, limit: 3 } })
-              .then(res => {
-                res.data?.data?.forEach((po: { id: string; poNo: string; supplierName?: string; status: string }) => {
-                  searchResults.push({
-                    type: 'purchase_order',
-                    id: po.id,
-                    title: po.poNo,
-                    subtitle: `${po.supplierName || 'No supplier'} • ${po.status}`,
-                    href: `/procurement/purchase-orders/${po.id}`,
-                  });
-                });
-              })
-              .catch(() => {})
-          );
+        if (shouldInclude('supplier')) {
+          data.suppliers?.forEach((s: { id: string; name: string; code?: string }) => {
+            searchResults.push({
+              type: 'supplier', id: s.id, title: s.name,
+              subtitle: s.code || 'Supplier',
+              href: `/master-data/suppliers/${s.id}`,
+            });
+          });
         }
 
-        if (shouldSearchShipments) {
-          promises.push(
-            api.get('/fulfilment/shipments', { params: { search: searchTerm, limit: 3 } })
-              .then(res => {
-                res.data?.data?.forEach((shipment: { id: string; shipmentNo: string; status: string }) => {
-                  searchResults.push({
-                    type: 'shipment',
-                    id: shipment.id,
-                    title: shipment.shipmentNo,
-                    subtitle: shipment.status,
-                    href: `/fulfilment/shipments/${shipment.id}`,
-                  });
-                });
-              })
-              .catch(() => {})
-          );
+        if (shouldInclude('trip')) {
+          data.trips?.forEach((t: { id: string; trip_no: string; status: string }) => {
+            searchResults.push({
+              type: 'trip', id: t.id, title: t.trip_no,
+              subtitle: t.status,
+              href: `/dispatch/${t.id}`,
+            });
+          });
         }
 
-        await Promise.all(promises);
+        if (shouldInclude('shipment')) {
+          data.shipments?.forEach((s: { id: string; shipment_no: string; status: string }) => {
+            searchResults.push({
+              type: 'shipment', id: s.id, title: s.shipment_no,
+              subtitle: s.status,
+              href: `/fulfilment/shipments/${s.id}`,
+            });
+          });
+        }
+
+        if (shouldInclude('invoice')) {
+          data.invoices?.forEach((inv: { id: string; invoice_no: string; status: string; customer_name?: string }) => {
+            searchResults.push({
+              type: 'invoice', id: inv.id, title: inv.invoice_no,
+              subtitle: `${inv.customer_name || 'No customer'} • ${inv.status}`,
+              href: `/finance/invoices/${inv.id}`,
+            });
+          });
+        }
+
+        if (shouldInclude('rma')) {
+          data.rmas?.forEach((r: { id: string; rma_no: string; status: string; customer_name?: string }) => {
+            searchResults.push({
+              type: 'rma', id: r.id, title: r.rma_no,
+              subtitle: `${r.customer_name || 'No customer'} • ${r.status}`,
+              href: `/returns/${r.id}`,
+            });
+          });
+        }
+
+        if (shouldInclude('work_order')) {
+          data.workOrders?.forEach((wo: { id: string; work_order_no: string; status: string; item_sku?: string }) => {
+            searchResults.push({
+              type: 'work_order', id: wo.id, title: wo.work_order_no,
+              subtitle: `${wo.item_sku || 'No item'} • ${wo.status}`,
+              href: `/manufacturing/work-orders/${wo.id}`,
+            });
+          });
+        }
+
         setResults(searchResults);
         setSelectedIndex(0);
-      } catch (error) {
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'CanceledError') return;
         console.error('Search error:', error);
         setResults([]);
       } finally {
@@ -314,6 +360,9 @@ export function GlobalSearch() {
       case 'trip': return 'Search dispatch trips...';
       case 'purchase_order': return 'Search purchase orders...';
       case 'shipment': return 'Search shipments...';
+      case 'invoice': return 'Search invoices...';
+      case 'rma': return 'Search RMAs...';
+      case 'work_order': return 'Search work orders...';
       case 'customer': return 'Search customers...';
       case 'item': return 'Search items/SKUs...';
       default: return 'Search or type / for commands...';
@@ -404,12 +453,16 @@ export function GlobalSearch() {
                 {query.length < 2 && queryMode !== 'command' && recentItems.length === 0 && (
                   <div className="py-6 px-4">
                     <p className="text-sm text-slate-600 font-medium mb-3">Quick Tips</p>
-                    <div className="space-y-2 text-xs text-slate-500">
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">/</kbd> Commands (create, navigate)</p>
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">SO-</kbd> Search sales orders</p>
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">TRIP-</kbd> Search dispatch trips</p>
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">@</kbd> Search customers</p>
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">#</kbd> Search items/SKUs</p>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-slate-500">
+                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">/</kbd> Commands</p>
+                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">SO-</kbd> Sales orders</p>
+                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">PO-</kbd> Purchase orders</p>
+                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">TRIP-</kbd> Dispatch trips</p>
+                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">INV-</kbd> Invoices</p>
+                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">RMA-</kbd> Returns</p>
+                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">WO-</kbd> Work orders</p>
+                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">@</kbd> Customers</p>
+                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">#</kbd> Items/SKUs</p>
                     </div>
                   </div>
                 )}
@@ -433,19 +486,9 @@ export function GlobalSearch() {
                 {/* Search results */}
                 {query.length >= 2 && queryMode !== 'command' && results.length > 0 && (
                   <div className="py-2">
-                    {/* Group by type */}
-                    {['order', 'customer', 'item', 'trip', 'purchase_order', 'shipment'].map(type => {
+                    {RESULT_TYPE_CONFIG.map(({ type, label }) => {
                       const typeResults = results.filter(r => r.type === type);
                       if (typeResults.length === 0) return null;
-
-                      const label = {
-                        order: 'Sales Orders',
-                        customer: 'Customers',
-                        item: 'Items',
-                        trip: 'Trips',
-                        purchase_order: 'Purchase Orders',
-                        shipment: 'Shipments',
-                      }[type];
 
                       const baseIndex = results.findIndex(r => r.type === type);
 
@@ -583,7 +626,7 @@ function ResultIcon({ type, icon }: { type: ResultType; icon?: string }) {
       default:
         return (
           <div className={`${baseClass} bg-slate-100 text-slate-600`}>
-            <CommandIcon />
+            <NavigateIcon />
           </div>
         );
     }
@@ -598,6 +641,9 @@ function ResultIcon({ type, icon }: { type: ResultType; icon?: string }) {
     purchase_order: { bg: 'bg-amber-100', color: 'text-amber-600', Icon: OrderIcon },
     shipment: { bg: 'bg-cyan-100', color: 'text-cyan-600', Icon: ShipmentIcon },
     supplier: { bg: 'bg-rose-100', color: 'text-rose-600', Icon: SupplierIcon },
+    invoice: { bg: 'bg-teal-100', color: 'text-teal-600', Icon: InvoiceIcon },
+    rma: { bg: 'bg-pink-100', color: 'text-pink-600', Icon: ReturnIcon },
+    work_order: { bg: 'bg-indigo-100', color: 'text-indigo-600', Icon: WorkOrderIcon },
     recent: { bg: 'bg-slate-100', color: 'text-slate-600', Icon: ClockIcon },
     command: { bg: 'bg-slate-100', color: 'text-slate-600', Icon: CommandIcon },
   };
@@ -621,6 +667,9 @@ function TypeBadge({ type }: { type: ResultType }) {
     purchase_order: 'PO',
     shipment: 'Shipment',
     supplier: 'Supplier',
+    invoice: 'Invoice',
+    rma: 'RMA',
+    work_order: 'WO',
     recent: 'Recent',
     command: 'Action',
   };
@@ -697,6 +746,30 @@ function SupplierIcon() {
   );
 }
 
+function InvoiceIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+    </svg>
+  );
+}
+
+function ReturnIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+    </svg>
+  );
+}
+
+function WorkOrderIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17l-5.1-3.02m0 0l-.01-5.73 5.1 3.02m-5.1-3.02L11.42 3.4l5.1 3.02m0 0l-.01 5.73-5.1-3.02m5.11 8.75l-5.1-3.02m0 0l-.01-5.73 5.1 3.02" />
+    </svg>
+  );
+}
+
 function ClockIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -717,6 +790,14 @@ function HomeIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+    </svg>
+  );
+}
+
+function NavigateIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
     </svg>
   );
 }

@@ -55,4 +55,17 @@ export class DashboardController {
   async getTopCustomers(@TenantId() tenantId: string) {
     return this.service.getTopCustomers(tenantId);
   }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Global search across all entities' })
+  async search(
+    @TenantId() tenantId: string,
+    @Query('q') q: string,
+    @Query('limit') limit?: number,
+  ) {
+    if (!q || q.length < 2) {
+      return { orders: [], purchaseOrders: [], customers: [], items: [], suppliers: [], trips: [], shipments: [], invoices: [], rmas: [], workOrders: [] };
+    }
+    return this.service.globalSearch(tenantId, q, limit || 5);
+  }
 }

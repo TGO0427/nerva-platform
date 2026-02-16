@@ -650,6 +650,10 @@ export class MasterDataService {
     return this.repository.getTopCustomers(tenantId);
   }
 
+  async globalSearch(tenantId: string, search: string, limit: number = 5) {
+    return this.repository.globalSearch(tenantId, search, limit);
+  }
+
   // Reports
   async getSalesReport(tenantId: string, startDate: Date, endDate: Date) {
     return this.repository.getSalesReport(tenantId, startDate, endDate);
