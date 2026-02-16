@@ -107,12 +107,22 @@ export class WorkOrderRepository extends BaseRepository {
     return this.mapWorkOrder(row!);
   }
 
-  async findById(id: string): Promise<WorkOrder | null> {
+  async findById(id: string): Promise<(WorkOrder & { itemSku?: string; itemDescription?: string; warehouseName?: string }) | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM work_orders WHERE id = $1',
+      `SELECT wo.*, i.sku as item_sku, i.description as item_description, w.name as warehouse_name
+       FROM work_orders wo
+       LEFT JOIN items i ON i.id = wo.item_id
+       LEFT JOIN warehouses w ON w.id = wo.warehouse_id
+       WHERE wo.id = $1`,
       [id],
     );
-    return row ? this.mapWorkOrder(row) : null;
+    if (!row) return null;
+    return {
+      ...this.mapWorkOrder(row),
+      itemSku: row.item_sku as string,
+      itemDescription: row.item_description as string,
+      warehouseName: row.warehouse_name as string,
+    };
   }
 
   async findByTenant(
