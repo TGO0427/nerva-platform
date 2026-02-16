@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   Query,
   UseGuards,
@@ -75,6 +76,14 @@ export class CreditsController {
     @CurrentUser() user: CurrentUserData,
   ) {
     return this.service.createCreditNote(rmaId, user.id);
+  }
+
+  @Delete(':id')
+  @RequirePermissions('credit.delete')
+  @ApiOperation({ summary: 'Delete credit note (DRAFT only)' })
+  async deleteCreditNote(@Param('id', UuidValidationPipe) id: string) {
+    await this.service.deleteCreditNote(id);
+    return { success: true };
   }
 
   @Post(':id/approve')

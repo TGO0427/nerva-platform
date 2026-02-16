@@ -22,6 +22,7 @@ import {
   useGenerateAdjustmentFromCycleCount,
   useCloseCycleCount,
   useCancelCycleCount,
+  useDeleteCycleCount,
   type CycleCountLineDetail,
 } from '@/lib/queries/inventory';
 import { useWarehouses, useBins } from '@/lib/queries/warehouses';
@@ -55,6 +56,7 @@ export default function CycleCountDetailPage() {
   const generateAdj = useGenerateAdjustmentFromCycleCount();
   const closeCount = useCloseCycleCount();
   const cancelCount = useCancelCycleCount();
+  const deleteCycleCount = useDeleteCycleCount();
 
   const [showAddLine, setShowAddLine] = useState(false);
   const [showAddFromBin, setShowAddFromBin] = useState(false);
@@ -195,6 +197,17 @@ export default function CycleCountDetailPage() {
         <div className="flex gap-2">
           {isOpen && (
             <>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  if (!confirm('Are you sure you want to delete this cycle count?')) return;
+                  await deleteCycleCount.mutateAsync(id);
+                  router.push('/inventory/cycle-counts');
+                }}
+                disabled={deleteCycleCount.isPending}
+              >
+                {deleteCycleCount.isPending ? 'Deleting...' : 'Delete'}
+              </Button>
               <Button onClick={handleStart} disabled={startCount.isPending || totalLines === 0}>
                 {startCount.isPending ? 'Starting...' : 'Start Counting'}
               </Button>

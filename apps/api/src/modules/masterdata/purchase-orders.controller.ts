@@ -180,4 +180,12 @@ export class PurchaseOrdersController {
     await this.service.recalculatePurchaseOrderTotals(purchaseOrderId);
     return { success: true };
   }
+
+  @Delete(':id')
+  @RequirePermissions('purchase_order.delete')
+  @ApiOperation({ summary: 'Delete purchase order (draft only)' })
+  async deleteOrder(@Param('id', UuidValidationPipe) id: string) {
+    await this.service.deletePurchaseOrder(id);
+    return { success: true };
+  }
 }

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   Body,
   Query,
@@ -147,5 +148,13 @@ export class GrnController {
   @ApiOperation({ summary: 'Get putaway tasks for this GRN' })
   async getPutawayTasks(@Param('id', UuidValidationPipe) id: string) {
     return this.service.getPutawayTasksByGrn(id);
+  }
+
+  @Delete(':id')
+  @RequirePermissions('grn.delete')
+  @ApiOperation({ summary: 'Delete GRN (draft only)' })
+  async deleteGrn(@Param('id', UuidValidationPipe) id: string) {
+    await this.service.deleteGrn(id);
+    return { success: true };
   }
 }

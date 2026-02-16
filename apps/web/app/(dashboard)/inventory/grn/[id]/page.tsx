@@ -13,6 +13,7 @@ import {
   useGrn,
   useGrnLines,
   useCompleteGrn,
+  useDeleteGrn,
   useGeneratePutawayTasks,
   usePutawayTasksByGrn,
   GrnLine,
@@ -30,6 +31,7 @@ export default function GrnDetailPage() {
     grn?.status === 'PUTAWAY_PENDING' ? grnId : undefined,
   );
   const completeGrn = useCompleteGrn();
+  const deleteGrn = useDeleteGrn();
   const generatePutaway = useGeneratePutawayTasks();
 
   const lineColumns: Column<GrnLine>[] = [
@@ -173,6 +175,19 @@ export default function GrnDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          {grn.status === 'DRAFT' && (
+            <Button
+              variant="danger"
+              onClick={async () => {
+                if (!confirm('Are you sure you want to delete this GRN?')) return;
+                await deleteGrn.mutateAsync(grnId);
+                router.push('/inventory/grn');
+              }}
+              disabled={deleteGrn.isPending}
+            >
+              {deleteGrn.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          )}
           <Button variant="secondary" onClick={() => downloadPdf(`/receiving/grns/${grnId}/pdf`, `GRN-${grn.grnNo}.pdf`)} className="print:hidden">
             <DownloadIcon />
             Download PDF

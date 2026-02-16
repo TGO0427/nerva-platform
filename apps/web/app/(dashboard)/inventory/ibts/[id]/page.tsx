@@ -21,6 +21,7 @@ import {
   useShipIbt,
   useReceiveIbt,
   useCancelIbt,
+  useDeleteIbt,
   type IbtLineDetail,
 } from '@/lib/queries/ibt';
 import { useItems, useWarehouses } from '@/lib/queries';
@@ -78,6 +79,7 @@ export default function IbtDetailPage() {
   const shipIbt = useShipIbt();
   const receiveIbt = useReceiveIbt();
   const cancelIbt = useCancelIbt();
+  const deleteIbt = useDeleteIbt();
 
   const handleAddLine = async () => {
     if (!newItemId || !newQty) return;
@@ -392,6 +394,17 @@ export default function IbtDetailPage() {
         <div className="flex gap-2">
           {ibt.status === 'DRAFT' && (
             <>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  if (!confirm('Are you sure you want to delete this IBT?')) return;
+                  await deleteIbt.mutateAsync(ibtId);
+                  router.push('/inventory/ibts');
+                }}
+                disabled={deleteIbt.isPending}
+              >
+                {deleteIbt.isPending ? 'Deleting...' : 'Delete'}
+              </Button>
               <Button onClick={handleSubmit} isLoading={submitIbt.isPending}>
                 Submit for Approval
               </Button>

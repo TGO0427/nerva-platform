@@ -190,6 +190,15 @@ export class SalesService {
     return updated!;
   }
 
+  async deleteOrder(id: string): Promise<void> {
+    const order = await this.repository.findOrderById(id);
+    if (!order) throw new NotFoundException('Sales order not found');
+    if (order.status !== 'DRAFT') {
+      throw new BadRequestException('Only DRAFT orders can be deleted');
+    }
+    await this.repository.deleteOrder(id);
+  }
+
   // Generic status update for internal use (e.g., from fulfilment service)
   async updateOrderStatus(id: string, status: string): Promise<SalesOrder> {
     const order = await this.getOrder(id);

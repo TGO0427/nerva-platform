@@ -126,4 +126,12 @@ export class AdjustmentsController {
   ) {
     return this.service.postAdjustment(id, user.id);
   }
+
+  @Delete(':id')
+  @RequirePermissions('inventory.adjust')
+  @ApiOperation({ summary: 'Delete adjustment (draft only)' })
+  async deleteAdjustment(@Param('id', UuidValidationPipe) id: string) {
+    await this.service.deleteAdjustment(id);
+    return { success: true };
+  }
 }

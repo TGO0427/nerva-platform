@@ -191,6 +191,18 @@ export function useReceiveIbt() {
   });
 }
 
+export function useDeleteIbt() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/inventory/ibts/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [IBT_KEY] });
+    },
+  });
+}
+
 export function useCancelIbt() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -9,6 +9,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { DetailPageTemplate } from '@/components/templates';
 import {
   useRouting,
+  useDeleteRouting,
   useApproveRouting,
   useObsoleteRouting,
 } from '@/lib/queries/manufacturing';
@@ -21,6 +22,7 @@ export default function RoutingDetailPage() {
   const router = useRouter();
   const { data: routing, isLoading, error } = useRouting(id);
 
+  const deleteRouting = useDeleteRouting();
   const approveRouting = useApproveRouting();
   const obsoleteRouting = useObsoleteRouting();
 
@@ -37,6 +39,12 @@ export default function RoutingDetailPage() {
       </div>
     );
   }
+
+  const handleDelete = async () => {
+    if (!id || !confirm('Are you sure you want to delete this routing? This action cannot be undone.')) return;
+    await deleteRouting.mutateAsync(id);
+    router.push('/manufacturing/routings');
+  };
 
   const handleApprove = async () => {
     if (!id) return;
@@ -129,6 +137,9 @@ export default function RoutingDetailPage() {
                 </Button>
                 <Button onClick={handleApprove} disabled={approveRouting.isPending}>
                   {approveRouting.isPending ? 'Approving...' : 'Approve'}
+                </Button>
+                <Button variant="danger" onClick={handleDelete} disabled={deleteRouting.isPending}>
+                  {deleteRouting.isPending ? 'Deleting...' : 'Delete'}
                 </Button>
               </>
             )}

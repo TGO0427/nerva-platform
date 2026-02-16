@@ -308,6 +308,16 @@ export class InventoryRepository extends BaseRepository {
     return row ? this.mapAdjustment(row) : null;
   }
 
+  async deleteGrn(id: string): Promise<boolean> {
+    const count = await this.execute('DELETE FROM grns WHERE id = $1', [id]);
+    return count > 0;
+  }
+
+  async deleteAdjustment(id: string): Promise<boolean> {
+    const count = await this.execute('DELETE FROM adjustments WHERE id = $1', [id]);
+    return count > 0;
+  }
+
   async generateGrnNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
       'SELECT COUNT(*) as count FROM grns WHERE tenant_id = $1',

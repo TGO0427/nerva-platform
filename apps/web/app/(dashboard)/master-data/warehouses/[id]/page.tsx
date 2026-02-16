@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Spinner } from '@/components/ui/spinner';
 import {
   useWarehouse,
   useUpdateWarehouse,
+  useDeleteWarehouse,
   useBins,
   useCreateBin,
   useUpdateBin,
@@ -23,12 +24,14 @@ const BIN_TYPES = ['STORAGE', 'PICKING', 'RECEIVING', 'QUARANTINE', 'SHIPPING', 
 
 export default function WarehouseDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const { data: warehouse, isLoading } = useWarehouse(id);
   const { data: sites } = useSites();
   const { data: bins, isLoading: binsLoading } = useBins(id);
   const updateWarehouse = useUpdateWarehouse();
+  const deleteWarehouse = useDeleteWarehouse();
   const createBin = useCreateBin(id);
   const updateBin = useUpdateBin(id);
 
@@ -168,6 +171,21 @@ export default function WarehouseDetailPage() {
             onClick={handleToggleActive}
           >
             {warehouse.isActive ? 'Deactivate' : 'Activate'}
+          </Button>
+          <Button
+            variant="danger"
+            disabled={deleteWarehouse.isPending}
+            onClick={async () => {
+              if (!confirm('Are you sure you want to delete this warehouse? This cannot be undone.')) return;
+              try {
+                await deleteWarehouse.mutateAsync(id);
+                router.push('/master-data/warehouses');
+              } catch (e: any) {
+                alert(e?.response?.data?.message || 'Failed to delete warehouse');
+              }
+            }}
+          >
+            {deleteWarehouse.isPending ? 'Deleting...' : 'Delete'}
           </Button>
         </div>
       </div>

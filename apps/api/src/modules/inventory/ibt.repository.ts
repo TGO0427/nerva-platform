@@ -74,6 +74,11 @@ export interface IbtFilters {
 
 @Injectable()
 export class IbtRepository extends BaseRepository {
+  async deleteIbt(id: string): Promise<boolean> {
+    const count = await this.execute('DELETE FROM ibts WHERE id = $1', [id]);
+    return count > 0;
+  }
+
   async generateIbtNo(tenantId: string): Promise<string> {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT COUNT(*)::int + 1 AS next FROM ibts WHERE tenant_id = $1`,

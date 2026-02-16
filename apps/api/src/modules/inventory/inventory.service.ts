@@ -42,6 +42,13 @@ export class InventoryService {
     return this.repository.createGrn({ ...data, siteId, grnNo });
   }
 
+  async deleteGrn(id: string): Promise<void> {
+    const grn = await this.repository.findGrnById(id);
+    if (!grn) throw new NotFoundException('GRN not found');
+    if (grn.status !== 'DRAFT') throw new BadRequestException('Only DRAFT GRNs can be deleted');
+    await this.repository.deleteGrn(id);
+  }
+
   async getGrn(id: string): Promise<Grn> {
     const grn = await this.repository.findGrnById(id);
     if (!grn) throw new NotFoundException('GRN not found');
@@ -209,6 +216,13 @@ export class InventoryService {
     return this.repository.createAdjustment({ ...data, adjustmentNo });
   }
 
+  async deleteAdjustment(id: string): Promise<void> {
+    const adjustment = await this.repository.findAdjustmentById(id);
+    if (!adjustment) throw new NotFoundException('Adjustment not found');
+    if (adjustment.status !== 'DRAFT') throw new BadRequestException('Only DRAFT adjustments can be deleted');
+    await this.repository.deleteAdjustment(id);
+  }
+
   async getAdjustment(id: string): Promise<Adjustment> {
     const adjustment = await this.repository.findAdjustmentById(id);
     if (!adjustment) throw new NotFoundException('Adjustment not found');
@@ -331,6 +345,13 @@ export class InventoryService {
     await this.masterDataService.getWarehouse(data.warehouseId);
     const countNo = await this.cycleCountRepo.generateCountNo(data.tenantId);
     return this.cycleCountRepo.create({ ...data, countNo });
+  }
+
+  async deleteCycleCount(id: string): Promise<void> {
+    const cc = await this.cycleCountRepo.findById(id);
+    if (!cc) throw new NotFoundException('Cycle count not found');
+    if (cc.status !== 'OPEN') throw new BadRequestException('Only OPEN cycle counts can be deleted');
+    await this.cycleCountRepo.deleteCycleCount(id);
   }
 
   async getCycleCount(id: string): Promise<CycleCountEntity> {

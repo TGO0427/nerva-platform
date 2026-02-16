@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   useCustomer,
+  useDeleteCustomer,
   useCustomerActivity,
   useCustomerContacts,
   useCreateCustomerContact,
@@ -34,6 +35,7 @@ export default function CustomerDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>('company');
 
   const { data: customer, isLoading } = useCustomer(id);
+  const deleteCustomer = useDeleteCustomer();
   const { data: activityLog } = useCustomerActivity(id);
 
   if (isLoading) {
@@ -76,13 +78,30 @@ export default function CustomerDetailPage() {
               Dashboard &gt; Customers &gt; {customer.name}
             </p>
           </div>
-          <Button
-            variant="secondary"
-            className="bg-white text-blue-700 hover:bg-blue-50"
-            onClick={() => router.push(`/master-data/customers/${id}/edit`)}
-          >
-            Edit Customer
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              className="bg-white text-blue-700 hover:bg-blue-50"
+              onClick={() => router.push(`/master-data/customers/${id}/edit`)}
+            >
+              Edit Customer
+            </Button>
+            <Button
+              variant="danger"
+              disabled={deleteCustomer.isPending}
+              onClick={async () => {
+                if (!confirm('Are you sure you want to delete this customer? This cannot be undone.')) return;
+                try {
+                  await deleteCustomer.mutateAsync(id);
+                  router.push('/master-data/customers');
+                } catch (e: any) {
+                  alert(e?.response?.data?.message || 'Failed to delete customer');
+                }
+              }}
+            >
+              {deleteCustomer.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </div>
         </div>
       </div>
 

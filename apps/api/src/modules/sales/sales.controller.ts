@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   Body,
   Query,
@@ -133,5 +134,13 @@ export class SalesController {
   @ApiOperation({ summary: 'Cancel sales order' })
   async cancel(@Param('id', UuidValidationPipe) id: string) {
     return this.service.cancelOrder(id);
+  }
+
+  @Delete(':id')
+  @RequirePermissions('sales_order.delete')
+  @ApiOperation({ summary: 'Delete sales order (draft only)' })
+  async deleteOrder(@Param('id', UuidValidationPipe) id: string) {
+    await this.service.deleteOrder(id);
+    return { success: true };
   }
 }

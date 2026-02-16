@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
   UseGuards,
@@ -56,6 +57,14 @@ export class WarehousesController {
     @Body() data: UpdateWarehouseDto,
   ) {
     return this.service.updateWarehouse(id, data);
+  }
+
+  @Delete(':id')
+  @RequirePermissions('warehouse.manage')
+  @ApiOperation({ summary: 'Delete warehouse (no references)' })
+  async delete(@Param('id', UuidValidationPipe) id: string) {
+    await this.service.deleteWarehouse(id);
+    return { success: true };
   }
 
   @Get(':id/bins')

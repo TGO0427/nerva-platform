@@ -374,6 +374,22 @@ export class MasterDataRepository extends BaseRepository {
     return row ? this.mapItem(row) : null;
   }
 
+  async deleteItem(id: string): Promise<boolean> {
+    const result = await this.queryOne<{ id: string }>(
+      'DELETE FROM items WHERE id = $1 RETURNING id',
+      [id],
+    );
+    return !!result;
+  }
+
+  async countItemReferences(id: string): Promise<number> {
+    const result = await this.queryOne<{ count: string }>(
+      'SELECT COUNT(*) as count FROM sales_order_lines WHERE item_id = $1',
+      [id],
+    );
+    return parseInt(result?.count || '0', 10);
+  }
+
   // Customers
   async findCustomers(tenantId: string, limit: number, offset: number, search?: string): Promise<Customer[]> {
     let sql = 'SELECT * FROM customers WHERE tenant_id = $1';
@@ -507,6 +523,22 @@ export class MasterDataRepository extends BaseRepository {
       values,
     );
     return row ? this.mapCustomer(row) : null;
+  }
+
+  async deleteCustomer(id: string): Promise<boolean> {
+    const result = await this.queryOne<{ id: string }>(
+      'DELETE FROM customers WHERE id = $1 RETURNING id',
+      [id],
+    );
+    return !!result;
+  }
+
+  async countCustomerReferences(id: string): Promise<number> {
+    const result = await this.queryOne<{ count: string }>(
+      'SELECT COUNT(*) as count FROM sales_orders WHERE customer_id = $1',
+      [id],
+    );
+    return parseInt(result?.count || '0', 10);
   }
 
   // Suppliers
@@ -650,6 +682,22 @@ export class MasterDataRepository extends BaseRepository {
       values,
     );
     return row ? this.mapSupplier(row) : null;
+  }
+
+  async deleteSupplier(id: string): Promise<boolean> {
+    const result = await this.queryOne<{ id: string }>(
+      'DELETE FROM suppliers WHERE id = $1 RETURNING id',
+      [id],
+    );
+    return !!result;
+  }
+
+  async countSupplierReferences(id: string): Promise<number> {
+    const result = await this.queryOne<{ count: string }>(
+      'SELECT COUNT(*) as count FROM purchase_orders WHERE supplier_id = $1',
+      [id],
+    );
+    return parseInt(result?.count || '0', 10);
   }
 
   // Supplier Contacts
@@ -922,6 +970,22 @@ export class MasterDataRepository extends BaseRepository {
       params,
     );
     return this.mapWarehouse(row!);
+  }
+
+  async deleteWarehouse(id: string): Promise<boolean> {
+    const result = await this.queryOne<{ id: string }>(
+      'DELETE FROM warehouses WHERE id = $1 RETURNING id',
+      [id],
+    );
+    return !!result;
+  }
+
+  async countWarehouseReferences(id: string): Promise<number> {
+    const result = await this.queryOne<{ count: string }>(
+      'SELECT COUNT(*) as count FROM work_orders WHERE warehouse_id = $1',
+      [id],
+    );
+    return parseInt(result?.count || '0', 10);
   }
 
   // Bins
@@ -1732,6 +1796,14 @@ export class MasterDataRepository extends BaseRepository {
   async deletePurchaseOrderLine(id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
       'DELETE FROM purchase_order_lines WHERE id = $1 RETURNING id',
+      [id],
+    );
+    return !!result;
+  }
+
+  async deletePurchaseOrder(id: string): Promise<boolean> {
+    const result = await this.queryOne<{ id: string }>(
+      'DELETE FROM purchase_orders WHERE id = $1 RETURNING id',
       [id],
     );
     return !!result;

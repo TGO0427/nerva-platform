@@ -106,6 +106,20 @@ export function useUpdateSupplier() {
   });
 }
 
+// Delete supplier
+export function useDeleteSupplier() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/masterdata/suppliers/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY] });
+    },
+  });
+}
+
 // === CONTACTS ===
 
 interface CreateContactData {

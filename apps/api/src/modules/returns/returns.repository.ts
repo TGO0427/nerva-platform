@@ -314,6 +314,16 @@ export class ReturnsRepository extends BaseRepository {
     return row ? this.mapCreditNote(row) : null;
   }
 
+  async deleteRma(id: string): Promise<boolean> {
+    const count = await this.execute('DELETE FROM rmas WHERE id = $1', [id]);
+    return count > 0;
+  }
+
+  async deleteCreditNote(id: string): Promise<boolean> {
+    const count = await this.execute('DELETE FROM credit_notes_draft WHERE id = $1', [id]);
+    return count > 0;
+  }
+
   async generateRmaNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
       'SELECT COUNT(*) as count FROM rmas WHERE tenant_id = $1',

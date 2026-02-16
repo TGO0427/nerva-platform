@@ -1,18 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
+import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { ItemForm, ItemFormData } from '../_components/item-form';
-import { useItem, useUpdateItem } from '@/lib/queries';
+import { useItem, useUpdateItem, useDeleteItem } from '@/lib/queries';
 
 export default function EditItemPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const { data: item, isLoading } = useItem(id);
   const updateItem = useUpdateItem();
+  const deleteItem = useDeleteItem();
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (data: ItemFormData) => {
@@ -58,11 +61,28 @@ export default function EditItemPage() {
     <div>
       <Breadcrumbs />
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Edit Item</h1>
-        <p className="text-slate-500 mt-1">
-          {item.sku} - {item.description}
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Edit Item</h1>
+          <p className="text-slate-500 mt-1">
+            {item.sku} - {item.description}
+          </p>
+        </div>
+        <Button
+          variant="danger"
+          disabled={deleteItem.isPending}
+          onClick={async () => {
+            if (!confirm('Are you sure you want to delete this item? This cannot be undone.')) return;
+            try {
+              await deleteItem.mutateAsync(id);
+              router.push('/master-data/items');
+            } catch (e: any) {
+              alert(e?.response?.data?.message || 'Failed to delete item');
+            }
+          }}
+        >
+          {deleteItem.isPending ? 'Deleting...' : 'Delete'}
+        </Button>
       </div>
 
       {error && (

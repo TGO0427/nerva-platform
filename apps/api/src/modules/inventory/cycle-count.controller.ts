@@ -154,4 +154,12 @@ export class CycleCountController {
   async cancel(@Param('id', UuidValidationPipe) id: string) {
     return this.service.cancelCycleCount(id);
   }
+
+  @Delete(':id')
+  @RequirePermissions('cycle_count.manage')
+  @ApiOperation({ summary: 'Delete cycle count (open only)' })
+  async deleteCycleCount(@Param('id', UuidValidationPipe) id: string) {
+    await this.service.deleteCycleCount(id);
+    return { success: true };
+  }
 }

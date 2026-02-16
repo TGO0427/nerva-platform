@@ -40,6 +40,13 @@ export class IbtService {
     return this.getIbt(ibt.id);
   }
 
+  async deleteIbt(id: string): Promise<void> {
+    const ibt = await this.ibtRepo.findById(id);
+    if (!ibt) throw new NotFoundException('IBT not found');
+    if (ibt.status !== 'DRAFT') throw new BadRequestException('Only DRAFT IBTs can be deleted');
+    await this.ibtRepo.deleteIbt(id);
+  }
+
   async getIbt(id: string): Promise<IbtDetail> {
     const ibt = await this.ibtRepo.findById(id);
     if (!ibt) throw new NotFoundException('IBT not found');

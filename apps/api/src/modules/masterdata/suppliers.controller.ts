@@ -82,6 +82,14 @@ export class SuppliersController {
     return this.service.updateSupplier(id, data);
   }
 
+  @Delete(':id')
+  @RequirePermissions('supplier.delete')
+  @ApiOperation({ summary: 'Delete supplier (no references)' })
+  async delete(@Param('id', UuidValidationPipe) id: string) {
+    await this.service.deleteSupplier(id);
+    return { success: true };
+  }
+
   // Activity Log
   @Get(':id/activity')
   @RequirePermissions('supplier.read')

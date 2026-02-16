@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   Body,
   Query,
@@ -126,6 +127,14 @@ export class ReturnsController {
       data.receivingBinId,
       user.id,
     );
+  }
+
+  @Delete(':id')
+  @RequirePermissions('rma.delete')
+  @ApiOperation({ summary: 'Delete RMA (OPEN only)' })
+  async deleteRma(@Param('id', UuidValidationPipe) id: string) {
+    await this.service.deleteRma(id);
+    return { success: true };
   }
 
   @Post(':id/disposition')

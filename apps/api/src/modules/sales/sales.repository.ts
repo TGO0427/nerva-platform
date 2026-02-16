@@ -188,6 +188,11 @@ export class SalesRepository extends BaseRepository {
     );
   }
 
+  async deleteOrder(id: string): Promise<boolean> {
+    const count = await this.execute('DELETE FROM sales_orders WHERE id = $1', [id]);
+    return count > 0;
+  }
+
   async generateOrderNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
       'SELECT COUNT(*) as count FROM sales_orders WHERE tenant_id = $1',

@@ -20,6 +20,7 @@ import {
   useUpdatePurchaseOrderLine,
   useDeletePurchaseOrderLine,
   useUpdatePurchaseOrderStatus,
+  useDeletePurchaseOrder,
   useItems,
 } from '@/lib/queries';
 import type { PurchaseOrderStatus, PurchaseOrderLine } from '@nerva/shared';
@@ -32,6 +33,7 @@ export default function PurchaseOrderDetailPage() {
 
   const { data: po, isLoading } = usePurchaseOrder(id);
   const { data: lines } = usePurchaseOrderLines(id);
+  const deletePurchaseOrder = useDeletePurchaseOrder();
 
   if (isLoading) {
     return (
@@ -78,6 +80,24 @@ export default function PurchaseOrderDetailPage() {
               Download PDF
             </Button>
             <StatusActions po={po} />
+            {po.status === 'DRAFT' && (
+              <Button
+                variant="secondary"
+                className="bg-red-100 text-red-700 hover:bg-red-200"
+                onClick={async () => {
+                  if (!confirm('Are you sure you want to delete this draft purchase order? This action cannot be undone.')) return;
+                  try {
+                    await deletePurchaseOrder.mutateAsync(id);
+                    router.push('/procurement/purchase-orders');
+                  } catch (error) {
+                    console.error('Failed to delete purchase order:', error);
+                  }
+                }}
+                disabled={deletePurchaseOrder.isPending}
+              >
+                {deletePurchaseOrder.isPending ? 'Deleting...' : 'Delete'}
+              </Button>
+            )}
           </div>
         </div>
       </div>

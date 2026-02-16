@@ -265,6 +265,18 @@ export function useReceiveGrnLine() {
   });
 }
 
+export function useDeleteGrn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/receiving/grns/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [GRN_KEY] });
+    },
+  });
+}
+
 export function useCompleteGrn() {
   const queryClient = useQueryClient();
 
@@ -437,6 +449,18 @@ export function useApproveAdjustment() {
     mutationFn: async (id: string) => {
       const response = await api.post<Adjustment>(`/inventory/adjustments/${id}/approve`);
       return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADJUSTMENT_KEY] });
+    },
+  });
+}
+
+export function useDeleteAdjustment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/inventory/adjustments/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADJUSTMENT_KEY] });
@@ -644,6 +668,18 @@ export function useCloseCycleCount() {
     mutationFn: async (id: string) => {
       const response = await api.post<CycleCountSummary>(`/inventory/cycle-counts/${id}/close`);
       return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY] });
+    },
+  });
+}
+
+export function useDeleteCycleCount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/inventory/cycle-counts/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY] });

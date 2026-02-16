@@ -336,6 +336,18 @@ export function useCreateRouting() {
   });
 }
 
+export function useDeleteRouting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/manufacturing/routings/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ROUTINGS_KEY] });
+    },
+  });
+}
+
 export function useApproveRouting() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -435,6 +447,18 @@ export function useCreateWorkOrder() {
     }) => {
       const response = await api.post<WorkOrderDetail>('/manufacturing/work-orders', data);
       return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
+    },
+  });
+}
+
+export function useDeleteWorkOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/manufacturing/work-orders/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });

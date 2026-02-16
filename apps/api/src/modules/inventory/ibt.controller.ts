@@ -164,4 +164,12 @@ export class IbtController {
   async cancel(@Param('id', UuidValidationPipe) id: string) {
     return this.ibtService.cancel(id);
   }
+
+  @Delete(':id')
+  @RequirePermissions('ibt.delete')
+  @ApiOperation({ summary: 'Delete IBT (draft only)' })
+  async deleteIbt(@Param('id', UuidValidationPipe) id: string) {
+    await this.ibtService.deleteIbt(id);
+    return { success: true };
+  }
 }

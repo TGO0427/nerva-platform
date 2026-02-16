@@ -37,6 +37,11 @@ export interface CycleCountLine {
 
 @Injectable()
 export class CycleCountRepository extends BaseRepository {
+  async deleteCycleCount(id: string): Promise<boolean> {
+    const count = await this.execute('DELETE FROM cycle_counts WHERE id = $1', [id]);
+    return count > 0;
+  }
+
   async generateCountNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
       'SELECT COUNT(*) as count FROM cycle_counts WHERE tenant_id = $1',

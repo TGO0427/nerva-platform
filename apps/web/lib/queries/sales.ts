@@ -161,3 +161,17 @@ export function useCancelOrder() {
     },
   });
 }
+
+// Delete order (draft only)
+export function useDeleteSalesOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/sales/orders/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ORDERS_KEY] });
+    },
+  });
+}

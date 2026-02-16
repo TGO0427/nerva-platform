@@ -126,6 +126,19 @@ export function useCreateRma() {
   });
 }
 
+export function useDeleteRma() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/returns/rmas/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [RMA_KEY] });
+    },
+  });
+}
+
 export function useReceiveRmaLine() {
   const queryClient = useQueryClient();
 
@@ -272,6 +285,19 @@ export function useCreateCreditNote() {
     }) => {
       const response = await api.post<CreditNote>('/finance/credits', data);
       return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CREDIT_NOTES_KEY] });
+    },
+  });
+}
+
+export function useDeleteCreditNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/finance/credits/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CREDIT_NOTES_KEY] });

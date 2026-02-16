@@ -77,6 +77,20 @@ export function useUpdateWarehouse() {
   });
 }
 
+// Delete warehouse
+export function useDeleteWarehouse() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/masterdata/warehouses/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [WAREHOUSES_KEY] });
+    },
+  });
+}
+
 interface CreateBinData {
   code: string;
   binType?: string;

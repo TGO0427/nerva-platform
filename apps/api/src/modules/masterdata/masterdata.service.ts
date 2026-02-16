@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import {
   MasterDataRepository,
   Item,
@@ -59,6 +59,14 @@ export class MasterDataService {
     const item = await this.repository.updateItem(id, data);
     if (!item) throw new NotFoundException('Item not found');
     return item;
+  }
+
+  async deleteItem(id: string): Promise<void> {
+    const item = await this.repository.findItemById(id);
+    if (!item) throw new NotFoundException('Item not found');
+    const refs = await this.repository.countItemReferences(id);
+    if (refs > 0) throw new BadRequestException('Cannot delete item: referenced by existing orders');
+    await this.repository.deleteItem(id);
   }
 
   // Customers
@@ -122,6 +130,14 @@ export class MasterDataService {
     const customer = await this.repository.updateCustomer(id, data);
     if (!customer) throw new NotFoundException('Customer not found');
     return customer;
+  }
+
+  async deleteCustomer(id: string): Promise<void> {
+    const customer = await this.repository.findCustomerById(id);
+    if (!customer) throw new NotFoundException('Customer not found');
+    const refs = await this.repository.countCustomerReferences(id);
+    if (refs > 0) throw new BadRequestException('Cannot delete customer: has existing sales orders');
+    await this.repository.deleteCustomer(id);
   }
 
   // Suppliers
@@ -189,6 +205,14 @@ export class MasterDataService {
     const supplier = await this.repository.updateSupplier(id, data);
     if (!supplier) throw new NotFoundException('Supplier not found');
     return supplier;
+  }
+
+  async deleteSupplier(id: string): Promise<void> {
+    const supplier = await this.repository.findSupplierById(id);
+    if (!supplier) throw new NotFoundException('Supplier not found');
+    const refs = await this.repository.countSupplierReferences(id);
+    if (refs > 0) throw new BadRequestException('Cannot delete supplier: has existing purchase orders');
+    await this.repository.deleteSupplier(id);
   }
 
   // Supplier Contacts
@@ -319,6 +343,14 @@ export class MasterDataService {
   async updateWarehouse(id: string, data: { name?: string; code?: string; isActive?: boolean }): Promise<Warehouse> {
     await this.getWarehouse(id); // throws if not found
     return this.repository.updateWarehouse(id, data);
+  }
+
+  async deleteWarehouse(id: string): Promise<void> {
+    const warehouse = await this.repository.findWarehouseById(id);
+    if (!warehouse) throw new NotFoundException('Warehouse not found');
+    const refs = await this.repository.countWarehouseReferences(id);
+    if (refs > 0) throw new BadRequestException('Cannot delete warehouse: has existing work orders');
+    await this.repository.deleteWarehouse(id);
   }
 
   // Bins
@@ -593,6 +625,15 @@ export class MasterDataService {
     });
     if (!order) throw new NotFoundException('Purchase order not found');
     return order;
+  }
+
+  async deletePurchaseOrder(id: string): Promise<void> {
+    const order = await this.repository.findPurchaseOrderById(id);
+    if (!order) throw new NotFoundException('Purchase order not found');
+    if (order.status !== 'DRAFT') {
+      throw new BadRequestException('Only DRAFT purchase orders can be deleted');
+    }
+    await this.repository.deletePurchaseOrder(id);
   }
 
   // Supplier Performance Analytics

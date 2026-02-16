@@ -179,3 +179,17 @@ export function useDeletePurchaseOrderLine(purchaseOrderId: string) {
     },
   });
 }
+
+// Delete purchase order (draft only)
+export function useDeletePurchaseOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/purchase-orders/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PO_KEY] });
+    },
+  });
+}

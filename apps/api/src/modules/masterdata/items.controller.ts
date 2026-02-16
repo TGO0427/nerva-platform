@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
   Query,
@@ -62,5 +63,13 @@ export class ItemsController {
     @Body() data: UpdateItemDto,
   ) {
     return this.service.updateItem(id, data);
+  }
+
+  @Delete(':id')
+  @RequirePermissions('item.delete')
+  @ApiOperation({ summary: 'Delete item (no references)' })
+  async delete(@Param('id', UuidValidationPipe) id: string) {
+    await this.service.deleteItem(id);
+    return { success: true };
   }
 }

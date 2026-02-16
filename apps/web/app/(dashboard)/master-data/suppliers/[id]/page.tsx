@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   useSupplier,
+  useDeleteSupplier,
   useSupplierActivity,
   useSupplierContacts,
   useCreateSupplierContact,
@@ -43,6 +44,7 @@ export default function SupplierDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>('company');
 
   const { data: supplier, isLoading } = useSupplier(id);
+  const deleteSupplier = useDeleteSupplier();
   const { data: activityLog } = useSupplierActivity(id);
 
   if (isLoading) {
@@ -87,13 +89,30 @@ export default function SupplierDetailPage() {
               Dashboard &gt; Suppliers &gt; {supplier.name}
             </p>
           </div>
-          <Button
-            variant="secondary"
-            className="bg-white text-green-700 hover:bg-green-50"
-            onClick={() => router.push(`/master-data/suppliers/${id}/edit`)}
-          >
-            Edit Supplier
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              className="bg-white text-green-700 hover:bg-green-50"
+              onClick={() => router.push(`/master-data/suppliers/${id}/edit`)}
+            >
+              Edit Supplier
+            </Button>
+            <Button
+              variant="danger"
+              disabled={deleteSupplier.isPending}
+              onClick={async () => {
+                if (!confirm('Are you sure you want to delete this supplier? This cannot be undone.')) return;
+                try {
+                  await deleteSupplier.mutateAsync(id);
+                  router.push('/master-data/suppliers');
+                } catch (e: any) {
+                  alert(e?.response?.data?.message || 'Failed to delete supplier');
+                }
+              }}
+            >
+              {deleteSupplier.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </div>
         </div>
       </div>
 

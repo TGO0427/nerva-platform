@@ -18,6 +18,7 @@ import {
   useSubmitAdjustment,
   useApproveAdjustment,
   usePostAdjustment,
+  useDeleteAdjustment,
 } from '@/lib/queries/inventory';
 import { useWarehouses, useBins } from '@/lib/queries/warehouses';
 import { useItems } from '@/lib/queries';
@@ -47,6 +48,7 @@ export default function AdjustmentDetailPage() {
   const submitAdj = useSubmitAdjustment();
   const approveAdj = useApproveAdjustment();
   const postAdj = usePostAdjustment();
+  const deleteAdj = useDeleteAdjustment();
 
   const [showLineForm, setShowLineForm] = useState(false);
   const [newBinId, setNewBinId] = useState('');
@@ -153,6 +155,19 @@ export default function AdjustmentDetailPage() {
           </Badge>
         </div>
         <div className="flex gap-2">
+          {isDraft && (
+            <Button
+              variant="danger"
+              onClick={async () => {
+                if (!confirm('Are you sure you want to delete this adjustment?')) return;
+                await deleteAdj.mutateAsync(id);
+                router.push('/inventory/adjustments');
+              }}
+              disabled={deleteAdj.isPending}
+            >
+              {deleteAdj.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          )}
           {isDraft && (
             <Button
               onClick={handleSubmit}

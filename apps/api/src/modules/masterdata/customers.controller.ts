@@ -76,6 +76,14 @@ export class CustomersController {
     return this.service.updateCustomer(id, data);
   }
 
+  @Delete(':id')
+  @RequirePermissions('customer.delete')
+  @ApiOperation({ summary: 'Delete customer (no references)' })
+  async delete(@Param('id', UuidValidationPipe) id: string) {
+    await this.service.deleteCustomer(id);
+    return { success: true };
+  }
+
   // Activity Log
   @Get(':id/activity')
   @RequirePermissions('customer.read')

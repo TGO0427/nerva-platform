@@ -160,6 +160,15 @@ export class ReturnsService {
     return updated!;
   }
 
+  async deleteRma(id: string): Promise<void> {
+    const rma = await this.repository.findRmaById(id);
+    if (!rma) throw new NotFoundException('RMA not found');
+    if (rma.status !== 'OPEN') {
+      throw new BadRequestException('Only OPEN RMAs can be deleted');
+    }
+    await this.repository.deleteRma(id);
+  }
+
   // Credit Notes
   async createCreditNote(rmaId: string, createdBy?: string): Promise<CreditNoteDraft> {
     const rma = await this.getRma(rmaId);
@@ -207,6 +216,15 @@ export class ReturnsService {
       this.repository.countCreditNotesByTenant(tenantId, status),
     ]);
     return buildPaginatedResult(data, total, page, limit);
+  }
+
+  async deleteCreditNote(id: string): Promise<void> {
+    const creditNote = await this.repository.findCreditNoteById(id);
+    if (!creditNote) throw new NotFoundException('Credit note not found');
+    if (creditNote.status !== 'DRAFT') {
+      throw new BadRequestException('Only DRAFT credit notes can be deleted');
+    }
+    await this.repository.deleteCreditNote(id);
   }
 
   async approveCreditNote(id: string, approvedBy: string): Promise<CreditNoteDraft> {

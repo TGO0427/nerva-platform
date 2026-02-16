@@ -12,6 +12,7 @@ import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
 import {
   useWorkOrder,
+  useDeleteWorkOrder,
   useReleaseWorkOrder,
   useStartWorkOrder,
   useCompleteWorkOrder,
@@ -51,6 +52,7 @@ export default function WorkOrderDetailPage() {
   const [opScrappedQty, setOpScrappedQty] = useState('');
   const [opNotes, setOpNotes] = useState('');
 
+  const deleteWorkOrder = useDeleteWorkOrder();
   const releaseWorkOrder = useReleaseWorkOrder();
   const startWorkOrder = useStartWorkOrder();
   const completeWorkOrder = useCompleteWorkOrder();
@@ -75,6 +77,12 @@ export default function WorkOrderDetailPage() {
       </div>
     );
   }
+
+  const handleDelete = async () => {
+    if (!id || !confirm('Are you sure you want to delete this work order? This action cannot be undone.')) return;
+    await deleteWorkOrder.mutateAsync(id);
+    router.push('/manufacturing/work-orders');
+  };
 
   const handleRelease = async () => {
     if (!id) return;
@@ -245,6 +253,9 @@ export default function WorkOrderDetailPage() {
                 </Button>
                 <Button onClick={handleRelease} disabled={releaseWorkOrder.isPending}>
                   {releaseWorkOrder.isPending ? 'Releasing...' : 'Release'}
+                </Button>
+                <Button variant="danger" onClick={handleDelete} disabled={deleteWorkOrder.isPending}>
+                  {deleteWorkOrder.isPending ? 'Deleting...' : 'Delete'}
                 </Button>
               </>
             )}
