@@ -306,7 +306,7 @@ export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-slate-600 bg-opacity-75 lg:hidden print:hidden"
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden print:hidden"
             onClick={onClose}
           />
         )}
@@ -315,7 +315,7 @@ export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transform transition-transform duration-200 ease-in-out lg:hidden print:hidden',
+          'fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 transform transition-transform duration-200 ease-in-out lg:hidden print:hidden',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -333,7 +333,7 @@ export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
       <motion.aside
         animate={{ width: collapsed ? 72 : 256 }}
         transition={springs.snappy}
-        className="hidden lg:block h-screen shrink-0 overflow-hidden border-r border-slate-200 bg-white print:!hidden"
+        className="hidden lg:block h-screen shrink-0 overflow-hidden bg-slate-900 print:!hidden"
       >
         <SidebarContent
           collapsed={collapsed}
@@ -371,27 +371,30 @@ function SidebarContent({
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className={cn(
-        'flex items-center h-16 border-b border-slate-200',
+        'flex items-center h-16 border-b border-white/10',
         collapsed ? 'justify-center px-2' : 'px-6'
       )}>
-        <Link href="/" className="text-xl font-bold text-primary-600" onClick={onClose}>
-          {collapsed ? 'N' : 'Nerva'}
+        <Link href="/" className="flex items-center gap-2" onClick={onClose}>
+          <span className="text-xl font-bold text-white">
+            {collapsed ? 'N' : 'Nerva'}
+          </span>
         </Link>
       </div>
 
       {/* Navigation */}
       <nav className={cn(
-        'flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-4',
-        collapsed ? 'px-2' : 'px-4'
+        'flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-5',
+        collapsed ? 'px-2' : 'px-3'
       )}>
         {navigation.filter(isGroupVisible).map((group) => (
           <div key={group.name}>
             {!collapsed && (
-              <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              <h3 className="px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
                 {group.name}
               </h3>
             )}
-            <div className="space-y-1">
+            {collapsed && <div className="border-t border-white/10 mb-2 mx-1" />}
+            <div className="space-y-0.5">
               {group.items.filter(isItemVisible).map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                 return (
@@ -407,19 +410,20 @@ function SidebarContent({
                         'relative flex items-center text-sm font-medium rounded-md transition-colors',
                         collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2',
                         isActive
-                          ? 'text-blue-700'
-                          : 'text-slate-700 hover:bg-slate-100'
+                          ? 'text-white'
+                          : 'text-slate-400 hover:text-white hover:bg-white/5'
                       )}
                     >
                       {isActive && (
                         <motion.div
                           layoutId="navActiveIndicator"
-                          className="absolute inset-0 bg-blue-50 rounded-md"
+                          className="absolute inset-0 bg-white/10 rounded-md border-l-2 border-emerald-400"
                           transition={springs.snappy}
                         />
                       )}
                       <span className={cn(
                         'relative h-5 w-5 shrink-0',
+                        isActive && 'text-emerald-400',
                         !collapsed && 'mr-3'
                       )}>
                         {item.icon}
@@ -439,13 +443,13 @@ function SidebarContent({
       {/* Collapse toggle button (desktop only) */}
       {onToggleCollapse && (
         <div className={cn(
-          'border-t border-slate-200 p-2',
-          collapsed ? 'flex justify-center' : 'px-4'
+          'border-t border-white/10 p-2',
+          collapsed ? 'flex justify-center' : 'px-3'
         )}>
           <button
             onClick={onToggleCollapse}
             className={cn(
-              'flex items-center text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors',
+              'flex items-center text-sm font-medium text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors',
               collapsed ? 'p-2 justify-center' : 'px-3 py-2 w-full'
             )}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
