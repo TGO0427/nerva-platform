@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { useProcurementReport } from '@/lib/queries';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
@@ -95,13 +95,7 @@ export default function ProcurementReportPage() {
         <ChartCard title="Monthly Purchase Order Value" subtitle="Selected period">
           {report?.byMonth && report.byMonth.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={report.byMonth} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="colorPOValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <LineChart data={report.byMonth} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis
@@ -112,8 +106,8 @@ export default function ProcurementReportPage() {
                   contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
                   formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'PO Value']}
                 />
-                <Area type="monotone" dataKey="monthlyValue" stroke="#8b5cf6" strokeWidth={2} fill="url(#colorPOValue)" name="PO Value" />
-              </AreaChart>
+                <Line type="monotone" dataKey="monthlyValue" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} name="PO Value" />
+              </LineChart>
             </ResponsiveContainer>
           ) : (
             <ChartEmpty label="No purchase order data for this period" />

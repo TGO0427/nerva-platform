@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { useInventoryReport } from '@/lib/queries';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
@@ -71,13 +71,7 @@ export default function InventoryReportPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <ChartCard title="Inventory Value by Warehouse" subtitle="Stock valuation">
             <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={report.byWarehouse} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="colorStockValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <LineChart data={report.byWarehouse} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis
@@ -88,8 +82,8 @@ export default function InventoryReportPage() {
                   contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
                   formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Value']}
                 />
-                <Area type="monotone" dataKey="totalValue" stroke="#8b5cf6" strokeWidth={2} fill="url(#colorStockValue)" name="Stock Value" />
-              </AreaChart>
+                <Line type="monotone" dataKey="totalValue" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} name="Stock Value" />
+              </LineChart>
             </ResponsiveContainer>
           </ChartCard>
 

@@ -13,7 +13,7 @@ import {
   type CustomerPerformanceStats,
 } from '@/lib/queries/customers';
 import {
-  AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
@@ -173,13 +173,7 @@ export default function CustomerAnalyticsPage() {
         <ChartCard title="Sales Value Trend" subtitle="Last 12 months">
           {salesTrends && salesTrends.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={salesTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="colorSalesValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <LineChart data={salesTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis
@@ -190,8 +184,8 @@ export default function CustomerAnalyticsPage() {
                   contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
                   formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Sales Value']}
                 />
-                <Area type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} fill="url(#colorSalesValue)" name="Sales Value" />
-              </AreaChart>
+                <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Sales Value" />
+              </LineChart>
             </ResponsiveContainer>
           ) : (
             <ChartEmpty label="No trend data available" />
@@ -248,21 +242,15 @@ export default function CustomerAnalyticsPage() {
 
           <ChartCard title="Orders by Customer" subtitle="Top customers">
             <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={summary.topCustomersBySales} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="colorCustOrders" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <LineChart data={summary.topCustomersBySales} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
                 <Tooltip
                   contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
                 />
-                <Area type="monotone" dataKey="orderCount" stroke="#8b5cf6" strokeWidth={2} fill="url(#colorCustOrders)" name="Orders" />
-              </AreaChart>
+                <Line type="monotone" dataKey="orderCount" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} name="Orders" />
+              </LineChart>
             </ResponsiveContainer>
           </ChartCard>
         </div>

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useSalesReport } from '@/lib/queries';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 
 export default function SalesReportPage() {
@@ -91,13 +91,7 @@ export default function SalesReportPage() {
       <ChartCard title="Daily Sales" subtitle="Selected period">
         {report?.byDay && report.byDay.length > 0 ? (
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={report.byDay} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <defs>
-                <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+            <LineChart data={report.byDay} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis
                 dataKey="date"
@@ -112,8 +106,8 @@ export default function SalesReportPage() {
                 contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
                 formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Sales']}
               />
-              <Area type="monotone" dataKey="dailyValue" stroke="#3b82f6" strokeWidth={2} fill="url(#colorSales)" name="Daily Sales" />
-            </AreaChart>
+              <Line type="monotone" dataKey="dailyValue" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Daily Sales" />
+            </LineChart>
           </ResponsiveContainer>
         ) : (
           <ChartEmpty label="No sales data for this period" />
