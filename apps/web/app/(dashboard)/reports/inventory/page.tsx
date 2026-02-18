@@ -6,6 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { useInventoryReport } from '@/lib/queries';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
+} from 'recharts';
+import type { PieLabelRenderProps } from 'recharts';
 
 export default function InventoryReportPage() {
   const { data: report, isLoading } = useInventoryReport();
@@ -61,7 +66,56 @@ export default function InventoryReportPage() {
         />
       </div>
 
-      {/* Inventory by Warehouse */}
+      {/* Warehouse Charts */}
+      {report?.byWarehouse && report.byWarehouse.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <ChartCard title="Inventory Value by Warehouse" subtitle="Stock valuation">
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={report.byWarehouse} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis
+                  tick={{ fontSize: 12, fill: '#64748b' }}
+                  tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Value']}
+                />
+                <Bar dataKey="totalValue" fill="#8b5cf6" radius={[6, 6, 0, 0]} name="Stock Value" />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          <ChartCard title="Value Distribution" subtitle="By warehouse">
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={report.byWarehouse}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={95}
+                  paddingAngle={3}
+                  dataKey="totalValue"
+                  nameKey="name"
+                  label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${((props.percent ?? 0) * 100).toFixed(0)}%)`}
+                >
+                  {report.byWarehouse.map((_, index) => (
+                    <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Value']}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+      )}
+
+      {/* Inventory by Warehouse Table */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Inventory by Warehouse</CardTitle>
@@ -260,6 +314,20 @@ function SummaryCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#ec4899', '#f97316'];
+
+function ChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm p-5">
+      <div className="flex items-baseline gap-2 mb-4">
+        <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
+        <span className="text-xs text-slate-400">{subtitle}</span>
+      </div>
+      {children}
+    </div>
   );
 }
 

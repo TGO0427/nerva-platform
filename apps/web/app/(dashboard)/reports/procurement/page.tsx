@@ -9,6 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { useProcurementReport } from '@/lib/queries';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
+} from 'recharts';
+import type { PieLabelRenderProps } from 'recharts';
 
 export default function ProcurementReportPage() {
   const [startDate, setStartDate] = useState(() => {
@@ -85,21 +90,57 @@ export default function ProcurementReportPage() {
         />
       </div>
 
-      {/* Monthly Trend Chart */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Monthly Purchase Order Value</CardTitle>
-        </CardHeader>
-        <CardContent>
+      {/* Monthly Trend Chart + Status Donut */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <ChartCard title="Monthly Purchase Order Value" subtitle="Selected period">
           {report?.byMonth && report.byMonth.length > 0 ? (
-            <div className="h-64">
-              <SimpleBarChart data={report.byMonth} />
-            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={report.byMonth} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis
+                  tick={{ fontSize: 12, fill: '#64748b' }}
+                  tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'PO Value']}
+                />
+                <Bar dataKey="monthlyValue" fill="#8b5cf6" radius={[6, 6, 0, 0]} name="PO Value" />
+              </BarChart>
+            </ResponsiveContainer>
           ) : (
-            <p className="text-slate-500 text-center py-8">No purchase order data for this period.</p>
+            <ChartEmpty label="No purchase order data for this period" />
           )}
-        </CardContent>
-      </Card>
+        </ChartCard>
+
+        <ChartCard title="PO Status Distribution" subtitle="By count">
+          {report?.byStatus && report.byStatus.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={report.byStatus}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={95}
+                  paddingAngle={3}
+                  dataKey="count"
+                  nameKey="status"
+                  label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${props.value ?? 0})`}
+                >
+                  {report.byStatus.map((entry, index) => (
+                    <Cell key={entry.status} fill={PO_STATUS_COLORS[entry.status] || PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty label="No status data available" />
+          )}
+        </ChartCard>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Suppliers */}
@@ -141,7 +182,7 @@ export default function ProcurementReportPage() {
           </CardContent>
         </Card>
 
-        {/* POs by Status */}
+        {/* POs by Status table */}
         <Card>
           <CardHeader>
             <CardTitle>Purchase Orders by Status</CardTitle>
@@ -261,24 +302,32 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant={variants[status] || 'default'}>{status}</Badge>;
 }
 
-function SimpleBarChart({ data }: { data: Array<{ month: string; monthlyValue: number }> }) {
-  const maxValue = Math.max(...data.map(d => d.monthlyValue), 1);
+const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#ec4899', '#f97316'];
+const PO_STATUS_COLORS: Record<string, string> = {
+  DRAFT: '#94a3b8',
+  SENT: '#f59e0b',
+  CONFIRMED: '#3b82f6',
+  PARTIAL: '#8b5cf6',
+  RECEIVED: '#10b981',
+  CANCELLED: '#ef4444',
+};
 
+function ChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <div className="h-full flex items-end justify-between gap-2">
-      {data.map((item, index) => {
-        const height = (item.monthlyValue / maxValue) * 100;
-        return (
-          <div key={index} className="flex-1 flex flex-col items-center">
-            <div
-              className="w-full bg-purple-500 rounded-t transition-all duration-300"
-              style={{ height: `${Math.max(height, 2)}%` }}
-              title={`${item.month}: R ${item.monthlyValue.toLocaleString()}`}
-            />
-            <span className="text-xs text-slate-400 mt-2">{item.month.slice(5)}</span>
-          </div>
-        );
-      })}
+    <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm p-5">
+      <div className="flex items-baseline gap-2 mb-4">
+        <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
+        <span className="text-xs text-slate-400">{subtitle}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ChartEmpty({ label }: { label: string }) {
+  return (
+    <div className="flex items-center justify-center h-[280px] text-slate-400 text-sm">
+      {label}
     </div>
   );
 }
