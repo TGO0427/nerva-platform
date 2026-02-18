@@ -14,7 +14,7 @@ import {
   type SupplierPerformanceStats,
 } from '@/lib/queries/suppliers';
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
@@ -165,15 +165,21 @@ export default function SupplierAnalyticsPage() {
         <ChartCard title="NCR Trend" subtitle="Last 12 months">
           {ncrTrends && ncrTrends.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={ncrTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <AreaChart data={ncrTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <defs>
+                  <linearGradient id="colorNCR" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
                 <Tooltip
                   contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
                 />
-                <Bar dataKey="count" fill="#ef4444" radius={[6, 6, 0, 0]} name="NCRs" />
-              </BarChart>
+                <Area type="monotone" dataKey="count" stroke="#ef4444" strokeWidth={2} fill="url(#colorNCR)" name="NCRs" />
+              </AreaChart>
             </ResponsiveContainer>
           ) : (
             <ChartEmpty label="No NCR trend data available" />
@@ -208,15 +214,21 @@ export default function SupplierAnalyticsPage() {
         <ChartCard title="PO Count Trend" subtitle="Last 12 months">
           {poTrends && poTrends.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={poTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <AreaChart data={poTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <defs>
+                  <linearGradient id="colorPOCount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
                 <Tooltip
                   contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
                 />
-                <Bar dataKey="count" fill="#8b5cf6" radius={[6, 6, 0, 0]} name="Purchase Orders" />
-              </BarChart>
+                <Area type="monotone" dataKey="count" stroke="#8b5cf6" strokeWidth={2} fill="url(#colorPOCount)" name="Purchase Orders" />
+              </AreaChart>
             </ResponsiveContainer>
           ) : (
             <ChartEmpty label="No PO trend data available" />

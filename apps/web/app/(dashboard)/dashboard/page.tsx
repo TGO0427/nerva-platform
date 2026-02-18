@@ -16,9 +16,8 @@ import {
 } from '@/lib/queries';
 import { PERMISSIONS } from '@nerva/shared';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
-  BarChart, Bar,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
 
@@ -233,13 +232,19 @@ export default function DashboardPage() {
         <ChartCard title="By Warehouse" subtitle="Order volume">
           {warehouseData && warehouseData.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={warehouseData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <AreaChart data={warehouseData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <defs>
+                  <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="warehouse" tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
                 <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }} />
-                <Bar dataKey="orders" fill="#8b5cf6" radius={[6, 6, 0, 0]} name="Orders" />
-              </BarChart>
+                <Area type="monotone" dataKey="orders" stroke="#8b5cf6" strokeWidth={2} fill="url(#colorOrders)" name="Orders" />
+              </AreaChart>
             </ResponsiveContainer>
           ) : (
             <ChartEmpty label="No warehouse data" />
