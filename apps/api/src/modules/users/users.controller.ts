@@ -73,6 +73,17 @@ export class UsersController {
     return { success: true };
   }
 
+  @Delete(':id/roles/:roleId')
+  @RequirePermissions('user.manage')
+  @ApiOperation({ summary: 'Remove role from user' })
+  async removeRole(
+    @Param('id', UuidValidationPipe) userId: string,
+    @Param('roleId', UuidValidationPipe) roleId: string,
+  ) {
+    await this.usersService.removeRole(userId, roleId);
+    return { success: true };
+  }
+
   @Get(':id/roles')
   @RequirePermissions('user.manage')
   @ApiOperation({ summary: 'Get user roles' })

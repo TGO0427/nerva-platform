@@ -154,6 +154,19 @@ export function useAssignUserRole() {
   });
 }
 
+export function useRemoveUserRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
+      await api.delete(`/admin/users/${userId}/roles/${roleId}`);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [USERS_KEY, variables.userId, 'roles'] });
+    },
+  });
+}
+
 export function useUserSites(userId: string | undefined) {
   return useQuery({
     queryKey: [USERS_KEY, userId, 'sites'],

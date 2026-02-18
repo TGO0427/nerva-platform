@@ -14,6 +14,7 @@ import {
   useUserRoles,
   useRoles,
   useAssignUserRole,
+  useRemoveUserRole,
   useUserSites,
   useAllSites,
   useAssignUserSite,
@@ -38,6 +39,7 @@ export default function UserDetailPage() {
   const { data: allWarehouses } = useWarehouses();
   const updateUser = useUpdateUser();
   const assignRole = useAssignUserRole();
+  const removeRole = useRemoveUserRole();
   const assignSite = useAssignUserSite();
   const removeSite = useRemoveUserSite();
   const assignWarehouse = useAssignUserWarehouse();
@@ -85,6 +87,14 @@ export default function UserDetailPage() {
       await assignRole.mutateAsync({ userId, roleId });
     } catch (error) {
       console.error('Failed to assign role:', error);
+    }
+  };
+
+  const handleRemoveRole = async (roleId: string) => {
+    try {
+      await removeRole.mutateAsync({ userId, roleId });
+    } catch (error) {
+      console.error('Failed to remove role:', error);
     }
   };
 
@@ -273,7 +283,13 @@ export default function UserDetailPage() {
                             <div className="text-sm text-slate-500">{role.description}</div>
                           )}
                         </div>
-                        <Badge variant="info">Assigned</Badge>
+                        <button
+                          onClick={() => handleRemoveRole(role.id)}
+                          className="text-slate-400 hover:text-red-500 transition-colors"
+                          title="Remove role"
+                        >
+                          <XIcon />
+                        </button>
                       </div>
                     ))}
                   </div>
