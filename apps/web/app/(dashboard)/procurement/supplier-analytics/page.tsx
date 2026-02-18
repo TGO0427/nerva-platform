@@ -13,6 +13,11 @@ import {
   usePurchaseOrderTrends,
   type SupplierPerformanceStats,
 } from '@/lib/queries/suppliers';
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
+} from 'recharts';
+import type { PieLabelRenderProps } from 'recharts';
 
 export default function SupplierAnalyticsPage() {
   const [performancePage, setPerformancePage] = useState(1);
@@ -157,31 +162,94 @@ export default function SupplierAnalyticsPage() {
 
       {/* Trends Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>NCR Trend (Last 12 Months)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {ncrTrends && ncrTrends.length > 0 ? (
-              <SimpleBarChart data={ncrTrends} color="red" />
-            ) : (
-              <p className="text-slate-500 text-sm">No trend data available.</p>
-            )}
-          </CardContent>
-        </Card>
+        <ChartCard title="NCR Trend" subtitle="Last 12 months">
+          {ncrTrends && ncrTrends.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={ncrTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                />
+                <Bar dataKey="count" fill="#ef4444" radius={[6, 6, 0, 0]} name="NCRs" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty label="No NCR trend data available" />
+          )}
+        </ChartCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Purchase Order Trend (Last 12 Months)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {poTrends && poTrends.length > 0 ? (
-              <SimpleBarChart data={poTrends} color="blue" valueKey="value" />
-            ) : (
-              <p className="text-slate-500 text-sm">No trend data available.</p>
-            )}
-          </CardContent>
-        </Card>
+        <ChartCard title="Purchase Order Value Trend" subtitle="Last 12 months">
+          {poTrends && poTrends.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={poTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis
+                  tick={{ fontSize: 12, fill: '#64748b' }}
+                  tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'PO Value']}
+                />
+                <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="PO Value" />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty label="No PO trend data available" />
+          )}
+        </ChartCard>
+      </div>
+
+      {/* Additional Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <ChartCard title="PO Count Trend" subtitle="Last 12 months">
+          {poTrends && poTrends.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={poTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                />
+                <Bar dataKey="count" fill="#8b5cf6" radius={[6, 6, 0, 0]} name="Purchase Orders" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty label="No PO trend data available" />
+          )}
+        </ChartCard>
+
+        {summary?.topSuppliersByPO && summary.topSuppliersByPO.length > 0 && (
+          <ChartCard title="Spend Distribution" subtitle="Top suppliers">
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={summary.topSuppliersByPO}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={95}
+                  paddingAngle={3}
+                  dataKey="totalValue"
+                  nameKey="name"
+                  label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${((props.percent ?? 0) * 100).toFixed(0)}%)`}
+                >
+                  {summary.topSuppliersByPO.map((_, index) => (
+                    <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Spend']}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        )}
       </div>
 
       {/* Supplier Performance Table */}
@@ -413,43 +481,25 @@ function NcrRateBadge({ rate }: { rate: number }) {
   return <Badge variant={variant}>{rate.toFixed(1)}%</Badge>;
 }
 
-// Simple Bar Chart Component
-function SimpleBarChart({
-  data,
-  color,
-  valueKey = 'count',
-}: {
-  data: Array<{ month: string; count?: number; value?: number }>;
-  color: 'blue' | 'red' | 'green';
-  valueKey?: 'count' | 'value';
-}) {
-  const values = data.map(d => d[valueKey] ?? 0);
-  const maxValue = Math.max(...values, 1);
+const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#ec4899', '#f97316'];
 
-  const colorClasses = {
-    blue: 'bg-blue-500',
-    red: 'bg-red-500',
-    green: 'bg-green-500',
-  };
-
+// Chart card wrapper
+function ChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <div className="h-48 flex items-end justify-between gap-1">
-      {data.map((item, index) => {
-        const value = item[valueKey] ?? 0;
-        const height = (value / maxValue) * 100;
-        return (
-          <div key={index} className="flex-1 flex flex-col items-center">
-            <div
-              className={`w-full ${colorClasses[color]} rounded-t transition-all duration-300`}
-              style={{ height: `${Math.max(height, 2)}%` }}
-              title={`${item.month}: ${valueKey === 'value' ? `R ${value.toLocaleString()}` : value}`}
-            />
-            <span className="text-xs text-slate-400 mt-1 rotate-45 origin-left whitespace-nowrap">
-              {item.month.slice(0, 3)}
-            </span>
-          </div>
-        );
-      })}
+    <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm p-5">
+      <div className="flex items-baseline gap-2 mb-4">
+        <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
+        <span className="text-xs text-slate-400">{subtitle}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ChartEmpty({ label }: { label: string }) {
+  return (
+    <div className="flex items-center justify-center h-[280px] text-slate-400 text-sm">
+      {label}
     </div>
   );
 }

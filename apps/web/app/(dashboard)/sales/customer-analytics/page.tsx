@@ -12,6 +12,11 @@ import {
   useSalesOrderTrends,
   type CustomerPerformanceStats,
 } from '@/lib/queries/customers';
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell,
+} from 'recharts';
+import type { PieLabelRenderProps } from 'recharts';
 
 export default function CustomerAnalyticsPage() {
   const [performancePage, setPerformancePage] = useState(1);
@@ -163,19 +168,102 @@ export default function CustomerAnalyticsPage() {
         </Card>
       </div>
 
-      {/* Sales Trend Chart */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Sales Order Trend (Last 12 Months)</CardTitle>
-        </CardHeader>
-        <CardContent>
+      {/* Sales Trend Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <ChartCard title="Sales Value Trend" subtitle="Last 12 months">
           {salesTrends && salesTrends.length > 0 ? (
-            <SimpleBarChart data={salesTrends} color="green" valueKey="value" />
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={salesTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis
+                  tick={{ fontSize: 12, fill: '#64748b' }}
+                  tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Sales Value']}
+                />
+                <Bar dataKey="value" fill="#10b981" radius={[6, 6, 0, 0]} name="Sales Value" />
+              </BarChart>
+            </ResponsiveContainer>
           ) : (
-            <p className="text-slate-500 text-sm">No trend data available.</p>
+            <ChartEmpty label="No trend data available" />
           )}
-        </CardContent>
-      </Card>
+        </ChartCard>
+
+        <ChartCard title="Order Count Trend" subtitle="Last 12 months">
+          {salesTrends && salesTrends.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={salesTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                />
+                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Orders" />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty label="No trend data available" />
+          )}
+        </ChartCard>
+      </div>
+
+      {/* Top Customers Breakdown - Pie Chart */}
+      {summary?.topCustomersBySales && summary.topCustomersBySales.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <ChartCard title="Revenue Distribution" subtitle="Top customers">
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={summary.topCustomersBySales}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={95}
+                  paddingAngle={3}
+                  dataKey="totalValue"
+                  nameKey="name"
+                  label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${((props.percent ?? 0) * 100).toFixed(0)}%)`}
+                >
+                  {summary.topCustomersBySales.map((_, index) => (
+                    <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Revenue']}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          <ChartCard title="Orders by Customer" subtitle="Top customers">
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart
+                data={summary.topCustomersBySales}
+                layout="vertical"
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  width={120}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                />
+                <Bar dataKey="orderCount" fill="#8b5cf6" radius={[0, 6, 6, 0]} name="Orders" />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+      )}
 
       {/* Customer Performance Table */}
       <Card>
@@ -390,43 +478,25 @@ function OrderStatusBadge({ status }: { status: string }) {
   return <Badge variant={variants[status] || 'default'} className="text-xs">{status}</Badge>;
 }
 
-// Simple Bar Chart Component
-function SimpleBarChart({
-  data,
-  color,
-  valueKey = 'count',
-}: {
-  data: Array<{ month: string; count?: number; value?: number }>;
-  color: 'blue' | 'red' | 'green';
-  valueKey?: 'count' | 'value';
-}) {
-  const values = data.map(d => d[valueKey] ?? 0);
-  const maxValue = Math.max(...values, 1);
+const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#ec4899', '#f97316'];
 
-  const colorClasses = {
-    blue: 'bg-blue-500',
-    red: 'bg-red-500',
-    green: 'bg-green-500',
-  };
-
+// Chart card wrapper
+function ChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <div className="h-48 flex items-end justify-between gap-1">
-      {data.map((item, index) => {
-        const value = item[valueKey] ?? 0;
-        const height = (value / maxValue) * 100;
-        return (
-          <div key={index} className="flex-1 flex flex-col items-center">
-            <div
-              className={`w-full ${colorClasses[color]} rounded-t transition-all duration-300`}
-              style={{ height: `${Math.max(height, 2)}%` }}
-              title={`${item.month}: ${valueKey === 'value' ? `R ${value.toLocaleString()}` : value}`}
-            />
-            <span className="text-xs text-slate-400 mt-1 rotate-45 origin-left whitespace-nowrap">
-              {item.month.slice(0, 3)}
-            </span>
-          </div>
-        );
-      })}
+    <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm p-5">
+      <div className="flex items-baseline gap-2 mb-4">
+        <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
+        <span className="text-xs text-slate-400">{subtitle}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ChartEmpty({ label }: { label: string }) {
+  return (
+    <div className="flex items-center justify-center h-[280px] text-slate-400 text-sm">
+      {label}
     </div>
   );
 }
