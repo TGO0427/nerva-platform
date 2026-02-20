@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,22 @@ export default function SalesReportPage() {
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const { data: report, isLoading } = useSalesReport(startDate, endDate);
+
+  // Fill missing months so curves always render (need 3+ points)
+  const chartData = useMemo(() => {
+    if (!report?.byDay) return [];
+    const dataMap = new Map(report.byDay.map((d) => [d.date, d]));
+    const months: { date: string; orderCount: number; dailyValue: number }[] = [];
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cursor <= end) {
+      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`;
+      months.push(dataMap.get(key) ?? { date: key, orderCount: 0, dailyValue: 0 });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return months;
+  }, [report?.byDay, startDate, endDate]);
 
   if (isLoading) {
     return (
@@ -89,14 +105,18 @@ export default function SalesReportPage() {
 
       {/* Monthly Sales Chart */}
       <ChartCard title="Monthly Trend" subtitle="Orders vs Sales">
-        {report?.byDay && report.byDay.length > 0 ? (
+        {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={report.byDay} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+            <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
               <XAxis
                 dataKey="date"
                 axisLine={{ stroke: '#cbd5e1' }}
                 tickLine={false}
                 tick={{ fontSize: 12, fill: '#94a3b8' }}
+                tickFormatter={(v: string) => {
+                  const [y, m] = v.split('-');
+                  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2);
+                }}
               />
               <YAxis
                 yAxisId="value"
