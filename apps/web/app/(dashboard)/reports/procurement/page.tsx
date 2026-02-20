@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { useProcurementReport } from '@/lib/queries';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
@@ -24,6 +24,21 @@ export default function ProcurementReportPage() {
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const { data: report, isLoading } = useProcurementReport(startDate, endDate);
+
+  const chartData = useMemo(() => {
+    if (!report?.byMonth) return [];
+    const dataMap = new Map(report.byMonth.map((d) => [d.month, d]));
+    const months: { month: string; poCount: number; monthlyValue: number }[] = [];
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cursor <= end) {
+      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`;
+      months.push(dataMap.get(key) ?? { month: key, poCount: 0, monthlyValue: 0 });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return months;
+  }, [report?.byMonth, startDate, endDate]);
 
   if (isLoading) {
     return (
@@ -92,21 +107,38 @@ export default function ProcurementReportPage() {
 
       {/* Monthly Trend Chart + Status Donut */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <ChartCard title="Monthly Purchase Order Value" subtitle="Selected period">
-          {report?.byMonth && report.byMonth.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={report.byMonth} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
+        <ChartCard title="Monthly Trend" subtitle="POs vs Value">
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                <XAxis
+                  dataKey="month"
+                  axisLine={{ stroke: '#cbd5e1' }}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: '#94a3b8' }}
+                  tickFormatter={(v: string) => {
+                    const [y, m] = v.split('-');
+                    return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2);
+                  }}
+                />
                 <YAxis
-                  tick={{ fontSize: 12, fill: '#64748b' }}
+                  yAxisId="value"
+                  tick={{ fontSize: 12, fill: '#94a3b8' }}
                   tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
+                  axisLine={false}
+                  tickLine={false}
                 />
+                <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
-                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'PO Value']}
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                  formatter={(value: unknown, name?: string) => {
+                    if (name === 'PO Value') return [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, name];
+                    return [Number(value).toLocaleString(), name ?? ''];
+                  }}
                 />
-                <Line type="monotone" dataKey="monthlyValue" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} name="PO Value" />
+                <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ paddingTop: 16, fontSize: 13 }} />
+                <Line yAxisId="count" type="natural" dataKey="poCount" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#3b82f6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} name="POs" />
+                <Line yAxisId="value" type="natural" dataKey="monthlyValue" stroke="#10b981" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#10b981', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }} name="PO Value" />
               </LineChart>
             </ResponsiveContainer>
           ) : (

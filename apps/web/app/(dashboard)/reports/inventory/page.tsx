@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { useInventoryReport } from '@/lib/queries';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
@@ -71,18 +71,19 @@ export default function InventoryReportPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <ChartCard title="Inventory by Warehouse" subtitle="Stock quantity">
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={report.byWarehouse} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
+              <LineChart data={report.byWarehouse} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                <XAxis dataKey="name" axisLine={{ stroke: '#cbd5e1' }} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
                 <YAxis
-                  tick={{ fontSize: 12, fill: '#64748b' }}
+                  tick={{ fontSize: 12, fill: '#94a3b8' }}
                   tickFormatter={(v: number) => v.toLocaleString()}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <Tooltip
-                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
                   formatter={(value: unknown) => [Number(value).toLocaleString(), 'Qty']}
                 />
-                <Line type="monotone" dataKey="totalQty" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} name="Stock Qty" />
+                <Line type="natural" dataKey="totalQty" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#8b5cf6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }} name="Stock Qty" />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>

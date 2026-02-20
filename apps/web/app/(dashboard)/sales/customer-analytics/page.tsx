@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import {
   type CustomerPerformanceStats,
 } from '@/lib/queries/customers';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
@@ -31,6 +31,19 @@ export default function CustomerAnalyticsPage() {
     sortOrder,
   });
   const { data: salesTrends } = useSalesOrderTrends(12);
+
+  const trendData = useMemo(() => {
+    if (!salesTrends) return [];
+    const dataMap = new Map(salesTrends.map((d) => [d.month, d]));
+    const months: { month: string; count: number; value?: number }[] = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      months.push(dataMap.get(key) ?? { month: key, count: 0, value: 0 });
+    }
+    return months;
+  }, [salesTrends]);
 
   if (summaryLoading) {
     return (
@@ -171,20 +184,13 @@ export default function CustomerAnalyticsPage() {
       {/* Sales Trend Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <ChartCard title="Sales Value Trend" subtitle="Last 12 months">
-          {salesTrends && salesTrends.length > 0 ? (
+          {trendData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={salesTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis
-                  tick={{ fontSize: 12, fill: '#64748b' }}
-                  tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
-                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Sales Value']}
-                />
-                <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Sales Value" />
+              <LineChart data={trendData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                <XAxis dataKey="month" axisLine={{ stroke: '#cbd5e1' }} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
+                <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Sales Value']} />
+                <Line type="natural" dataKey="value" stroke="#10b981" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#10b981', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }} name="Sales Value" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -193,16 +199,13 @@ export default function CustomerAnalyticsPage() {
         </ChartCard>
 
         <ChartCard title="Order Count Trend" subtitle="Last 12 months">
-          {salesTrends && salesTrends.length > 0 ? (
+          {trendData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={salesTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
-                />
-                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Orders" />
+              <LineChart data={trendData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                <XAxis dataKey="month" axisLine={{ stroke: '#cbd5e1' }} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} />
+                <Line type="natural" dataKey="count" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#3b82f6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} name="Orders" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -242,14 +245,11 @@ export default function CustomerAnalyticsPage() {
 
           <ChartCard title="Orders by Customer" subtitle="Top customers">
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={summary.topCustomersBySales} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
-                />
-                <Line type="monotone" dataKey="orderCount" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} name="Orders" />
+              <LineChart data={summary.topCustomersBySales} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                <XAxis dataKey="name" axisLine={{ stroke: '#cbd5e1' }} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} />
+                <Line type="natural" dataKey="orderCount" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#8b5cf6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }} name="Orders" />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>

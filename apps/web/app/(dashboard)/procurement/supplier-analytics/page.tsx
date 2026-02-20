@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import {
   type SupplierPerformanceStats,
 } from '@/lib/queries/suppliers';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
@@ -33,6 +33,28 @@ export default function SupplierAnalyticsPage() {
   });
   const { data: ncrTrends } = useNcrTrends(12);
   const { data: poTrends } = usePurchaseOrderTrends(12);
+
+  const fillMonths = useMemo(() => {
+    const months: string[] = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    return months;
+  }, []);
+
+  const ncrData = useMemo(() => {
+    if (!ncrTrends) return [];
+    const dataMap = new Map(ncrTrends.map((d) => [d.month, d]));
+    return fillMonths.map((key) => dataMap.get(key) ?? { month: key, count: 0, value: 0 });
+  }, [ncrTrends, fillMonths]);
+
+  const poData = useMemo(() => {
+    if (!poTrends) return [];
+    const dataMap = new Map(poTrends.map((d) => [d.month, d]));
+    return fillMonths.map((key) => dataMap.get(key) ?? { month: key, count: 0, value: 0 });
+  }, [poTrends, fillMonths]);
 
   if (summaryLoading) {
     return (
@@ -163,16 +185,13 @@ export default function SupplierAnalyticsPage() {
       {/* Trends Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <ChartCard title="NCR Trend" subtitle="Last 12 months">
-          {ncrTrends && ncrTrends.length > 0 ? (
+          {ncrData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={ncrTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
-                />
-                <Line type="monotone" dataKey="count" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} name="NCRs" />
+              <LineChart data={ncrData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                <XAxis dataKey="month" axisLine={{ stroke: '#cbd5e1' }} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} />
+                <Line type="natural" dataKey="count" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#ef4444', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#ef4444', stroke: '#fff', strokeWidth: 2 }} name="NCRs" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -181,20 +200,13 @@ export default function SupplierAnalyticsPage() {
         </ChartCard>
 
         <ChartCard title="Purchase Order Value Trend" subtitle="Last 12 months">
-          {poTrends && poTrends.length > 0 ? (
+          {poData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={poTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis
-                  tick={{ fontSize: 12, fill: '#64748b' }}
-                  tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
-                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'PO Value']}
-                />
-                <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="PO Value" />
+              <LineChart data={poData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                <XAxis dataKey="month" axisLine={{ stroke: '#cbd5e1' }} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
+                <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'PO Value']} />
+                <Line type="natural" dataKey="value" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#3b82f6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} name="PO Value" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -206,16 +218,13 @@ export default function SupplierAnalyticsPage() {
       {/* Additional Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <ChartCard title="PO Count Trend" subtitle="Last 12 months">
-          {poTrends && poTrends.length > 0 ? (
+          {poData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={poTrends} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
-                />
-                <Line type="monotone" dataKey="count" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} name="Purchase Orders" />
+              <LineChart data={poData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                <XAxis dataKey="month" axisLine={{ stroke: '#cbd5e1' }} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} />
+                <Line type="natural" dataKey="count" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#8b5cf6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }} name="Purchase Orders" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
