@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useSalesReport } from '@/lib/queries';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 
 export default function SalesReportPage() {
@@ -88,24 +88,62 @@ export default function SalesReportPage() {
       </div>
 
       {/* Monthly Sales Chart */}
-      <ChartCard title="Monthly Sales" subtitle="Selected period">
+      <ChartCard title="Monthly Trend" subtitle="Orders vs Sales">
         {report?.byDay && report.byDay.length > 0 ? (
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={report.byDay} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={report.byDay} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11, fill: '#64748b' }}
+                axisLine={{ stroke: '#cbd5e1' }}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: '#94a3b8' }}
               />
               <YAxis
-                tick={{ fontSize: 12, fill: '#64748b' }}
+                yAxisId="value"
+                tick={{ fontSize: 12, fill: '#94a3b8' }}
                 tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                yAxisId="count"
+                orientation="right"
+                tick={{ fontSize: 12, fill: '#94a3b8' }}
+                axisLine={false}
+                tickLine={false}
               />
               <Tooltip
-                contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
-                formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Sales']}
+                contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                formatter={(value: unknown, name?: string) => {
+                  if (name === 'Sales') return [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, name];
+                  return [Number(value).toLocaleString(), name ?? ''];
+                }}
               />
-              <Line type="monotone" dataKey="dailyValue" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Monthly Sales" />
+              <Legend
+                verticalAlign="bottom"
+                iconType="circle"
+                wrapperStyle={{ paddingTop: 16, fontSize: 13 }}
+              />
+              <Line
+                yAxisId="count"
+                type="natural"
+                dataKey="orderCount"
+                stroke="#3b82f6"
+                strokeWidth={2.5}
+                dot={{ r: 5, fill: '#ffffff', stroke: '#3b82f6', strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
+                name="Orders"
+              />
+              <Line
+                yAxisId="value"
+                type="natural"
+                dataKey="dailyValue"
+                stroke="#10b981"
+                strokeWidth={2.5}
+                dot={{ r: 5, fill: '#ffffff', stroke: '#10b981', strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
+                name="Sales"
+              />
             </LineChart>
           </ResponsiveContainer>
         ) : (
