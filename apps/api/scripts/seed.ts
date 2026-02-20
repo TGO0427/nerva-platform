@@ -416,8 +416,9 @@ async function seed() {
     }
     console.log(`Created ${purchaseOrders.length} purchase orders`);
 
-    // PO lines for each purchase order
+    // PO lines for each purchase order (clear old lines first to avoid duplicates on re-run)
     console.log('Seeding purchase order lines...');
+    await pool.query(`DELETE FROM purchase_order_lines WHERE tenant_id = $1`, [tenantId]);
     const poLineSkus = ['WIDGET-001', 'WIDGET-002', 'GADGET-001', 'GADGET-002', 'PART-001', 'CABLE-USB'];
     const poLineData = await pool.query(
       `SELECT id, po_no FROM purchase_orders WHERE tenant_id = $1`,
@@ -428,14 +429,14 @@ async function seed() {
       const sku1 = poLineSkus[skuIdx];
       const sku2 = poLineSkus[(skuIdx + 1) % poLineSkus.length];
       await pool.query(`
-        INSERT INTO purchase_order_lines (tenant_id, purchase_order_id, line_no, item_id, qty_ordered, qty_received, unit_cost)
-        VALUES ($1, $2, 1, $3, 50, 50, 80.00)
-        ON CONFLICT (tenant_id, purchase_order_id, line_no) DO NOTHING
+        INSERT INTO purchase_order_lines (tenant_id, purchase_order_id, item_id, qty_ordered, qty_received, unit_cost)
+        VALUES ($1, $2, $3, 50, 50, 80.00)
+        ON CONFLICT DO NOTHING
       `, [tenantId, poRow.id, itemIds[sku1]]);
       await pool.query(`
-        INSERT INTO purchase_order_lines (tenant_id, purchase_order_id, line_no, item_id, qty_ordered, qty_received, unit_cost)
-        VALUES ($1, $2, 2, $3, 100, 100, 40.00)
-        ON CONFLICT (tenant_id, purchase_order_id, line_no) DO NOTHING
+        INSERT INTO purchase_order_lines (tenant_id, purchase_order_id, item_id, qty_ordered, qty_received, unit_cost)
+        VALUES ($1, $2, $3, 100, 100, 40.00)
+        ON CONFLICT DO NOTHING
       `, [tenantId, poRow.id, itemIds[sku2]]);
     }
     console.log(`Created PO lines for ${poLineData.rows.length} purchase orders`);
