@@ -1,9 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useInventoryReport } from '@/lib/queries';
 import {
@@ -13,6 +16,13 @@ import {
 import type { PieLabelRenderProps } from 'recharts';
 
 export default function InventoryReportPage() {
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+
   const { data: report, isLoading } = useInventoryReport();
 
   if (isLoading) {
@@ -27,9 +37,33 @@ export default function InventoryReportPage() {
     <div>
       <Breadcrumbs />
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Inventory Report</h1>
-        <p className="text-slate-500 mt-1">Monitor stock levels, valuations, and alerts.</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Inventory Report</h1>
+          <p className="text-slate-500 mt-1">Monitor stock levels, valuations, and alerts.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div>
+            <Label htmlFor="startDate" className="text-xs">From</Label>
+            <Input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
+          <div>
+            <Label htmlFor="endDate" className="text-xs">To</Label>
+            <Input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Summary Cards */}

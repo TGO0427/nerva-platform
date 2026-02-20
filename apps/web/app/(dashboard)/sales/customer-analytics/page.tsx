@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import {
   useCustomerDashboardSummary,
@@ -19,9 +21,22 @@ import {
 import type { PieLabelRenderProps } from 'recharts';
 
 export default function CustomerAnalyticsPage() {
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+
   const [performancePage, setPerformancePage] = useState(1);
   const [sortBy, setSortBy] = useState<string>('totalOrderValue');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  const monthsCount = useMemo(() => {
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    return Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1);
+  }, [startDate, endDate]);
 
   const { data: summary, isLoading: summaryLoading } = useCustomerDashboardSummary();
   const { data: performance, isLoading: perfLoading } = useCustomerPerformanceStats({
@@ -30,20 +45,22 @@ export default function CustomerAnalyticsPage() {
     sortBy,
     sortOrder,
   });
-  const { data: salesTrends } = useSalesOrderTrends(12);
+  const { data: salesTrends } = useSalesOrderTrends(monthsCount);
 
   const trendData = useMemo(() => {
     if (!salesTrends) return [];
     const dataMap = new Map(salesTrends.map((d) => [d.month, d]));
     const months: { month: string; count: number; value?: number }[] = [];
-    const now = new Date();
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cursor <= end) {
+      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`;
       months.push(dataMap.get(key) ?? { month: key, count: 0, value: 0 });
+      cursor.setMonth(cursor.getMonth() + 1);
     }
     return months;
-  }, [salesTrends]);
+  }, [salesTrends, startDate, endDate]);
 
   if (summaryLoading) {
     return (
@@ -67,9 +84,33 @@ export default function CustomerAnalyticsPage() {
     <div>
       <Breadcrumbs />
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Customer Analytics</h1>
-        <p className="text-slate-500 mt-1">Monitor customer performance, sales trends, and order analytics.</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Customer Analytics</h1>
+          <p className="text-slate-500 mt-1">Monitor customer performance, sales trends, and order analytics.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div>
+            <Label htmlFor="startDate" className="text-xs">From</Label>
+            <Input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
+          <div>
+            <Label htmlFor="endDate" className="text-xs">To</Label>
+            <Input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Summary Cards */}

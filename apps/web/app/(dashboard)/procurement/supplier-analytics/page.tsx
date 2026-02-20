@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import {
   useSupplierDashboardSummary,
@@ -20,9 +22,22 @@ import {
 import type { PieLabelRenderProps } from 'recharts';
 
 export default function SupplierAnalyticsPage() {
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+
   const [performancePage, setPerformancePage] = useState(1);
   const [sortBy, setSortBy] = useState<string>('totalPOValue');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  const monthsCount = useMemo(() => {
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    return Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1);
+  }, [startDate, endDate]);
 
   const { data: summary, isLoading: summaryLoading } = useSupplierDashboardSummary();
   const { data: performance, isLoading: perfLoading } = useSupplierPerformanceStats({
@@ -31,18 +46,20 @@ export default function SupplierAnalyticsPage() {
     sortBy,
     sortOrder,
   });
-  const { data: ncrTrends } = useNcrTrends(12);
-  const { data: poTrends } = usePurchaseOrderTrends(12);
+  const { data: ncrTrends } = useNcrTrends(monthsCount);
+  const { data: poTrends } = usePurchaseOrderTrends(monthsCount);
 
   const fillMonths = useMemo(() => {
     const months: string[] = [];
-    const now = new Date();
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cursor <= end) {
+      months.push(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`);
+      cursor.setMonth(cursor.getMonth() + 1);
     }
     return months;
-  }, []);
+  }, [startDate, endDate]);
 
   const ncrData = useMemo(() => {
     if (!ncrTrends) return [];
@@ -78,9 +95,33 @@ export default function SupplierAnalyticsPage() {
     <div>
       <Breadcrumbs />
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Supplier Analytics</h1>
-        <p className="text-slate-500 mt-1">Monitor supplier performance, NCRs, and procurement trends.</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Supplier Analytics</h1>
+          <p className="text-slate-500 mt-1">Monitor supplier performance, NCRs, and procurement trends.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div>
+            <Label htmlFor="startDate" className="text-xs">From</Label>
+            <Input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
+          <div>
+            <Label htmlFor="endDate" className="text-xs">To</Label>
+            <Input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Summary Cards */}
