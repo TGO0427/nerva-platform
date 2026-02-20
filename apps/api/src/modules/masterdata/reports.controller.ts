@@ -27,11 +27,11 @@ export class ReportsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    // Default to last 30 days if not specified
-    const end = endDate ? new Date(endDate) : new Date();
+    // Default to last 12 months if not specified
+    const end = endDate ? new Date(endDate + 'T23:59:59.999') : new Date();
     const start = startDate
       ? new Date(startDate)
-      : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+      : new Date(end.getTime() - 365 * 24 * 60 * 60 * 1000);
 
     return this.service.getSalesReport(tenantId, start, end);
   }
@@ -51,11 +51,11 @@ export class ReportsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    // Default to last 90 days if not specified
-    const end = endDate ? new Date(endDate) : new Date();
+    // Default to last 12 months if not specified
+    const end = endDate ? new Date(endDate + 'T23:59:59.999') : new Date();
     const start = startDate
       ? new Date(startDate)
-      : new Date(end.getTime() - 90 * 24 * 60 * 60 * 1000);
+      : new Date(end.getTime() - 365 * 24 * 60 * 60 * 1000);
 
     return this.service.getProcurementReport(tenantId, start, end);
   }

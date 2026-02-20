@@ -2459,13 +2459,13 @@ export class MasterDataRepository extends BaseRepository {
 
     const byDay = await this.queryMany<Record<string, unknown>>(
       `SELECT
-        DATE(so.created_at) as date,
+        TO_CHAR(DATE_TRUNC('month', so.created_at), 'YYYY-MM') as date,
         COUNT(*) as order_count,
         COALESCE(SUM(sol.qty_ordered * COALESCE(sol.unit_price, 0)), 0) as daily_value
       FROM sales_orders so
       LEFT JOIN sales_order_lines sol ON so.id = sol.sales_order_id
       WHERE so.tenant_id = $1 AND so.created_at >= $2 AND so.created_at <= $3
-      GROUP BY DATE(so.created_at)
+      GROUP BY DATE_TRUNC('month', so.created_at)
       ORDER BY date ASC`,
       [tenantId, startDate, endDate],
     );
@@ -2513,7 +2513,7 @@ export class MasterDataRepository extends BaseRepository {
         cancelledOrders: parseInt(summary?.cancelled_orders as string || '0', 10),
       },
       byDay: byDay.map((row) => ({
-        date: (row.date as Date).toISOString().split('T')[0],
+        date: row.date as string,
         orderCount: parseInt(row.order_count as string, 10),
         dailyValue: parseFloat(row.daily_value as string || '0'),
       })),

@@ -18,7 +18,7 @@ import type { PieLabelRenderProps } from 'recharts';
 export default function ProcurementReportPage() {
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
-    d.setMonth(d.getMonth() - 3);
+    d.setFullYear(d.getFullYear() - 1);
     return d.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);

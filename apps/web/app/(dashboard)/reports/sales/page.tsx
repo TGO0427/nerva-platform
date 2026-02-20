@@ -15,7 +15,7 @@ import {
 export default function SalesReportPage() {
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
-    d.setDate(d.getDate() - 30);
+    d.setFullYear(d.getFullYear() - 1);
     return d.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -87,8 +87,8 @@ export default function SalesReportPage() {
         />
       </div>
 
-      {/* Daily Sales Chart */}
-      <ChartCard title="Daily Sales" subtitle="Selected period">
+      {/* Monthly Sales Chart */}
+      <ChartCard title="Monthly Sales" subtitle="Selected period">
         {report?.byDay && report.byDay.length > 0 ? (
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={report.byDay} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -96,7 +96,6 @@ export default function SalesReportPage() {
               <XAxis
                 dataKey="date"
                 tick={{ fontSize: 11, fill: '#64748b' }}
-                tickFormatter={(v: string) => v.slice(5)}
               />
               <YAxis
                 tick={{ fontSize: 12, fill: '#64748b' }}
@@ -106,7 +105,7 @@ export default function SalesReportPage() {
                 contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
                 formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Sales']}
               />
-              <Line type="monotone" dataKey="dailyValue" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Daily Sales" />
+              <Line type="monotone" dataKey="dailyValue" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Monthly Sales" />
             </LineChart>
           </ResponsiveContainer>
         ) : (

@@ -47,8 +47,8 @@ export default function InventoryReportPage() {
           color="green"
         />
         <SummaryCard
-          title="Total Value"
-          value={`R ${(report?.summary.totalValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
+          title="Warehouses"
+          value={report?.byWarehouse?.length ?? 0}
           icon={<CurrencyIcon />}
           color="purple"
         />
@@ -69,25 +69,25 @@ export default function InventoryReportPage() {
       {/* Warehouse Charts */}
       {report?.byWarehouse && report.byWarehouse.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <ChartCard title="Inventory Value by Warehouse" subtitle="Stock valuation">
+          <ChartCard title="Inventory by Warehouse" subtitle="Stock quantity">
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={report.byWarehouse} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis
                   tick={{ fontSize: 12, fill: '#64748b' }}
-                  tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
+                  tickFormatter={(v: number) => v.toLocaleString()}
                 />
                 <Tooltip
                   contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
-                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Value']}
+                  formatter={(value: unknown) => [Number(value).toLocaleString(), 'Qty']}
                 />
-                <Line type="monotone" dataKey="totalValue" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} name="Stock Value" />
+                <Line type="monotone" dataKey="totalQty" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} name="Stock Qty" />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard title="Value Distribution" subtitle="By warehouse">
+          <ChartCard title="Quantity Distribution" subtitle="By warehouse">
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
@@ -97,7 +97,7 @@ export default function InventoryReportPage() {
                   innerRadius={55}
                   outerRadius={95}
                   paddingAngle={3}
-                  dataKey="totalValue"
+                  dataKey="totalQty"
                   nameKey="name"
                   label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${((props.percent ?? 0) * 100).toFixed(0)}%)`}
                 >
@@ -107,7 +107,7 @@ export default function InventoryReportPage() {
                 </Pie>
                 <Tooltip
                   contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
-                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Value']}
+                  formatter={(value: unknown) => [Number(value).toLocaleString(), 'Qty']}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -129,14 +129,13 @@ export default function InventoryReportPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Warehouse</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Items</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Total Qty</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Total Value</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">% of Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                   {report.byWarehouse.map((wh) => {
-                    const percentOfTotal = report.summary.totalValue > 0
-                      ? (wh.totalValue / report.summary.totalValue) * 100
+                    const percentOfTotal = report.summary.totalQty > 0
+                      ? (wh.totalQty / report.summary.totalQty) * 100
                       : 0;
                     return (
                       <tr key={wh.id} className="hover:bg-slate-50">
@@ -144,10 +143,7 @@ export default function InventoryReportPage() {
                           {wh.code ? `${wh.code} - ` : ''}{wh.name}
                         </td>
                         <td className="px-4 py-3 text-sm text-right">{wh.itemCount}</td>
-                        <td className="px-4 py-3 text-sm text-right">{wh.totalQty.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium">
-                          R {wh.totalValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
-                        </td>
+                        <td className="px-4 py-3 text-sm text-right font-medium">{wh.totalQty.toLocaleString()}</td>
                         <td className="px-4 py-3 text-sm text-right">
                           <div className="flex items-center justify-end gap-2">
                             <div className="w-20 bg-slate-200 rounded-full h-2">
