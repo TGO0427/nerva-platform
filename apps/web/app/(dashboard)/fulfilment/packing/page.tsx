@@ -182,7 +182,7 @@ export default function PackingStationPage() {
                         Order: {shipment.orderNo || shipment.salesOrderId.slice(0, 8)}
                       </div>
                       <div className="text-sm text-slate-500">
-                        Weight: {shipment.totalWeightKg?.toFixed(2) || 0} kg
+                        Weight: {shipment.totalWeightKg ? Number(shipment.totalWeightKg).toFixed(2) : 0} kg
                       </div>
                     </button>
                   ))}
@@ -242,11 +242,11 @@ export default function PackingStationPage() {
                       <div className="text-sm text-slate-500">Line Items</div>
                     </div>
                     <div className="p-3 bg-slate-50 rounded-lg">
-                      <div className="text-2xl font-bold text-slate-900">{selectedShipment.totalWeightKg?.toFixed(1) || 0}</div>
+                      <div className="text-2xl font-bold text-slate-900">{selectedShipment.totalWeightKg ? Number(selectedShipment.totalWeightKg).toFixed(1) : 0}</div>
                       <div className="text-sm text-slate-500">Weight (kg)</div>
                     </div>
                     <div className="p-3 bg-slate-50 rounded-lg">
-                      <div className="text-2xl font-bold text-slate-900">{selectedShipment.totalCbm?.toFixed(2) || 0}</div>
+                      <div className="text-2xl font-bold text-slate-900">{selectedShipment.totalCbm ? Number(selectedShipment.totalCbm).toFixed(2) : 0}</div>
                       <div className="text-sm text-slate-500">Volume (m³)</div>
                     </div>
                   </div>

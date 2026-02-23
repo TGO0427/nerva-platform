@@ -481,10 +481,10 @@ function OrderLineRow({
         {line.qtyReceived}
       </td>
       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
-        {line.unitCost ? `R ${line.unitCost.toFixed(2)}` : '-'}
+        {line.unitCost ? `R ${Number(line.unitCost).toFixed(2)}` : '-'}
       </td>
       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900 text-right">
-        {line.lineTotal ? `R ${line.lineTotal.toFixed(2)}` : '-'}
+        {line.lineTotal ? `R ${Number(line.lineTotal).toFixed(2)}` : '-'}
       </td>
       {editable && (
         <td className="px-4 py-3 whitespace-nowrap text-right">

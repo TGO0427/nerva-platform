@@ -1036,7 +1036,7 @@ function ProductsTab({ supplierId }: { supplierId: string }) {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.itemDescription}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.supplierSku || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {item.unitCost ? `R ${item.unitCost.toFixed(2)}` : '-'}
+                    {item.unitCost ? `R ${Number(item.unitCost).toFixed(2)}` : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                     {item.leadTimeDays ? `${item.leadTimeDays} days` : '-'}

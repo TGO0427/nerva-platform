@@ -59,7 +59,7 @@ export default function ItemsPage() {
       key: 'weightKg',
       header: 'Weight (kg)',
       width: '120px',
-      render: (row) => row.weightKg?.toFixed(2) ?? '-',
+      render: (row) => row.weightKg ? Number(row.weightKg).toFixed(2) : '-',
     },
     {
       key: 'isActive',
@@ -101,7 +101,7 @@ export default function ItemsPage() {
       { key: 'sku', header: 'SKU' },
       { key: 'description', header: 'Description' },
       { key: 'uom', header: 'UOM' },
-      { key: 'weightKg', header: 'Weight (kg)', getValue: (row: Item) => row.weightKg?.toFixed(2) ?? '' },
+      { key: 'weightKg', header: 'Weight (kg)', getValue: (row: Item) => row.weightKg ? Number(row.weightKg).toFixed(2) : '' },
       { key: 'isActive', header: 'Status', getValue: (row: Item) => row.isActive ? 'Active' : 'Inactive' },
       { key: 'createdAt', header: 'Created', getValue: (row: Item) => formatDateForExport(row.createdAt) },
     ];

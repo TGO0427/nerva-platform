@@ -160,7 +160,7 @@ export default function WorkstationDetailPage() {
             <Card className="p-4">
               <div className="text-sm text-slate-500">Cost/Hour</div>
               <div className="mt-1 text-lg font-semibold">
-                {workstation.costPerHour ? `R ${workstation.costPerHour.toFixed(2)}` : '-'}
+                {workstation.costPerHour ? `R ${Number(workstation.costPerHour).toFixed(2)}` : '-'}
               </div>
             </Card>
           </div>

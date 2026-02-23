@@ -67,7 +67,7 @@ export default function CreditNotesPage() {
       className: 'text-right',
       render: (row) => (
         <span className="font-medium">
-          {row.currency} {row.amount.toFixed(2)}
+          {row.currency} {Number(row.amount).toFixed(2)}
         </span>
       ),
     },

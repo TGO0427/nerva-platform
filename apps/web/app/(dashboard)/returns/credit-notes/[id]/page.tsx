@@ -223,7 +223,7 @@ export default function CreditNoteDetailPage() {
               <div>
                 <dt className="text-slate-500">Amount</dt>
                 <dd className="text-xl font-bold text-slate-900">
-                  {creditNote.currency} {creditNote.amount.toFixed(2)}
+                  {creditNote.currency} {Number(creditNote.amount).toFixed(2)}
                 </dd>
               </div>
               <div>

@@ -100,7 +100,7 @@ export default function SalesOrderDetailPage() {
       key: 'unitPrice',
       header: 'Unit Price',
       className: 'text-right',
-      render: (row) => row.unitPrice ? `R ${row.unitPrice.toFixed(2)}` : '-',
+      render: (row) => row.unitPrice ? `R ${Number(row.unitPrice).toFixed(2)}` : '-',
     },
   ];
 
