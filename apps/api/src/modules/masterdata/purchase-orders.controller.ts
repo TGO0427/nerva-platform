@@ -55,6 +55,13 @@ export class PurchaseOrdersController {
     return this.service.listPurchaseOrders(tenantId, siteId, { page, limit, status, supplierId, search });
   }
 
+  @Get('stats')
+  @RequirePermissions('purchase_order.read')
+  @ApiOperation({ summary: 'Get purchase order status counts' })
+  async stats(@TenantId() tenantId: string) {
+    return this.service.getPurchaseOrderStats(tenantId);
+  }
+
   @Get(':id')
     @RequirePermissions('purchase_order.read')
   @ApiOperation({ summary: 'Get purchase order by ID' })
@@ -92,7 +99,7 @@ export class PurchaseOrdersController {
     if (!siteId) {
       throw new BadRequestException('Please select a site before creating a purchase order');
     }
-    return this.service.createPurchaseOrder({
+    const po = await this.service.createPurchaseOrder({
       tenantId,
       siteId,
       supplierId: data.supplierId,
@@ -102,6 +109,23 @@ export class PurchaseOrdersController {
       notes: data.notes,
       createdBy: user.id,
     });
+
+    // Create lines if provided
+    if (data.lines && data.lines.length > 0) {
+      for (const line of data.lines) {
+        await this.service.createPurchaseOrderLine({
+          tenantId,
+          purchaseOrderId: po.id,
+          itemId: line.itemId,
+          qtyOrdered: line.qtyOrdered,
+          unitCost: line.unitCost,
+        });
+      }
+      await this.service.recalculatePurchaseOrderTotals(po.id);
+      return this.service.getPurchaseOrder(po.id);
+    }
+
+    return po;
   }
 
   @Patch(':id')

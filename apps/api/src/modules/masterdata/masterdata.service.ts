@@ -532,6 +532,10 @@ export class MasterDataService {
   }
 
   // Purchase Orders
+  async getPurchaseOrderStats(tenantId: string) {
+    return this.repository.getPurchaseOrderStats(tenantId);
+  }
+
   async listPurchaseOrders(
     tenantId: string,
     siteId: string | undefined,

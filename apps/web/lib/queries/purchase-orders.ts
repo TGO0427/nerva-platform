@@ -12,6 +12,11 @@ interface CreatePurchaseOrderData {
   expectedDate?: string;
   shipToWarehouseId?: string;
   notes?: string;
+  lines?: Array<{
+    itemId: string;
+    qtyOrdered: number;
+    unitCost?: number;
+  }>;
 }
 
 interface UpdatePurchaseOrderData {
@@ -25,6 +30,22 @@ interface POFilters {
   status?: string;
   supplierId?: string;
   search?: string;
+}
+
+// PO stats (full dataset counts by status)
+export function usePurchaseOrderStats() {
+  return useQuery({
+    queryKey: [PO_KEY, 'stats'],
+    queryFn: async () => {
+      const response = await api.get<{
+        total: number;
+        draft: number;
+        pendingReceipt: number;
+        received: number;
+      }>('/purchase-orders/stats');
+      return response.data;
+    },
+  });
 }
 
 // List purchase orders

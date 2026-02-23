@@ -12,7 +12,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
-import { usePurchaseOrders, useQueryParams } from '@/lib/queries';
+import { usePurchaseOrders, usePurchaseOrderStats, useQueryParams } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport, formatCurrencyForExport } from '@/lib/utils/export';
 import type { PurchaseOrder, PurchaseOrderStatus } from '@nerva/shared';
@@ -38,6 +38,7 @@ export default function PurchaseOrdersPage() {
     ...params,
     status: statusFilter || undefined,
   });
+  const { data: stats } = usePurchaseOrderStats();
 
   const tableData = data?.data || [];
 
@@ -137,11 +138,11 @@ export default function PurchaseOrdersPage() {
     exportToCSV(exportData, exportColumns, generateExportFilename('purchase-orders'));
   };
 
-  // Calculate stats
-  const totalPOs = data?.meta?.total || 0;
-  const draftPOs = tableData.filter(po => po.status === 'DRAFT').length;
-  const pendingPOs = tableData.filter(po => ['SENT', 'CONFIRMED', 'PARTIAL'].includes(po.status)).length;
-  const receivedPOs = tableData.filter(po => po.status === 'RECEIVED').length;
+  // Stats from dedicated API endpoint (full dataset)
+  const totalPOs = stats?.total ?? data?.meta?.total ?? 0;
+  const draftPOs = stats?.draft ?? 0;
+  const pendingPOs = stats?.pendingReceipt ?? 0;
+  const receivedPOs = stats?.received ?? 0;
 
   return (
     <ListPageTemplate

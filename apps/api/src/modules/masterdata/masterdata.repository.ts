@@ -1732,6 +1732,29 @@ export class MasterDataRepository extends BaseRepository {
     return row ? this.mapPurchaseOrder(row) : null;
   }
 
+  async getPurchaseOrderStats(tenantId: string): Promise<{
+    total: number;
+    draft: number;
+    pendingReceipt: number;
+    received: number;
+  }> {
+    const result = await this.queryOne<Record<string, string>>(
+      `SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE status = 'DRAFT') as draft,
+        COUNT(*) FILTER (WHERE status IN ('SENT','CONFIRMED','PARTIAL')) as pending_receipt,
+        COUNT(*) FILTER (WHERE status = 'RECEIVED') as received
+      FROM purchase_orders WHERE tenant_id = $1`,
+      [tenantId],
+    );
+    return {
+      total: parseInt(result?.total || '0', 10),
+      draft: parseInt(result?.draft || '0', 10),
+      pendingReceipt: parseInt(result?.pending_receipt || '0', 10),
+      received: parseInt(result?.received || '0', 10),
+    };
+  }
+
   async generatePoNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
       'SELECT COUNT(*) as count FROM purchase_orders WHERE tenant_id = $1',

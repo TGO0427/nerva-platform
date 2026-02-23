@@ -13,6 +13,8 @@ import { Spinner } from '@/components/ui/spinner';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { EntityHistory } from '@/components/ui/entity-history';
 import { downloadPdf } from '@/lib/utils/export';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   usePurchaseOrder,
   usePurchaseOrderLines,
@@ -28,12 +30,32 @@ import type { PurchaseOrderStatus, PurchaseOrderLine } from '@nerva/shared';
 export default function PurchaseOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const id = params.id as string;
   const [showAddLine, setShowAddLine] = useState(false);
 
   const { data: po, isLoading } = usePurchaseOrder(id);
   const { data: lines } = usePurchaseOrderLines(id);
   const deletePurchaseOrder = useDeletePurchaseOrder();
+
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'Delete Purchase Order',
+      message: 'Are you sure you want to delete this draft purchase order? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deletePurchaseOrder.mutateAsync(id);
+      addToast('Purchase order deleted', 'success');
+      router.push('/procurement/purchase-orders');
+    } catch (error) {
+      console.error('Failed to delete purchase order:', error);
+      addToast('Failed to delete purchase order', 'error');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -84,15 +106,7 @@ export default function PurchaseOrderDetailPage() {
               <Button
                 variant="secondary"
                 className="bg-red-100 text-red-700 hover:bg-red-200"
-                onClick={async () => {
-                  if (!confirm('Are you sure you want to delete this draft purchase order? This action cannot be undone.')) return;
-                  try {
-                    await deletePurchaseOrder.mutateAsync(id);
-                    router.push('/procurement/purchase-orders');
-                  } catch (error) {
-                    console.error('Failed to delete purchase order:', error);
-                  }
-                }}
+                onClick={handleDelete}
                 disabled={deletePurchaseOrder.isPending}
               >
                 {deletePurchaseOrder.isPending ? 'Deleting...' : 'Delete'}
@@ -256,12 +270,26 @@ function StatusBadge({ status }: { status: PurchaseOrderStatus }) {
 
 function StatusActions({ po }: { po: { id: string; status: string } }) {
   const updateStatus = useUpdatePurchaseOrderStatus();
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: string, label: string, requireConfirm = false) => {
+    if (requireConfirm) {
+      const confirmed = await confirm({
+        title: label,
+        message: `Are you sure you want to ${label.toLowerCase()}? This action cannot be undone.`,
+        confirmLabel: label,
+        variant: newStatus === 'CANCELLED' ? 'danger' : 'default',
+      });
+      if (!confirmed) return;
+    }
+
     try {
       await updateStatus.mutateAsync({ id: po.id, status: newStatus });
+      addToast(`Purchase order ${newStatus.toLowerCase()}`, 'success');
     } catch (error) {
       console.error('Failed to update status:', error);
+      addToast('Failed to update purchase order status', 'error');
     }
   };
 
@@ -272,7 +300,7 @@ function StatusActions({ po }: { po: { id: string; status: string } }) {
           <Button
             variant="secondary"
             className="bg-white text-purple-700 hover:bg-purple-50"
-            onClick={() => handleStatusChange('SENT')}
+            onClick={() => handleStatusChange('SENT', 'Send to Supplier', true)}
             disabled={updateStatus.isPending}
           >
             Send to Supplier
@@ -280,7 +308,7 @@ function StatusActions({ po }: { po: { id: string; status: string } }) {
           <Button
             variant="secondary"
             className="bg-red-100 text-red-700 hover:bg-red-200"
-            onClick={() => handleStatusChange('CANCELLED')}
+            onClick={() => handleStatusChange('CANCELLED', 'Cancel Order', true)}
             disabled={updateStatus.isPending}
           >
             Cancel
@@ -292,7 +320,7 @@ function StatusActions({ po }: { po: { id: string; status: string } }) {
         <Button
           variant="secondary"
           className="bg-white text-purple-700 hover:bg-purple-50"
-          onClick={() => handleStatusChange('CONFIRMED')}
+          onClick={() => handleStatusChange('CONFIRMED', 'Mark Confirmed')}
           disabled={updateStatus.isPending}
         >
           Mark Confirmed
@@ -303,7 +331,7 @@ function StatusActions({ po }: { po: { id: string; status: string } }) {
         <Button
           variant="secondary"
           className="bg-white text-purple-700 hover:bg-purple-50"
-          onClick={() => handleStatusChange('RECEIVED')}
+          onClick={() => handleStatusChange('RECEIVED', 'Mark Received')}
           disabled={updateStatus.isPending}
         >
           Mark Received
@@ -328,6 +356,7 @@ function AddLineForm({
     qtyOrdered: '',
     unitCost: '',
   });
+  const { addToast } = useToast();
 
   const { data: itemsData } = useItems({ page: 1, limit: 100 });
   const addLine = useAddPurchaseOrderLine(purchaseOrderId);
@@ -342,9 +371,11 @@ function AddLineForm({
         qtyOrdered: parseFloat(formData.qtyOrdered),
         unitCost: formData.unitCost ? parseFloat(formData.unitCost) : undefined,
       });
+      addToast('Line added', 'success');
       onSuccess();
     } catch (error) {
       console.error('Failed to add line:', error);
+      addToast('Failed to add line', 'error');
     }
   };
 
@@ -415,14 +446,23 @@ function OrderLineRow({
   editable: boolean;
 }) {
   const deleteLine = useDeletePurchaseOrderLine(purchaseOrderId);
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
 
   const handleDelete = async () => {
-    if (confirm('Delete this line?')) {
-      try {
-        await deleteLine.mutateAsync(line.id);
-      } catch (error) {
-        console.error('Failed to delete line:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Delete Line',
+      message: 'Are you sure you want to remove this line item?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteLine.mutateAsync(line.id);
+      addToast('Line removed', 'success');
+    } catch (error) {
+      console.error('Failed to delete line:', error);
+      addToast('Failed to remove line', 'error');
     }
   };
 
