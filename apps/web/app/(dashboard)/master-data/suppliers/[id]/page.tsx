@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useSupplier,
   useDeleteSupplier,
@@ -43,6 +45,8 @@ export default function SupplierDetailPage() {
   const id = params.id as string;
   const [activeTab, setActiveTab] = useState<Tab>('company');
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const { data: supplier, isLoading } = useSupplier(id);
   const deleteSupplier = useDeleteSupplier();
   const { data: activityLog } = useSupplierActivity(id);
@@ -101,12 +105,19 @@ export default function SupplierDetailPage() {
               variant="danger"
               disabled={deleteSupplier.isPending}
               onClick={async () => {
-                if (!confirm('Are you sure you want to delete this supplier? This cannot be undone.')) return;
+                const confirmed = await confirm({
+                  title: 'Delete Supplier',
+                  message: 'Are you sure you want to delete this supplier? This cannot be undone.',
+                  confirmLabel: 'Delete',
+                  variant: 'danger',
+                });
+                if (!confirmed) return;
                 try {
                   await deleteSupplier.mutateAsync(id);
+                  addToast('Supplier deleted', 'success');
                   router.push('/master-data/suppliers');
                 } catch (e: any) {
-                  alert(e?.response?.data?.message || 'Failed to delete supplier');
+                  addToast(e?.response?.data?.message || 'Failed to delete supplier', 'error');
                 }
               }}
             >
@@ -304,6 +315,8 @@ function CompanyInfoTab({ supplier, activityLog }: { supplier: Supplier; activit
 }
 
 function ContactsTab({ supplierId }: { supplierId: string }) {
+  const { addToast: toast } = useToast();
+  const { confirm: confirmDialog } = useConfirm();
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState<SupplierContact | null>(null);
   const [formData, setFormData] = useState({
@@ -346,22 +359,30 @@ function ContactsTab({ supplierId }: { supplierId: string }) {
           supplierId,
           data: formData,
         });
+        toast('Contact updated', 'success');
       } else {
         await createContact.mutateAsync({ supplierId, data: formData });
+        toast('Contact created', 'success');
       }
       resetForm();
     } catch (error) {
-      console.error('Failed to save contact:', error);
+      toast('Failed to save contact', 'error');
     }
   };
 
   const handleDelete = async (contactId: string) => {
-    if (confirm('Are you sure you want to delete this contact?')) {
-      try {
-        await deleteContact.mutateAsync({ contactId, supplierId });
-      } catch (error) {
-        console.error('Failed to delete contact:', error);
-      }
+    const confirmed = await confirmDialog({
+      title: 'Delete Contact',
+      message: 'Are you sure you want to delete this contact?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteContact.mutateAsync({ contactId, supplierId });
+      toast('Contact deleted', 'success');
+    } catch (error) {
+      toast('Failed to delete contact', 'error');
     }
   };
 
@@ -510,6 +531,8 @@ function ContactsTab({ supplierId }: { supplierId: string }) {
 }
 
 function NotesTab({ supplierId }: { supplierId: string }) {
+  const { addToast: toast } = useToast();
+  const { confirm: confirmDialog } = useConfirm();
   const [newNote, setNewNote] = useState('');
 
   const { data: notes, isLoading } = useSupplierNotes(supplierId);
@@ -521,19 +544,26 @@ function NotesTab({ supplierId }: { supplierId: string }) {
     if (!newNote.trim()) return;
     try {
       await createNote.mutateAsync({ supplierId, content: newNote.trim() });
+      toast('Note added', 'success');
       setNewNote('');
     } catch (error) {
-      console.error('Failed to create note:', error);
+      toast('Failed to create note', 'error');
     }
   };
 
   const handleDelete = async (noteId: string) => {
-    if (confirm('Are you sure you want to delete this note?')) {
-      try {
-        await deleteNote.mutateAsync({ noteId, supplierId });
-      } catch (error) {
-        console.error('Failed to delete note:', error);
-      }
+    const confirmed = await confirmDialog({
+      title: 'Delete Note',
+      message: 'Are you sure you want to delete this note?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteNote.mutateAsync({ noteId, supplierId });
+      toast('Note deleted', 'success');
+    } catch (error) {
+      toast('Failed to delete note', 'error');
     }
   };
 
@@ -807,6 +837,8 @@ function NcrsTab({ supplierId }: { supplierId: string }) {
 }
 
 function ProductsTab({ supplierId }: { supplierId: string }) {
+  const { addToast: toast } = useToast();
+  const { confirm: confirmDialog } = useConfirm();
   const [showForm, setShowForm] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState('');
   const [formData, setFormData] = useState({
@@ -848,19 +880,26 @@ function ProductsTab({ supplierId }: { supplierId: string }) {
           isPreferred: formData.isPreferred,
         },
       });
+      toast('Product added', 'success');
       resetForm();
     } catch (error) {
-      console.error('Failed to add item:', error);
+      toast('Failed to add product', 'error');
     }
   };
 
   const handleRemove = async (itemId: string) => {
-    if (confirm('Remove this item from supplier?')) {
-      try {
-        await removeItem.mutateAsync({ itemId, supplierId });
-      } catch (error) {
-        console.error('Failed to remove item:', error);
-      }
+    const confirmed = await confirmDialog({
+      title: 'Remove Product',
+      message: 'Remove this item from supplier?',
+      confirmLabel: 'Remove',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await removeItem.mutateAsync({ itemId, supplierId });
+      toast('Product removed', 'success');
+    } catch (error) {
+      toast('Failed to remove product', 'error');
     }
   };
 
@@ -871,8 +910,9 @@ function ProductsTab({ supplierId }: { supplierId: string }) {
         supplierId,
         data: { isPreferred: !item.isPreferred },
       });
+      toast(item.isPreferred ? 'Preferred status removed' : 'Marked as preferred', 'success');
     } catch (error) {
-      console.error('Failed to update item:', error);
+      toast('Failed to update item', 'error');
     }
   };
 

@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { DetailPageTemplate } from '@/components/templates';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useRouting,
   useDeleteRouting,
@@ -22,6 +24,8 @@ export default function RoutingDetailPage() {
   const router = useRouter();
   const { data: routing, isLoading, error } = useRouting(id);
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const deleteRouting = useDeleteRouting();
   const approveRouting = useApproveRouting();
   const obsoleteRouting = useObsoleteRouting();
@@ -41,19 +45,48 @@ export default function RoutingDetailPage() {
   }
 
   const handleDelete = async () => {
-    if (!id || !confirm('Are you sure you want to delete this routing? This action cannot be undone.')) return;
-    await deleteRouting.mutateAsync(id);
-    router.push('/manufacturing/routings');
+    if (!id) return;
+    const confirmed = await confirm({
+      title: 'Delete Routing',
+      message: 'Are you sure you want to delete this routing? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteRouting.mutateAsync(id);
+      addToast('Routing deleted', 'success');
+      router.push('/manufacturing/routings');
+    } catch (error) {
+      addToast('Failed to delete routing', 'error');
+    }
   };
 
   const handleApprove = async () => {
     if (!id) return;
-    await approveRouting.mutateAsync(id);
+    try {
+      await approveRouting.mutateAsync(id);
+      addToast('Routing approved', 'success');
+    } catch (error) {
+      addToast('Failed to approve routing', 'error');
+    }
   };
 
   const handleObsolete = async () => {
-    if (!id || !confirm('Are you sure you want to mark this routing as obsolete?')) return;
-    await obsoleteRouting.mutateAsync(id);
+    if (!id) return;
+    const confirmed = await confirm({
+      title: 'Mark Routing Obsolete',
+      message: 'Are you sure you want to mark this routing as obsolete?',
+      confirmLabel: 'Mark Obsolete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await obsoleteRouting.mutateAsync(id);
+      addToast('Routing marked as obsolete', 'success');
+    } catch (error) {
+      addToast('Failed to mark routing as obsolete', 'error');
+    }
   };
 
   const operationColumns: Column<OperationWithMeta>[] = [

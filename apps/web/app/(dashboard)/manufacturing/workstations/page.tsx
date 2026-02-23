@@ -72,7 +72,7 @@ export default function WorkstationsPage() {
       key: 'costPerHour',
       header: 'Cost/Hr',
       width: '100px',
-      render: (row) => row.costPerHour ? `$${row.costPerHour.toFixed(2)}` : '-',
+      render: (row) => row.costPerHour ? `R ${row.costPerHour.toFixed(2)}` : '-',
     },
     {
       key: 'description',

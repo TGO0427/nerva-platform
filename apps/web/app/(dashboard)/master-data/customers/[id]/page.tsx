@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useCustomer,
   useDeleteCustomer,
@@ -34,6 +36,8 @@ export default function CustomerDetailPage() {
   const id = params.id as string;
   const [activeTab, setActiveTab] = useState<Tab>('company');
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const { data: customer, isLoading } = useCustomer(id);
   const deleteCustomer = useDeleteCustomer();
   const { data: activityLog } = useCustomerActivity(id);
@@ -90,12 +94,19 @@ export default function CustomerDetailPage() {
               variant="danger"
               disabled={deleteCustomer.isPending}
               onClick={async () => {
-                if (!confirm('Are you sure you want to delete this customer? This cannot be undone.')) return;
+                const confirmed = await confirm({
+                  title: 'Delete Customer',
+                  message: 'Are you sure you want to delete this customer? This cannot be undone.',
+                  confirmLabel: 'Delete',
+                  variant: 'danger',
+                });
+                if (!confirmed) return;
                 try {
                   await deleteCustomer.mutateAsync(id);
+                  addToast('Customer deleted', 'success');
                   router.push('/master-data/customers');
                 } catch (e: any) {
-                  alert(e?.response?.data?.message || 'Failed to delete customer');
+                  addToast(e?.response?.data?.message || 'Failed to delete customer', 'error');
                 }
               }}
             >
@@ -287,6 +298,8 @@ function CompanyInfoTab({ customer, activityLog }: { customer: Customer; activit
 }
 
 function ContactsTab({ customerId }: { customerId: string }) {
+  const { addToast: toast } = useToast();
+  const { confirm: confirmDialog } = useConfirm();
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState<CustomerContact | null>(null);
   const [formData, setFormData] = useState({
@@ -328,22 +341,30 @@ function ContactsTab({ customerId }: { customerId: string }) {
           contactId: editingContact.id,
           data: formData,
         });
+        toast('Contact updated', 'success');
       } else {
         await createContact.mutateAsync(formData);
+        toast('Contact created', 'success');
       }
       resetForm();
     } catch (error) {
-      console.error('Failed to save contact:', error);
+      toast('Failed to save contact', 'error');
     }
   };
 
   const handleDelete = async (contactId: string) => {
-    if (confirm('Are you sure you want to delete this contact?')) {
-      try {
-        await deleteContact.mutateAsync(contactId);
-      } catch (error) {
-        console.error('Failed to delete contact:', error);
-      }
+    const confirmed = await confirmDialog({
+      title: 'Delete Contact',
+      message: 'Are you sure you want to delete this contact?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteContact.mutateAsync(contactId);
+      toast('Contact deleted', 'success');
+    } catch (error) {
+      toast('Failed to delete contact', 'error');
     }
   };
 
@@ -492,6 +513,8 @@ function ContactsTab({ customerId }: { customerId: string }) {
 }
 
 function NotesTab({ customerId }: { customerId: string }) {
+  const { addToast: toast } = useToast();
+  const { confirm: confirmDialog } = useConfirm();
   const [newNote, setNewNote] = useState('');
 
   const { data: notes, isLoading } = useCustomerNotes(customerId);
@@ -503,19 +526,26 @@ function NotesTab({ customerId }: { customerId: string }) {
     if (!newNote.trim()) return;
     try {
       await createNote.mutateAsync(newNote.trim());
+      toast('Note added', 'success');
       setNewNote('');
     } catch (error) {
-      console.error('Failed to create note:', error);
+      toast('Failed to create note', 'error');
     }
   };
 
   const handleDelete = async (noteId: string) => {
-    if (confirm('Are you sure you want to delete this note?')) {
-      try {
-        await deleteNote.mutateAsync(noteId);
-      } catch (error) {
-        console.error('Failed to delete note:', error);
-      }
+    const confirmed = await confirmDialog({
+      title: 'Delete Note',
+      message: 'Are you sure you want to delete this note?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteNote.mutateAsync(noteId);
+      toast('Note deleted', 'success');
+    } catch (error) {
+      toast('Failed to delete note', 'error');
     }
   };
 

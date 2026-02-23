@@ -10,6 +10,8 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { DetailPageTemplate } from '@/components/templates';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useWorkOrder,
   useDeleteWorkOrder,
@@ -52,6 +54,8 @@ export default function WorkOrderDetailPage() {
   const [opScrappedQty, setOpScrappedQty] = useState('');
   const [opNotes, setOpNotes] = useState('');
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const deleteWorkOrder = useDeleteWorkOrder();
   const releaseWorkOrder = useReleaseWorkOrder();
   const startWorkOrder = useStartWorkOrder();
@@ -79,29 +83,68 @@ export default function WorkOrderDetailPage() {
   }
 
   const handleDelete = async () => {
-    if (!id || !confirm('Are you sure you want to delete this work order? This action cannot be undone.')) return;
-    await deleteWorkOrder.mutateAsync(id);
-    router.push('/manufacturing/work-orders');
+    if (!id) return;
+    const confirmed = await confirm({
+      title: 'Delete Work Order',
+      message: 'Are you sure you want to delete this work order? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteWorkOrder.mutateAsync(id);
+      addToast('Work order deleted', 'success');
+      router.push('/manufacturing/work-orders');
+    } catch (error) {
+      addToast('Failed to delete work order', 'error');
+    }
   };
 
   const handleRelease = async () => {
     if (!id) return;
-    await releaseWorkOrder.mutateAsync(id);
+    try {
+      await releaseWorkOrder.mutateAsync(id);
+      addToast('Work order released', 'success');
+    } catch (error) {
+      addToast('Failed to release work order', 'error');
+    }
   };
 
   const handleStart = async () => {
     if (!id) return;
-    await startWorkOrder.mutateAsync(id);
+    try {
+      await startWorkOrder.mutateAsync(id);
+      addToast('Production started', 'success');
+    } catch (error) {
+      addToast('Failed to start production', 'error');
+    }
   };
 
   const handleComplete = async () => {
     if (!id) return;
-    await completeWorkOrder.mutateAsync(id);
+    try {
+      await completeWorkOrder.mutateAsync(id);
+      addToast('Work order completed', 'success');
+    } catch (error) {
+      addToast('Failed to complete work order', 'error');
+    }
   };
 
   const handleCancel = async () => {
-    if (!id || !confirm('Are you sure you want to cancel this work order?')) return;
-    await cancelWorkOrder.mutateAsync(id);
+    if (!id) return;
+    const confirmed = await confirm({
+      title: 'Cancel Work Order',
+      message: 'Are you sure you want to cancel this work order?',
+      confirmLabel: 'Cancel Work Order',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await cancelWorkOrder.mutateAsync(id);
+      addToast('Work order cancelled', 'success');
+    } catch (error) {
+      addToast('Failed to cancel work order', 'error');
+    }
   };
 
   const operationColumns: Column<OperationWithMeta>[] = [
@@ -150,7 +193,7 @@ export default function WorkOrderDetailPage() {
         if (workOrder?.status !== 'IN_PROGRESS') return null;
         if (row.status === 'PENDING') {
           return (
-            <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); startOperation.mutateAsync({ workOrderId: id!, operationId: row.id }); }}>
+            <Button variant="secondary" size="sm" onClick={async (e) => { e.stopPropagation(); try { await startOperation.mutateAsync({ workOrderId: id!, operationId: row.id }); addToast('Operation started', 'success'); } catch { addToast('Failed to start operation', 'error'); } }}>
               Start
             </Button>
           );
@@ -345,8 +388,9 @@ export default function WorkOrderDetailPage() {
                 </div>
                 <div className="flex items-end gap-2">
                   <Button size="sm" disabled={!outputQty || !outputBinId || recordOutput.isPending} onClick={async () => {
-                    await recordOutput.mutateAsync({ workOrderId: id!, qty: parseFloat(outputQty), binId: outputBinId, batchNo: outputBatchNo || undefined, notes: outputNotes || undefined });
-                    setShowRecordOutput(false); setOutputQty(''); setOutputBinId(''); setOutputBatchNo(''); setOutputNotes('');
+                    try { await recordOutput.mutateAsync({ workOrderId: id!, qty: parseFloat(outputQty), binId: outputBinId, batchNo: outputBatchNo || undefined, notes: outputNotes || undefined });
+                    addToast('Output recorded', 'success'); setShowRecordOutput(false); setOutputQty(''); setOutputBinId(''); setOutputBatchNo(''); setOutputNotes('');
+                    } catch { addToast('Failed to record output', 'error'); }
                   }}>
                     {recordOutput.isPending ? 'Recording...' : 'Record'}
                   </Button>
@@ -463,8 +507,9 @@ export default function WorkOrderDetailPage() {
                         </div>
                         <div className="flex items-end gap-2">
                           <Button size="sm" disabled={!issueQty || !issueBinId || issueMaterial.isPending} onClick={async () => {
-                            await issueMaterial.mutateAsync({ workOrderId: id!, materialId: issuingMaterialId, qty: parseFloat(issueQty), binId: issueBinId, batchNo: issueBatchNo || undefined });
-                            setIssuingMaterialId(null); setIssueQty(''); setIssueBinId(''); setIssueBatchNo('');
+                            try { await issueMaterial.mutateAsync({ workOrderId: id!, materialId: issuingMaterialId, qty: parseFloat(issueQty), binId: issueBinId, batchNo: issueBatchNo || undefined });
+                            addToast('Material issued', 'success'); setIssuingMaterialId(null); setIssueQty(''); setIssueBinId(''); setIssueBatchNo('');
+                            } catch { addToast('Failed to issue material', 'error'); }
                           }}>
                             {issueMaterial.isPending ? 'Issuing...' : 'Confirm'}
                           </Button>
@@ -506,8 +551,9 @@ export default function WorkOrderDetailPage() {
                         </div>
                         <div className="flex items-end gap-2">
                           <Button size="sm" disabled={!opCompletedQty || completeOperation.isPending} onClick={async () => {
-                            await completeOperation.mutateAsync({ workOrderId: id!, operationId: completingOpId, qtyCompleted: parseFloat(opCompletedQty), qtyScrapped: opScrappedQty ? parseFloat(opScrappedQty) : undefined, notes: opNotes || undefined });
-                            setCompletingOpId(null); setOpCompletedQty(''); setOpScrappedQty(''); setOpNotes('');
+                            try { await completeOperation.mutateAsync({ workOrderId: id!, operationId: completingOpId, qtyCompleted: parseFloat(opCompletedQty), qtyScrapped: opScrappedQty ? parseFloat(opScrappedQty) : undefined, notes: opNotes || undefined });
+                            addToast('Operation completed', 'success'); setCompletingOpId(null); setOpCompletedQty(''); setOpScrappedQty(''); setOpNotes('');
+                            } catch { addToast('Failed to complete operation', 'error'); }
                           }}>
                             {completeOperation.isPending ? 'Completing...' : 'Confirm'}
                           </Button>

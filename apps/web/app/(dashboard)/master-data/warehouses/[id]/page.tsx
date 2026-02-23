@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useWarehouse,
   useUpdateWarehouse,
@@ -30,6 +32,8 @@ export default function WarehouseDetailPage() {
   const { data: warehouse, isLoading } = useWarehouse(id);
   const { data: sites } = useSites();
   const { data: bins, isLoading: binsLoading } = useBins(id);
+  const { addToast } = useToast();
+  const { confirm: confirmDialog } = useConfirm();
   const updateWarehouse = useUpdateWarehouse();
   const deleteWarehouse = useDeleteWarehouse();
   const createBin = useCreateBin(id);
@@ -58,24 +62,31 @@ export default function WarehouseDetailPage() {
         id,
         data: { name: editName, code: editCode || undefined },
       });
+      addToast('Warehouse updated', 'success');
       setIsEditing(false);
     } catch (error) {
-      console.error('Failed to update warehouse:', error);
+      addToast('Failed to update warehouse', 'error');
     }
   };
 
   const handleToggleActive = async () => {
     if (!warehouse) return;
     const action = warehouse.isActive ? 'deactivate' : 'activate';
-    if (confirm(`Are you sure you want to ${action} "${warehouse.name}"?`)) {
-      try {
-        await updateWarehouse.mutateAsync({
-          id,
-          data: { isActive: !warehouse.isActive },
-        });
-      } catch (error) {
-        console.error('Failed to toggle warehouse status:', error);
-      }
+    const confirmed = await confirmDialog({
+      title: `${warehouse.isActive ? 'Deactivate' : 'Activate'} Warehouse`,
+      message: `Are you sure you want to ${action} "${warehouse.name}"?`,
+      confirmLabel: warehouse.isActive ? 'Deactivate' : 'Activate',
+      variant: warehouse.isActive ? 'danger' : undefined,
+    });
+    if (!confirmed) return;
+    try {
+      await updateWarehouse.mutateAsync({
+        id,
+        data: { isActive: !warehouse.isActive },
+      });
+      addToast(`Warehouse ${action}d`, 'success');
+    } catch (error) {
+      addToast(`Failed to ${action} warehouse`, 'error');
     }
   };
 
@@ -86,25 +97,32 @@ export default function WarehouseDetailPage() {
         code: newBinCode,
         binType: newBinType,
       });
+      addToast('Bin created', 'success');
       setShowBinForm(false);
       setNewBinCode('');
       setNewBinType('STORAGE');
     } catch (error) {
-      console.error('Failed to create bin:', error);
+      addToast('Failed to create bin', 'error');
     }
   };
 
   const handleToggleBinActive = async (bin: Bin) => {
     const action = bin.isActive ? 'deactivate' : 'activate';
-    if (confirm(`Are you sure you want to ${action} bin "${bin.code}"?`)) {
-      try {
-        await updateBin.mutateAsync({
-          binId: bin.id,
-          data: { isActive: !bin.isActive },
-        });
-      } catch (error) {
-        console.error('Failed to toggle bin status:', error);
-      }
+    const confirmed = await confirmDialog({
+      title: `${bin.isActive ? 'Deactivate' : 'Activate'} Bin`,
+      message: `Are you sure you want to ${action} bin "${bin.code}"?`,
+      confirmLabel: bin.isActive ? 'Deactivate' : 'Activate',
+      variant: bin.isActive ? 'danger' : undefined,
+    });
+    if (!confirmed) return;
+    try {
+      await updateBin.mutateAsync({
+        binId: bin.id,
+        data: { isActive: !bin.isActive },
+      });
+      addToast(`Bin ${action}d`, 'success');
+    } catch (error) {
+      addToast(`Failed to ${action} bin`, 'error');
     }
   };
 
@@ -176,12 +194,19 @@ export default function WarehouseDetailPage() {
             variant="danger"
             disabled={deleteWarehouse.isPending}
             onClick={async () => {
-              if (!confirm('Are you sure you want to delete this warehouse? This cannot be undone.')) return;
+              const confirmed = await confirmDialog({
+                title: 'Delete Warehouse',
+                message: 'Are you sure you want to delete this warehouse? This cannot be undone.',
+                confirmLabel: 'Delete',
+                variant: 'danger',
+              });
+              if (!confirmed) return;
               try {
                 await deleteWarehouse.mutateAsync(id);
+                addToast('Warehouse deleted', 'success');
                 router.push('/master-data/warehouses');
               } catch (e: any) {
-                alert(e?.response?.data?.message || 'Failed to delete warehouse');
+                addToast(e?.response?.data?.message || 'Failed to delete warehouse', 'error');
               }
             }}
           >

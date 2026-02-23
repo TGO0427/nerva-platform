@@ -6,6 +6,8 @@ import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { ItemForm, ItemFormData } from '../_components/item-form';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useItem, useUpdateItem, useDeleteItem } from '@/lib/queries';
 
 export default function EditItemPage() {
@@ -13,6 +15,8 @@ export default function EditItemPage() {
   const router = useRouter();
   const id = params.id as string;
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const { data: item, isLoading } = useItem(id);
   const updateItem = useUpdateItem();
   const deleteItem = useDeleteItem();
@@ -72,12 +76,19 @@ export default function EditItemPage() {
           variant="danger"
           disabled={deleteItem.isPending}
           onClick={async () => {
-            if (!confirm('Are you sure you want to delete this item? This cannot be undone.')) return;
+            const confirmed = await confirm({
+              title: 'Delete Item',
+              message: 'Are you sure you want to delete this item? This cannot be undone.',
+              confirmLabel: 'Delete',
+              variant: 'danger',
+            });
+            if (!confirmed) return;
             try {
               await deleteItem.mutateAsync(id);
+              addToast('Item deleted', 'success');
               router.push('/master-data/items');
             } catch (e: any) {
-              alert(e?.response?.data?.message || 'Failed to delete item');
+              addToast(e?.response?.data?.message || 'Failed to delete item', 'error');
             }
           }}
         >

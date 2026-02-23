@@ -9,6 +9,8 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { DetailPageTemplate } from '@/components/templates';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useBom,
   useSubmitBom,
@@ -26,6 +28,8 @@ export default function BomDetailPage() {
   const router = useRouter();
   const { data: bom, isLoading, error } = useBom(id);
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const submitBom = useSubmitBom();
   const approveBom = useApproveBom();
   const obsoleteBom = useObsoleteBom();
@@ -48,29 +52,68 @@ export default function BomDetailPage() {
 
   const handleSubmit = async () => {
     if (!id) return;
-    await submitBom.mutateAsync(id);
+    try {
+      await submitBom.mutateAsync(id);
+      addToast('BOM submitted for approval', 'success');
+    } catch (error) {
+      addToast('Failed to submit BOM', 'error');
+    }
   };
 
   const handleApprove = async () => {
     if (!id) return;
-    await approveBom.mutateAsync(id);
+    try {
+      await approveBom.mutateAsync(id);
+      addToast('BOM approved', 'success');
+    } catch (error) {
+      addToast('Failed to approve BOM', 'error');
+    }
   };
 
   const handleObsolete = async () => {
-    if (!id || !confirm('Are you sure you want to mark this BOM as obsolete?')) return;
-    await obsoleteBom.mutateAsync(id);
+    if (!id) return;
+    const confirmed = await confirm({
+      title: 'Mark BOM Obsolete',
+      message: 'Are you sure you want to mark this BOM as obsolete?',
+      confirmLabel: 'Mark Obsolete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await obsoleteBom.mutateAsync(id);
+      addToast('BOM marked as obsolete', 'success');
+    } catch (error) {
+      addToast('Failed to mark BOM as obsolete', 'error');
+    }
   };
 
   const handleNewVersion = async () => {
     if (!id) return;
-    const newBom = await createVersion.mutateAsync(id);
-    router.push(`/manufacturing/boms/${newBom.id}`);
+    try {
+      const newBom = await createVersion.mutateAsync(id);
+      addToast('New BOM version created', 'success');
+      router.push(`/manufacturing/boms/${newBom.id}`);
+    } catch (error) {
+      addToast('Failed to create new version', 'error');
+    }
   };
 
   const handleDelete = async () => {
-    if (!id || !confirm('Are you sure you want to delete this BOM?')) return;
-    await deleteBom.mutateAsync(id);
-    router.push('/manufacturing/boms');
+    if (!id) return;
+    const confirmed = await confirm({
+      title: 'Delete BOM',
+      message: 'Are you sure you want to delete this BOM?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteBom.mutateAsync(id);
+      addToast('BOM deleted', 'success');
+      router.push('/manufacturing/boms');
+    } catch (error) {
+      addToast('Failed to delete BOM', 'error');
+    }
   };
 
   const lineColumns: Column<BomLineWithMeta>[] = [

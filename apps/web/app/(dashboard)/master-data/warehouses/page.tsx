@@ -9,11 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { PageShell, MetricGrid } from '@/components/ui/motion';
 import { StatCard } from '@/components/ui/stat-card';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useWarehouses, useCreateWarehouse, useUpdateWarehouse } from '@/lib/queries/warehouses';
 import { useSites } from '@/lib/queries';
 
 export default function WarehousesPage() {
   const router = useRouter();
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const { data: warehouses, isLoading } = useWarehouses();
   const { data: sites } = useSites();
   const createWarehouse = useCreateWarehouse();
@@ -32,26 +36,33 @@ export default function WarehousesPage() {
         name: newName,
         code: newCode || undefined,
       });
+      addToast('Warehouse created', 'success');
       setShowCreateForm(false);
       setNewName('');
       setNewCode('');
       setNewSiteId('');
     } catch (error) {
-      console.error('Failed to create warehouse:', error);
+      addToast('Failed to create warehouse', 'error');
     }
   };
 
   const handleToggleActive = async (id: string, currentlyActive: boolean, name: string) => {
     const action = currentlyActive ? 'deactivate' : 'activate';
-    if (confirm(`Are you sure you want to ${action} "${name}"?`)) {
-      try {
-        await updateWarehouse.mutateAsync({
-          id,
-          data: { isActive: !currentlyActive },
-        });
-      } catch (error) {
-        console.error('Failed to toggle warehouse status:', error);
-      }
+    const confirmed = await confirm({
+      title: `${currentlyActive ? 'Deactivate' : 'Activate'} Warehouse`,
+      message: `Are you sure you want to ${action} "${name}"?`,
+      confirmLabel: currentlyActive ? 'Deactivate' : 'Activate',
+      variant: currentlyActive ? 'danger' : undefined,
+    });
+    if (!confirmed) return;
+    try {
+      await updateWarehouse.mutateAsync({
+        id,
+        data: { isActive: !currentlyActive },
+      });
+      addToast(`Warehouse ${action}d`, 'success');
+    } catch (error) {
+      addToast(`Failed to ${action} warehouse`, 'error');
     }
   };
 

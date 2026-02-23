@@ -9,6 +9,8 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DetailPageTemplate } from '@/components/templates';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useWorkstation,
   useUpdateWorkstation,
@@ -43,6 +45,8 @@ export default function WorkstationDetailPage() {
     costPerHour: '',
   });
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const updateWorkstation = useUpdateWorkstation();
   const deleteWorkstation = useDeleteWorkstation();
 
@@ -76,22 +80,39 @@ export default function WorkstationDetailPage() {
 
   const handleSave = async () => {
     if (!id) return;
-    await updateWorkstation.mutateAsync({
-      id,
-      name: formData.name,
-      description: formData.description || undefined,
-      workstationType: formData.workstationType as WorkstationType,
-      status: formData.status as WorkstationStatus,
-      capacityPerHour: formData.capacityPerHour ? parseFloat(formData.capacityPerHour) : undefined,
-      costPerHour: formData.costPerHour ? parseFloat(formData.costPerHour) : undefined,
-    });
-    setIsEditing(false);
+    try {
+      await updateWorkstation.mutateAsync({
+        id,
+        name: formData.name,
+        description: formData.description || undefined,
+        workstationType: formData.workstationType as WorkstationType,
+        status: formData.status as WorkstationStatus,
+        capacityPerHour: formData.capacityPerHour ? parseFloat(formData.capacityPerHour) : undefined,
+        costPerHour: formData.costPerHour ? parseFloat(formData.costPerHour) : undefined,
+      });
+      addToast('Workstation updated', 'success');
+      setIsEditing(false);
+    } catch (error) {
+      addToast('Failed to update workstation', 'error');
+    }
   };
 
   const handleDelete = async () => {
-    if (!id || !confirm('Are you sure you want to delete this workstation?')) return;
-    await deleteWorkstation.mutateAsync(id);
-    router.push('/manufacturing/workstations');
+    if (!id) return;
+    const confirmed = await confirm({
+      title: 'Delete Workstation',
+      message: 'Are you sure you want to delete this workstation?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteWorkstation.mutateAsync(id);
+      addToast('Workstation deleted', 'success');
+      router.push('/manufacturing/workstations');
+    } catch (error) {
+      addToast('Failed to delete workstation', 'error');
+    }
   };
 
   return (
@@ -139,7 +160,7 @@ export default function WorkstationDetailPage() {
             <Card className="p-4">
               <div className="text-sm text-slate-500">Cost/Hour</div>
               <div className="mt-1 text-lg font-semibold">
-                {workstation.costPerHour ? `$${workstation.costPerHour.toFixed(2)}` : '-'}
+                {workstation.costPerHour ? `R ${workstation.costPerHour.toFixed(2)}` : '-'}
               </div>
             </Card>
           </div>
