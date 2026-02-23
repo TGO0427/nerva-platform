@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useIbt,
   useIbtLines,
@@ -71,6 +73,8 @@ export default function IbtDetailPage() {
   const [receiveQtys, setReceiveQtys] = useState<Record<string, number>>({});
   const [receiveBins, setReceiveBins] = useState<Record<string, string>>({});
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const addLine = useAddIbtLine();
   const removeLine = useRemoveIbtLine();
   const submitIbt = useSubmitIbt();
@@ -91,6 +95,7 @@ export default function IbtDetailPage() {
         fromBinId: newFromBinId || undefined,
         batchNo: newBatchNo || undefined,
       });
+      addToast('Line added', 'success');
       setNewItemId('');
       setNewQty('');
       setNewFromBinId('');
@@ -98,80 +103,109 @@ export default function IbtDetailPage() {
       setShowAddLine(false);
     } catch (e) {
       console.error('Failed to add line:', e);
+      addToast('Failed to add line', 'error');
     }
   };
 
   const handleRemoveLine = async (lineId: string) => {
+    const confirmed = await confirm({
+      title: 'Remove Line',
+      message: 'Remove this line from the transfer?',
+      confirmLabel: 'Remove',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await removeLine.mutateAsync({ ibtId, lineId });
+      addToast('Line removed', 'success');
     } catch (e) {
       console.error('Failed to remove line:', e);
+      addToast('Failed to remove line', 'error');
     }
   };
 
   const handleSubmit = async () => {
     try {
       await submitIbt.mutateAsync(ibtId);
+      addToast('Transfer submitted for approval', 'success');
     } catch (e) {
       console.error('Failed to submit:', e);
+      addToast('Failed to submit transfer', 'error');
     }
   };
 
   const handleApprove = async () => {
     try {
       await approveIbt.mutateAsync(ibtId);
+      addToast('Transfer approved', 'success');
     } catch (e) {
       console.error('Failed to approve:', e);
+      addToast('Failed to approve transfer', 'error');
     }
   };
 
   const handleStartPicking = async () => {
     try {
       await startPicking.mutateAsync(ibtId);
+      addToast('Picking started', 'success');
     } catch (e) {
       console.error('Failed to start picking:', e);
+      addToast('Failed to start picking', 'error');
     }
   };
 
   const handleShip = async () => {
     if (!lines) return;
-    const shipLines = lines
-      .filter((l) => (shipQtys[l.id] || 0) > 0)
-      .map((l) => ({ lineId: l.id, qtyShipped: shipQtys[l.id] || l.qtyRequested }));
+    const shipLines = lines.map((l) => ({
+      lineId: l.id,
+      qtyShipped: shipQtys[l.id] ?? l.qtyRequested,
+    })).filter((l) => l.qtyShipped > 0);
     if (shipLines.length === 0) return;
     try {
       await shipIbt.mutateAsync({ id: ibtId, lines: shipLines });
+      addToast('Shipment confirmed', 'success');
       setShipQtys({});
     } catch (e) {
       console.error('Failed to ship:', e);
+      addToast('Failed to confirm shipment', 'error');
     }
   };
 
   const handleReceive = async () => {
     if (!lines) return;
     const rcvLines = lines
-      .filter((l) => (receiveQtys[l.id] || 0) > 0 && receiveBins[l.id])
+      .filter((l) => (receiveQtys[l.id] ?? l.qtyShipped) > 0 && receiveBins[l.id])
       .map((l) => ({
         lineId: l.id,
-        qtyReceived: receiveQtys[l.id] || l.qtyShipped,
+        qtyReceived: receiveQtys[l.id] ?? l.qtyShipped,
         toBinId: receiveBins[l.id],
       }));
     if (rcvLines.length === 0) return;
     try {
       await receiveIbt.mutateAsync({ id: ibtId, lines: rcvLines });
+      addToast('Receipt confirmed', 'success');
       setReceiveQtys({});
       setReceiveBins({});
     } catch (e) {
       console.error('Failed to receive:', e);
+      addToast('Failed to confirm receipt', 'error');
     }
   };
 
   const handleCancel = async () => {
-    if (!confirm('Cancel this transfer?')) return;
+    const confirmed = await confirm({
+      title: 'Cancel Transfer',
+      message: 'Cancel this transfer? This cannot be undone.',
+      confirmLabel: 'Cancel Transfer',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await cancelIbt.mutateAsync(ibtId);
+      addToast('Transfer cancelled', 'success');
     } catch (e) {
       console.error('Failed to cancel:', e);
+      addToast('Failed to cancel transfer', 'error');
     }
   };
 
@@ -397,9 +431,21 @@ export default function IbtDetailPage() {
               <Button
                 variant="danger"
                 onClick={async () => {
-                  if (!confirm('Are you sure you want to delete this IBT?')) return;
-                  await deleteIbt.mutateAsync(ibtId);
-                  router.push('/inventory/ibts');
+                  const confirmed = await confirm({
+                    title: 'Delete Transfer',
+                    message: 'Are you sure you want to delete this transfer?',
+                    confirmLabel: 'Delete',
+                    variant: 'danger',
+                  });
+                  if (!confirmed) return;
+                  try {
+                    await deleteIbt.mutateAsync(ibtId);
+                    addToast('Transfer deleted', 'success');
+                    router.push('/inventory/ibts');
+                  } catch (error) {
+                    console.error('Failed to delete IBT:', error);
+                    addToast('Failed to delete transfer', 'error');
+                  }
                 }}
                 disabled={deleteIbt.isPending}
               >
@@ -426,10 +472,7 @@ export default function IbtDetailPage() {
           )}
           {ibt.status === 'PICKING' && (
             <Button
-              onClick={() => {
-                initShipQtys();
-                handleShip();
-              }}
+              onClick={handleShip}
               isLoading={shipIbt.isPending}
             >
               Confirm Shipment

@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useAdjustment,
   useAdjustmentLines,
@@ -61,6 +63,8 @@ export default function AdjustmentDetailPage() {
   const itemMap = new Map(items.map(i => [i.id, i]));
   const binMap = new Map(bins?.map(b => [b.id, b]) || []);
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const isDraft = adjustment?.status === 'DRAFT';
   const isSubmitted = adjustment?.status === 'SUBMITTED';
   const isApproved = adjustment?.status === 'APPROVED';
@@ -75,6 +79,7 @@ export default function AdjustmentDetailPage() {
         qtyAfter: parseFloat(newQtyAfter),
         batchNo: newBatchNo || undefined,
       });
+      addToast('Line added', 'success');
       setNewBinId('');
       setNewItemId('');
       setNewQtyAfter('');
@@ -82,42 +87,73 @@ export default function AdjustmentDetailPage() {
       setShowLineForm(false);
     } catch (error) {
       console.error('Failed to add line:', error);
+      addToast('Failed to add line', 'error');
     }
   };
 
   const handleDeleteLine = async (lineId: string) => {
-    if (!confirm('Remove this line?')) return;
+    const confirmed = await confirm({
+      title: 'Remove Line',
+      message: 'Are you sure you want to remove this line?',
+      confirmLabel: 'Remove',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await deleteLine.mutateAsync(lineId);
+      addToast('Line removed', 'success');
     } catch (error) {
       console.error('Failed to delete line:', error);
+      addToast('Failed to remove line', 'error');
     }
   };
 
   const handleSubmit = async () => {
-    if (!confirm('Submit this adjustment for approval? Lines cannot be changed after submission.')) return;
+    const confirmed = await confirm({
+      title: 'Submit Adjustment',
+      message: 'Submit this adjustment for approval? Lines cannot be changed after submission.',
+      confirmLabel: 'Submit',
+    });
+    if (!confirmed) return;
     try {
       await submitAdj.mutateAsync(id);
+      addToast('Adjustment submitted for approval', 'success');
     } catch (error) {
       console.error('Failed to submit:', error);
+      addToast('Failed to submit adjustment', 'error');
     }
   };
 
   const handleApprove = async () => {
-    if (!confirm('Approve this adjustment?')) return;
+    const confirmed = await confirm({
+      title: 'Approve Adjustment',
+      message: 'Approve this adjustment?',
+      confirmLabel: 'Approve',
+    });
+    if (!confirmed) return;
     try {
       await approveAdj.mutateAsync(id);
+      addToast('Adjustment approved', 'success');
     } catch (error) {
       console.error('Failed to approve:', error);
+      addToast('Failed to approve adjustment', 'error');
     }
   };
 
   const handlePost = async () => {
-    if (!confirm('Post this adjustment? This will update stock levels and cannot be undone.')) return;
+    const confirmed = await confirm({
+      title: 'Post Adjustment',
+      message: 'Post this adjustment? This will update stock levels and cannot be undone.',
+      confirmLabel: 'Post',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await postAdj.mutateAsync(id);
+      addToast('Adjustment posted to stock', 'success');
     } catch (error) {
       console.error('Failed to post:', error);
+      addToast('Failed to post adjustment', 'error');
     }
   };
 
@@ -159,9 +195,21 @@ export default function AdjustmentDetailPage() {
             <Button
               variant="danger"
               onClick={async () => {
-                if (!confirm('Are you sure you want to delete this adjustment?')) return;
-                await deleteAdj.mutateAsync(id);
-                router.push('/inventory/adjustments');
+                const confirmed = await confirm({
+                  title: 'Delete Adjustment',
+                  message: 'Are you sure you want to delete this adjustment?',
+                  confirmLabel: 'Delete',
+                  variant: 'danger',
+                });
+                if (!confirmed) return;
+                try {
+                  await deleteAdj.mutateAsync(id);
+                  addToast('Adjustment deleted', 'success');
+                  router.push('/inventory/adjustments');
+                } catch (error) {
+                  console.error('Failed to delete adjustment:', error);
+                  addToast('Failed to delete adjustment', 'error');
+                }
               }}
               disabled={deleteAdj.isPending}
             >

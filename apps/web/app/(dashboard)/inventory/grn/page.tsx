@@ -11,7 +11,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
-import { useGrns, useQueryParams, Grn } from '@/lib/queries';
+import { useGrns, useQueryParams, useSuppliers, Grn } from '@/lib/queries';
 import { useWarehouses } from '@/lib/queries/warehouses';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
@@ -32,7 +32,9 @@ export default function GrnListPage() {
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useGrns({ ...params, status: status || undefined });
   const { data: warehouses } = useWarehouses();
+  const { data: suppliersData } = useSuppliers({ page: 1, limit: 100 });
   const warehouseMap = new Map(warehouses?.map(w => [w.id, w.name]) || []);
+  const supplierMap = new Map(suppliersData?.data?.map(s => [s.id, s.name]) || []);
 
   const tableData = data?.data || [];
 
@@ -76,7 +78,7 @@ export default function GrnListPage() {
     {
       key: 'supplierId',
       header: 'Supplier',
-      render: (row) => row.supplierId ? 'Supplier' : '-',
+      render: (row) => (row.supplierId ? supplierMap.get(row.supplierId) || '-' : '-'),
     },
     {
       key: 'createdAt',
@@ -84,7 +86,7 @@ export default function GrnListPage() {
       sortable: true,
       render: (row) => new Date(row.createdAt).toLocaleDateString(),
     },
-  ], [warehouseMap]);
+  ], [warehouseMap, supplierMap]);
 
   // Column visibility
   const {

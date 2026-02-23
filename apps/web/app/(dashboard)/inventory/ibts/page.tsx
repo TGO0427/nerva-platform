@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { PageShell, MetricGrid } from '@/components/ui/motion';
 import { StatCard } from '@/components/ui/stat-card';
+import { useToast } from '@/components/ui/toast';
 import { useIbts, useCreateIbt, type IbtDetail } from '@/lib/queries/ibt';
 import { useWarehouses } from '@/lib/queries/warehouses';
 
@@ -54,6 +55,7 @@ export default function IbtListPage() {
 
   const { data, isLoading } = useIbts({ page, limit, status: statusFilter || undefined });
   const { data: warehouses } = useWarehouses();
+  const { addToast } = useToast();
   const createIbt = useCreateIbt();
 
   const handleCreate = async () => {
@@ -64,6 +66,7 @@ export default function IbtListPage() {
         toWarehouseId,
         notes: notes || undefined,
       });
+      addToast('Transfer created', 'success');
       setShowCreate(false);
       setFromWarehouseId('');
       setToWarehouseId('');
@@ -71,6 +74,7 @@ export default function IbtListPage() {
       router.push(`/inventory/ibts/${result.id}`);
     } catch (e) {
       console.error('Failed to create IBT:', e);
+      addToast('Failed to create transfer', 'error');
     }
   };
 

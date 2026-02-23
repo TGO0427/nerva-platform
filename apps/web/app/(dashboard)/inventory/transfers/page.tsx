@@ -6,11 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useWarehouses, useBins, useItems, useTransferStock } from '@/lib/queries';
 
 export default function StockTransfersPage() {
   const { data: warehouses } = useWarehouses();
   const { data: itemsData } = useItems({ page: 1, limit: 100 });
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const transferStock = useTransferStock();
 
   const [fromWarehouseId, setFromWarehouseId] = useState('');
@@ -20,8 +24,6 @@ export default function StockTransfersPage() {
   const [toBinId, setToBinId] = useState('');
   const [qty, setQty] = useState('');
   const [batchNo, setBatchNo] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   const { data: fromBins } = useBins(fromWarehouseId || undefined);
   const { data: toBins } = useBins(toWarehouseId || undefined);
@@ -47,24 +49,28 @@ export default function StockTransfersPage() {
   })) || [];
 
   const handleTransfer = async () => {
-    setError('');
-    setSuccess('');
-
     if (!itemId || !fromBinId || !toBinId || !qty) {
-      setError('Please fill in all required fields');
+      addToast('Please fill in all required fields', 'warning');
       return;
     }
 
     if (fromBinId === toBinId) {
-      setError('Source and destination bins must be different');
+      addToast('Source and destination bins must be different', 'warning');
       return;
     }
 
     const qtyNum = parseInt(qty, 10);
     if (isNaN(qtyNum) || qtyNum <= 0) {
-      setError('Quantity must be a positive number');
+      addToast('Quantity must be a positive number', 'warning');
       return;
     }
+
+    const confirmed = await confirm({
+      title: 'Confirm Transfer',
+      message: `Transfer ${qtyNum} units? This action cannot be undone.`,
+      confirmLabel: 'Transfer',
+    });
+    if (!confirmed) return;
 
     try {
       await transferStock.mutateAsync({
@@ -74,13 +80,12 @@ export default function StockTransfersPage() {
         qty: qtyNum,
         batchNo: batchNo || undefined,
       });
-      setSuccess('Stock transferred successfully');
-      // Reset form
+      addToast('Stock transferred successfully', 'success');
       setQty('');
       setBatchNo('');
     } catch (err) {
-      setError('Failed to transfer stock. Please try again.');
       console.error('Failed to transfer stock:', err);
+      addToast('Failed to transfer stock', 'error');
     }
   };
 
@@ -92,8 +97,6 @@ export default function StockTransfersPage() {
     setToBinId('');
     setQty('');
     setBatchNo('');
-    setError('');
-    setSuccess('');
   };
 
   return (
@@ -106,18 +109,6 @@ export default function StockTransfersPage() {
           <p className="text-slate-500 mt-1">Move stock between bins and warehouses</p>
         </div>
       </div>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md">
-          {success}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Transfer Form */}

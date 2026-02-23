@@ -9,6 +9,8 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useGrn,
   useGrnLines,
@@ -30,6 +32,8 @@ export default function GrnDetailPage() {
   const { data: putawayTasks, isLoading: putawayLoading } = usePutawayTasksByGrn(
     grn?.status === 'PUTAWAY_PENDING' ? grnId : undefined,
   );
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const completeGrn = useCompleteGrn();
   const deleteGrn = useDeleteGrn();
   const generatePutaway = useGeneratePutawayTasks();
@@ -124,19 +128,27 @@ export default function GrnDetailPage() {
   const handleGeneratePutaway = async () => {
     try {
       await generatePutaway.mutateAsync(grnId);
+      addToast('Putaway tasks generated', 'success');
     } catch (error) {
       console.error('Failed to generate putaway tasks:', error);
+      addToast('Failed to generate putaway tasks', 'error');
     }
   };
 
   const handleComplete = async () => {
-    if (confirm('Are you sure you want to complete this GRN? This action cannot be undone.')) {
-      try {
-        await completeGrn.mutateAsync(grnId);
-        router.push('/inventory/grn');
-      } catch (error) {
-        console.error('Failed to complete GRN:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Complete GRN',
+      message: 'Are you sure you want to complete this GRN? This action cannot be undone.',
+      confirmLabel: 'Complete',
+    });
+    if (!confirmed) return;
+    try {
+      await completeGrn.mutateAsync(grnId);
+      addToast('GRN completed', 'success');
+      router.push('/inventory/grn');
+    } catch (error) {
+      console.error('Failed to complete GRN:', error);
+      addToast('Failed to complete GRN', 'error');
     }
   };
 
@@ -179,9 +191,21 @@ export default function GrnDetailPage() {
             <Button
               variant="danger"
               onClick={async () => {
-                if (!confirm('Are you sure you want to delete this GRN?')) return;
-                await deleteGrn.mutateAsync(grnId);
-                router.push('/inventory/grn');
+                const confirmed = await confirm({
+                  title: 'Delete GRN',
+                  message: 'Are you sure you want to delete this GRN?',
+                  confirmLabel: 'Delete',
+                  variant: 'danger',
+                });
+                if (!confirmed) return;
+                try {
+                  await deleteGrn.mutateAsync(grnId);
+                  addToast('GRN deleted', 'success');
+                  router.push('/inventory/grn');
+                } catch (error) {
+                  console.error('Failed to delete GRN:', error);
+                  addToast('Failed to delete GRN', 'error');
+                }
               }}
               disabled={deleteGrn.isPending}
             >

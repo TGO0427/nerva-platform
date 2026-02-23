@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useCycleCount,
   useCycleCountLines,
@@ -68,6 +70,8 @@ export default function CycleCountDetailPage() {
   const warehouseName = warehouses?.find(w => w.id === cc?.warehouseId)?.name || '';
   const items = itemsData?.data || [];
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const isOpen = cc?.status === 'OPEN';
   const isInProgress = cc?.status === 'IN_PROGRESS';
   const isPendingApproval = cc?.status === 'PENDING_APPROVAL';
@@ -82,11 +86,13 @@ export default function CycleCountDetailPage() {
     if (!newBinId || !newItemId) return;
     try {
       await addLine.mutateAsync({ binId: newBinId, itemId: newItemId });
+      addToast('Line added', 'success');
       setNewBinId('');
       setNewItemId('');
       setShowAddLine(false);
     } catch (error) {
       console.error('Failed to add line:', error);
+      addToast('Failed to add line', 'error');
     }
   };
 
@@ -95,10 +101,12 @@ export default function CycleCountDetailPage() {
     if (!bulkBinId) return;
     try {
       await addFromBin.mutateAsync({ binId: bulkBinId });
+      addToast('Items added from bin', 'success');
       setBulkBinId('');
       setShowAddFromBin(false);
     } catch (error) {
       console.error('Failed to add lines from bin:', error);
+      addToast('Failed to add items from bin', 'error');
     }
   };
 
@@ -114,52 +122,89 @@ export default function CycleCountDetailPage() {
       });
     } catch (error) {
       console.error('Failed to record count:', error);
+      addToast('Failed to record count', 'error');
     }
   };
 
   const handleStart = async () => {
-    if (!confirm('Start counting? Lines cannot be added or removed after starting.')) return;
+    const confirmed = await confirm({
+      title: 'Start Counting',
+      message: 'Start counting? Lines cannot be added or removed after starting.',
+      confirmLabel: 'Start',
+    });
+    if (!confirmed) return;
     try {
       await startCount.mutateAsync(id);
+      addToast('Cycle count started', 'success');
     } catch (error) {
       console.error('Failed to start:', error);
+      addToast('Failed to start cycle count', 'error');
     }
   };
 
   const handleComplete = async () => {
-    if (!confirm('Complete counting? All lines must be counted.')) return;
+    const confirmed = await confirm({
+      title: 'Complete Count',
+      message: 'Complete counting? All lines must be counted.',
+      confirmLabel: 'Complete',
+    });
+    if (!confirmed) return;
     try {
       await completeCount.mutateAsync(id);
+      addToast('Cycle count completed', 'success');
     } catch (error) {
       console.error('Failed to complete:', error);
+      addToast('Failed to complete cycle count', 'error');
     }
   };
 
   const handleGenerateAdjustment = async () => {
-    if (!confirm('Generate a stock adjustment from the variances?')) return;
+    const confirmed = await confirm({
+      title: 'Generate Adjustment',
+      message: 'Generate a stock adjustment from the variances?',
+      confirmLabel: 'Generate',
+    });
+    if (!confirmed) return;
     try {
       const adj = await generateAdj.mutateAsync(id);
+      addToast('Adjustment generated', 'success');
       router.push(`/inventory/adjustments/${adj.id}`);
     } catch (error) {
       console.error('Failed to generate adjustment:', error);
+      addToast('Failed to generate adjustment', 'error');
     }
   };
 
   const handleClose = async () => {
-    if (!confirm('Close this cycle count?')) return;
+    const confirmed = await confirm({
+      title: 'Close Cycle Count',
+      message: 'Close this cycle count?',
+      confirmLabel: 'Close',
+    });
+    if (!confirmed) return;
     try {
       await closeCount.mutateAsync(id);
+      addToast('Cycle count closed', 'success');
     } catch (error) {
       console.error('Failed to close:', error);
+      addToast('Failed to close cycle count', 'error');
     }
   };
 
   const handleCancel = async () => {
-    if (!confirm('Cancel this cycle count? This cannot be undone.')) return;
+    const confirmed = await confirm({
+      title: 'Cancel Cycle Count',
+      message: 'Cancel this cycle count? This cannot be undone.',
+      confirmLabel: 'Cancel Count',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await cancelCount.mutateAsync(id);
+      addToast('Cycle count cancelled', 'success');
     } catch (error) {
       console.error('Failed to cancel:', error);
+      addToast('Failed to cancel cycle count', 'error');
     }
   };
 
@@ -200,9 +245,21 @@ export default function CycleCountDetailPage() {
               <Button
                 variant="danger"
                 onClick={async () => {
-                  if (!confirm('Are you sure you want to delete this cycle count?')) return;
-                  await deleteCycleCount.mutateAsync(id);
-                  router.push('/inventory/cycle-counts');
+                  const confirmed = await confirm({
+                    title: 'Delete Cycle Count',
+                    message: 'Are you sure you want to delete this cycle count?',
+                    confirmLabel: 'Delete',
+                    variant: 'danger',
+                  });
+                  if (!confirmed) return;
+                  try {
+                    await deleteCycleCount.mutateAsync(id);
+                    addToast('Cycle count deleted', 'success');
+                    router.push('/inventory/cycle-counts');
+                  } catch (error) {
+                    console.error('Failed to delete cycle count:', error);
+                    addToast('Failed to delete cycle count', 'error');
+                  }
                 }}
                 disabled={deleteCycleCount.isPending}
               >
@@ -400,8 +457,22 @@ export default function CycleCountDetailPage() {
                         setCountInputs((prev) => ({ ...prev, [line.id]: val }))
                       }
                       onRecord={() => handleRecordCount(line.id)}
-                      onRemove={() => {
-                        if (confirm('Remove this line?')) removeLine.mutate(line.id);
+                      onRemove={async () => {
+                        const confirmed = await confirm({
+                          title: 'Remove Line',
+                          message: 'Remove this line from the cycle count?',
+                          confirmLabel: 'Remove',
+                          variant: 'danger',
+                        });
+                        if (confirmed) {
+                          try {
+                            await removeLine.mutateAsync(line.id);
+                            addToast('Line removed', 'success');
+                          } catch (error) {
+                            console.error('Failed to remove line:', error);
+                            addToast('Failed to remove line', 'error');
+                          }
+                        }
                       }}
                       isRecording={recordCount.isPending}
                     />

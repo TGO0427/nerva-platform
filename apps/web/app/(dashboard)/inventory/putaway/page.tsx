@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   usePutawayTasks,
   useAssignPutawayTask,
@@ -51,6 +53,8 @@ export default function PutawayPage() {
   const { data: users } = useUsers({ page: 1, limit: 100 });
   const { data: bins } = useBins(warehouseFilter || undefined);
 
+  const { addToast } = useToast();
+  const { confirm: confirmDialog } = useConfirm();
   const assignTask = useAssignPutawayTask();
   const completeTask = useCompletePutawayTask();
   const cancelTask = useCancelPutawayTask();
@@ -63,10 +67,12 @@ export default function PutawayPage() {
     if (!assignUserId) return;
     try {
       await assignTask.mutateAsync({ id: taskId, userId: assignUserId });
+      addToast('Task assigned', 'success');
       setActionTaskId(null);
       setAssignUserId('');
     } catch (e) {
       console.error('Failed to assign:', e);
+      addToast('Failed to assign task', 'error');
     }
   };
 
@@ -74,19 +80,29 @@ export default function PutawayPage() {
     if (!completeBinId) return;
     try {
       await completeTask.mutateAsync({ id: taskId, toBinId: completeBinId });
+      addToast('Task completed', 'success');
       setActionTaskId(null);
       setCompleteBinId('');
     } catch (e) {
       console.error('Failed to complete:', e);
+      addToast('Failed to complete task', 'error');
     }
   };
 
   const handleCancel = async (taskId: string) => {
-    if (!confirm('Cancel this putaway task?')) return;
+    const confirmed = await confirmDialog({
+      title: 'Cancel Putaway Task',
+      message: 'Cancel this putaway task?',
+      confirmLabel: 'Cancel Task',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await cancelTask.mutateAsync(taskId);
+      addToast('Task cancelled', 'success');
     } catch (e) {
       console.error('Failed to cancel:', e);
+      addToast('Failed to cancel task', 'error');
     }
   };
 
