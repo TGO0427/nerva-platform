@@ -490,7 +490,7 @@ export default function DispatchPage() {
     if (!readyShipments) return 0;
     return readyShipments
       .filter(s => selectedShipments.has(s.id))
-      .reduce((sum, s) => sum + (s.totalWeightKg || 0), 0);
+      .reduce((sum, s) => sum + Number(s.totalWeightKg || 0), 0);
   }, [readyShipments, selectedShipments]);
 
   // Computed values for drawer

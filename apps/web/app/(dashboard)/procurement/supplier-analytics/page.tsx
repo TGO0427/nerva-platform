@@ -525,10 +525,11 @@ function NcrStatusBadge({ status }: { status: string }) {
 
 // NCR Rate Badge
 function NcrRateBadge({ rate }: { rate: number }) {
-  if (rate === 0) return <span className="text-slate-400">-</span>;
+  const numRate = Number(rate);
+  if (numRate === 0) return <span className="text-slate-400">-</span>;
 
-  const variant = rate > 10 ? 'danger' : rate > 5 ? 'warning' : 'success';
-  return <Badge variant={variant}>{rate.toFixed(1)}%</Badge>;
+  const variant = numRate > 10 ? 'danger' : numRate > 5 ? 'warning' : 'success';
+  return <Badge variant={variant}>{numRate.toFixed(1)}%</Badge>;
 }
 
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#ec4899', '#f97316'];

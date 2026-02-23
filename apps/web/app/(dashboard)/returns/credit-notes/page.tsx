@@ -100,7 +100,7 @@ export default function CreditNotesPage() {
   // Stats
   const pendingApproval = data?.data?.filter(c => c.status === 'PENDING_APPROVAL').length || 0;
   const approved = data?.data?.filter(c => c.status === 'APPROVED').length || 0;
-  const totalAmount = data?.data?.reduce((sum, c) => sum + c.amount, 0) || 0;
+  const totalAmount = data?.data?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
 
   return (
     <div>

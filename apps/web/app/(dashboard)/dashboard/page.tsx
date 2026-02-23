@@ -295,15 +295,15 @@ export default function DashboardPage() {
             />
             <MetricCard
               label="Returns"
-              value={`${(stats?.returnsRate ?? 0).toFixed(1)}%`}
+              value={`${Number(stats?.returnsRate ?? 0).toFixed(1)}%`}
               sub="Return ratio"
-              good={(stats?.returnsRate ?? 0) <= 3}
+              good={Number(stats?.returnsRate ?? 0) <= 3}
             />
             <MetricCard
               label="Cycle Time"
-              value={`${(stats?.avgDispatchCycleHours ?? 0).toFixed(1)}h`}
+              value={`${Number(stats?.avgDispatchCycleHours ?? 0).toFixed(1)}h`}
               sub="Avg dispatch"
-              good={(stats?.avgDispatchCycleHours ?? 0) <= 12}
+              good={Number(stats?.avgDispatchCycleHours ?? 0) <= 12}
             />
           </div>
 
