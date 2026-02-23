@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useCustomerPortal } from '@/lib/contexts/customer-portal-context';
 import {
   useCustomerContacts,
@@ -25,6 +27,9 @@ export default function CustomerPortalContacts() {
   const createContact = useCreateCustomerContact(customerId);
   const updateContact = useUpdateCustomerContact(customerId);
   const deleteContact = useDeleteCustomerContact(customerId);
+
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
 
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState<CustomerContact | null>(null);
@@ -62,21 +67,32 @@ export default function CustomerPortalContacts() {
           contactId: editingContact.id,
           data: formData,
         });
+        addToast('Contact updated', 'success');
       } else {
         await createContact.mutateAsync(formData);
+        addToast('Contact created', 'success');
       }
       resetForm();
     } catch (error) {
       console.error('Failed to save contact:', error);
+      addToast('Failed to save contact', 'error');
     }
   };
 
   const handleDelete = async (contactId: string) => {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Contact',
+      message: 'Are you sure you want to delete this contact?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await deleteContact.mutateAsync(contactId);
+      addToast('Contact deleted', 'success');
     } catch (error) {
       console.error('Failed to delete contact:', error);
+      addToast('Failed to delete contact', 'error');
     }
   };
 

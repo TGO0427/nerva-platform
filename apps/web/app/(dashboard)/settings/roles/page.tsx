@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { PageShell, MetricGrid } from '@/components/ui/motion';
 import { StatCard } from '@/components/ui/stat-card';
 import { useRoles, useCreateRole, useDeleteRole, Role } from '@/lib/queries';
@@ -16,6 +18,9 @@ export default function RolesPage() {
   const { data: roles, isLoading } = useRoles();
   const createRole = useCreateRole();
   const deleteRole = useDeleteRole();
+
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
@@ -31,19 +36,28 @@ export default function RolesPage() {
       setShowCreateForm(false);
       setNewRoleName('');
       setNewRoleDescription('');
+      addToast('Role created', 'success');
       router.push(`/settings/roles/${role.id}`);
     } catch (error) {
       console.error('Failed to create role:', error);
+      addToast('Failed to create role', 'error');
     }
   };
 
   const handleDeleteRole = async (role: Role) => {
-    if (confirm(`Are you sure you want to delete the role "${role.name}"?`)) {
-      try {
-        await deleteRole.mutateAsync(role.id);
-      } catch (error) {
-        console.error('Failed to delete role:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Delete Role',
+      message: `Are you sure you want to delete the role "${role.name}"?`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteRole.mutateAsync(role.id);
+      addToast('Role deleted', 'success');
+    } catch (error) {
+      console.error('Failed to delete role:', error);
+      addToast('Failed to delete role', 'error');
     }
   };
 

@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { PageShell, MetricGrid } from '@/components/ui/motion';
 import { StatCard } from '@/components/ui/stat-card';
 import { useSites, useCreateSite, useUpdateSite, Site } from '@/lib/queries';
@@ -14,6 +16,9 @@ export default function SitesPage() {
   const { data: sites, isLoading } = useSites();
   const createSite = useCreateSite();
   const updateSite = useUpdateSite();
+
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newSiteName, setNewSiteName] = useState('');
@@ -32,8 +37,10 @@ export default function SitesPage() {
       setShowCreateForm(false);
       setNewSiteName('');
       setNewSiteCode('');
+      addToast('Site created', 'success');
     } catch (error) {
       console.error('Failed to create site:', error);
+      addToast('Failed to create site', 'error');
     }
   };
 
@@ -54,22 +61,31 @@ export default function SitesPage() {
         },
       });
       setEditingSite(null);
+      addToast('Site updated', 'success');
     } catch (error) {
       console.error('Failed to update site:', error);
+      addToast('Failed to update site', 'error');
     }
   };
 
   const handleToggleSiteActive = async (site: Site) => {
     const action = site.isActive ? 'deactivate' : 'activate';
-    if (confirm(`Are you sure you want to ${action} the site "${site.name}"?`)) {
-      try {
-        await updateSite.mutateAsync({
-          id: site.id,
-          data: { isActive: !site.isActive },
-        });
-      } catch (error) {
-        console.error('Failed to toggle site status:', error);
-      }
+    const confirmed = await confirm({
+      title: `${site.isActive ? 'Deactivate' : 'Activate'} Site`,
+      message: `Are you sure you want to ${action} the site "${site.name}"?`,
+      confirmLabel: site.isActive ? 'Deactivate' : 'Activate',
+      variant: site.isActive ? 'danger' : undefined,
+    });
+    if (!confirmed) return;
+    try {
+      await updateSite.mutateAsync({
+        id: site.id,
+        data: { isActive: !site.isActive },
+      });
+      addToast(`Site ${action}d`, 'success');
+    } catch (error) {
+      console.error('Failed to toggle site status:', error);
+      addToast('Failed to update site status', 'error');
     }
   };
 

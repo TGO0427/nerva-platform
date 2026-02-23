@@ -6,6 +6,8 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useCustomerPortal } from '@/lib/contexts/customer-portal-context';
 import {
   useCustomerNotes,
@@ -22,6 +24,9 @@ export default function CustomerPortalNotes() {
   const createNote = useCreateCustomerNote(customerId);
   const deleteNote = useDeleteCustomerNote(customerId);
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
+
   const [noteContent, setNoteContent] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,17 +36,27 @@ export default function CustomerPortalNotes() {
     try {
       await createNote.mutateAsync(noteContent.trim());
       setNoteContent('');
+      addToast('Note added', 'success');
     } catch (error) {
       console.error('Failed to create note:', error);
+      addToast('Failed to create note', 'error');
     }
   };
 
   const handleDelete = async (noteId: string) => {
-    if (!confirm('Are you sure you want to delete this note?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Note',
+      message: 'Are you sure you want to delete this note?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await deleteNote.mutateAsync(noteId);
+      addToast('Note deleted', 'success');
     } catch (error) {
       console.error('Failed to delete note:', error);
+      addToast('Failed to delete note', 'error');
     }
   };
 

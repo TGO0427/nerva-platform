@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useIntegrations,
   useConnectIntegration,
@@ -76,6 +78,9 @@ function ConnectionsTab() {
   const connectIntegration = useConnectIntegration();
   const disconnectIntegration = useDisconnectIntegration();
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
+
   const [showForm, setShowForm] = useState(false);
   const [newType, setNewType] = useState('');
   const [newName, setNewName] = useState('');
@@ -87,18 +92,27 @@ function ConnectionsTab() {
       setShowForm(false);
       setNewType('');
       setNewName('');
+      addToast('Integration connected', 'success');
     } catch (error) {
       console.error('Failed to connect integration:', error);
+      addToast('Failed to connect integration', 'error');
     }
   };
 
   const handleDisconnect = async (connection: IntegrationConnection) => {
-    if (confirm(`Are you sure you want to disconnect "${connection.name}"?`)) {
-      try {
-        await disconnectIntegration.mutateAsync(connection.id);
-      } catch (error) {
-        console.error('Failed to disconnect integration:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Disconnect Integration',
+      message: `Are you sure you want to disconnect "${connection.name}"?`,
+      confirmLabel: 'Disconnect',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await disconnectIntegration.mutateAsync(connection.id);
+      addToast('Integration disconnected', 'success');
+    } catch (error) {
+      console.error('Failed to disconnect integration:', error);
+      addToast('Failed to disconnect integration', 'error');
     }
   };
 
@@ -286,12 +300,15 @@ function PostingQueueTab() {
     limit: 20,
   });
   const retryPosting = useRetryPosting();
+  const { addToast } = useToast();
 
   const handleRetry = async (id: string) => {
     try {
       await retryPosting.mutateAsync(id);
+      addToast('Posting retried', 'success');
     } catch (error) {
       console.error('Failed to retry posting:', error);
+      addToast('Failed to retry posting', 'error');
     }
   };
 

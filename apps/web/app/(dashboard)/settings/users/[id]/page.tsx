@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useUser,
   useUpdateUser,
@@ -38,6 +40,8 @@ export default function UserDetailPage() {
   const { data: userWarehouses, isLoading: warehousesLoading } = useUserWarehouses(userId);
   const { data: allWarehouses } = useWarehouses();
   const updateUser = useUpdateUser();
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const assignRole = useAssignUserRole();
   const removeRole = useRemoveUserRole();
   const assignSite = useAssignUserSite();
@@ -62,71 +66,92 @@ export default function UserDetailPage() {
         data: { displayName },
       });
       setIsEditing(false);
+      addToast('User updated', 'success');
     } catch (error) {
       console.error('Failed to update user:', error);
+      addToast('Failed to update user', 'error');
     }
   };
 
   const handleToggleActive = async () => {
     if (!user) return;
     const action = user.isActive ? 'deactivate' : 'activate';
-    if (confirm(`Are you sure you want to ${action} this user?`)) {
-      try {
-        await updateUser.mutateAsync({
-          id: userId,
-          data: { isActive: !user.isActive },
-        });
-      } catch (error) {
-        console.error('Failed to toggle user status:', error);
-      }
+    const confirmed = await confirm({
+      title: `${user.isActive ? 'Deactivate' : 'Activate'} User`,
+      message: `Are you sure you want to ${action} this user?`,
+      confirmLabel: user.isActive ? 'Deactivate' : 'Activate',
+      variant: user.isActive ? 'danger' : undefined,
+    });
+    if (!confirmed) return;
+    try {
+      await updateUser.mutateAsync({
+        id: userId,
+        data: { isActive: !user.isActive },
+      });
+      addToast(`User ${action}d`, 'success');
+    } catch (error) {
+      console.error('Failed to toggle user status:', error);
+      addToast('Failed to update user status', 'error');
     }
   };
 
   const handleAssignRole = async (roleId: string) => {
     try {
       await assignRole.mutateAsync({ userId, roleId });
+      addToast('Role assigned', 'success');
     } catch (error) {
       console.error('Failed to assign role:', error);
+      addToast('Failed to assign role', 'error');
     }
   };
 
   const handleRemoveRole = async (roleId: string) => {
     try {
       await removeRole.mutateAsync({ userId, roleId });
+      addToast('Role removed', 'success');
     } catch (error) {
       console.error('Failed to remove role:', error);
+      addToast('Failed to remove role', 'error');
     }
   };
 
   const handleAssignSite = async (siteId: string) => {
     try {
       await assignSite.mutateAsync({ userId, siteId });
+      addToast('Site assigned', 'success');
     } catch (error) {
       console.error('Failed to assign site:', error);
+      addToast('Failed to assign site', 'error');
     }
   };
 
   const handleRemoveSite = async (siteId: string) => {
     try {
       await removeSite.mutateAsync({ userId, siteId });
+      addToast('Site removed', 'success');
     } catch (error) {
       console.error('Failed to remove site:', error);
+      addToast('Failed to remove site', 'error');
     }
   };
 
   const handleAssignWarehouse = async (warehouseId: string) => {
     try {
       await assignWarehouse.mutateAsync({ userId, warehouseId });
+      addToast('Warehouse assigned', 'success');
     } catch (error) {
       console.error('Failed to assign warehouse:', error);
+      addToast('Failed to assign warehouse', 'error');
     }
   };
 
   const handleRemoveWarehouse = async (warehouseId: string) => {
     try {
       await removeWarehouse.mutateAsync({ userId, warehouseId });
+      addToast('Warehouse removed', 'success');
     } catch (error) {
       console.error('Failed to remove warehouse:', error);
+      addToast('Failed to remove warehouse', 'error');
     }
   };
 
