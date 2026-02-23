@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Param,
   Body,
@@ -44,6 +45,13 @@ export class SalesController {
     @Query('limit') limit?: number,
   ) {
     return this.service.listOrders(tenantId, { status, customerId }, page, limit);
+  }
+
+  @Get('stats')
+  @RequirePermissions('sales_order.read')
+  @ApiOperation({ summary: 'Get sales order status counts' })
+  async stats(@TenantId() tenantId: string) {
+    return this.service.getOrderStats(tenantId);
   }
 
   @Post('next-number')
@@ -113,6 +121,28 @@ export class SalesController {
       ...data,
       createdBy: user.id,
     });
+  }
+
+  @Patch(':id')
+  @RequirePermissions('sales_order.edit')
+  @ApiOperation({ summary: 'Update sales order (draft only)' })
+  async update(
+    @Param('id', UuidValidationPipe) id: string,
+    @Body()
+    data: {
+      customerId?: string;
+      warehouseId?: string;
+      priority?: number;
+      requestedShipDate?: Date | null;
+      notes?: string | null;
+      lines?: Array<{
+        itemId: string;
+        qtyOrdered: number;
+        unitPrice?: number;
+      }>;
+    },
+  ) {
+    return this.service.updateOrder(id, data);
   }
 
   @Post(':id/confirm')

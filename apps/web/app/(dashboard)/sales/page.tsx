@@ -11,7 +11,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
-import { useOrders, useQueryParams, SalesOrderWithCustomer } from '@/lib/queries';
+import { useOrders, useSalesOrderStats, useQueryParams, SalesOrderWithCustomer } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { useCopy } from '@/lib/hooks/use-copy';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
@@ -50,6 +50,7 @@ export default function SalesOrdersPage() {
     status: status || undefined,
     late: lateOnly || undefined,
   });
+  const { data: stats } = useSalesOrderStats();
 
   const tableData = data?.data || [];
 
@@ -153,15 +154,11 @@ export default function SalesOrdersPage() {
     exportToCSV(exportData, exportColumns, generateExportFilename('sales-orders'));
   };
 
-  // Calculate stats from visible data
-  const totalOrders = data?.meta?.total || 0;
-  const openOrders = tableData.filter(o =>
-    ['DRAFT', 'CONFIRMED', 'ALLOCATED'].includes(o.status)
-  ).length;
-  const inFulfilment = tableData.filter(o =>
-    ['PICKING', 'PACKING', 'READY_TO_SHIP'].includes(o.status)
-  ).length;
-  const shippedToday = tableData.filter(o => o.status === 'SHIPPED').length;
+  // Stats from dedicated API endpoint (full dataset)
+  const totalOrders = stats?.total ?? data?.meta?.total ?? 0;
+  const openOrders = stats?.open ?? 0;
+  const inFulfilment = stats?.inFulfilment ?? 0;
+  const shippedCount = stats?.shipped ?? 0;
 
   return (
     <ListPageTemplate
@@ -195,8 +192,8 @@ export default function SalesOrdersPage() {
           iconColor: 'yellow',
         },
         {
-          title: 'Shipped Today',
-          value: shippedToday,
+          title: 'Shipped',
+          value: shippedCount,
           icon: <TruckIcon />,
           iconColor: 'green',
         },

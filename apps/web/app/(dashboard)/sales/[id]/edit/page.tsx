@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,12 +10,12 @@ import { Alert } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import {
+  useOrder,
   useCustomers,
   useItems,
   useWarehouses,
-  useCreateOrder,
-  useGenerateOrderNumber,
-  CreateOrderData,
+  useUpdateOrder,
+  UpdateOrderData,
 } from '@/lib/queries';
 import { useDebounce } from '@/lib/hooks/use-debounce';
 import type { Customer, Item } from '@nerva/shared';
@@ -33,32 +33,26 @@ function uid() {
   return Math.random().toString(36).slice(2);
 }
 
-export default function NewSalesOrderPage() {
+export default function EditSalesOrderPage() {
+  const params = useParams();
   const router = useRouter();
   const { addToast } = useToast();
-  const createOrder = useCreateOrder();
-  const generateOrderNo = useGenerateOrderNumber();
+  const orderId = params.id as string;
+
+  const { data: order, isLoading: orderLoading } = useOrder(orderId);
+  const updateOrder = useUpdateOrder();
 
   // Form state
-  const [orderNo, setOrderNo] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [requestedShipDate, setRequestedShipDate] = useState('');
+  const [priority, setPriority] = useState(5);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
-
-  // Generate order number
-  const handleGenerateOrderNo = async () => {
-    try {
-      const generatedNo = await generateOrderNo.mutateAsync();
-      setOrderNo(generatedNo);
-    } catch (err) {
-      setError('Failed to generate order number');
-    }
-  };
+  const [initialized, setInitialized] = useState(false);
 
   // Customer search
   const [customerSearch, setCustomerSearch] = useState('');
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Pick<Customer, 'id' | 'name' | 'code'> | null>(null);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const debouncedCustomerSearch = useDebounce(customerSearch, 300);
 
@@ -88,12 +82,35 @@ export default function NewSalesOrderPage() {
   const customers = customersData?.data || [];
   const items = itemsData?.data || [];
 
-  // Auto-select first warehouse if only one exists
+  // Initialize form from order data
   useEffect(() => {
-    if (warehouses && warehouses.length === 1 && !warehouseId) {
-      setWarehouseId(warehouses[0].id);
+    if (order && !initialized) {
+      setWarehouseId(order.warehouseId);
+      setRequestedShipDate(
+        order.requestedShipDate
+          ? new Date(order.requestedShipDate).toISOString().split('T')[0]
+          : ''
+      );
+      setPriority(order.priority);
+      setNotes(order.notes || '');
+      setSelectedCustomer(
+        order.customer
+          ? { id: order.customer.id, name: order.customer.name, code: order.customer.code }
+          : null
+      );
+      setLines(
+        (order.lines || []).map((l) => ({
+          tempId: uid(),
+          itemId: l.itemId,
+          itemSku: l.itemSku,
+          itemDescription: l.itemDescription,
+          qtyOrdered: l.qtyOrdered,
+          unitPrice: l.unitPrice ?? undefined,
+        }))
+      );
+      setInitialized(true);
     }
-  }, [warehouses, warehouseId]);
+  }, [order, initialized]);
 
   // Totals
   const totals = useMemo(() => {
@@ -106,7 +123,6 @@ export default function NewSalesOrderPage() {
     return { lineCount: lines.length, totalQty, totalValue };
   }, [lines]);
 
-  // Select customer
   const handleSelectCustomer = useCallback((customer: Customer) => {
     setSelectedCustomer(customer);
     setCustomerSearch('');
@@ -114,25 +130,19 @@ export default function NewSalesOrderPage() {
     setError('');
   }, []);
 
-  // Clear customer
   const handleClearCustomer = useCallback(() => {
     setSelectedCustomer(null);
     setCustomerSearch('');
   }, []);
 
-  // Add item to lines (auto-merge if exists)
   const handleAddItem = useCallback((item: Item) => {
     setLines((prev) => {
       const existing = prev.find((l) => l.itemId === item.id);
       if (existing) {
-        // Auto-merge: increment quantity
         return prev.map((l) =>
-          l.itemId === item.id
-            ? { ...l, qtyOrdered: l.qtyOrdered + 1 }
-            : l
+          l.itemId === item.id ? { ...l, qtyOrdered: l.qtyOrdered + 1 } : l
         );
       }
-      // Add new line
       return [
         ...prev,
         {
@@ -150,34 +160,22 @@ export default function NewSalesOrderPage() {
     setError('');
   }, []);
 
-  // Update line
   const handleUpdateLine = useCallback((tempId: string, field: 'qtyOrdered' | 'unitPrice', value: string) => {
     const numValue = parseFloat(value);
     if (isNaN(numValue) || numValue < 0) return;
-
     setLines((prev) =>
-      prev.map((l) =>
-        l.tempId === tempId ? { ...l, [field]: numValue } : l
-      )
+      prev.map((l) => (l.tempId === tempId ? { ...l, [field]: numValue } : l))
     );
   }, []);
 
-  // Remove line
   const handleRemoveLine = useCallback((tempId: string) => {
     setLines((prev) => prev.filter((l) => l.tempId !== tempId));
   }, []);
 
-  // Validate form
   const validate = (): string | null => {
-    if (!selectedCustomer) {
-      return 'Please select a customer';
-    }
-    if (!warehouseId) {
-      return 'Please select a warehouse';
-    }
-    if (lines.length === 0) {
-      return 'Please add at least 1 line item';
-    }
+    if (!selectedCustomer) return 'Please select a customer';
+    if (!warehouseId) return 'Please select a warehouse';
+    if (lines.length === 0) return 'Please add at least 1 line item';
     for (const line of lines) {
       if (!line.qtyOrdered || line.qtyOrdered <= 0) {
         return `Quantity must be greater than 0 for ${line.itemSku}`;
@@ -186,23 +184,20 @@ export default function NewSalesOrderPage() {
     return null;
   };
 
-  // Submit order
   const handleSubmit = async () => {
     setError('');
-
     const validationError = validate();
     if (validationError) {
       setError(validationError);
       return;
     }
 
-    const orderData: CreateOrderData = {
+    const data: UpdateOrderData = {
       customerId: selectedCustomer!.id,
       warehouseId,
-      orderNo: orderNo || undefined,
-      priority: 5,
-      requestedShipDate: requestedShipDate || undefined,
-      notes: notes || undefined,
+      priority,
+      requestedShipDate: requestedShipDate || null,
+      notes: notes || null,
       lines: lines.map((l) => ({
         itemId: l.itemId!,
         qtyOrdered: l.qtyOrdered,
@@ -211,13 +206,40 @@ export default function NewSalesOrderPage() {
     };
 
     try {
-      const order = await createOrder.mutateAsync(orderData);
-      addToast('Order created successfully', 'success');
-      router.push(`/sales/${order.id}`);
+      await updateOrder.mutateAsync({ id: orderId, data });
+      addToast('Order updated successfully', 'success');
+      router.push(`/sales/${orderId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create order');
+      setError(err instanceof Error ? err.message : 'Failed to update order');
     }
   };
+
+  if (orderLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-lg font-medium text-slate-900">Order not found</h2>
+      </div>
+    );
+  }
+
+  if (order.status !== 'DRAFT') {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-lg font-medium text-slate-900">Only draft orders can be edited</h2>
+        <Button variant="secondary" className="mt-4" onClick={() => router.push(`/sales/${orderId}`)}>
+          Back to Order
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -225,22 +247,16 @@ export default function NewSalesOrderPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">New Sales Order</h1>
-          <p className="text-slate-500 mt-1">Create an order and add line items</p>
+          <h1 className="text-2xl font-bold text-slate-900">Edit Order {order.orderNo}</h1>
+          <p className="text-slate-500 mt-1">Update order details and line items</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            onClick={() => router.push('/sales')}
-          >
+          <Button variant="secondary" onClick={() => router.push(`/sales/${orderId}`)}>
             Cancel
           </Button>
-          <Button
-            onClick={() => handleSubmit()}
-            isLoading={createOrder.isPending}
-          >
+          <Button onClick={handleSubmit} isLoading={updateOrder.isPending}>
             <CheckIcon />
-            Create Order
+            Save Changes
           </Button>
         </div>
       </div>
@@ -285,13 +301,9 @@ export default function NewSalesOrderPage() {
                 {showCustomerDropdown && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-auto">
                     {customersLoading ? (
-                      <div className="p-4 text-center">
-                        <Spinner size="sm" />
-                      </div>
+                      <div className="p-4 text-center"><Spinner size="sm" /></div>
                     ) : customers.length === 0 ? (
-                      <div className="p-4 text-center text-slate-500 text-sm">
-                        No customers found
-                      </div>
+                      <div className="p-4 text-center text-slate-500 text-sm">No customers found</div>
                     ) : (
                       customers.map((customer) => (
                         <button
@@ -301,9 +313,7 @@ export default function NewSalesOrderPage() {
                           onClick={() => handleSelectCustomer(customer)}
                         >
                           <div className="font-medium text-slate-900">{customer.name}</div>
-                          {customer.code && (
-                            <div className="text-sm text-slate-500">{customer.code}</div>
-                          )}
+                          {customer.code && <div className="text-sm text-slate-500">{customer.code}</div>}
                         </button>
                       ))
                     )}
@@ -314,7 +324,7 @@ export default function NewSalesOrderPage() {
           </CardContent>
         </Card>
 
-        {/* Order Header Section */}
+        {/* Order Details */}
         <Card>
           <CardHeader>
             <CardTitle>Order Details</CardTitle>
@@ -322,32 +332,8 @@ export default function NewSalesOrderPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Order No.
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    value={orderNo}
-                    onChange={(e) => setOrderNo(e.target.value)}
-                    placeholder="Auto-generated if empty"
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleGenerateOrderNo}
-                    disabled={generateOrderNo.isPending}
-                    className="shrink-0"
-                  >
-                    {generateOrderNo.isPending ? (
-                      <Spinner size="sm" />
-                    ) : (
-                      <GenerateIcon />
-                    )}
-                    Generate
-                  </Button>
-                </div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Order No.</label>
+                <Input value={order.orderNo} disabled className="bg-slate-50" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -361,16 +347,12 @@ export default function NewSalesOrderPage() {
                 >
                   <option value="">Select warehouse...</option>
                   {warehouses?.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                    </option>
+                    <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Requested Ship Date
-                </label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Requested Ship Date</label>
                 <Input
                   type="date"
                   value={requestedShipDate}
@@ -378,9 +360,7 @@ export default function NewSalesOrderPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Notes
-                </label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
                 <Input
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -400,7 +380,6 @@ export default function NewSalesOrderPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {/* Item Search */}
             <div className="relative mb-4">
               <Input
                 value={itemSearch}
@@ -415,13 +394,9 @@ export default function NewSalesOrderPage() {
               {showItemDropdown && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-auto">
                   {itemsLoading ? (
-                    <div className="p-4 text-center">
-                      <Spinner size="sm" />
-                    </div>
+                    <div className="p-4 text-center"><Spinner size="sm" /></div>
                   ) : items.length === 0 ? (
-                    <div className="p-4 text-center text-slate-500 text-sm">
-                      No items found
-                    </div>
+                    <div className="p-4 text-center text-slate-500 text-sm">No items found</div>
                   ) : (
                     items.map((item) => (
                       <button
@@ -442,7 +417,6 @@ export default function NewSalesOrderPage() {
               )}
             </div>
 
-            {/* Lines Table */}
             {lines.length === 0 ? (
               <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
                 <BoxIcon className="mx-auto h-12 w-12 text-slate-400 mb-3" />
@@ -454,33 +428,19 @@ export default function NewSalesOrderPage() {
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-2 text-xs font-medium text-slate-500 uppercase">
-                        Item
-                      </th>
-                      <th className="text-left py-3 px-2 text-xs font-medium text-slate-500 uppercase">
-                        Description
-                      </th>
-                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-28">
-                        Qty
-                      </th>
-                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-32">
-                        Unit Price
-                      </th>
-                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-32">
-                        Total
-                      </th>
+                      <th className="text-left py-3 px-2 text-xs font-medium text-slate-500 uppercase">Item</th>
+                      <th className="text-left py-3 px-2 text-xs font-medium text-slate-500 uppercase">Description</th>
+                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-28">Qty</th>
+                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-32">Unit Price</th>
+                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-32">Total</th>
                       <th className="w-12"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {lines.map((line) => (
                       <tr key={line.tempId} className="border-b">
-                        <td className="py-3 px-2">
-                          <span className="font-medium">{line.itemSku}</span>
-                        </td>
-                        <td className="py-3 px-2 text-slate-600">
-                          {line.itemDescription}
-                        </td>
+                        <td className="py-3 px-2"><span className="font-medium">{line.itemSku}</span></td>
+                        <td className="py-3 px-2 text-slate-600">{line.itemDescription}</td>
                         <td className="py-3 px-2">
                           <Input
                             type="number"
@@ -523,7 +483,7 @@ export default function NewSalesOrderPage() {
           </CardContent>
         </Card>
 
-        {/* Summary Section */}
+        {/* Summary */}
         <Card>
           <CardHeader>
             <CardTitle>Summary</CardTitle>
@@ -550,20 +510,16 @@ export default function NewSalesOrderPage() {
 
         {/* Bottom Actions */}
         <div className="flex justify-end gap-3 pb-6">
-          <Button variant="secondary" onClick={() => router.push('/sales')}>
+          <Button variant="secondary" onClick={() => router.push(`/sales/${orderId}`)}>
             Cancel
           </Button>
-          <Button
-            onClick={() => handleSubmit()}
-            isLoading={createOrder.isPending}
-          >
+          <Button onClick={handleSubmit} isLoading={updateOrder.isPending}>
             <CheckIcon />
-            Create Order
+            Save Changes
           </Button>
         </div>
       </div>
 
-      {/* Click outside handler */}
       {(showCustomerDropdown || showItemDropdown) && (
         <div
           className="fixed inset-0 z-0"
@@ -581,14 +537,6 @@ function CheckIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-    </svg>
-  );
-}
-
-function GenerateIcon() {
-  return (
-    <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
     </svg>
   );
 }

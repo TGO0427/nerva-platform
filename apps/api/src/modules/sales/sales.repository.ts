@@ -188,9 +188,86 @@ export class SalesRepository extends BaseRepository {
     );
   }
 
+  async updateOrder(
+    id: string,
+    data: {
+      customerId?: string;
+      warehouseId?: string;
+      priority?: number;
+      requestedShipDate?: Date | null;
+      notes?: string | null;
+    },
+  ): Promise<SalesOrder | null> {
+    const sets: string[] = [];
+    const params: unknown[] = [];
+    let idx = 1;
+
+    if (data.customerId !== undefined) {
+      sets.push(`customer_id = $${idx++}`);
+      params.push(data.customerId);
+    }
+    if (data.warehouseId !== undefined) {
+      sets.push(`warehouse_id = $${idx++}`);
+      params.push(data.warehouseId);
+    }
+    if (data.priority !== undefined) {
+      sets.push(`priority = $${idx++}`);
+      params.push(data.priority);
+    }
+    if (data.requestedShipDate !== undefined) {
+      sets.push(`requested_ship_date = $${idx++}`);
+      params.push(data.requestedShipDate);
+    }
+    if (data.notes !== undefined) {
+      sets.push(`notes = $${idx++}`);
+      params.push(data.notes);
+    }
+
+    if (sets.length === 0) return this.findOrderById(id);
+
+    sets.push(`updated_at = NOW()`);
+    params.push(id);
+
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE sales_orders SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`,
+      params,
+    );
+    return row ? this.mapOrder(row) : null;
+  }
+
+  async deleteOrderLines(salesOrderId: string): Promise<void> {
+    await this.execute(
+      'DELETE FROM sales_order_lines WHERE sales_order_id = $1',
+      [salesOrderId],
+    );
+  }
+
   async deleteOrder(id: string): Promise<boolean> {
     const count = await this.execute('DELETE FROM sales_orders WHERE id = $1', [id]);
     return count > 0;
+  }
+
+  async getOrderStats(tenantId: string): Promise<{
+    total: number;
+    open: number;
+    inFulfilment: number;
+    shipped: number;
+  }> {
+    const result = await this.queryOne<Record<string, string>>(
+      `SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE status IN ('DRAFT','CONFIRMED','ALLOCATED')) as open,
+        COUNT(*) FILTER (WHERE status IN ('PICKING','PACKING','READY_TO_SHIP')) as in_fulfilment,
+        COUNT(*) FILTER (WHERE status = 'SHIPPED') as shipped
+      FROM sales_orders WHERE tenant_id = $1`,
+      [tenantId],
+    );
+    return {
+      total: parseInt(result?.total || '0', 10),
+      open: parseInt(result?.open || '0', 10),
+      inFulfilment: parseInt(result?.in_fulfilment || '0', 10),
+      shipped: parseInt(result?.shipped || '0', 10),
+    };
   }
 
   async generateOrderNo(tenantId: string): Promise<string> {

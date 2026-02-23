@@ -16,6 +16,10 @@ export class SalesService {
     return this.repository.generateOrderNo(tenantId);
   }
 
+  async getOrderStats(tenantId: string) {
+    return this.repository.getOrderStats(tenantId);
+  }
+
   async createOrder(data: {
     tenantId: string;
     siteId?: string;
@@ -103,6 +107,54 @@ export class SalesService {
       this.repository.countOrdersByTenant(tenantId, filters),
     ]);
     return buildPaginatedResult(data, total, page, limit);
+  }
+
+  async updateOrder(
+    id: string,
+    data: {
+      customerId?: string;
+      warehouseId?: string;
+      priority?: number;
+      requestedShipDate?: Date | null;
+      notes?: string | null;
+      lines?: Array<{
+        itemId: string;
+        qtyOrdered: number;
+        unitPrice?: number;
+      }>;
+    },
+  ): Promise<SalesOrder> {
+    const order = await this.getOrder(id);
+    if (order.status !== 'DRAFT') {
+      throw new BadRequestException('Only DRAFT orders can be edited');
+    }
+
+    // Update header fields
+    const updated = await this.repository.updateOrder(id, {
+      customerId: data.customerId,
+      warehouseId: data.warehouseId,
+      priority: data.priority,
+      requestedShipDate: data.requestedShipDate,
+      notes: data.notes,
+    });
+
+    // Replace lines if provided
+    if (data.lines) {
+      await this.repository.deleteOrderLines(id);
+      for (let i = 0; i < data.lines.length; i++) {
+        const line = data.lines[i];
+        await this.repository.addOrderLine({
+          tenantId: order.tenantId,
+          salesOrderId: id,
+          lineNo: i + 1,
+          itemId: line.itemId,
+          qtyOrdered: line.qtyOrdered,
+          unitPrice: line.unitPrice,
+        });
+      }
+    }
+
+    return updated!;
   }
 
   async confirmOrder(id: string): Promise<SalesOrder> {

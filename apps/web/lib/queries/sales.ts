@@ -14,6 +14,7 @@ export interface SalesOrderWithCustomer extends SalesOrder {
 export interface SalesOrderDetail extends SalesOrder {
   siteId: string;
   warehouseId: string;
+  notes: string | null;
   customer?: {
     id: string;
     code: string | null;
@@ -36,6 +37,22 @@ interface OrderFilters {
   status?: SalesOrderStatus;
   customerId?: string;
   late?: boolean;
+}
+
+// Order stats (full dataset counts by status)
+export function useSalesOrderStats() {
+  return useQuery({
+    queryKey: [ORDERS_KEY, 'stats'],
+    queryFn: async () => {
+      const response = await api.get<{
+        total: number;
+        open: number;
+        inFulfilment: number;
+        shipped: number;
+      }>('/sales/orders/stats');
+      return response.data;
+    },
+  });
 }
 
 // List orders
@@ -110,6 +127,35 @@ export function useCreateOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ORDERS_KEY] });
+    },
+  });
+}
+
+// Update order (draft only)
+export interface UpdateOrderData {
+  customerId?: string;
+  warehouseId?: string;
+  priority?: number;
+  requestedShipDate?: string | null;
+  notes?: string | null;
+  lines?: Array<{
+    itemId: string;
+    qtyOrdered: number;
+    unitPrice?: number;
+  }>;
+}
+
+export function useUpdateOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateOrderData }) => {
+      const response = await api.patch<SalesOrder>(`/sales/orders/${id}`, data);
+      return response.data;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: [ORDERS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [ORDERS_KEY, id] });
     },
   });
 }
