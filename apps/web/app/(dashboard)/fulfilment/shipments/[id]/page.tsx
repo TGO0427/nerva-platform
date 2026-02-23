@@ -16,6 +16,8 @@ import {
   useShipShipment,
   useDeliverShipment,
 } from '@/lib/queries';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { api } from '@/lib/api';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { DownloadIcon } from '@/components/ui/export-actions';
@@ -52,6 +54,8 @@ export default function ShipmentDetailPage() {
 
   const { data: shipment, isLoading } = useShipment(shipmentId);
   const { data: lines } = useShipmentLines(shipmentId);
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const packShipment = usePackShipment();
   const markReady = useMarkShipmentReady();
   const shipShipment = useShipShipment();
@@ -62,45 +66,65 @@ export default function ShipmentDetailPage() {
   const [showShipForm, setShowShipForm] = useState(false);
 
   const handlePack = async () => {
-    if (confirm('Mark this shipment as packed?')) {
-      try {
-        await packShipment.mutateAsync(shipmentId);
-      } catch (error) {
-        console.error('Failed to pack shipment:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Pack Shipment',
+      message: 'Mark this shipment as packed?',
+      confirmLabel: 'Mark Packed',
+    });
+    if (!confirmed) return;
+    try {
+      await packShipment.mutateAsync(shipmentId);
+      addToast('Shipment marked as packed', 'success');
+    } catch (error) {
+      console.error('Failed to pack shipment:', error);
+      addToast('Failed to pack shipment', 'error');
     }
   };
 
   const handleMarkReady = async () => {
-    if (confirm('Mark this shipment ready for dispatch?')) {
-      try {
-        await markReady.mutateAsync(shipmentId);
-      } catch (error) {
-        console.error('Failed to mark ready:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Ready for Dispatch',
+      message: 'Mark this shipment ready for dispatch?',
+      confirmLabel: 'Mark Ready',
+    });
+    if (!confirmed) return;
+    try {
+      await markReady.mutateAsync(shipmentId);
+      addToast('Shipment ready for dispatch', 'success');
+    } catch (error) {
+      console.error('Failed to mark ready:', error);
+      addToast('Failed to mark ready', 'error');
     }
   };
 
   const handleShip = async () => {
     if (!carrier || !trackingNo) {
-      alert('Please enter carrier and tracking number');
+      addToast('Please enter carrier and tracking number', 'warning');
       return;
     }
     try {
       await shipShipment.mutateAsync({ shipmentId, carrier, trackingNo });
+      addToast('Shipment shipped', 'success');
       setShowShipForm(false);
     } catch (error) {
       console.error('Failed to ship:', error);
+      addToast('Failed to ship', 'error');
     }
   };
 
   const handleDeliver = async () => {
-    if (confirm('Mark this shipment as delivered?')) {
-      try {
-        await deliverShipment.mutateAsync(shipmentId);
-      } catch (error) {
-        console.error('Failed to mark delivered:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Mark Delivered',
+      message: 'Mark this shipment as delivered?',
+      confirmLabel: 'Mark Delivered',
+    });
+    if (!confirmed) return;
+    try {
+      await deliverShipment.mutateAsync(shipmentId);
+      addToast('Shipment delivered', 'success');
+    } catch (error) {
+      console.error('Failed to mark delivered:', error);
+      addToast('Failed to mark delivered', 'error');
     }
   };
 

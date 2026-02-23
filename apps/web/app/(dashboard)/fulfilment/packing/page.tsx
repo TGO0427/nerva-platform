@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
 import { Select } from '@/components/ui/select';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useShipments,
   useShipment,
@@ -36,6 +38,8 @@ export default function PackingStationPage() {
     selectedShipmentId || undefined
   );
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const packShipment = usePackShipment();
   const markReady = useMarkShipmentReady();
 
@@ -46,23 +50,35 @@ export default function PackingStationPage() {
 
   const handlePack = async () => {
     if (!selectedShipmentId) return;
-    if (confirm('Mark this shipment as packed?')) {
-      try {
-        await packShipment.mutateAsync(selectedShipmentId);
-      } catch (error) {
-        console.error('Failed to pack shipment:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Pack Shipment',
+      message: 'Mark this shipment as packed?',
+      confirmLabel: 'Mark Packed',
+    });
+    if (!confirmed) return;
+    try {
+      await packShipment.mutateAsync(selectedShipmentId);
+      addToast('Shipment marked as packed', 'success');
+    } catch (error) {
+      console.error('Failed to pack shipment:', error);
+      addToast('Failed to pack shipment', 'error');
     }
   };
 
   const handleMarkReady = async () => {
     if (!selectedShipmentId) return;
-    if (confirm('Mark this shipment ready for dispatch?')) {
-      try {
-        await markReady.mutateAsync(selectedShipmentId);
-      } catch (error) {
-        console.error('Failed to mark ready:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Ready for Dispatch',
+      message: 'Mark this shipment ready for dispatch?',
+      confirmLabel: 'Mark Ready',
+    });
+    if (!confirmed) return;
+    try {
+      await markReady.mutateAsync(selectedShipmentId);
+      addToast('Shipment ready for dispatch', 'success');
+    } catch (error) {
+      console.error('Failed to mark ready:', error);
+      addToast('Failed to mark ready', 'error');
     }
   };
 

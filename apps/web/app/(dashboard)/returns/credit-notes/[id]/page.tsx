@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
@@ -7,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
 import {
@@ -24,51 +27,78 @@ export default function CreditNoteDetailPage() {
 
   const { data: creditNote, isLoading } = useCreditNote(creditNoteId);
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
   const deleteCreditNote = useDeleteCreditNote();
   const approveCreditNote = useApproveCreditNote();
   const postCreditNote = usePostCreditNote();
   const cancelCreditNote = useCancelCreditNote();
 
   const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete this credit note? This action cannot be undone.')) {
-      try {
-        await deleteCreditNote.mutateAsync(creditNoteId);
-        router.push('/returns/credit-notes');
-      } catch (error) {
-        console.error('Failed to delete credit note:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Delete Credit Note',
+      message: 'Are you sure you want to delete this credit note? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteCreditNote.mutateAsync(creditNoteId);
+      addToast('Credit note deleted', 'success');
+      router.push('/returns/credit-notes');
+    } catch (error) {
+      console.error('Failed to delete credit note:', error);
+      addToast('Failed to delete credit note', 'error');
     }
   };
 
   const handleApprove = async () => {
-    if (confirm('Approve this credit note?')) {
-      try {
-        await approveCreditNote.mutateAsync(creditNoteId);
-      } catch (error) {
-        console.error('Failed to approve credit note:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Approve Credit Note',
+      message: 'Approve this credit note?',
+      confirmLabel: 'Approve',
+    });
+    if (!confirmed) return;
+    try {
+      await approveCreditNote.mutateAsync(creditNoteId);
+      addToast('Credit note approved', 'success');
+    } catch (error) {
+      console.error('Failed to approve credit note:', error);
+      addToast('Failed to approve credit note', 'error');
     }
   };
 
   const handlePost = async () => {
-    if (confirm('Post this credit note? This will finalize it.')) {
-      try {
-        await postCreditNote.mutateAsync(creditNoteId);
-      } catch (error) {
-        console.error('Failed to post credit note:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Post Credit Note',
+      message: 'Post this credit note? This will finalize it.',
+      confirmLabel: 'Post',
+    });
+    if (!confirmed) return;
+    try {
+      await postCreditNote.mutateAsync(creditNoteId);
+      addToast('Credit note posted', 'success');
+    } catch (error) {
+      console.error('Failed to post credit note:', error);
+      addToast('Failed to post credit note', 'error');
     }
   };
 
-  const handleCancel = async () => {
-    const reason = prompt('Please provide a reason for cancellation:');
-    if (reason) {
-      try {
-        await cancelCreditNote.mutateAsync({ creditNoteId, reason });
-        router.push('/returns/credit-notes');
-      } catch (error) {
-        console.error('Failed to cancel credit note:', error);
-      }
+  const handleCancelSubmit = async () => {
+    if (!cancelReason.trim()) {
+      addToast('Please provide a cancellation reason', 'warning');
+      return;
+    }
+    try {
+      await cancelCreditNote.mutateAsync({ creditNoteId, reason: cancelReason });
+      addToast('Credit note cancelled', 'success');
+      setShowCancelModal(false);
+      router.push('/returns/credit-notes');
+    } catch (error) {
+      console.error('Failed to cancel credit note:', error);
+      addToast('Failed to cancel credit note', 'error');
     }
   };
 
@@ -133,13 +163,39 @@ export default function CreditNoteDetailPage() {
             </Button>
           )}
           {canCancel && !canDelete && (
-            <Button variant="danger" onClick={handleCancel} isLoading={cancelCreditNote.isPending}>
+            <Button variant="danger" onClick={() => { setCancelReason(''); setShowCancelModal(true); }} isLoading={cancelCreditNote.isPending}>
               <XIcon />
               Cancel
             </Button>
           )}
         </div>
       </div>
+
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Cancel Credit Note</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Reason for cancellation *</label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full h-24 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Please provide a reason..."
+                autoFocus
+              />
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="secondary" onClick={() => setShowCancelModal(false)}>Back</Button>
+                <Button variant="danger" onClick={handleCancelSubmit} isLoading={cancelCreditNote.isPending}>
+                  Cancel Credit Note
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Credit Note Details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

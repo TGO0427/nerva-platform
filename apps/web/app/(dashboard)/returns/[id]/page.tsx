@@ -10,6 +10,9 @@ import { Spinner } from '@/components/ui/spinner';
 import { EntityHistory } from '@/components/ui/entity-history';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
+import { useState } from 'react';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useRma,
   useRmaLines,
@@ -29,6 +32,10 @@ export default function RmaDetailPage() {
   const { data: rma, isLoading: rmaLoading } = useRma(rmaId);
   const { data: lines, isLoading: linesLoading } = useRmaLines(rmaId);
 
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
   const deleteRma = useDeleteRma();
   const completeDisposition = useCompleteRmaDisposition();
   const closeRma = useCloseRma();
@@ -91,45 +98,68 @@ export default function RmaDetailPage() {
   ];
 
   const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete this RMA? This action cannot be undone.')) {
-      try {
-        await deleteRma.mutateAsync(rmaId);
-        router.push('/returns');
-      } catch (error) {
-        console.error('Failed to delete RMA:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Delete RMA',
+      message: 'Are you sure you want to delete this RMA? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteRma.mutateAsync(rmaId);
+      addToast('RMA deleted', 'success');
+      router.push('/returns');
+    } catch (error) {
+      console.error('Failed to delete RMA:', error);
+      addToast('Failed to delete RMA', 'error');
     }
   };
 
   const handleCompleteDisposition = async () => {
-    if (confirm('Mark disposition as complete? Ensure all items are inspected.')) {
-      try {
-        await completeDisposition.mutateAsync(rmaId);
-      } catch (error) {
-        console.error('Failed to complete disposition:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Complete Disposition',
+      message: 'Mark disposition as complete? Ensure all items are inspected.',
+      confirmLabel: 'Complete',
+    });
+    if (!confirmed) return;
+    try {
+      await completeDisposition.mutateAsync(rmaId);
+      addToast('Disposition completed', 'success');
+    } catch (error) {
+      console.error('Failed to complete disposition:', error);
+      addToast('Failed to complete disposition', 'error');
     }
   };
 
   const handleClose = async () => {
-    if (confirm('Close this RMA?')) {
-      try {
-        await closeRma.mutateAsync(rmaId);
-      } catch (error) {
-        console.error('Failed to close RMA:', error);
-      }
+    const confirmed = await confirm({
+      title: 'Close RMA',
+      message: 'Close this RMA?',
+      confirmLabel: 'Close',
+    });
+    if (!confirmed) return;
+    try {
+      await closeRma.mutateAsync(rmaId);
+      addToast('RMA closed', 'success');
+    } catch (error) {
+      console.error('Failed to close RMA:', error);
+      addToast('Failed to close RMA', 'error');
     }
   };
 
-  const handleCancel = async () => {
-    const reason = prompt('Please provide a reason for cancellation:');
-    if (reason) {
-      try {
-        await cancelRma.mutateAsync({ rmaId, reason });
-        router.push('/returns');
-      } catch (error) {
-        console.error('Failed to cancel RMA:', error);
-      }
+  const handleCancelSubmit = async () => {
+    if (!cancelReason.trim()) {
+      addToast('Please provide a cancellation reason', 'warning');
+      return;
+    }
+    try {
+      await cancelRma.mutateAsync({ rmaId, reason: cancelReason });
+      addToast('RMA cancelled', 'success');
+      setShowCancelModal(false);
+      router.push('/returns');
+    } catch (error) {
+      console.error('Failed to cancel RMA:', error);
+      addToast('Failed to cancel RMA', 'error');
     }
   };
 
@@ -199,13 +229,39 @@ export default function RmaDetailPage() {
             </Button>
           )}
           {canCancel && !canDelete && (
-            <Button variant="danger" onClick={handleCancel} isLoading={cancelRma.isPending}>
+            <Button variant="danger" onClick={() => { setCancelReason(''); setShowCancelModal(true); }} isLoading={cancelRma.isPending}>
               <XIcon />
               Cancel
             </Button>
           )}
         </div>
       </div>
+
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Cancel RMA</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Reason for cancellation *</label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full h-24 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Please provide a reason..."
+                autoFocus
+              />
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="secondary" onClick={() => setShowCancelModal(false)}>Back</Button>
+                <Button variant="danger" onClick={handleCancelSubmit} isLoading={cancelRma.isPending}>
+                  Cancel RMA
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
