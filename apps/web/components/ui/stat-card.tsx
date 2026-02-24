@@ -20,23 +20,13 @@ export interface StatCardProps {
 }
 
 const borderColors: Record<IconColor, string> = {
-  gray: 'border-b-slate-400',
-  blue: 'border-b-blue-500',
-  green: 'border-b-emerald-500',
-  red: 'border-b-red-500',
-  yellow: 'border-b-amber-500',
-  purple: 'border-b-violet-500',
-  orange: 'border-b-orange-500',
-};
-
-const bgTints: Record<IconColor, string> = {
-  gray: 'bg-gradient-to-br from-slate-50/80 to-white',
-  blue: 'bg-gradient-to-br from-blue-50/60 to-white',
-  green: 'bg-gradient-to-br from-emerald-50/60 to-white',
-  red: 'bg-gradient-to-br from-red-50/60 to-white',
-  yellow: 'bg-gradient-to-br from-amber-50/60 to-white',
-  purple: 'bg-gradient-to-br from-violet-50/60 to-white',
-  orange: 'bg-gradient-to-br from-orange-50/60 to-white',
+  gray: 'border-l-slate-400',
+  blue: 'border-l-blue-500',
+  green: 'border-l-emerald-500',
+  red: 'border-l-red-500',
+  yellow: 'border-l-amber-500',
+  purple: 'border-l-violet-500',
+  orange: 'border-l-orange-500',
 };
 
 const subtitleColors = {
@@ -63,9 +53,9 @@ export function StatCard({
   const content = (
     <div
       className={cn(
-        'rounded-2xl border border-slate-200/70 border-b-[3px] shadow-sm p-5',
+        'rounded-2xl border border-slate-200/70 border-l-[3px] shadow-sm p-5 bg-white',
         'hover:shadow-md hover:-translate-y-0.5 transition-all',
-        alert ? 'border-b-red-500 bg-gradient-to-br from-red-50/60 to-white' : cn(borderColors[iconColor], bgTints[iconColor]),
+        alert ? 'border-l-red-500' : borderColors[iconColor],
         href && 'cursor-pointer',
         className,
       )}
