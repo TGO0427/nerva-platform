@@ -551,6 +551,20 @@ export function useCancelWorkOrder() {
   });
 }
 
+export function useReopenWorkOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<WorkOrder>(`/manufacturing/work-orders/${id}/reopen`);
+      return response.data;
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, id] });
+    },
+  });
+}
+
 export function useIssueMaterial() {
   const queryClient = useQueryClient();
   return useMutation({

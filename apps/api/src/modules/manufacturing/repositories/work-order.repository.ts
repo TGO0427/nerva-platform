@@ -220,7 +220,7 @@ export class WorkOrderRepository extends BaseRepository {
       plannedStart: Date;
       plannedEnd: Date;
       actualStart: Date;
-      actualEnd: Date;
+      actualEnd: Date | null;
       batchNo: string;
       notes: string;
     }>,

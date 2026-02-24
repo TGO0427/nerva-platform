@@ -19,6 +19,7 @@ import {
   useStartWorkOrder,
   useCompleteWorkOrder,
   useCancelWorkOrder,
+  useReopenWorkOrder,
   useIssueMaterial,
   useRecordOutput,
   useStartOperation,
@@ -61,6 +62,7 @@ export default function WorkOrderDetailPage() {
   const startWorkOrder = useStartWorkOrder();
   const completeWorkOrder = useCompleteWorkOrder();
   const cancelWorkOrder = useCancelWorkOrder();
+  const reopenWorkOrder = useReopenWorkOrder();
   const issueMaterial = useIssueMaterial();
   const recordOutput = useRecordOutput();
   const startOperation = useStartOperation();
@@ -144,6 +146,16 @@ export default function WorkOrderDetailPage() {
       addToast('Work order cancelled', 'success');
     } catch (error) {
       addToast('Failed to cancel work order', 'error');
+    }
+  };
+
+  const handleReopen = async () => {
+    if (!id) return;
+    try {
+      await reopenWorkOrder.mutateAsync(id);
+      addToast('Work order reopened', 'success');
+    } catch (error) {
+      addToast('Failed to reopen work order', 'error');
     }
   };
 
@@ -320,6 +332,11 @@ export default function WorkOrderDetailPage() {
                   {completeWorkOrder.isPending ? 'Completing...' : 'Complete'}
                 </Button>
               </>
+            )}
+            {workOrder.status === 'COMPLETED' && (
+              <Button onClick={handleReopen} disabled={reopenWorkOrder.isPending}>
+                {reopenWorkOrder.isPending ? 'Reopening...' : 'Reopen'}
+              </Button>
             )}
             {['DRAFT', 'RELEASED', 'ON_HOLD'].includes(workOrder.status) && (
               <Button variant="danger" onClick={handleCancel} disabled={cancelWorkOrder.isPending}>

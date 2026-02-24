@@ -519,6 +519,13 @@ export class ManufacturingController {
     return this.service.cancelWorkOrder(id);
   }
 
+  @Post('work-orders/:id/reopen')
+  @RequirePermissions('work_order.edit')
+  @ApiOperation({ summary: 'Reopen completed work order' })
+  async reopenWorkOrder(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.reopenWorkOrder(id);
+  }
+
   // Work Order Operations
   @Get('work-orders/:woId/operations')
   @RequirePermissions('work_order.view')
