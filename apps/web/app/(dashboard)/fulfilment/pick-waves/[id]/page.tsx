@@ -18,6 +18,7 @@ import {
   useReleasePickWave,
   useCompletePickWave,
   useCancelPickWave,
+  useReopenPickWave,
   useAssignPickTask,
   useConfirmPickTask,
   useCreateShipment,
@@ -46,6 +47,7 @@ export default function PickWaveDetailPage() {
   const releaseWave = useReleasePickWave();
   const completeWave = useCompletePickWave();
   const cancelWave = useCancelPickWave();
+  const reopenWave = useReopenPickWave();
   const assignTask = useAssignPickTask();
   const confirmTask = useConfirmPickTask();
   const createShipment = useCreateShipment();
@@ -220,6 +222,16 @@ export default function PickWaveDetailPage() {
     }
   };
 
+  const handleReopen = async () => {
+    setActionError('');
+    try {
+      await reopenWave.mutateAsync(waveId);
+      addToast('Pick wave reopened', 'success');
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to reopen wave');
+    }
+  };
+
   const handleCreateShipment = async () => {
     if (orderIds.length === 0) return;
 
@@ -279,6 +291,7 @@ export default function PickWaveDetailPage() {
   const canRelease = wave.status === 'OPEN';
   const canComplete = wave.status === 'IN_PROGRESS';
   const canCancel = wave.status !== 'COMPLETE' && wave.status !== 'CANCELLED';
+  const canReopen = wave.status === 'COMPLETE' || wave.status === 'CANCELLED';
   const canCreateShipment = wave.status === 'COMPLETE' && orderIds.length > 0;
 
   return (
@@ -322,6 +335,12 @@ export default function PickWaveDetailPage() {
             <Button variant="danger" onClick={() => setCancelModal(true)}>
               <XIcon />
               Cancel
+            </Button>
+          )}
+          {canReopen && (
+            <Button variant="secondary" onClick={handleReopen} isLoading={reopenWave.isPending}>
+              <ReopenIcon />
+              Reopen
             </Button>
           )}
         </div>
@@ -619,6 +638,14 @@ function XIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function ReopenIcon() {
+  return (
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
     </svg>
   );
 }

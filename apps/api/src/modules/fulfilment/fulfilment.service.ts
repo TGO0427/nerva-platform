@@ -309,6 +309,18 @@ export class FulfilmentService {
     return updated!;
   }
 
+  // Reopen completed or cancelled pick wave
+  async reopenPickWave(id: string): Promise<PickWave> {
+    const wave = await this.getPickWave(id);
+    if (!['COMPLETE', 'CANCELLED'].includes(wave.status)) {
+      throw new BadRequestException('Only completed or cancelled pick waves can be reopened');
+    }
+
+    const newStatus = wave.status === 'CANCELLED' ? 'OPEN' : 'IN_PROGRESS';
+    const updated = await this.repository.updatePickWaveStatus(id, newStatus);
+    return updated!;
+  }
+
   // Cancel single pick task
   async cancelPickTask(taskId: string, reason: string): Promise<PickTask> {
     const task = await this.repository.findPickTaskById(taskId);

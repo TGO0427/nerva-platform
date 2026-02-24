@@ -193,6 +193,21 @@ export function useCancelPickWave() {
   });
 }
 
+export function useReopenPickWave() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (waveId: string) => {
+      const response = await api.post<PickWave>(`/fulfilment/pick-waves/${waveId}/reopen`);
+      return response.data;
+    },
+    onSuccess: (_, waveId) => {
+      queryClient.invalidateQueries({ queryKey: [PICK_WAVES_KEY] });
+      queryClient.invalidateQueries({ queryKey: [PICK_WAVES_KEY, waveId] });
+    },
+  });
+}
+
 export function useAssignPickTask() {
   const queryClient = useQueryClient();
 

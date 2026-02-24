@@ -100,6 +100,13 @@ export class FulfilmentController {
     return this.service.completePickWave(id);
   }
 
+  @Post('pick-waves/:id/reopen')
+  @RequirePermissions('pick_wave.create')
+  @ApiOperation({ summary: 'Reopen completed or cancelled pick wave' })
+  async reopenPickWave(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.reopenPickWave(id);
+  }
+
   @Post('pick-waves/:id/cancel')
   @RequirePermissions('pick_wave.create')
   @ApiOperation({ summary: 'Cancel pick wave' })
