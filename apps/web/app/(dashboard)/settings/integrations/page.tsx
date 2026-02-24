@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatCard } from '@/components/ui/stat-card';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -139,24 +140,25 @@ function ConnectionsTab() {
       {/* Stats + Add Button */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-slate-900">{connections?.length || 0}</div>
-              <p className="text-sm text-slate-500">Total Connections</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-green-600">{connectedCount}</div>
-              <p className="text-sm text-slate-500">Connected</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-red-600">{errorCount}</div>
-              <p className="text-sm text-slate-500">Errors</p>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Total Connections"
+            value={connections?.length || 0}
+            icon={<LinkSmallIcon />}
+            iconColor="blue"
+          />
+          <StatCard
+            title="Connected"
+            value={connectedCount}
+            icon={<CheckSmallIcon />}
+            iconColor="green"
+          />
+          <StatCard
+            title="Errors"
+            value={errorCount}
+            icon={<AlertSmallIcon />}
+            iconColor="red"
+            alert={errorCount > 0}
+          />
         </div>
         {!showForm && (
           <Button onClick={() => setShowForm(true)} className="shrink-0">
@@ -469,6 +471,30 @@ function PostingQueueTab() {
 }
 
 // === ICONS ===
+function LinkSmallIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+    </svg>
+  );
+}
+
+function CheckSmallIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function AlertSmallIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+    </svg>
+  );
+}
+
 function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

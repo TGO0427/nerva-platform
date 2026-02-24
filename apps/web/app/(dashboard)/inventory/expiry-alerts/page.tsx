@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatCard } from '@/components/ui/stat-card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Select } from '@/components/ui/select';
 import {
@@ -151,72 +152,45 @@ export default function ExpiryAlertsPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div
-          className={`cursor-pointer rounded-lg border-2 transition-colors ${
-            filterStatus === 'EXPIRED' ? 'border-red-500' : 'border-transparent hover:border-red-200'
+          className={`cursor-pointer rounded-md transition-shadow ${
+            filterStatus === 'EXPIRED' ? 'ring-2 ring-red-500' : ''
           }`}
           onClick={() => setFilterStatus(filterStatus === 'EXPIRED' ? 'all' : 'EXPIRED')}
         >
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold text-red-600">
-                    {summary?.expired || 0}
-                  </div>
-                  <p className="text-sm text-slate-500">Expired</p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                  <ExpiredIcon />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Expired"
+            value={summary?.expired || 0}
+            icon={<ExpiredIcon />}
+            iconColor="red"
+          />
         </div>
 
         <div
-          className={`cursor-pointer rounded-lg border-2 transition-colors ${
-            filterStatus === 'CRITICAL' ? 'border-orange-500' : 'border-transparent hover:border-orange-200'
+          className={`cursor-pointer rounded-md transition-shadow ${
+            filterStatus === 'CRITICAL' ? 'ring-2 ring-orange-500' : ''
           }`}
           onClick={() => setFilterStatus(filterStatus === 'CRITICAL' ? 'all' : 'CRITICAL')}
         >
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold text-orange-600">
-                    {summary?.critical || 0}
-                  </div>
-                  <p className="text-sm text-slate-500">Critical (7 days)</p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
-                  <CriticalIcon />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Critical (7 days)"
+            value={summary?.critical || 0}
+            icon={<CriticalIcon />}
+            iconColor="orange"
+          />
         </div>
 
         <div
-          className={`cursor-pointer rounded-lg border-2 transition-colors ${
-            filterStatus === 'WARNING' ? 'border-yellow-500' : 'border-transparent hover:border-yellow-200'
+          className={`cursor-pointer rounded-md transition-shadow ${
+            filterStatus === 'WARNING' ? 'ring-2 ring-yellow-500' : ''
           }`}
           onClick={() => setFilterStatus(filterStatus === 'WARNING' ? 'all' : 'WARNING')}
         >
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold text-yellow-600">
-                    {summary?.warning || 0}
-                  </div>
-                  <p className="text-sm text-slate-500">Warning (30 days)</p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                  <WarningIcon />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Warning (30 days)"
+            value={summary?.warning || 0}
+            icon={<WarningIcon />}
+            iconColor="yellow"
+          />
         </div>
       </div>
 
@@ -283,7 +257,7 @@ function BackIcon() {
 
 function ExpiredIcon() {
   return (
-    <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
     </svg>
   );
@@ -291,7 +265,7 @@ function ExpiredIcon() {
 
 function CriticalIcon() {
   return (
-    <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
@@ -299,7 +273,7 @@ function CriticalIcon() {
 
 function WarningIcon() {
   return (
-    <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
     </svg>
   );
