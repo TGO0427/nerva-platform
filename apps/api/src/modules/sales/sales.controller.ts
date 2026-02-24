@@ -166,6 +166,13 @@ export class SalesController {
     return this.service.cancelOrder(id);
   }
 
+  @Post(':id/reopen')
+  @RequirePermissions('sales_order.edit')
+  @ApiOperation({ summary: 'Reopen cancelled or delivered order' })
+  async reopen(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.reopenOrder(id);
+  }
+
   @Delete(':id')
   @RequirePermissions('sales_order.delete')
   @ApiOperation({ summary: 'Delete sales order (draft only)' })

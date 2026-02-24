@@ -208,6 +208,22 @@ export function useCancelOrder() {
   });
 }
 
+// Reopen order (cancelled → draft, delivered → shipped)
+export function useReopenOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const response = await api.post<SalesOrder>(`/sales/orders/${orderId}/reopen`);
+      return response.data;
+    },
+    onSuccess: (_, orderId) => {
+      queryClient.invalidateQueries({ queryKey: [ORDERS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [ORDERS_KEY, orderId] });
+    },
+  });
+}
+
 // Delete order (draft only)
 export function useDeleteSalesOrder() {
   const queryClient = useQueryClient();

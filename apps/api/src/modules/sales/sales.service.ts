@@ -242,6 +242,17 @@ export class SalesService {
     return updated!;
   }
 
+  async reopenOrder(id: string): Promise<SalesOrder> {
+    const order = await this.getOrder(id);
+    if (!['CANCELLED', 'DELIVERED'].includes(order.status)) {
+      throw new BadRequestException('Only cancelled or delivered orders can be reopened');
+    }
+
+    const newStatus = order.status === 'CANCELLED' ? 'DRAFT' : 'SHIPPED';
+    const updated = await this.repository.updateOrderStatus(id, newStatus);
+    return updated!;
+  }
+
   async deleteOrder(id: string): Promise<void> {
     const order = await this.repository.findOrderById(id);
     if (!order) throw new NotFoundException('Sales order not found');
@@ -263,8 +274,8 @@ export class SalesService {
       PACKING: ['PACKED', 'CANCELLED'],
       PACKED: ['SHIPPED', 'CANCELLED'],
       SHIPPED: ['DELIVERED'],
-      DELIVERED: [],
-      CANCELLED: [],
+      DELIVERED: ['SHIPPED'],
+      CANCELLED: ['DRAFT'],
     };
 
     const allowed = validTransitions[order.status] || [];
