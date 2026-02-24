@@ -336,6 +336,20 @@ export function useCreateRouting() {
   });
 }
 
+export function useUpdateRouting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: string } & Partial<Routing>) => {
+      const response = await api.patch<Routing>(`/manufacturing/routings/${id}`, data);
+      return response.data;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: [ROUTINGS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [ROUTINGS_KEY, id] });
+    },
+  });
+}
+
 export function useDeleteRouting() {
   const queryClient = useQueryClient();
   return useMutation({
