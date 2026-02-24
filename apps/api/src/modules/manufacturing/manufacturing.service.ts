@@ -171,6 +171,7 @@ export class ManufacturingService {
         uom: line.uom,
         scrapPct: line.scrapPct,
         isCritical: line.isCritical,
+        category: line.category,
         notes: line.notes || undefined,
       });
       lines.push(newLine);

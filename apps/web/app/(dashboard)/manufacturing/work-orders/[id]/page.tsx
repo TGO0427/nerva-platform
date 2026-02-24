@@ -289,6 +289,10 @@ export default function WorkOrderDetailPage() {
               <DownloadIcon />
               Download PDF
             </Button>
+            <Button variant="secondary" onClick={() => downloadPdf(`/manufacturing/work-orders/${id}/batch-sheet-pdf`, `BatchSheet-${workOrder.workOrderNo}.pdf`)} className="print:hidden">
+              <DownloadIcon />
+              Batch Sheet
+            </Button>
             {workOrder.status === 'DRAFT' && (
               <>
                 <Button variant="secondary" onClick={() => router.push(`/manufacturing/work-orders/${id}/edit`)}>

@@ -17,6 +17,7 @@ interface BomLineForm {
   uom: string;
   scrapPct: string;
   isCritical: boolean;
+  category: string;
   notes: string;
 }
 
@@ -40,7 +41,7 @@ export default function NewBomPage() {
   };
 
   const addLine = () => {
-    setLines([...lines, { itemId: '', qtyPer: '', uom: 'EA', scrapPct: '0', isCritical: false, notes: '' }]);
+    setLines([...lines, { itemId: '', qtyPer: '', uom: 'EA', scrapPct: '0', isCritical: false, category: 'INGREDIENT', notes: '' }]);
   };
 
   const updateLine = (index: number, field: keyof BomLineForm, value: string | boolean) => {
@@ -67,6 +68,7 @@ export default function NewBomPage() {
         uom: line.uom,
         scrapPct: parseFloat(line.scrapPct) || 0,
         isCritical: line.isCritical,
+        category: line.category,
         notes: line.notes || undefined,
       })),
     });
@@ -230,6 +232,17 @@ export default function NewBomPage() {
                     />
                   </div>
                   <div className="col-span-1">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Category</label>
+                    <Select
+                      value={line.category}
+                      onChange={(e) => updateLine(index, 'category', e.target.value)}
+                      options={[
+                        { value: 'INGREDIENT', label: 'Ingredient' },
+                        { value: 'PACKAGING', label: 'Packaging' },
+                      ]}
+                    />
+                  </div>
+                  <div className="col-span-1">
                     <label className="block text-xs font-medium text-slate-500 mb-1">Critical</label>
                     <input
                       type="checkbox"
@@ -238,7 +251,7 @@ export default function NewBomPage() {
                       className="mt-2 h-4 w-4 rounded border-slate-300"
                     />
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-1">
                     <label className="block text-xs font-medium text-slate-500 mb-1">Notes</label>
                     <Input
                       value={line.notes}

@@ -148,6 +148,16 @@ export default function BomDetailPage() {
       render: (row) => row.scrapPct ? `${row.scrapPct}%` : '-',
     },
     {
+      key: 'category',
+      header: 'Category',
+      width: '100px',
+      render: (row) => (
+        <Badge variant={row.category === 'PACKAGING' ? 'info' : 'default'}>
+          {row.category}
+        </Badge>
+      ),
+    },
+    {
       key: 'isCritical',
       header: 'Critical',
       width: '80px',

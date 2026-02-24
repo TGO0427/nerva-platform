@@ -20,6 +20,7 @@ export interface WorkOrder {
   actualStart: Date | null;
   actualEnd: Date | null;
   salesOrderId: string | null;
+  batchNo: string | null;
   notes: string | null;
   createdBy: string;
   createdAt: Date;
@@ -78,14 +79,15 @@ export class WorkOrderRepository extends BaseRepository {
     plannedStart?: Date;
     plannedEnd?: Date;
     salesOrderId?: string;
+    batchNo?: string;
     notes?: string;
     createdBy: string;
   }): Promise<WorkOrder> {
     const row = await this.queryOne<Record<string, unknown>>(
       `INSERT INTO work_orders (
         tenant_id, site_id, warehouse_id, work_order_no, item_id, bom_header_id, routing_id,
-        priority, qty_ordered, planned_start, planned_end, sales_order_id, notes, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        priority, qty_ordered, planned_start, planned_end, sales_order_id, batch_no, notes, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *`,
       [
         data.tenantId,
@@ -100,6 +102,7 @@ export class WorkOrderRepository extends BaseRepository {
         data.plannedStart || null,
         data.plannedEnd || null,
         data.salesOrderId || null,
+        data.batchNo || null,
         data.notes || null,
         data.createdBy,
       ],
@@ -218,6 +221,7 @@ export class WorkOrderRepository extends BaseRepository {
       plannedEnd: Date;
       actualStart: Date;
       actualEnd: Date;
+      batchNo: string;
       notes: string;
     }>,
   ): Promise<WorkOrder | null> {
@@ -268,6 +272,10 @@ export class WorkOrderRepository extends BaseRepository {
     if (data.actualEnd !== undefined) {
       updates.push(`actual_end = $${idx++}`);
       params.push(data.actualEnd);
+    }
+    if (data.batchNo !== undefined) {
+      updates.push(`batch_no = $${idx++}`);
+      params.push(data.batchNo);
     }
     if (data.notes !== undefined) {
       updates.push(`notes = $${idx++}`);
@@ -534,6 +542,7 @@ export class WorkOrderRepository extends BaseRepository {
       actualStart: row.actual_start as Date | null,
       actualEnd: row.actual_end as Date | null,
       salesOrderId: row.sales_order_id as string | null,
+      batchNo: row.batch_no as string | null,
       notes: row.notes as string | null,
       createdBy: row.created_by as string,
       createdAt: row.created_at as Date,

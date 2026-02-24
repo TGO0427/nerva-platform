@@ -547,6 +547,8 @@ export interface Workstation {
 
 export type BomStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'OBSOLETE';
 
+export type BomLineCategory = 'INGREDIENT' | 'PACKAGING';
+
 export interface BomHeader {
   id: string;
   tenantId: string;
@@ -582,6 +584,7 @@ export interface BomLine {
   uom: string;
   scrapPct: number;
   isCritical: boolean;
+  category: BomLineCategory;
   notes: string | null;
   createdAt: string;
   // Joined fields
@@ -654,6 +657,7 @@ export interface WorkOrder {
   actualStart: string | null;
   actualEnd: string | null;
   salesOrderId: string | null;
+  batchNo: string | null;
   notes: string | null;
   createdBy: string;
   createdAt: string;

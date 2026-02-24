@@ -16,6 +16,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagg
 import { ManufacturingService } from './manufacturing.service';
 import { WorkOrderPdfService } from './work-order-pdf.service';
 import { BomPdfService } from './bom-pdf.service';
+import { BatchSheetPdfService } from './batch-sheet-pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -33,6 +34,7 @@ export class ManufacturingController {
     private readonly service: ManufacturingService,
     private readonly workOrderPdfService: WorkOrderPdfService,
     private readonly bomPdfService: BomPdfService,
+    private readonly batchSheetPdfService: BatchSheetPdfService,
   ) {}
 
   // ============ Workstations ============
@@ -160,6 +162,7 @@ export class ManufacturingController {
         uom?: string;
         scrapPct?: number;
         isCritical?: boolean;
+        category?: string;
         notes?: string;
       }>;
     },
@@ -248,6 +251,7 @@ export class ManufacturingController {
       uom?: string;
       scrapPct?: number;
       isCritical?: boolean;
+      category?: string;
       notes?: string;
     },
   ) {
@@ -264,6 +268,7 @@ export class ManufacturingController {
       uom?: string;
       scrapPct?: number;
       isCritical?: boolean;
+      category?: string;
       notes?: string;
     },
   ) {
@@ -407,6 +412,26 @@ export class ManufacturingController {
     return new StreamableFile(pdfBuffer);
   }
 
+  @Get('work-orders/:id/batch-sheet-pdf')
+  @RequirePermissions('work_order.view')
+  @ApiOperation({ summary: 'Download production batch sheet PDF' })
+  @ApiProduces('application/pdf')
+  async downloadBatchSheetPdf(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Query('prefill') prefill: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const isPrefill = prefill === 'true';
+    const pdfBuffer = await this.batchSheetPdfService.generate(id, tenantId, isPrefill);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="batch-sheet-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
+  }
+
   @Post('work-orders/next-number')
   @RequirePermissions('work_order.create')
   @ApiOperation({ summary: 'Generate next work order number' })
@@ -451,6 +476,7 @@ export class ManufacturingController {
       qtyOrdered?: number;
       plannedStart?: Date;
       plannedEnd?: Date;
+      batchNo?: string;
       notes?: string;
     },
   ) {

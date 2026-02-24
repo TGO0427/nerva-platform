@@ -162,6 +162,7 @@ export function useCreateBom() {
         uom?: string;
         scrapPct?: number;
         isCritical?: boolean;
+        category?: string;
         notes?: string;
       }>;
     }) => {

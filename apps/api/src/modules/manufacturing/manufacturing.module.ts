@@ -8,6 +8,7 @@ import { WorkOrderRepository } from './repositories/work-order.repository';
 import { ProductionLedgerRepository } from './repositories/production-ledger.repository';
 import { WorkOrderPdfService } from './work-order-pdf.service';
 import { BomPdfService } from './bom-pdf.service';
+import { BatchSheetPdfService } from './batch-sheet-pdf.service';
 import { InventoryModule } from '../inventory/inventory.module';
 import { MasterDataModule } from '../masterdata/masterdata.module';
 
@@ -23,6 +24,7 @@ import { MasterDataModule } from '../masterdata/masterdata.module';
     ProductionLedgerRepository,
     WorkOrderPdfService,
     BomPdfService,
+    BatchSheetPdfService,
   ],
   exports: [ManufacturingService],
 })

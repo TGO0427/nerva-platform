@@ -30,6 +30,7 @@ export interface BomLine {
   uom: string;
   scrapPct: number;
   isCritical: boolean;
+  category: string;
   notes: string | null;
   createdAt: Date;
 }
@@ -238,12 +239,13 @@ export class BomRepository extends BaseRepository {
     uom?: string;
     scrapPct?: number;
     isCritical?: boolean;
+    category?: string;
     notes?: string;
   }): Promise<BomLine> {
     const row = await this.queryOne<Record<string, unknown>>(
       `INSERT INTO bom_lines (
-        tenant_id, bom_header_id, line_no, item_id, qty_per, uom, scrap_pct, is_critical, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        tenant_id, bom_header_id, line_no, item_id, qty_per, uom, scrap_pct, is_critical, category, notes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *`,
       [
         data.tenantId,
@@ -254,6 +256,7 @@ export class BomRepository extends BaseRepository {
         data.uom || 'EA',
         data.scrapPct || 0,
         data.isCritical || false,
+        data.category || 'INGREDIENT',
         data.notes || null,
       ],
     );
@@ -283,6 +286,7 @@ export class BomRepository extends BaseRepository {
       uom: string;
       scrapPct: number;
       isCritical: boolean;
+      category: string;
       notes: string;
     }>,
   ): Promise<BomLine | null> {
@@ -305,6 +309,10 @@ export class BomRepository extends BaseRepository {
     if (data.isCritical !== undefined) {
       updates.push(`is_critical = $${idx++}`);
       params.push(data.isCritical);
+    }
+    if (data.category !== undefined) {
+      updates.push(`category = $${idx++}`);
+      params.push(data.category);
     }
     if (data.notes !== undefined) {
       updates.push(`notes = $${idx++}`);
@@ -362,6 +370,7 @@ export class BomRepository extends BaseRepository {
       uom: row.uom as string,
       scrapPct: parseFloat(row.scrap_pct as string),
       isCritical: row.is_critical as boolean,
+      category: (row.category as string) || 'INGREDIENT',
       notes: row.notes as string | null,
       createdAt: row.created_at as Date,
     };
