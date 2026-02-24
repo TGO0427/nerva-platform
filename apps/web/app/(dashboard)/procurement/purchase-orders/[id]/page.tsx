@@ -22,6 +22,7 @@ import {
   useUpdatePurchaseOrderLine,
   useDeletePurchaseOrderLine,
   useUpdatePurchaseOrderStatus,
+  useReopenPurchaseOrder,
   useDeletePurchaseOrder,
   useItems,
 } from '@/lib/queries';
@@ -270,6 +271,7 @@ function StatusBadge({ status }: { status: PurchaseOrderStatus }) {
 
 function StatusActions({ po }: { po: { id: string; status: string } }) {
   const updateStatus = useUpdatePurchaseOrderStatus();
+  const reopenOrder = useReopenPurchaseOrder();
   const { addToast } = useToast();
   const { confirm } = useConfirm();
 
@@ -290,6 +292,26 @@ function StatusActions({ po }: { po: { id: string; status: string } }) {
     } catch (error) {
       console.error('Failed to update status:', error);
       addToast('Failed to update purchase order status', 'error');
+    }
+  };
+
+  const handleReopen = async () => {
+    const message = po.status === 'CANCELLED'
+      ? 'Reopen this cancelled purchase order? It will return to DRAFT status.'
+      : 'Reopen this received purchase order? It will return to CONFIRMED status.';
+    const confirmed = await confirm({
+      title: 'Reopen Purchase Order',
+      message,
+      confirmLabel: 'Reopen',
+    });
+    if (!confirmed) return;
+
+    try {
+      await reopenOrder.mutateAsync(po.id);
+      addToast('Purchase order reopened', 'success');
+    } catch (error) {
+      console.error('Failed to reopen purchase order:', error);
+      addToast('Failed to reopen purchase order', 'error');
     }
   };
 
@@ -335,6 +357,18 @@ function StatusActions({ po }: { po: { id: string; status: string } }) {
           disabled={updateStatus.isPending}
         >
           Mark Received
+        </Button>
+      );
+    case 'CANCELLED':
+    case 'RECEIVED':
+      return (
+        <Button
+          variant="secondary"
+          className="bg-white text-purple-700 hover:bg-purple-50"
+          onClick={handleReopen}
+          disabled={reopenOrder.isPending}
+        >
+          Reopen
         </Button>
       );
     default:

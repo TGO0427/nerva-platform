@@ -205,6 +205,13 @@ export class PurchaseOrdersController {
     return { success: true };
   }
 
+  @Post(':id/reopen')
+  @RequirePermissions('purchase_order.write')
+  @ApiOperation({ summary: 'Reopen cancelled or received purchase order' })
+  async reopen(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.reopenPurchaseOrder(id);
+  }
+
   @Delete(':id')
   @RequirePermissions('purchase_order.delete')
   @ApiOperation({ summary: 'Delete purchase order (draft only)' })

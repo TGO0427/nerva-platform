@@ -631,6 +631,18 @@ export class MasterDataService {
     return order;
   }
 
+  async reopenPurchaseOrder(id: string): Promise<PurchaseOrder> {
+    const order = await this.getPurchaseOrder(id);
+    if (!['CANCELLED', 'RECEIVED'].includes(order.status)) {
+      throw new BadRequestException('Only cancelled or received purchase orders can be reopened');
+    }
+
+    const newStatus = order.status === 'CANCELLED' ? 'DRAFT' : 'CONFIRMED';
+    const updated = await this.repository.updatePurchaseOrder(id, { status: newStatus });
+    if (!updated) throw new NotFoundException('Purchase order not found');
+    return updated;
+  }
+
   async deletePurchaseOrder(id: string): Promise<void> {
     const order = await this.repository.findPurchaseOrderById(id);
     if (!order) throw new NotFoundException('Purchase order not found');

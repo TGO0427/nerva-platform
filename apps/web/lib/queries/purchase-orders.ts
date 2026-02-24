@@ -201,6 +201,22 @@ export function useDeletePurchaseOrderLine(purchaseOrderId: string) {
   });
 }
 
+// Reopen purchase order (cancelled → draft, received → confirmed)
+export function useReopenPurchaseOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<PurchaseOrder>(`/purchase-orders/${id}/reopen`);
+      return response.data;
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: [PO_KEY] });
+      queryClient.invalidateQueries({ queryKey: [PO_KEY, id] });
+    },
+  });
+}
+
 // Delete purchase order (draft only)
 export function useDeletePurchaseOrder() {
   const queryClient = useQueryClient();
