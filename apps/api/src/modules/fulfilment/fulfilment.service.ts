@@ -371,6 +371,16 @@ export class FulfilmentService {
     return updated!;
   }
 
+  // Reopen delivered shipment back to shipped
+  async reopenShipment(id: string): Promise<Shipment> {
+    const shipment = await this.getShipment(id);
+    if (shipment.status !== 'DELIVERED') {
+      throw new BadRequestException('Only delivered shipments can be reopened');
+    }
+    const updated = await this.repository.updateShipmentStatus(id, 'SHIPPED');
+    return updated!;
+  }
+
   // Get shipments for an order
   async getShipmentsByOrder(salesOrderId: string): Promise<Shipment[]> {
     return this.repository.findShipmentsByOrder(salesOrderId);

@@ -290,6 +290,13 @@ export class FulfilmentController {
     return this.service.deliverShipment(id);
   }
 
+  @Post('shipments/:id/reopen')
+  @RequirePermissions('shipment.update')
+  @ApiOperation({ summary: 'Reopen delivered shipment' })
+  async reopenShipment(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.reopenShipment(id);
+  }
+
   @Get('orders/:orderId/shipments')
   @RequirePermissions('shipment.read')
   @ApiOperation({ summary: 'Get shipments for order' })

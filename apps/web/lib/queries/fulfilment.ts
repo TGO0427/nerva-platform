@@ -362,6 +362,22 @@ export function useDeliverShipment() {
   });
 }
 
+// Reopen delivered shipment back to shipped
+export function useReopenShipment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (shipmentId: string) => {
+      const response = await api.post<Shipment>(`/fulfilment/shipments/${shipmentId}/reopen`);
+      return response.data;
+    },
+    onSuccess: (_, shipmentId) => {
+      queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY, shipmentId] });
+    },
+  });
+}
+
 // Fetch shipments ready for dispatch (not yet assigned to a trip)
 export function useReadyForDispatchShipments() {
   return useQuery({
