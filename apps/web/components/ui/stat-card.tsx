@@ -20,13 +20,23 @@ export interface StatCardProps {
 }
 
 const borderColors: Record<IconColor, string> = {
-  gray: 'border-l-slate-400',
-  blue: 'border-l-blue-500',
-  green: 'border-l-emerald-500',
-  red: 'border-l-red-500',
-  yellow: 'border-l-amber-500',
-  purple: 'border-l-violet-500',
-  orange: 'border-l-orange-500',
+  gray: 'border-b-slate-400',
+  blue: 'border-b-blue-500',
+  green: 'border-b-emerald-500',
+  red: 'border-b-red-500',
+  yellow: 'border-b-amber-500',
+  purple: 'border-b-violet-500',
+  orange: 'border-b-orange-500',
+};
+
+const bgTints: Record<IconColor, string> = {
+  gray: 'bg-gradient-to-br from-slate-50/80 to-white',
+  blue: 'bg-gradient-to-br from-blue-50/60 to-white',
+  green: 'bg-gradient-to-br from-emerald-50/60 to-white',
+  red: 'bg-gradient-to-br from-red-50/60 to-white',
+  yellow: 'bg-gradient-to-br from-amber-50/60 to-white',
+  purple: 'bg-gradient-to-br from-violet-50/60 to-white',
+  orange: 'bg-gradient-to-br from-orange-50/60 to-white',
 };
 
 const subtitleColors = {
@@ -53,30 +63,30 @@ export function StatCard({
   const content = (
     <div
       className={cn(
-        'rounded-2xl border border-slate-200/70 border-l-[3px] shadow-sm p-5 bg-white',
+        'rounded-md border border-slate-200/70 border-b-[3px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-2.5',
         'hover:shadow-md hover:-translate-y-0.5 transition-all',
-        alert ? 'border-l-red-500' : borderColors[iconColor],
+        alert ? 'border-b-red-500 bg-gradient-to-br from-red-50/60 to-white' : cn(borderColors[iconColor], bgTints[iconColor]),
         href && 'cursor-pointer',
         className,
       )}
     >
       {icon && (
-        <div className="mb-3">
+        <div className="mb-1.5">
           <IconBadge icon={icon} color={alert ? 'red' : iconColor} size="sm" />
         </div>
       )}
-      <p className="text-2xl font-bold text-slate-900">
+      <p className="text-lg font-bold text-slate-900">
         {isNumeric ? (
           <AnimatedNumber value={value} duration={400} />
         ) : (
           value
         )}
       </p>
-      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1">{title}</p>
+      <p className="text-[10.5px] font-medium text-slate-500 uppercase tracking-wider mt-0.5">{title}</p>
       {showEmpty ? (
-        <p className="text-xs text-slate-400 mt-1">{emptyHint}</p>
+        <p className="text-[10.5px] text-slate-400 mt-0.5">{emptyHint}</p>
       ) : subtitle ? (
-        <p className={cn('text-xs mt-1', subtitleColors[subtitleType])}>
+        <p className={cn('text-[10.5px] mt-0.5', subtitleColors[subtitleType])}>
           {subtitle}
         </p>
       ) : null}
