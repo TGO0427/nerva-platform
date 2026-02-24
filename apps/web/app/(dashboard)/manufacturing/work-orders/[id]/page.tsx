@@ -151,6 +151,15 @@ export default function WorkOrderDetailPage() {
 
   const handleReopen = async () => {
     if (!id) return;
+    const message = workOrder?.status === 'CANCELLED'
+      ? 'Reopen this cancelled work order? It will return to DRAFT status.'
+      : 'Reopen this completed work order? It will return to IN PROGRESS status.';
+    const confirmed = await confirm({
+      title: 'Reopen Work Order',
+      message,
+      confirmLabel: 'Reopen',
+    });
+    if (!confirmed) return;
     try {
       await reopenWorkOrder.mutateAsync(id);
       addToast('Work order reopened', 'success');
@@ -333,7 +342,7 @@ export default function WorkOrderDetailPage() {
                 </Button>
               </>
             )}
-            {workOrder.status === 'COMPLETED' && (
+            {['COMPLETED', 'CANCELLED'].includes(workOrder.status) && (
               <Button onClick={handleReopen} disabled={reopenWorkOrder.isPending}>
                 {reopenWorkOrder.isPending ? 'Reopening...' : 'Reopen'}
               </Button>

@@ -559,9 +559,14 @@ export class ManufacturingService {
   async reopenWorkOrder(id: string) {
     const workOrder = await this.workOrderRepo.findById(id);
     if (!workOrder) throw new NotFoundException('Work order not found');
-    if (workOrder.status !== 'COMPLETED') {
-      throw new BadRequestException('Can only reopen COMPLETED work orders');
+    if (!['COMPLETED', 'CANCELLED'].includes(workOrder.status)) {
+      throw new BadRequestException('Can only reopen COMPLETED or CANCELLED work orders');
     }
+
+    if (workOrder.status === 'CANCELLED') {
+      return this.workOrderRepo.update(id, { status: 'DRAFT' });
+    }
+
     return this.workOrderRepo.update(id, {
       status: 'IN_PROGRESS',
       actualEnd: null,
