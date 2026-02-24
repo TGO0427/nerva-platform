@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -13,13 +13,18 @@ import { useCreateWorkOrder, useGenerateWorkOrderNumber, useBoms, useRoutings } 
 
 export default function NewWorkOrderPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefillItemId = searchParams.get('itemId') || '';
+  const prefillBomHeaderId = searchParams.get('bomHeaderId') || '';
+  const prefillQtyOrdered = searchParams.get('qtyOrdered') || '';
+
   const [formData, setFormData] = useState({
     workOrderNo: '',
-    itemId: '',
+    itemId: prefillItemId,
     warehouseId: '',
-    bomHeaderId: '',
+    bomHeaderId: prefillBomHeaderId,
     routingId: '',
-    qtyOrdered: '',
+    qtyOrdered: prefillQtyOrdered,
     priority: '50',
     plannedStart: '',
     plannedEnd: '',

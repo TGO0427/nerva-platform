@@ -94,6 +94,8 @@ export const PERMISSIONS = {
   PRODUCTION_ISSUE_MATERIAL: 'production.issue_material',
   PRODUCTION_RECORD_OUTPUT: 'production.record_output',
   PRODUCTION_VIEW_LEDGER: 'production.view_ledger',
+  PRODUCTION_CAPTURE_CHECKS: 'production.capture_checks',
+  PRODUCTION_CAPTURE_PROCESS: 'production.capture_process',
 
   // Invoicing
   INVOICE_READ: 'invoice.read',

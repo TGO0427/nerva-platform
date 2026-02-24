@@ -761,3 +761,57 @@ export interface BomComparison {
     }>;
   };
 }
+
+export interface BomExplodedLine extends BomLine {
+  rawQty: number;
+  scaledQty: number;
+  bomPct: number;
+}
+
+export interface BomExplosion {
+  bomHeader: BomHeader;
+  requiredKg: number;
+  scaleFactor: number;
+  ingredients: BomExplodedLine[];
+  packaging: BomExplodedLine[];
+  totals: {
+    ingredientQty: number;
+    packagingQty: number;
+  };
+}
+
+export interface WorkOrderChecks {
+  id: string;
+  tenantId: string;
+  workOrderId: string;
+  reworkProduct: string | null;
+  reworkQtyKgs: number | null;
+  theoreticalBoxes: number | null;
+  actualBoxes: number | null;
+  actualOvers: number | null;
+  actualTotal: number | null;
+  diffToTheoretical: number | null;
+  loaderSignature: string | null;
+  operationsManagerSignature: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkOrderProcess {
+  id: string;
+  tenantId: string;
+  workOrderId: string;
+  instructions: string | null;
+  specsJson: Record<string, unknown>;
+  operator: string | null;
+  potUsed: string | null;
+  timeStarted: string | null;
+  time85c: string | null;
+  timeFlavourAdded: string | null;
+  timeCompleted: string | null;
+  additions: string | null;
+  reasonForAddition: string | null;
+  comments: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

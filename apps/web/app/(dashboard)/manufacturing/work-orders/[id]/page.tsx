@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,8 @@ import {
   useRecordOutput,
   useStartOperation,
   useCompleteOperation,
+  useUpsertWorkOrderChecks,
+  useUpsertWorkOrderProcess,
 } from '@/lib/queries/manufacturing';
 import { useBins } from '@/lib/queries/warehouses';
 import { Input } from '@/components/ui/input';
@@ -37,7 +39,7 @@ export default function WorkOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: workOrder, isLoading, error } = useWorkOrder(id);
-  const [activeTab, setActiveTab] = useState<'operations' | 'materials'>('materials');
+  const [activeTab, setActiveTab] = useState<'operations' | 'materials' | 'checks' | 'process'>('materials');
 
   const [issuingMaterialId, setIssuingMaterialId] = useState<string | null>(null);
   const [issueQty, setIssueQty] = useState('');
@@ -55,8 +57,37 @@ export default function WorkOrderDetailPage() {
   const [opScrappedQty, setOpScrappedQty] = useState('');
   const [opNotes, setOpNotes] = useState('');
 
+  // Checks form state
+  const [checksForm, setChecksForm] = useState({
+    reworkProduct: '',
+    reworkQtyKgs: '',
+    theoreticalBoxes: '',
+    actualBoxes: '',
+    actualOvers: '',
+    loaderSignature: '',
+    operationsManagerSignature: '',
+  });
+  const [checksLoaded, setChecksLoaded] = useState(false);
+
+  // Process form state
+  const [processForm, setProcessForm] = useState({
+    instructions: '',
+    operator: '',
+    potUsed: '',
+    timeStarted: '',
+    time85c: '',
+    timeFlavourAdded: '',
+    timeCompleted: '',
+    additions: '',
+    reasonForAddition: '',
+    comments: '',
+  });
+  const [processLoaded, setProcessLoaded] = useState(false);
+
   const { addToast } = useToast();
   const { confirm } = useConfirm();
+  const upsertChecks = useUpsertWorkOrderChecks();
+  const upsertProcess = useUpsertWorkOrderProcess();
   const deleteWorkOrder = useDeleteWorkOrder();
   const releaseWorkOrder = useReleaseWorkOrder();
   const startWorkOrder = useStartWorkOrder();
@@ -69,6 +100,43 @@ export default function WorkOrderDetailPage() {
   const completeOperation = useCompleteOperation();
 
   const { data: bins } = useBins(workOrder?.warehouseId);
+
+  // Populate checks form when data loads
+  useEffect(() => {
+    if (workOrder?.checks && !checksLoaded) {
+      const c = workOrder.checks;
+      setChecksForm({
+        reworkProduct: c.reworkProduct || '',
+        reworkQtyKgs: c.reworkQtyKgs != null ? String(c.reworkQtyKgs) : '',
+        theoreticalBoxes: c.theoreticalBoxes != null ? String(c.theoreticalBoxes) : '',
+        actualBoxes: c.actualBoxes != null ? String(c.actualBoxes) : '',
+        actualOvers: c.actualOvers != null ? String(c.actualOvers) : '',
+        loaderSignature: c.loaderSignature || '',
+        operationsManagerSignature: c.operationsManagerSignature || '',
+      });
+      setChecksLoaded(true);
+    }
+  }, [workOrder?.checks, checksLoaded]);
+
+  // Populate process form when data loads
+  useEffect(() => {
+    if (workOrder?.process && !processLoaded) {
+      const p = workOrder.process;
+      setProcessForm({
+        instructions: p.instructions || '',
+        operator: p.operator || '',
+        potUsed: p.potUsed || '',
+        timeStarted: p.timeStarted ? p.timeStarted.slice(0, 16) : '',
+        time85c: p.time85c ? p.time85c.slice(0, 16) : '',
+        timeFlavourAdded: p.timeFlavourAdded ? p.timeFlavourAdded.slice(0, 16) : '',
+        timeCompleted: p.timeCompleted ? p.timeCompleted.slice(0, 16) : '',
+        additions: p.additions || '',
+        reasonForAddition: p.reasonForAddition || '',
+        comments: p.comments || '',
+      });
+      setProcessLoaded(true);
+    }
+  }, [workOrder?.process, processLoaded]);
 
   if (error) {
     return (
@@ -314,6 +382,10 @@ export default function WorkOrderDetailPage() {
               <DownloadIcon />
               Batch Sheet
             </Button>
+            <Button variant="secondary" onClick={() => downloadPdf(`/manufacturing/work-orders/${id}/production-ticket-pdf`, `ProductionTicket-${workOrder.workOrderNo}.pdf`)} className="print:hidden">
+              <DownloadIcon />
+              Production Ticket
+            </Button>
             {workOrder.status === 'DRAFT' && (
               <>
                 <Button variant="secondary" onClick={() => router.push(`/manufacturing/work-orders/${id}/edit`)}>
@@ -502,6 +574,26 @@ export default function WorkOrderDetailPage() {
                 >
                   Operations ({workOrder.operations?.length || 0})
                 </button>
+                <button
+                  onClick={() => setActiveTab('checks')}
+                  className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'checks'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Checks
+                </button>
+                <button
+                  onClick={() => setActiveTab('process')}
+                  className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'process'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Process
+                </button>
               </nav>
             </div>
 
@@ -593,6 +685,190 @@ export default function WorkOrderDetailPage() {
                     </div>
                   )}
                 </>
+              )}
+              {activeTab === 'checks' && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-slate-900">Tipping Check Sheet</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Rework Product</label>
+                      <Input value={checksForm.reworkProduct} onChange={(e) => setChecksForm(prev => ({ ...prev, reworkProduct: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Rework Qty (kgs)</label>
+                      <Input type="number" step="any" value={checksForm.reworkQtyKgs} onChange={(e) => setChecksForm(prev => ({ ...prev, reworkQtyKgs: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Theoretical Boxes</label>
+                      <Input type="number" step="any" value={checksForm.theoreticalBoxes} onChange={(e) => setChecksForm(prev => ({ ...prev, theoreticalBoxes: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Actual Boxes</label>
+                      <Input type="number" step="any" value={checksForm.actualBoxes} onChange={(e) => setChecksForm(prev => ({ ...prev, actualBoxes: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Actual Overs</label>
+                      <Input type="number" step="any" value={checksForm.actualOvers} onChange={(e) => setChecksForm(prev => ({ ...prev, actualOvers: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Actual Total</label>
+                      <Input
+                        type="number"
+                        step="any"
+                        readOnly
+                        value={
+                          checksForm.actualBoxes && checksForm.actualOvers
+                            ? String(parseFloat(checksForm.actualBoxes) + parseFloat(checksForm.actualOvers))
+                            : checksForm.actualBoxes || ''
+                        }
+                        className="bg-slate-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Diff to Theoretical</label>
+                      <Input
+                        type="number"
+                        step="any"
+                        readOnly
+                        value={
+                          checksForm.theoreticalBoxes && checksForm.actualBoxes
+                            ? String(
+                                (parseFloat(checksForm.actualBoxes) + parseFloat(checksForm.actualOvers || '0'))
+                                - parseFloat(checksForm.theoreticalBoxes)
+                              )
+                            : ''
+                        }
+                        className="bg-slate-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Loader Signature</label>
+                      <Input value={checksForm.loaderSignature} onChange={(e) => setChecksForm(prev => ({ ...prev, loaderSignature: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Operations Manager Signature</label>
+                      <Input value={checksForm.operationsManagerSignature} onChange={(e) => setChecksForm(prev => ({ ...prev, operationsManagerSignature: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      disabled={upsertChecks.isPending}
+                      onClick={async () => {
+                        try {
+                          const actualTotal = checksForm.actualBoxes
+                            ? parseFloat(checksForm.actualBoxes) + parseFloat(checksForm.actualOvers || '0')
+                            : undefined;
+                          const diffToTheoretical = checksForm.theoreticalBoxes && actualTotal != null
+                            ? actualTotal - parseFloat(checksForm.theoreticalBoxes)
+                            : undefined;
+                          await upsertChecks.mutateAsync({
+                            workOrderId: id!,
+                            reworkProduct: checksForm.reworkProduct || undefined,
+                            reworkQtyKgs: checksForm.reworkQtyKgs ? parseFloat(checksForm.reworkQtyKgs) : undefined,
+                            theoreticalBoxes: checksForm.theoreticalBoxes ? parseFloat(checksForm.theoreticalBoxes) : undefined,
+                            actualBoxes: checksForm.actualBoxes ? parseFloat(checksForm.actualBoxes) : undefined,
+                            actualOvers: checksForm.actualOvers ? parseFloat(checksForm.actualOvers) : undefined,
+                            actualTotal,
+                            diffToTheoretical,
+                            loaderSignature: checksForm.loaderSignature || undefined,
+                            operationsManagerSignature: checksForm.operationsManagerSignature || undefined,
+                          });
+                          addToast('Check sheet saved', 'success');
+                        } catch {
+                          addToast('Failed to save check sheet', 'error');
+                        }
+                      }}
+                    >
+                      {upsertChecks.isPending ? 'Saving...' : 'Save Checks'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {activeTab === 'process' && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-slate-900">Production Process</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Instructions</label>
+                      <textarea
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        rows={3}
+                        value={processForm.instructions}
+                        onChange={(e) => setProcessForm(prev => ({ ...prev, instructions: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Operator</label>
+                      <Input value={processForm.operator} onChange={(e) => setProcessForm(prev => ({ ...prev, operator: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Pot Used</label>
+                      <Input value={processForm.potUsed} onChange={(e) => setProcessForm(prev => ({ ...prev, potUsed: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Time Started</label>
+                      <Input type="datetime-local" value={processForm.timeStarted} onChange={(e) => setProcessForm(prev => ({ ...prev, timeStarted: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Time 85°C</label>
+                      <Input type="datetime-local" value={processForm.time85c} onChange={(e) => setProcessForm(prev => ({ ...prev, time85c: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Time Flavour Added</label>
+                      <Input type="datetime-local" value={processForm.timeFlavourAdded} onChange={(e) => setProcessForm(prev => ({ ...prev, timeFlavourAdded: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Time Completed</label>
+                      <Input type="datetime-local" value={processForm.timeCompleted} onChange={(e) => setProcessForm(prev => ({ ...prev, timeCompleted: e.target.value }))} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Additions</label>
+                      <Input value={processForm.additions} onChange={(e) => setProcessForm(prev => ({ ...prev, additions: e.target.value }))} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Reason for Addition</label>
+                      <Input value={processForm.reasonForAddition} onChange={(e) => setProcessForm(prev => ({ ...prev, reasonForAddition: e.target.value }))} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Comments</label>
+                      <textarea
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        rows={2}
+                        value={processForm.comments}
+                        onChange={(e) => setProcessForm(prev => ({ ...prev, comments: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      disabled={upsertProcess.isPending}
+                      onClick={async () => {
+                        try {
+                          await upsertProcess.mutateAsync({
+                            workOrderId: id!,
+                            instructions: processForm.instructions || undefined,
+                            operator: processForm.operator || undefined,
+                            potUsed: processForm.potUsed || undefined,
+                            timeStarted: processForm.timeStarted || undefined,
+                            time85c: processForm.time85c || undefined,
+                            timeFlavourAdded: processForm.timeFlavourAdded || undefined,
+                            timeCompleted: processForm.timeCompleted || undefined,
+                            additions: processForm.additions || undefined,
+                            reasonForAddition: processForm.reasonForAddition || undefined,
+                            comments: processForm.comments || undefined,
+                          });
+                          addToast('Process data saved', 'success');
+                        } catch {
+                          addToast('Failed to save process data', 'error');
+                        }
+                      }}
+                    >
+                      {upsertProcess.isPending ? 'Saving...' : 'Save Process'}
+                    </Button>
+                  </div>
+                </div>
               )}
             </div>
           </Card>

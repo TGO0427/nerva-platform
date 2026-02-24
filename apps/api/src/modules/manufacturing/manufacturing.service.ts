@@ -4,6 +4,7 @@ import { BomRepository, BomHeader, BomLine } from './repositories/bom.repository
 import { RoutingRepository, Routing, RoutingOperation } from './repositories/routing.repository';
 import { WorkOrderRepository, WorkOrder, WorkOrderOperation, WorkOrderMaterial } from './repositories/work-order.repository';
 import { ProductionLedgerRepository, ProductionLedgerEntry } from './repositories/production-ledger.repository';
+import { ProductionDataRepository } from './repositories/production-data.repository';
 import { StockLedgerService } from '../inventory/stock-ledger.service';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class ManufacturingService {
     private readonly routingRepo: RoutingRepository,
     private readonly workOrderRepo: WorkOrderRepository,
     private readonly productionLedgerRepo: ProductionLedgerRepository,
+    private readonly productionDataRepo: ProductionDataRepository,
     private readonly stockLedgerService: StockLedgerService,
   ) {}
 
@@ -256,6 +258,45 @@ export class ManufacturingService {
     };
   }
 
+  // BOM Explosion (Calculator)
+  async explodeBom(bomId: string, requiredKg: number) {
+    const header = await this.bomRepo.findHeaderById(bomId);
+    if (!header) throw new NotFoundException('BOM not found');
+    const allLines = await this.bomRepo.getLines(bomId);
+
+    const scaleFactor = requiredKg / (header.baseQty || 1);
+
+    const ingredients = allLines.filter(l => l.category === 'INGREDIENT' || !l.category);
+    const packaging = allLines.filter(l => l.category === 'PACKAGING');
+
+    const ingredientTotal = ingredients.reduce((sum, l) => sum + l.qtyPer, 0);
+    const packagingTotal = packaging.reduce((sum, l) => sum + l.qtyPer, 0);
+
+    const mapLine = (line: BomLine, total: number, isPackaging: boolean) => {
+      const rawQty = line.qtyPer * scaleFactor * (1 + line.scrapPct / 100);
+      const scaledQty = isPackaging
+        ? Math.ceil(rawQty)
+        : Math.round(rawQty * 1000) / 1000;
+      const bomPct = total > 0 ? (line.qtyPer / total) * 100 : 0;
+      return { ...line, rawQty, scaledQty, bomPct };
+    };
+
+    const explodedIngredients = ingredients.map(l => mapLine(l, ingredientTotal, false));
+    const explodedPackaging = packaging.map(l => mapLine(l, packagingTotal, true));
+
+    return {
+      bomHeader: header,
+      requiredKg,
+      scaleFactor,
+      ingredients: explodedIngredients,
+      packaging: explodedPackaging,
+      totals: {
+        ingredientQty: explodedIngredients.reduce((sum, l) => sum + l.scaledQty, 0),
+        packagingQty: explodedPackaging.reduce((sum, l) => sum + l.scaledQty, 0),
+      },
+    };
+  }
+
   // BOM Lines
   async addBomLine(bomHeaderId: string, data: Omit<Parameters<BomRepository['addLine']>[0], 'tenantId' | 'bomHeaderId' | 'lineNo'>) {
     const header = await this.bomRepo.findHeaderById(bomHeaderId);
@@ -418,11 +459,13 @@ export class ManufacturingService {
   async getWorkOrder(id: string) {
     const workOrder = await this.workOrderRepo.findById(id);
     if (!workOrder) throw new NotFoundException('Work order not found');
-    const [operations, materials] = await Promise.all([
+    const [operations, materials, checks, process] = await Promise.all([
       this.workOrderRepo.getOperations(id),
       this.workOrderRepo.getMaterials(id),
+      this.productionDataRepo.findChecksByWorkOrder(id),
+      this.productionDataRepo.findProcessByWorkOrder(id),
     ]);
-    return { ...workOrder, operations, materials };
+    return { ...workOrder, operations, materials, checks, process };
   }
 
   async getNextWorkOrderNumber(tenantId: string): Promise<string> {
@@ -864,5 +907,57 @@ export class ManufacturingService {
 
   async getProductionSummaryByItem(tenantId: string, startDate?: Date, endDate?: Date) {
     return this.productionLedgerRepo.getSummaryByItem(tenantId, startDate, endDate);
+  }
+
+  // ============ Work Order Checks ============
+  async getWorkOrderChecks(workOrderId: string) {
+    return this.productionDataRepo.findChecksByWorkOrder(workOrderId);
+  }
+
+  async upsertWorkOrderChecks(
+    workOrderId: string,
+    tenantId: string,
+    data: {
+      reworkProduct?: string;
+      reworkQtyKgs?: number;
+      theoreticalBoxes?: number;
+      actualBoxes?: number;
+      actualOvers?: number;
+      actualTotal?: number;
+      diffToTheoretical?: number;
+      loaderSignature?: string;
+      operationsManagerSignature?: string;
+    },
+  ) {
+    const workOrder = await this.workOrderRepo.findById(workOrderId);
+    if (!workOrder) throw new NotFoundException('Work order not found');
+    return this.productionDataRepo.upsertChecks({ tenantId, workOrderId, ...data });
+  }
+
+  // ============ Work Order Process ============
+  async getWorkOrderProcess(workOrderId: string) {
+    return this.productionDataRepo.findProcessByWorkOrder(workOrderId);
+  }
+
+  async upsertWorkOrderProcess(
+    workOrderId: string,
+    tenantId: string,
+    data: {
+      instructions?: string;
+      specsJson?: Record<string, unknown>;
+      operator?: string;
+      potUsed?: string;
+      timeStarted?: Date | string;
+      time85c?: Date | string;
+      timeFlavourAdded?: Date | string;
+      timeCompleted?: Date | string;
+      additions?: string;
+      reasonForAddition?: string;
+      comments?: string;
+    },
+  ) {
+    const workOrder = await this.workOrderRepo.findById(workOrderId);
+    if (!workOrder) throw new NotFoundException('Work order not found');
+    return this.productionDataRepo.upsertProcess({ tenantId, workOrderId, ...data });
   }
 }

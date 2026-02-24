@@ -11,6 +11,9 @@ import type {
   WorkOrderMaterial,
   ProductionLedgerEntry,
   BomComparison,
+  BomExplosion,
+  WorkOrderChecks,
+  WorkOrderProcess,
   PaginatedResult,
 } from '@nerva/shared';
 import type { QueryParams } from './use-query-params';
@@ -21,6 +24,8 @@ const BOMS_KEY = 'boms';
 const ROUTINGS_KEY = 'routings';
 const WORK_ORDERS_KEY = 'work-orders';
 const PRODUCTION_LEDGER_KEY = 'production-ledger';
+const WO_CHECKS_KEY = 'work-order-checks';
+const WO_PROCESS_KEY = 'work-order-process';
 
 // ============ Workstations ============
 interface WorkstationFilters {
@@ -267,6 +272,19 @@ export function useCompareBoms(id1: string | undefined, id2: string | undefined)
   });
 }
 
+export function useBomExplosion(bomId: string | undefined, requiredKg: number | undefined) {
+  return useQuery({
+    queryKey: [BOMS_KEY, 'explode', bomId, requiredKg],
+    queryFn: async () => {
+      const response = await api.get<BomExplosion>(
+        `/manufacturing/boms/${bomId}/explode?requiredKg=${requiredKg}`
+      );
+      return response.data;
+    },
+    enabled: !!bomId && !!requiredKg && requiredKg > 0,
+  });
+}
+
 // ============ Routings ============
 interface RoutingFilters {
   itemId?: string;
@@ -402,6 +420,8 @@ interface WorkOrderFilters {
 export interface WorkOrderDetail extends WorkOrder {
   operations: (WorkOrderOperation & { workstationCode?: string; workstationName?: string; assignedUserName?: string })[];
   materials: (WorkOrderMaterial & { itemSku?: string; itemDescription?: string })[];
+  checks: WorkOrderChecks | null;
+  process: WorkOrderProcess | null;
 }
 
 export function useWorkOrders(params: QueryParams & WorkOrderFilters) {
@@ -679,6 +699,82 @@ export function useCompleteOperation() {
       return response.data;
     },
     onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
+    },
+  });
+}
+
+// ============ Work Order Checks & Process ============
+
+export function useWorkOrderChecks(workOrderId: string | undefined) {
+  return useQuery({
+    queryKey: [WO_CHECKS_KEY, workOrderId],
+    queryFn: async () => {
+      const response = await api.get<WorkOrderChecks>(`/manufacturing/work-orders/${workOrderId}/checks`);
+      return response.data;
+    },
+    enabled: !!workOrderId,
+  });
+}
+
+export function useUpsertWorkOrderChecks() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ workOrderId, ...data }: {
+      workOrderId: string;
+      reworkProduct?: string;
+      reworkQtyKgs?: number;
+      theoreticalBoxes?: number;
+      actualBoxes?: number;
+      actualOvers?: number;
+      actualTotal?: number;
+      diffToTheoretical?: number;
+      loaderSignature?: string;
+      operationsManagerSignature?: string;
+    }) => {
+      const response = await api.post<WorkOrderChecks>(`/manufacturing/work-orders/${workOrderId}/checks`, data);
+      return response.data;
+    },
+    onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WO_CHECKS_KEY, workOrderId] });
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
+    },
+  });
+}
+
+export function useWorkOrderProcess(workOrderId: string | undefined) {
+  return useQuery({
+    queryKey: [WO_PROCESS_KEY, workOrderId],
+    queryFn: async () => {
+      const response = await api.get<WorkOrderProcess>(`/manufacturing/work-orders/${workOrderId}/process`);
+      return response.data;
+    },
+    enabled: !!workOrderId,
+  });
+}
+
+export function useUpsertWorkOrderProcess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ workOrderId, ...data }: {
+      workOrderId: string;
+      instructions?: string;
+      specsJson?: Record<string, unknown>;
+      operator?: string;
+      potUsed?: string;
+      timeStarted?: string;
+      time85c?: string;
+      timeFlavourAdded?: string;
+      timeCompleted?: string;
+      additions?: string;
+      reasonForAddition?: string;
+      comments?: string;
+    }) => {
+      const response = await api.post<WorkOrderProcess>(`/manufacturing/work-orders/${workOrderId}/process`, data);
+      return response.data;
+    },
+    onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WO_PROCESS_KEY, workOrderId] });
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
     },
   });

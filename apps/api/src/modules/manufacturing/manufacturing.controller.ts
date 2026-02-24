@@ -10,6 +10,7 @@ import {
   UseGuards,
   Res,
   StreamableFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
@@ -17,6 +18,7 @@ import { ManufacturingService } from './manufacturing.service';
 import { WorkOrderPdfService } from './work-order-pdf.service';
 import { BomPdfService } from './bom-pdf.service';
 import { BatchSheetPdfService } from './batch-sheet-pdf.service';
+import { ProductionTicketPdfService } from './production-ticket-pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -35,6 +37,7 @@ export class ManufacturingController {
     private readonly workOrderPdfService: WorkOrderPdfService,
     private readonly bomPdfService: BomPdfService,
     private readonly batchSheetPdfService: BatchSheetPdfService,
+    private readonly productionTicketPdfService: ProductionTicketPdfService,
   ) {}
 
   // ============ Workstations ============
@@ -237,6 +240,20 @@ export class ManufacturingController {
     @Param('otherId', UuidValidationPipe) otherId: string,
   ) {
     return this.service.compareBoms(id, otherId);
+  }
+
+  @Get('boms/:id/explode')
+  @RequirePermissions('bom.view')
+  @ApiOperation({ summary: 'Explode BOM with scaled quantities' })
+  async explodeBom(
+    @Param('id', UuidValidationPipe) id: string,
+    @Query('requiredKg') requiredKg: string,
+  ) {
+    const qty = parseFloat(requiredKg);
+    if (!qty || qty <= 0) {
+      throw new BadRequestException('requiredKg must be a positive number');
+    }
+    return this.service.explodeBom(id, qty);
   }
 
   // BOM Lines
@@ -524,6 +541,85 @@ export class ManufacturingController {
   @ApiOperation({ summary: 'Reopen completed work order' })
   async reopenWorkOrder(@Param('id', UuidValidationPipe) id: string) {
     return this.service.reopenWorkOrder(id);
+  }
+
+  // Work Order Checks
+  @Get('work-orders/:id/checks')
+  @RequirePermissions('work_order.view')
+  @ApiOperation({ summary: 'Get work order checks' })
+  async getWorkOrderChecks(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.getWorkOrderChecks(id);
+  }
+
+  @Post('work-orders/:id/checks')
+  @RequirePermissions('production.capture_checks')
+  @ApiOperation({ summary: 'Upsert work order checks' })
+  async upsertWorkOrderChecks(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Body() data: {
+      reworkProduct?: string;
+      reworkQtyKgs?: number;
+      theoreticalBoxes?: number;
+      actualBoxes?: number;
+      actualOvers?: number;
+      actualTotal?: number;
+      diffToTheoretical?: number;
+      loaderSignature?: string;
+      operationsManagerSignature?: string;
+    },
+  ) {
+    return this.service.upsertWorkOrderChecks(id, tenantId, data);
+  }
+
+  // Work Order Process
+  @Get('work-orders/:id/process')
+  @RequirePermissions('work_order.view')
+  @ApiOperation({ summary: 'Get work order process data' })
+  async getWorkOrderProcess(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.getWorkOrderProcess(id);
+  }
+
+  @Post('work-orders/:id/process')
+  @RequirePermissions('production.capture_process')
+  @ApiOperation({ summary: 'Upsert work order process data' })
+  async upsertWorkOrderProcess(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Body() data: {
+      instructions?: string;
+      specsJson?: Record<string, unknown>;
+      operator?: string;
+      potUsed?: string;
+      timeStarted?: string;
+      time85c?: string;
+      timeFlavourAdded?: string;
+      timeCompleted?: string;
+      additions?: string;
+      reasonForAddition?: string;
+      comments?: string;
+    },
+  ) {
+    return this.service.upsertWorkOrderProcess(id, tenantId, data);
+  }
+
+  // Production Ticket PDF
+  @Get('work-orders/:id/production-ticket-pdf')
+  @RequirePermissions('work_order.view')
+  @ApiOperation({ summary: 'Download 3-page production ticket PDF' })
+  @ApiProduces('application/pdf')
+  async downloadProductionTicketPdf(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.productionTicketPdfService.generate(id, tenantId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="production-ticket-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
   }
 
   // Work Order Operations
