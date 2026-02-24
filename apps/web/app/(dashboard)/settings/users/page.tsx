@@ -10,6 +10,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
+import { Breadcrumbs } from '@/components/layout';
 import { useUsers, useQueryParams, User } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
@@ -99,6 +100,8 @@ export default function UsersPage() {
   const totalUsers = data?.meta?.total || 0;
 
   return (
+    <>
+    <Breadcrumbs />
     <ListPageTemplate
       title="Users"
       subtitle="Manage user accounts in your organization"
@@ -186,6 +189,7 @@ export default function UsersPage() {
         }}
       />
     </ListPageTemplate>
+    </>
   );
 }
 

@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { PageShell, MetricGrid } from '@/components/ui/motion';
 import { StatCard } from '@/components/ui/stat-card';
+import { Breadcrumbs } from '@/components/layout';
 import { useSites, useCreateSite, useUpdateSite, Site } from '@/lib/queries';
 
 export default function SitesPage() {
@@ -95,6 +96,7 @@ export default function SitesPage() {
 
   return (
     <PageShell>
+      <Breadcrumbs />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Sites</h1>

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { Breadcrumbs } from '@/components/layout';
 import { useTenantProfile, useUpdateTenantProfile } from '@/lib/queries';
 
 export default function CompanyProfilePage() {
@@ -72,6 +73,7 @@ export default function CompanyProfilePage() {
 
   return (
     <div>
+      <Breadcrumbs />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Company Profile</h1>
         <p className="text-sm text-slate-500 mt-1">
