@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatCard } from '@/components/ui/stat-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -81,25 +82,29 @@ export default function SalesReportPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <SummaryCard
+        <StatCard
           title="Total Orders"
           value={report?.summary.totalOrders ?? 0}
           icon={<OrderIcon />}
+          iconColor="blue"
         />
-        <SummaryCard
+        <StatCard
           title="Total Sales"
           value={`R ${(report?.summary.totalValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
           icon={<CurrencyIcon />}
+          iconColor="green"
         />
-        <SummaryCard
+        <StatCard
           title="Avg Order Value"
           value={`R ${(report?.summary.avgOrderValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
           icon={<TrendIcon />}
+          iconColor="purple"
         />
-        <SummaryCard
+        <StatCard
           title="Unique Customers"
           value={report?.summary.uniqueCustomers ?? 0}
           icon={<UsersIcon />}
+          iconColor="orange"
         />
       </div>
 
@@ -252,24 +257,6 @@ export default function SalesReportPage() {
         </Card>
       </div>
     </div>
-  );
-}
-
-function SummaryCard({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) {
-  return (
-    <Card>
-      <CardContent className="pt-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-slate-500">{title}</p>
-            <p className="text-2xl font-bold text-slate-900">{value}</p>
-          </div>
-          <div className="h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600">
-            {icon}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatCard } from '@/components/ui/stat-card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -68,35 +69,36 @@ export default function InventoryReportPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <SummaryCard
+        <StatCard
           title="Total Items"
           value={report?.summary.totalItems ?? 0}
           icon={<BoxIcon />}
-          color="blue"
+          iconColor="blue"
         />
-        <SummaryCard
+        <StatCard
           title="Total Quantity"
           value={(report?.summary.totalQty ?? 0).toLocaleString()}
           icon={<StackIcon />}
-          color="green"
+          iconColor="green"
         />
-        <SummaryCard
+        <StatCard
           title="Warehouses"
           value={report?.byWarehouse?.length ?? 0}
           icon={<CurrencyIcon />}
-          color="purple"
+          iconColor="purple"
         />
-        <SummaryCard
+        <StatCard
           title="Low Stock"
           value={report?.summary.lowStockCount ?? 0}
           icon={<AlertIcon />}
-          color={report?.summary.lowStockCount ? 'red' : 'green'}
+          iconColor="green"
+          alert={!!report?.summary.lowStockCount}
         />
-        <SummaryCard
+        <StatCard
           title="Expiring Soon"
           value={report?.summary.expiringCount ?? 0}
           icon={<ClockIcon />}
-          color={report?.summary.expiringCount ? 'orange' : 'green'}
+          iconColor={report?.summary.expiringCount ? 'orange' : 'green'}
         />
       </div>
 
@@ -309,42 +311,6 @@ export default function InventoryReportPage() {
         </Card>
       </div>
     </div>
-  );
-}
-
-function SummaryCard({
-  title,
-  value,
-  icon,
-  color,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  color: 'blue' | 'green' | 'purple' | 'red' | 'orange';
-}) {
-  const colorClasses = {
-    blue: 'bg-blue-100 text-blue-600',
-    green: 'bg-green-100 text-green-600',
-    purple: 'bg-purple-100 text-purple-600',
-    red: 'bg-red-100 text-red-600',
-    orange: 'bg-orange-100 text-orange-600',
-  };
-
-  return (
-    <Card>
-      <CardContent className="pt-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-slate-500">{title}</p>
-            <p className="text-xl font-bold text-slate-900">{value}</p>
-          </div>
-          <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${colorClasses[color]}`}>
-            {icon}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

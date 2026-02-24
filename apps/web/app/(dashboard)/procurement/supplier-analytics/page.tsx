@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatCard } from '@/components/ui/stat-card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -126,33 +127,33 @@ export default function SupplierAnalyticsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <SummaryCard
+        <StatCard
           title="Total Suppliers"
           value={summary?.totalSuppliers ?? 0}
           subtitle={`${summary?.activeSuppliers ?? 0} active`}
           icon={<BuildingIcon />}
-          color="blue"
+          iconColor="blue"
         />
-        <SummaryCard
+        <StatCard
           title="Total PO Value"
           value={`R ${(summary?.totalPOValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
           subtitle={`Avg: R ${(summary?.avgPOValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
           icon={<CurrencyIcon />}
-          color="green"
+          iconColor="green"
         />
-        <SummaryCard
+        <StatCard
           title="Open NCRs"
           value={summary?.openNCRs ?? 0}
           subtitle="Requires attention"
           icon={<AlertIcon />}
-          color="red"
+          iconColor="red"
         />
-        <SummaryCard
+        <StatCard
           title="Active Contracts"
           value={summary?.activeContracts ?? 0}
           subtitle="Currently in effect"
           icon={<DocumentIcon />}
-          color="purple"
+          iconColor="purple"
         />
       </div>
 
@@ -445,45 +446,6 @@ export default function SupplierAnalyticsPage() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-// Summary Card Component
-function SummaryCard({
-  title,
-  value,
-  subtitle,
-  icon,
-  color,
-}: {
-  title: string;
-  value: string | number;
-  subtitle: string;
-  icon: React.ReactNode;
-  color: 'blue' | 'green' | 'red' | 'purple';
-}) {
-  const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    red: 'bg-red-50 text-red-600',
-    purple: 'bg-purple-50 text-purple-600',
-  };
-
-  return (
-    <Card>
-      <CardContent className="pt-4">
-        <div className="flex items-center">
-          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorClasses[color]}`}>
-            {icon}
-          </div>
-          <div className="ml-4">
-            <p className="text-sm text-slate-500">{title}</p>
-            <p className="text-2xl font-bold text-slate-900">{value}</p>
-            <p className="text-xs text-slate-400">{subtitle}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

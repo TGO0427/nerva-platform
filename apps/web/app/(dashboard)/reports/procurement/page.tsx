@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatCard } from '@/components/ui/stat-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -83,25 +84,29 @@ export default function ProcurementReportPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <SummaryCard
+        <StatCard
           title="Total POs"
           value={report?.summary.totalPOs ?? 0}
           icon={<OrderIcon />}
+          iconColor="blue"
         />
-        <SummaryCard
+        <StatCard
           title="Total Value"
           value={`R ${(report?.summary.totalValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
           icon={<CurrencyIcon />}
+          iconColor="green"
         />
-        <SummaryCard
+        <StatCard
           title="Avg PO Value"
           value={`R ${(report?.summary.avgPOValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
           icon={<TrendIcon />}
+          iconColor="purple"
         />
-        <SummaryCard
+        <StatCard
           title="Suppliers Used"
           value={report?.summary.uniqueSuppliers ?? 0}
           icon={<BuildingIcon />}
+          iconColor="orange"
         />
       </div>
 
@@ -256,69 +261,28 @@ export default function ProcurementReportPage() {
 
       {/* Status Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Pending</p>
-                <p className="text-xl font-bold text-slate-900">{report?.summary.pendingPOs ?? 0}</p>
-              </div>
-              <div className="h-10 w-10 bg-yellow-100 rounded-lg flex items-center justify-center text-yellow-600">
-                <ClockIcon />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Received</p>
-                <p className="text-xl font-bold text-slate-900">{report?.summary.receivedPOs ?? 0}</p>
-              </div>
-              <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
-                <CheckIcon />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Receive Rate</p>
-                <p className="text-xl font-bold text-slate-900">
-                  {report?.summary.totalPOs
-                    ? ((report.summary.receivedPOs / report.summary.totalPOs) * 100).toFixed(1)
-                    : 0}%
-                </p>
-              </div>
-              <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                <TrendIcon />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Pending"
+          value={report?.summary.pendingPOs ?? 0}
+          icon={<ClockIcon />}
+          iconColor="yellow"
+        />
+        <StatCard
+          title="Received"
+          value={report?.summary.receivedPOs ?? 0}
+          icon={<CheckIcon />}
+          iconColor="green"
+        />
+        <StatCard
+          title="Receive Rate"
+          value={`${report?.summary.totalPOs
+            ? ((report.summary.receivedPOs / report.summary.totalPOs) * 100).toFixed(1)
+            : 0}%`}
+          icon={<TrendIcon />}
+          iconColor="blue"
+        />
       </div>
     </div>
-  );
-}
-
-function SummaryCard({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) {
-  return (
-    <Card>
-      <CardContent className="pt-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-slate-500">{title}</p>
-            <p className="text-2xl font-bold text-slate-900">{value}</p>
-          </div>
-          <div className="h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600">
-            {icon}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

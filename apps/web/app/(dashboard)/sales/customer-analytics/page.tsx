@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatCard } from '@/components/ui/stat-card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -115,33 +116,33 @@ export default function CustomerAnalyticsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <SummaryCard
+        <StatCard
           title="Total Customers"
           value={summary?.totalCustomers ?? 0}
           subtitle={`${summary?.activeCustomers ?? 0} active`}
           icon={<UsersIcon />}
-          color="blue"
+          iconColor="blue"
         />
-        <SummaryCard
+        <StatCard
           title="Total Sales Value"
           value={`R ${(summary?.totalSalesValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
           subtitle={`Avg: R ${(summary?.avgOrderValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
           icon={<CurrencyIcon />}
-          color="green"
+          iconColor="green"
         />
-        <SummaryCard
+        <StatCard
           title="Total Orders"
           value={summary?.totalOrders ?? 0}
           subtitle="All time"
           icon={<ClipboardIcon />}
-          color="purple"
+          iconColor="purple"
         />
-        <SummaryCard
+        <StatCard
           title="Pending Orders"
           value={summary?.pendingOrders ?? 0}
           subtitle="Awaiting fulfilment"
           icon={<ClockIcon />}
-          color="orange"
+          iconColor="orange"
         />
       </div>
 
@@ -424,45 +425,6 @@ export default function CustomerAnalyticsPage() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-// Summary Card Component
-function SummaryCard({
-  title,
-  value,
-  subtitle,
-  icon,
-  color,
-}: {
-  title: string;
-  value: string | number;
-  subtitle: string;
-  icon: React.ReactNode;
-  color: 'blue' | 'green' | 'purple' | 'orange';
-}) {
-  const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    purple: 'bg-purple-50 text-purple-600',
-    orange: 'bg-orange-50 text-orange-600',
-  };
-
-  return (
-    <Card>
-      <CardContent className="pt-4">
-        <div className="flex items-center">
-          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorClasses[color]}`}>
-            {icon}
-          </div>
-          <div className="ml-4">
-            <p className="text-sm text-slate-500">{title}</p>
-            <p className="text-2xl font-bold text-slate-900">{value}</p>
-            <p className="text-xs text-slate-400">{subtitle}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
