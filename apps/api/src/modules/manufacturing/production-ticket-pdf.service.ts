@@ -11,7 +11,6 @@ import {
   renderCompanyHeader,
   renderDocumentTitle,
   renderTable,
-  renderSignatureBlock,
   formatDate,
 } from '../../common/pdf/pdf-helpers';
 
@@ -203,8 +202,14 @@ export class ProductionTicketPdfService {
     y += 30;
 
     // Signatures
-    y = renderSignatureBlock(doc, y, 'Prepared By', 'Date');
-    y = renderSignatureBlock(doc, y, 'Departmental Signature', 'Date');
+    y += 20;
+    doc.fontSize(9).font('Helvetica').fillColor('#000000');
+    doc.text('Prepared By: _________________________', MARGIN, y);
+    doc.text('Date: _______________', 340, y);
+    y += 25;
+    doc.text('Departmental Signature: _________________________', MARGIN, y);
+    doc.text('Date: _______________', 340, y);
+    y += 25;
 
     // ====== PAGE 2 — TIPPING CHECK SHEET ======
     doc.addPage();
@@ -317,10 +322,15 @@ export class ProductionTicketPdfService {
       y += 18;
     }
 
-    y += 10;
+    y += 20;
     // Signatures
-    y = renderSignatureBlock(doc, y, 'Loader', 'Date');
-    y = renderSignatureBlock(doc, y, 'Operations Manager', 'Date');
+    doc.fontSize(9).font('Helvetica').fillColor('#000000');
+    doc.text('Loader: _________________________', MARGIN, y);
+    doc.text('Date: _______________', 340, y);
+    y += 25;
+    doc.text('Operations Manager: _________________________', MARGIN, y);
+    doc.text('Date: _______________', 340, y);
+    y += 25;
 
     // ====== PAGE 3 — PRODUCTION PROCESS ======
     doc.addPage();
@@ -410,7 +420,11 @@ export class ProductionTicketPdfService {
     y += 30;
 
     // Signature
-    y = renderSignatureBlock(doc, y, 'Operator Signature', 'Date');
+    y += 20;
+    doc.fontSize(9).font('Helvetica').fillColor('#000000');
+    doc.text('Operator Signature: _________________________', MARGIN, y);
+    doc.text('Date: _______________', 340, y);
+    y += 25;
 
     // Footer timestamp on all pages
     const pages = doc.bufferedPageRange();
