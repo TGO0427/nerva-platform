@@ -8,11 +8,240 @@ import { TenantProfileService } from '../../common/pdf/tenant-profile.service';
 import {
   createPdfDocument,
   pdfToBuffer,
-  renderCompanyHeader,
-  renderDocumentTitle,
-  renderTable,
+  TenantProfile,
   formatDate,
 } from '../../common/pdf/pdf-helpers';
+
+// ---- Layout constants ----
+const MARGIN = 40;
+const PAGE_W = 595.28; // A4 width
+const PAGE_H = 841.89; // A4 height
+const CW = PAGE_W - MARGIN * 2; // content width
+const DARK = '#1a1a2e';
+const ACCENT = '#16213e';
+const LIGHT_BG = '#f8f9fa';
+const BORDER = '#cccccc';
+const LABEL_CLR = '#555555';
+const TOTAL_PAGES = 3;
+
+// ---- Inline drawing helpers ----
+
+function drawPageBorder(doc: any) {
+  doc.save()
+    .lineWidth(0.75)
+    .strokeColor('#999999')
+    .rect(MARGIN - 10, MARGIN - 10, CW + 20, PAGE_H - MARGIN * 2 + 20)
+    .stroke()
+    .restore();
+}
+
+function drawPageFooter(doc: any, pageNum: number, printDate: string) {
+  const footerY = PAGE_H - MARGIN + 5;
+  doc.save().fontSize(7).font('Helvetica').fillColor('#999999');
+  doc.text(`Printed: ${printDate}`, MARGIN, footerY, { width: CW / 2 });
+  doc.text(`Page ${pageNum} of ${TOTAL_PAGES}`, MARGIN, footerY, { width: CW, align: 'right' });
+  doc.restore();
+}
+
+function drawCompanyHeader(doc: any, profile: TenantProfile): number {
+  let y = MARGIN;
+  doc.fontSize(14).font('Helvetica-Bold').fillColor(DARK).text(profile.name, MARGIN, y, { width: CW });
+  y += 18;
+
+  doc.fontSize(7).font('Helvetica').fillColor(LABEL_CLR);
+  const parts: string[] = [];
+  if (profile.addressLine1) parts.push(profile.addressLine1);
+  if (profile.city || profile.postalCode) parts.push([profile.city, profile.postalCode].filter(Boolean).join(', '));
+  if (profile.phone) parts.push(`Tel: ${profile.phone}`);
+  if (profile.email) parts.push(profile.email);
+  if (parts.length > 0) {
+    doc.text(parts.join('  |  '), MARGIN, y, { width: CW });
+    y += 10;
+  }
+
+  // Divider
+  y += 2;
+  doc.save().lineWidth(1.5).strokeColor(DARK)
+    .moveTo(MARGIN, y).lineTo(PAGE_W - MARGIN, y).stroke().restore();
+  return y + 6;
+}
+
+function drawSectionBar(doc: any, title: string, y: number): number {
+  const barH = 18;
+  doc.save()
+    .rect(MARGIN, y, CW, barH).fill(ACCENT)
+    .fontSize(9).font('Helvetica-Bold').fillColor('#ffffff')
+    .text(title, MARGIN + 6, y + 4, { width: CW - 12 })
+    .restore();
+  return y + barH + 4;
+}
+
+function drawMetaGrid(
+  doc: any,
+  fields: { label: string; value: string }[],
+  y: number,
+  cols = 2,
+): number {
+  const cellH = 18;
+  const colW = CW / cols;
+  const rows = Math.ceil(fields.length / cols);
+
+  // Outer border
+  doc.save().lineWidth(0.5).strokeColor(BORDER)
+    .rect(MARGIN, y, CW, rows * cellH).stroke().restore();
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const idx = r * cols + c;
+      if (idx >= fields.length) break;
+      const field = fields[idx];
+      const cellX = MARGIN + c * colW;
+      const cellY = y + r * cellH;
+
+      // Vertical dividers (skip first column)
+      if (c > 0) {
+        doc.save().lineWidth(0.5).strokeColor(BORDER)
+          .moveTo(cellX, cellY).lineTo(cellX, cellY + cellH).stroke().restore();
+      }
+      // Horizontal dividers (skip first row)
+      if (r > 0) {
+        doc.save().lineWidth(0.5).strokeColor(BORDER)
+          .moveTo(MARGIN, cellY).lineTo(MARGIN + CW, cellY).stroke().restore();
+      }
+
+      // Label + value
+      doc.fontSize(7).font('Helvetica').fillColor(LABEL_CLR)
+        .text(field.label, cellX + 5, cellY + 2, { width: colW - 10, lineBreak: false });
+      doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#000000')
+        .text(field.value || '-', cellX + 5, cellY + 9, { width: colW - 10, lineBreak: false });
+    }
+  }
+
+  return y + rows * cellH + 6;
+}
+
+function drawGridTable(
+  doc: any,
+  columns: { key: string; header: string; width: number; align?: 'left' | 'right' | 'center' }[],
+  rows: Record<string, string | number>[],
+  startY: number,
+): number {
+  const rowH = 18;
+  const headerH = 18;
+  const totalW = columns.reduce((s, c) => s + c.width, 0);
+  let y = startY;
+
+  // Header row
+  doc.save().rect(MARGIN, y, totalW, headerH).fill(ACCENT);
+  let x = MARGIN;
+  doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#ffffff');
+  for (const col of columns) {
+    doc.text(col.header, x + 3, y + 5, { width: col.width - 6, align: col.align || 'left', lineBreak: false });
+    x += col.width;
+  }
+  doc.restore();
+  y += headerH;
+
+  // Data rows
+  for (let r = 0; r < rows.length; r++) {
+    // Page overflow — won't happen in our controlled layout but safety
+    if (y + rowH > PAGE_H - MARGIN - 20) {
+      doc.addPage();
+      drawPageBorder(doc);
+      y = MARGIN;
+      // Redraw header
+      doc.save().rect(MARGIN, y, totalW, headerH).fill(ACCENT);
+      x = MARGIN;
+      doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#ffffff');
+      for (const col of columns) {
+        doc.text(col.header, x + 3, y + 5, { width: col.width - 6, align: col.align || 'left', lineBreak: false });
+        x += col.width;
+      }
+      doc.restore();
+      y += headerH;
+    }
+
+    // Alternating shade
+    if (r % 2 === 0) {
+      doc.save().rect(MARGIN, y, totalW, rowH).fill(LIGHT_BG).restore();
+    }
+
+    // Cell borders + text
+    x = MARGIN;
+    doc.fontSize(8).font('Helvetica').fillColor('#000000');
+    for (const col of columns) {
+      doc.save().lineWidth(0.3).strokeColor(BORDER)
+        .rect(x, y, col.width, rowH).stroke().restore();
+      const val = String(rows[r][col.key] ?? '');
+      doc.text(val, x + 3, y + 5, { width: col.width - 6, align: col.align || 'left', lineBreak: false });
+      x += col.width;
+    }
+    y += rowH;
+  }
+
+  // Bottom border
+  doc.save().lineWidth(0.5).strokeColor(BORDER)
+    .moveTo(MARGIN, y).lineTo(MARGIN + totalW, y).stroke().restore();
+
+  return y + 4;
+}
+
+function drawFormField(
+  doc: any,
+  label: string,
+  value: string,
+  x: number,
+  y: number,
+  w: number,
+  h = 28,
+): number {
+  // Border
+  doc.save().lineWidth(0.5).strokeColor(BORDER).rect(x, y, w, h).stroke().restore();
+  // Label
+  doc.fontSize(6.5).font('Helvetica').fillColor(LABEL_CLR)
+    .text(label, x + 4, y + 2, { width: w - 8, lineBreak: false });
+  // Value
+  doc.fontSize(8.5).font('Helvetica').fillColor('#000000')
+    .text(value, x + 4, y + 12, { width: w - 8, lineBreak: false });
+  return y + h;
+}
+
+function drawFormFieldRow(
+  doc: any,
+  fields: { label: string; value: string; flex?: number }[],
+  y: number,
+  h = 28,
+): number {
+  const totalFlex = fields.reduce((s, f) => s + (f.flex || 1), 0);
+  let x = MARGIN;
+  for (const f of fields) {
+    const w = (CW * (f.flex || 1)) / totalFlex;
+    drawFormField(doc, f.label, f.value, x, y, w, h);
+    x += w;
+  }
+  return y + h;
+}
+
+function drawSignatureRow(
+  doc: any,
+  labels: string[],
+  y: number,
+): number {
+  const h = 36;
+  const colW = CW / labels.length;
+  for (let i = 0; i < labels.length; i++) {
+    const x = MARGIN + i * colW;
+    doc.save().lineWidth(0.5).strokeColor(BORDER).rect(x, y, colW, h).stroke().restore();
+    doc.fontSize(6.5).font('Helvetica').fillColor(LABEL_CLR)
+      .text(labels[i], x + 4, y + 2, { width: colW - 8, lineBreak: false });
+    // Signature line inside box
+    doc.save().lineWidth(0.3).strokeColor('#aaaaaa')
+      .moveTo(x + 4, y + h - 8).lineTo(x + colW - 4, y + h - 8).stroke().restore();
+  }
+  return y + h;
+}
+
+// ---- Main service ----
 
 @Injectable()
 export class ProductionTicketPdfService {
@@ -30,14 +259,13 @@ export class ProductionTicketPdfService {
 
     const profile = await this.tenantProfile.getProfile(tenantId);
 
-    // Get item details
     const itemResult = await this.pool.query(
       'SELECT sku, description FROM items WHERE id = $1',
       [wo.itemId],
     );
     const item = itemResult.rows[0] || { sku: '-', description: '-' };
 
-    // Get BOM header + lines if BOM is linked
+    // BOM data
     let bomHeader: { version: number; revision: string; baseQty: number } | null = null;
     let ingredientLines: Array<{ lineNo: number; itemSku: string; itemDescription: string; scaledQty: number; bomPct: number; scrapPct: number }> = [];
     let packagingLines: Array<{ lineNo: number; itemSku: string; itemDescription: string; scaledQty: number; bomPct: number; scrapPct: number }> = [];
@@ -81,7 +309,6 @@ export class ProductionTicketPdfService {
       }
     }
 
-    // Get checks and process data
     const [checks, process] = await Promise.all([
       this.productionDataRepo.findChecksByWorkOrder(workOrderId),
       this.productionDataRepo.findProcessByWorkOrder(workOrderId),
@@ -89,350 +316,260 @@ export class ProductionTicketPdfService {
 
     const doc = createPdfDocument();
     const bufferPromise = pdfToBuffer(doc);
+    const printDate = new Date().toLocaleString('en-ZA');
 
-    const MARGIN = 40;
+    // ================================================================
+    //  PAGE 1 — PRODUCTION SHEET
+    // ================================================================
+    drawPageBorder(doc);
+    let y = drawCompanyHeader(doc, profile);
 
-    // ====== PAGE 1 — PRODUCTION SHEET ======
-    let y = renderCompanyHeader(doc, profile);
-    y = renderDocumentTitle(doc, 'PRODUCTION SHEET', y);
+    // Title bar
+    doc.save().rect(MARGIN, y, CW, 22).fill(DARK);
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#ffffff')
+      .text('PRODUCTION SHEET', MARGIN, y + 5, { width: CW, align: 'center' });
+    doc.restore();
+    y += 28;
 
-    // Meta block
-    doc.fontSize(9).font('Helvetica');
-    const metaFields = [
+    // Meta grid (4 cols top row, 4 cols second row)
+    y = drawMetaGrid(doc, [
       { label: 'Work Ticket No', value: wo.workOrderNo },
       { label: 'FG Code', value: item.sku },
       { label: 'Prod Size (kg)', value: String(wo.qtyOrdered) },
+      { label: 'Print Date', value: formatDate(new Date()) },
       { label: 'Product', value: item.description },
       { label: 'BOM Version', value: bomHeader ? `V${bomHeader.version} Rev ${bomHeader.revision}` : '-' },
-      { label: 'Batch No', value: wo.batchNo || '________________' },
-      { label: 'Print Date', value: formatDate(new Date()) },
-    ];
+      { label: 'Batch No', value: wo.batchNo || '' },
+      { label: 'Status', value: wo.status },
+    ], y, 4);
 
-    const leftMeta = metaFields.slice(0, 4);
-    const rightMeta = metaFields.slice(4);
-
-    let leftY = y;
-    for (const field of leftMeta) {
-      doc.font('Helvetica-Bold').fillColor('#000000').text(`${field.label}: `, MARGIN, leftY, { continued: true });
-      doc.font('Helvetica').text(field.value);
-      leftY += 14;
-    }
-
-    let rightY = y;
-    const rightX = 340;
-    for (const field of rightMeta) {
-      doc.font('Helvetica-Bold').text(`${field.label}: `, rightX, rightY, { continued: true, width: 200 });
-      doc.font('Helvetica').text(field.value);
-      rightY += 14;
-    }
-
-    y = Math.max(leftY, rightY) + 10;
-
-    // Ingredients table
+    // Ingredients
     if (ingredientLines.length > 0) {
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text('INGREDIENTS', MARGIN, y);
-      y += 16;
-
-      y = renderTable(doc, {
-        columns: [
-          { key: 'lineNo', header: 'Line', width: 35, align: 'center' },
-          { key: 'code', header: 'Code', width: 75 },
-          { key: 'description', header: 'Description', width: 130 },
-          { key: 'trfQty', header: 'Trf Qty', width: 60, align: 'right' },
-          { key: 'bomPct', header: 'BOM %', width: 50, align: 'right' },
-          { key: 'actualQty', header: 'Actual Qty', width: 65, align: 'right' },
-          { key: 'batchNo', header: 'Batch No', width: 100 },
-        ],
-        rows: ingredientLines.map(l => ({
-          lineNo: l.lineNo,
-          code: l.itemSku,
-          description: l.itemDescription.substring(0, 26),
-          trfQty: l.scaledQty.toFixed(3),
-          bomPct: l.bomPct.toFixed(1),
-          actualQty: '',
-          batchNo: '',
-        })),
-        startY: y,
-      });
-      y += 5;
+      y = drawSectionBar(doc, 'INGREDIENTS', y);
+      y = drawGridTable(doc, [
+        { key: 'lineNo', header: '#', width: 28, align: 'center' },
+        { key: 'code', header: 'Code', width: 75 },
+        { key: 'description', header: 'Description', width: 135 },
+        { key: 'trfQty', header: 'Trf Qty (kg)', width: 65, align: 'right' },
+        { key: 'bomPct', header: 'BOM %', width: 50, align: 'right' },
+        { key: 'actualQty', header: 'Actual Qty', width: 65, align: 'right' },
+        { key: 'batchNo', header: 'Batch No', width: 97 },
+      ], ingredientLines.map(l => ({
+        lineNo: l.lineNo,
+        code: l.itemSku,
+        description: l.itemDescription.substring(0, 28),
+        trfQty: l.scaledQty.toFixed(3),
+        bomPct: l.bomPct.toFixed(1),
+        actualQty: '',
+        batchNo: '',
+      })), y);
     }
 
-    // Packaging table
+    // Packaging
     if (packagingLines.length > 0) {
-      if (y > 620) { doc.addPage(); y = MARGIN; }
-
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text('PACKAGING', MARGIN, y);
-      y += 16;
-
-      y = renderTable(doc, {
-        columns: [
-          { key: 'lineNo', header: 'Line', width: 35, align: 'center' },
-          { key: 'code', header: 'Code', width: 75 },
-          { key: 'description', header: 'Description', width: 130 },
-          { key: 'trfQty', header: 'Trf Qty', width: 60, align: 'right' },
-          { key: 'bomPct', header: 'BOM %', width: 50, align: 'right' },
-          { key: 'actualQty', header: 'Actual Qty', width: 65, align: 'right' },
-          { key: 'batchNo', header: 'Batch No', width: 100 },
-        ],
-        rows: packagingLines.map(l => ({
-          lineNo: l.lineNo,
-          code: l.itemSku,
-          description: l.itemDescription.substring(0, 26),
-          trfQty: l.scaledQty.toFixed(0),
-          bomPct: l.bomPct.toFixed(1),
-          actualQty: '',
-          batchNo: '',
-        })),
-        startY: y,
-      });
-      y += 5;
+      y = drawSectionBar(doc, 'PACKAGING', y);
+      y = drawGridTable(doc, [
+        { key: 'lineNo', header: '#', width: 28, align: 'center' },
+        { key: 'code', header: 'Code', width: 75 },
+        { key: 'description', header: 'Description', width: 135 },
+        { key: 'trfQty', header: 'Trf Qty', width: 65, align: 'right' },
+        { key: 'bomPct', header: 'BOM %', width: 50, align: 'right' },
+        { key: 'actualQty', header: 'Actual Qty', width: 65, align: 'right' },
+        { key: 'batchNo', header: 'Batch No', width: 97 },
+      ], packagingLines.map(l => ({
+        lineNo: l.lineNo,
+        code: l.itemSku,
+        description: l.itemDescription.substring(0, 28),
+        trfQty: l.scaledQty.toFixed(0),
+        bomPct: l.bomPct.toFixed(1),
+        actualQty: '',
+        batchNo: '',
+      })), y);
     }
 
-    // Production Tracking section
-    if (y > 660) { doc.addPage(); y = MARGIN; }
-    y += 10;
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text('PRODUCTION TRACKING', MARGIN, y);
-    y += 18;
-
-    doc.fontSize(9).font('Helvetica');
-    doc.text('Start Time: ________________________________', MARGIN, y);
-    doc.text('End Time: ________________________________', 310, y);
-    y += 20;
-    doc.text('Pallet Weight: ________________________________', MARGIN, y);
-    y += 30;
+    // Production Tracking
+    y = drawSectionBar(doc, 'PRODUCTION TRACKING', y);
+    y = drawFormFieldRow(doc, [
+      { label: 'Start Time', value: '' },
+      { label: 'End Time', value: '' },
+      { label: 'Pallet Weight', value: '' },
+    ], y);
+    y += 6;
 
     // Signatures
-    y += 20;
-    doc.fontSize(9).font('Helvetica').fillColor('#000000');
-    doc.text('Prepared By: _________________________', MARGIN, y);
-    doc.text('Date: _______________', 340, y);
-    y += 25;
-    doc.text('Departmental Signature: _________________________', MARGIN, y);
-    doc.text('Date: _______________', 340, y);
-    y += 25;
+    y = drawSignatureRow(doc, ['Prepared By', 'Date', 'Departmental Signature', 'Date'], y);
 
-    // ====== PAGE 2 — TIPPING CHECK SHEET ======
+    drawPageFooter(doc, 1, printDate);
+
+    // ================================================================
+    //  PAGE 2 — TIPPING CHECK SHEET
+    // ================================================================
     doc.addPage();
-    y = renderCompanyHeader(doc, profile);
-    y = renderDocumentTitle(doc, 'TIPPING CHECK SHEET', y);
+    drawPageBorder(doc);
+    y = drawCompanyHeader(doc, profile);
 
-    // Meta
-    doc.fontSize(9).font('Helvetica');
-    doc.font('Helvetica-Bold').fillColor('#000000').text('Work Ticket No: ', MARGIN, y, { continued: true });
-    doc.font('Helvetica').text(wo.workOrderNo);
-    y += 14;
-    doc.font('Helvetica-Bold').text('Product: ', MARGIN, y, { continued: true });
-    doc.font('Helvetica').text(`${item.sku} - ${item.description}`);
-    y += 14;
-    doc.font('Helvetica-Bold').text('Batch No: ', MARGIN, y, { continued: true });
-    doc.font('Helvetica').text(wo.batchNo || '________________');
-    y += 18;
+    doc.save().rect(MARGIN, y, CW, 22).fill(DARK);
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#ffffff')
+      .text('TIPPING CHECK SHEET', MARGIN, y + 5, { width: CW, align: 'center' });
+    doc.restore();
+    y += 28;
 
-    // Tipping check ingredient table
+    // Compact meta
+    y = drawMetaGrid(doc, [
+      { label: 'Work Ticket No', value: wo.workOrderNo },
+      { label: 'Product', value: `${item.sku} - ${item.description}` },
+      { label: 'Batch No', value: wo.batchNo || '' },
+      { label: 'Date', value: formatDate(new Date()) },
+    ], y, 4);
+
+    // Ingredients tipping
     if (ingredientLines.length > 0) {
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text('INGREDIENTS', MARGIN, y);
-      y += 16;
-
-      y = renderTable(doc, {
-        columns: [
-          { key: 'lineNo', header: 'Line', width: 35, align: 'center' },
-          { key: 'code', header: 'Code', width: 80 },
-          { key: 'description', header: 'Description', width: 150 },
-          { key: 'trfQty', header: 'Trf Qty', width: 65, align: 'right' },
-          { key: 'check', header: 'Check', width: 50, align: 'center' },
-          { key: 'tippedBy', header: 'Tipped By', width: 75 },
-        ],
-        rows: ingredientLines.map(l => ({
-          lineNo: l.lineNo,
-          code: l.itemSku,
-          description: l.itemDescription.substring(0, 30),
-          trfQty: l.scaledQty.toFixed(3),
-          check: '',
-          tippedBy: '',
-        })),
-        startY: y,
-      });
-      y += 5;
+      y = drawSectionBar(doc, 'INGREDIENTS', y);
+      y = drawGridTable(doc, [
+        { key: 'lineNo', header: '#', width: 28, align: 'center' },
+        { key: 'code', header: 'Code', width: 80 },
+        { key: 'description', header: 'Description', width: 155 },
+        { key: 'trfQty', header: 'Trf Qty (kg)', width: 70, align: 'right' },
+        { key: 'check', header: 'Check', width: 50, align: 'center' },
+        { key: 'tippedBy', header: 'Tipped By', width: 132 },
+      ], ingredientLines.map(l => ({
+        lineNo: l.lineNo,
+        code: l.itemSku,
+        description: l.itemDescription.substring(0, 32),
+        trfQty: l.scaledQty.toFixed(3),
+        check: '',
+        tippedBy: '',
+      })), y);
     }
 
-    // Tipping check packaging table
+    // Packaging tipping
     if (packagingLines.length > 0) {
-      if (y > 580) { doc.addPage(); y = MARGIN; }
-
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text('PACKAGING', MARGIN, y);
-      y += 16;
-
-      y = renderTable(doc, {
-        columns: [
-          { key: 'lineNo', header: 'Line', width: 35, align: 'center' },
-          { key: 'code', header: 'Code', width: 80 },
-          { key: 'description', header: 'Description', width: 150 },
-          { key: 'trfQty', header: 'Trf Qty', width: 65, align: 'right' },
-          { key: 'check', header: 'Check', width: 50, align: 'center' },
-          { key: 'tippedBy', header: 'Tipped By', width: 75 },
-        ],
-        rows: packagingLines.map(l => ({
-          lineNo: l.lineNo,
-          code: l.itemSku,
-          description: l.itemDescription.substring(0, 30),
-          trfQty: l.scaledQty.toFixed(0),
-          check: '',
-          tippedBy: '',
-        })),
-        startY: y,
-      });
-      y += 5;
+      y = drawSectionBar(doc, 'PACKAGING', y);
+      y = drawGridTable(doc, [
+        { key: 'lineNo', header: '#', width: 28, align: 'center' },
+        { key: 'code', header: 'Code', width: 80 },
+        { key: 'description', header: 'Description', width: 155 },
+        { key: 'trfQty', header: 'Trf Qty', width: 70, align: 'right' },
+        { key: 'check', header: 'Check', width: 50, align: 'center' },
+        { key: 'tippedBy', header: 'Tipped By', width: 132 },
+      ], packagingLines.map(l => ({
+        lineNo: l.lineNo,
+        code: l.itemSku,
+        description: l.itemDescription.substring(0, 32),
+        trfQty: l.scaledQty.toFixed(0),
+        check: '',
+        tippedBy: '',
+      })), y);
     }
 
     // Rework section
-    if (y > 620) { doc.addPage(); y = MARGIN; }
-    y += 10;
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text('REWORK', MARGIN, y);
-    y += 18;
+    y = drawSectionBar(doc, 'REWORK', y);
+    y = drawFormFieldRow(doc, [
+      { label: 'Rework Product', value: checks?.reworkProduct || '', flex: 2 },
+      { label: 'Rework Qty (kgs)', value: checks?.reworkQtyKgs != null ? String(checks.reworkQtyKgs) : '' },
+    ], y);
+    y += 4;
 
-    doc.fontSize(9).font('Helvetica');
-    const reworkProduct = checks?.reworkProduct || '________________________________';
-    const reworkQty = checks?.reworkQtyKgs != null ? String(checks.reworkQtyKgs) : '________________';
-    doc.text(`Rework Product: ${reworkProduct}`, MARGIN, y);
-    doc.text(`Rework Qty (kgs): ${reworkQty}`, 310, y);
-    y += 25;
+    // Box count
+    y = drawSectionBar(doc, 'BOX COUNT', y);
+    y = drawFormFieldRow(doc, [
+      { label: 'Theoretical Boxes', value: checks?.theoreticalBoxes != null ? String(checks.theoreticalBoxes) : '' },
+      { label: 'Actual Boxes', value: checks?.actualBoxes != null ? String(checks.actualBoxes) : '' },
+      { label: 'Actual Overs', value: checks?.actualOvers != null ? String(checks.actualOvers) : '' },
+    ], y);
+    y = drawFormFieldRow(doc, [
+      { label: 'Actual Total', value: checks?.actualTotal != null ? String(checks.actualTotal) : '' },
+      { label: 'Diff to Theoretical', value: checks?.diffToTheoretical != null ? String(checks.diffToTheoretical) : '' },
+    ], y);
+    y += 6;
 
-    // Box count section
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text('BOX COUNT', MARGIN, y);
-    y += 18;
-
-    doc.fontSize(9).font('Helvetica');
-    const boxFields = [
-      { label: 'Theoretical Boxes', value: checks?.theoreticalBoxes },
-      { label: 'Actual Boxes', value: checks?.actualBoxes },
-      { label: 'Actual Overs', value: checks?.actualOvers },
-      { label: 'Actual Total', value: checks?.actualTotal },
-      { label: 'Diff to Theoretical', value: checks?.diffToTheoretical },
-    ];
-
-    for (let i = 0; i < boxFields.length; i += 2) {
-      const left = boxFields[i];
-      const right = boxFields[i + 1];
-      const leftVal = left.value != null ? String(left.value) : '________________';
-      doc.text(`${left.label}: ${leftVal}`, MARGIN, y);
-      if (right) {
-        const rightVal = right.value != null ? String(right.value) : '________________';
-        doc.text(`${right.label}: ${rightVal}`, 310, y);
-      }
-      y += 18;
-    }
-
-    y += 20;
     // Signatures
-    doc.fontSize(9).font('Helvetica').fillColor('#000000');
-    doc.text('Loader: _________________________', MARGIN, y);
-    doc.text('Date: _______________', 340, y);
-    y += 25;
-    doc.text('Operations Manager: _________________________', MARGIN, y);
-    doc.text('Date: _______________', 340, y);
-    y += 25;
+    y = drawSignatureRow(doc, ['Loader', 'Date', 'Operations Manager', 'Date'], y);
 
-    // ====== PAGE 3 — PRODUCTION PROCESS ======
+    drawPageFooter(doc, 2, printDate);
+
+    // ================================================================
+    //  PAGE 3 — PRODUCTION PROCESS
+    // ================================================================
     doc.addPage();
-    y = renderCompanyHeader(doc, profile);
-    y = renderDocumentTitle(doc, 'PRODUCTION PROCESS', y);
+    drawPageBorder(doc);
+    y = drawCompanyHeader(doc, profile);
+
+    doc.save().rect(MARGIN, y, CW, 22).fill(DARK);
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#ffffff')
+      .text('PRODUCTION PROCESS', MARGIN, y + 5, { width: CW, align: 'center' });
+    doc.restore();
+    y += 28;
 
     // Meta
-    doc.fontSize(9).font('Helvetica');
-    doc.font('Helvetica-Bold').fillColor('#000000').text('Work Ticket No: ', MARGIN, y, { continued: true });
-    doc.font('Helvetica').text(wo.workOrderNo);
-    y += 14;
-    doc.font('Helvetica-Bold').text('Product: ', MARGIN, y, { continued: true });
-    doc.font('Helvetica').text(`${item.sku} - ${item.description}`);
-    y += 20;
+    y = drawMetaGrid(doc, [
+      { label: 'Work Ticket No', value: wo.workOrderNo },
+      { label: 'Product', value: `${item.sku} - ${item.description}` },
+    ], y, 2);
 
     // Instructions
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text('INSTRUCTIONS', MARGIN, y);
-    y += 16;
+    y = drawSectionBar(doc, 'INSTRUCTIONS', y);
     const instructions = process?.instructions || '';
     if (instructions) {
-      doc.fontSize(9).font('Helvetica').text(instructions, MARGIN, y, { width: 515 });
-      y += doc.heightOfString(instructions, { width: 515 }) + 10;
+      // Bordered instructions box
+      doc.fontSize(8.5).font('Helvetica').fillColor('#000000');
+      const textH = doc.heightOfString(instructions, { width: CW - 10 });
+      const boxH = Math.max(textH + 10, 30);
+      doc.save().lineWidth(0.5).strokeColor(BORDER).rect(MARGIN, y, CW, boxH).stroke().restore();
+      doc.text(instructions, MARGIN + 5, y + 5, { width: CW - 10 });
+      y += boxH + 4;
     } else {
-      doc.fontSize(9).font('Helvetica').text('(No instructions provided)', MARGIN, y);
-      y += 20;
+      doc.save().lineWidth(0.5).strokeColor(BORDER).rect(MARGIN, y, CW, 24).stroke().restore();
+      doc.fontSize(8).font('Helvetica').fillColor(LABEL_CLR)
+        .text('(No instructions provided)', MARGIN + 5, y + 7, { width: CW - 10 });
+      y += 28;
     }
 
-    // Specs table from specsJson
+    // Specs table
     const specsJson = process?.specsJson ?? {};
     const specsEntries = Object.entries(specsJson);
     if (specsEntries.length > 0) {
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text('SPECIFICATIONS', MARGIN, y);
-      y += 16;
-
-      y = renderTable(doc, {
-        columns: [
-          { key: 'parameter', header: 'Parameter', width: 200 },
-          { key: 'value', header: 'Value', width: 315 },
-        ],
-        rows: specsEntries.map(([k, v]) => ({
-          parameter: k,
-          value: String(v ?? ''),
-        })),
-        startY: y,
-      });
-      y += 5;
+      y = drawSectionBar(doc, 'SPECIFICATIONS', y);
+      y = drawGridTable(doc, [
+        { key: 'parameter', header: 'Parameter', width: 200 },
+        { key: 'value', header: 'Value', width: 315 },
+      ], specsEntries.map(([k, v]) => ({
+        parameter: k,
+        value: String(v ?? ''),
+      })), y);
     }
 
-    // Process fields
-    if (y > 580) { doc.addPage(); y = MARGIN; }
-    y += 5;
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text('PROCESS DETAILS', MARGIN, y);
-    y += 18;
+    // Process details
+    y = drawSectionBar(doc, 'PROCESS DETAILS', y);
+    y = drawFormFieldRow(doc, [
+      { label: 'Operator', value: process?.operator || '' },
+      { label: 'Pot Used', value: process?.potUsed || '' },
+    ], y);
+    y = drawFormFieldRow(doc, [
+      { label: 'Time Started', value: process?.timeStarted ? formatDate(process.timeStarted) : '' },
+      { label: 'Time 85\u00B0C', value: process?.time85c ? formatDate(process.time85c) : '' },
+    ], y);
+    y = drawFormFieldRow(doc, [
+      { label: 'Time Flavour Added', value: process?.timeFlavourAdded ? formatDate(process.timeFlavourAdded) : '' },
+      { label: 'Time Completed', value: process?.timeCompleted ? formatDate(process.timeCompleted) : '' },
+    ], y);
+    y += 4;
 
-    doc.fontSize(9).font('Helvetica');
-    const processFields = [
-      { label: 'Operator', value: process?.operator },
-      { label: 'Pot Used', value: process?.potUsed },
-      { label: 'Time Started', value: process?.timeStarted ? formatDate(process.timeStarted) : null },
-      { label: 'Time 85\u00B0C', value: process?.time85c ? formatDate(process.time85c) : null },
-      { label: 'Time Flavour Added', value: process?.timeFlavourAdded ? formatDate(process.timeFlavourAdded) : null },
-      { label: 'Time Completed', value: process?.timeCompleted ? formatDate(process.timeCompleted) : null },
-    ];
-
-    for (let i = 0; i < processFields.length; i += 2) {
-      const left = processFields[i];
-      const right = processFields[i + 1];
-      const leftVal = left.value || '________________________________';
-      doc.text(`${left.label}: ${leftVal}`, MARGIN, y);
-      if (right) {
-        const rightVal = right.value || '________________________________';
-        doc.text(`${right.label}: ${rightVal}`, 310, y);
-      }
-      y += 18;
-    }
-
-    y += 5;
     // Additions
-    doc.font('Helvetica-Bold').fillColor('#000000').text('Additions: ', MARGIN, y, { continued: true });
-    doc.font('Helvetica').text(process?.additions || '________________________________________');
-    y += 18;
-    doc.font('Helvetica-Bold').text('Reason for Addition: ', MARGIN, y, { continued: true });
-    doc.font('Helvetica').text(process?.reasonForAddition || '________________________________________');
-    y += 18;
-    doc.font('Helvetica-Bold').text('Comments: ', MARGIN, y, { continued: true });
-    doc.font('Helvetica').text(process?.comments || '________________________________________');
-    y += 30;
+    y = drawSectionBar(doc, 'ADDITIONS & COMMENTS', y);
+    y = drawFormFieldRow(doc, [
+      { label: 'Additions', value: process?.additions || '', flex: 2 },
+      { label: 'Reason for Addition', value: process?.reasonForAddition || '', flex: 2 },
+    ], y);
+    y = drawFormFieldRow(doc, [
+      { label: 'Comments', value: process?.comments || '' },
+    ], y, 36);
+    y += 6;
 
     // Signature
-    y += 20;
-    doc.fontSize(9).font('Helvetica').fillColor('#000000');
-    doc.text('Operator Signature: _________________________', MARGIN, y);
-    doc.text('Date: _______________', 340, y);
-    y += 25;
+    y = drawSignatureRow(doc, ['Operator Signature', 'Date'], y);
 
-    // Footer timestamp on all pages
-    const pages = doc.bufferedPageRange();
-    for (let i = pages.start; i < pages.start + pages.count; i++) {
-      doc.switchToPage(i);
-      doc.fontSize(7).font('Helvetica').fillColor('#999999')
-        .text(`Printed: ${new Date().toLocaleString('en-ZA')}`, MARGIN, 780, { width: 515, align: 'right' });
-    }
+    drawPageFooter(doc, 3, printDate);
 
     doc.end();
     return bufferPromise;
