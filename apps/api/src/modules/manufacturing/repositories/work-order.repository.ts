@@ -207,6 +207,20 @@ export class WorkOrderRepository extends BaseRepository {
     return `WO-${count.toString().padStart(6, '0')}`;
   }
 
+  async generateBatchNo(tenantId: string): Promise<string> {
+    const today = new Date();
+    const dateStr = today.getFullYear().toString()
+      + (today.getMonth() + 1).toString().padStart(2, '0')
+      + today.getDate().toString().padStart(2, '0');
+    const prefix = `BATCH-${dateStr}-`;
+    const result = await this.queryOne<{ count: string }>(
+      `SELECT COUNT(*) as count FROM work_orders WHERE tenant_id = $1 AND batch_no LIKE $2`,
+      [tenantId, `${prefix}%`],
+    );
+    const seq = parseInt(result?.count || '0', 10) + 1;
+    return `${prefix}${seq.toString().padStart(3, '0')}`;
+  }
+
   async update(
     id: string,
     data: Partial<{

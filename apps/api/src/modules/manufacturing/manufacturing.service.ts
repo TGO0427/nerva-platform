@@ -557,13 +557,15 @@ export class ManufacturingService {
       throw new BadRequestException('Can only release DRAFT work orders');
     }
 
+    const batchNo = await this.workOrderRepo.generateBatchNo(workOrder.tenantId);
+
     // Update first operation to READY
     const operations = await this.workOrderRepo.getOperations(id);
     if (operations.length > 0) {
       await this.workOrderRepo.updateOperation(operations[0].id, { status: 'READY' });
     }
 
-    return this.workOrderRepo.update(id, { status: 'RELEASED' });
+    return this.workOrderRepo.update(id, { status: 'RELEASED', batchNo });
   }
 
   async startWorkOrder(id: string) {
