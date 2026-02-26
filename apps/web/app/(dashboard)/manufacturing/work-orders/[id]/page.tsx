@@ -518,6 +518,10 @@ export default function WorkOrderDetailPage() {
                 <div className="mt-1">{(workOrder as any).warehouseName || workOrder.warehouseId.slice(0, 8)}</div>
               </div>
               <div>
+                <div className="text-sm text-slate-500">Batch No</div>
+                <div className="mt-1 font-medium">{workOrder.batchNo || '-'}</div>
+              </div>
+              <div>
                 <div className="text-sm text-slate-500">Planned Start</div>
                 <div className="mt-1">
                   {workOrder.plannedStart ? new Date(workOrder.plannedStart).toLocaleDateString() : '-'}
