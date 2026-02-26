@@ -25,21 +25,28 @@ CREATE INDEX idx_non_conformances_status ON non_conformances(tenant_id, status);
 CREATE INDEX idx_non_conformances_work_order ON non_conformances(work_order_id);
 CREATE INDEX idx_non_conformances_item ON non_conformances(item_id);
 
--- Add quality permissions to the default role assignments
-INSERT INTO role_permissions (role_id, permission)
-SELECT r.id, p.permission
+-- Add quality permissions
+INSERT INTO permissions (code, description) VALUES
+  ('quality.view', 'View non-conformances'),
+  ('quality.create', 'Create non-conformances'),
+  ('quality.edit', 'Edit non-conformances'),
+  ('quality.resolve', 'Resolve and close non-conformances')
+ON CONFLICT (code) DO NOTHING;
+
+-- Grant quality permissions to Admin role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
 FROM roles r
-CROSS JOIN (
-  VALUES ('quality.view'), ('quality.create'), ('quality.edit'), ('quality.resolve')
-) AS p(permission)
+CROSS JOIN permissions p
 WHERE r.name = 'Admin'
+  AND p.code IN ('quality.view', 'quality.create', 'quality.edit', 'quality.resolve')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO role_permissions (role_id, permission)
-SELECT r.id, p.permission
+-- Grant view+create to Operator role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
 FROM roles r
-CROSS JOIN (
-  VALUES ('quality.view'), ('quality.create')
-) AS p(permission)
+CROSS JOIN permissions p
 WHERE r.name = 'Operator'
+  AND p.code IN ('quality.view', 'quality.create')
 ON CONFLICT DO NOTHING;
