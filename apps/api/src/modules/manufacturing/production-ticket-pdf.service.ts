@@ -86,7 +86,7 @@ function drawMetaGrid(
   y: number,
   cols = 2,
 ): number {
-  const cellH = 18;
+  const cellH = 22;
   const colW = CW / cols;
   const rows = Math.ceil(fields.length / cols);
 
@@ -113,11 +113,14 @@ function drawMetaGrid(
           .moveTo(MARGIN, cellY).lineTo(MARGIN + CW, cellY).stroke().restore();
       }
 
-      // Label + value
-      doc.fontSize(7).font('Helvetica').fillColor(LABEL_CLR)
-        .text(field.label, cellX + 5, cellY + 2, { width: colW - 10, lineBreak: false });
-      doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#000000')
-        .text(field.value || '-', cellX + 5, cellY + 9, { width: colW - 10, lineBreak: false });
+      // Label
+      doc.fontSize(6.5).font('Helvetica').fillColor(LABEL_CLR)
+        .text(field.label, cellX + 4, cellY + 2, { width: colW - 8, lineBreak: false });
+      // Value — use smaller font if text is long relative to cell width
+      const val = field.value || '-';
+      const valFontSize = val.length > colW / 5 ? 7.5 : 8.5;
+      doc.fontSize(valFontSize).font('Helvetica-Bold').fillColor('#000000')
+        .text(val, cellX + 4, cellY + 11, { width: colW - 8, lineBreak: false });
     }
   }
 
@@ -318,7 +321,7 @@ export class ProductionTicketPdfService {
       this.productionDataRepo.findProcessByWorkOrder(workOrderId),
     ]);
 
-    const doc = createPdfDocument();
+    const doc = createPdfDocument({ bufferPages: true });
     const bufferPromise = pdfToBuffer(doc);
     const printDate = new Date().toLocaleString('en-ZA');
 

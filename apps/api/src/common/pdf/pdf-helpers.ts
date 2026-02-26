@@ -65,8 +65,8 @@ export function formatDate(date: Date | string | null | undefined): string {
 
 // ---- Document Creation ----
 
-export function createPdfDocument(): typeof PDFDocument.prototype {
-  return new PDFDocument({ size: 'A4', margin: 40 });
+export function createPdfDocument(opts?: Record<string, any>): typeof PDFDocument.prototype {
+  return new PDFDocument({ size: 'A4', margin: 40, ...opts });
 }
 
 export function pdfToBuffer(doc: typeof PDFDocument.prototype): Promise<Buffer> {
