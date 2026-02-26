@@ -35,12 +35,16 @@ function drawPageBorder(doc: any) {
     .restore();
 }
 
-function drawPageFooter(doc: any, pageNum: number, printDate: string) {
-  const footerY = PAGE_H - MARGIN + 5;
-  doc.save().fontSize(7).font('Helvetica').fillColor('#999999');
-  doc.text(`Printed: ${printDate}`, MARGIN, footerY, { width: CW / 2 });
-  doc.text(`Page ${pageNum} of ${TOTAL_PAGES}`, MARGIN, footerY, { width: CW, align: 'right' });
-  doc.restore();
+function stampFooters(doc: any, printDate: string) {
+  const footerY = 780;
+  const pages = doc.bufferedPageRange();
+  for (let i = pages.start; i < pages.start + pages.count; i++) {
+    doc.switchToPage(i);
+    doc.save().fontSize(7).font('Helvetica').fillColor('#999999');
+    doc.text(`Printed: ${printDate}`, MARGIN, footerY, { width: CW / 2, lineBreak: false });
+    doc.text(`Page ${i + 1} of ${TOTAL_PAGES}`, MARGIN, footerY, { width: CW, align: 'right', lineBreak: false });
+    doc.restore();
+  }
 }
 
 function drawCompanyHeader(doc: any, profile: TenantProfile): number {
@@ -399,8 +403,6 @@ export class ProductionTicketPdfService {
     // Signatures
     y = drawSignatureRow(doc, ['Prepared By', 'Date', 'Departmental Signature', 'Date'], y);
 
-    drawPageFooter(doc, 1, printDate);
-
     // ================================================================
     //  PAGE 2 — TIPPING CHECK SHEET
     // ================================================================
@@ -486,8 +488,6 @@ export class ProductionTicketPdfService {
     // Signatures
     y = drawSignatureRow(doc, ['Loader', 'Date', 'Operations Manager', 'Date'], y);
 
-    drawPageFooter(doc, 2, printDate);
-
     // ================================================================
     //  PAGE 3 — PRODUCTION PROCESS
     // ================================================================
@@ -569,7 +569,8 @@ export class ProductionTicketPdfService {
     // Signature
     y = drawSignatureRow(doc, ['Operator Signature', 'Date'], y);
 
-    drawPageFooter(doc, 3, printDate);
+    // Stamp footers on all pages (using switchToPage to avoid auto-pagination)
+    stampFooters(doc, printDate);
 
     doc.end();
     return bufferPromise;
