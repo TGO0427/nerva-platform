@@ -725,6 +725,159 @@ export class ManufacturingController {
     return this.service.recordScrap(id, { ...data, createdBy: user.id });
   }
 
+  // ============ Dashboard ============
+  @Get('dashboard')
+  @RequirePermissions('production.view_ledger')
+  @ApiOperation({ summary: 'Get manufacturing dashboard stats' })
+  async getDashboardStats(@TenantId() tenantId: string) {
+    return this.service.getDashboardStats(tenantId);
+  }
+
+  // ============ Reports ============
+  @Get('reports')
+  @RequirePermissions('production.view_ledger')
+  @ApiOperation({ summary: 'Get manufacturing report' })
+  async getManufacturingReport(
+    @TenantId() tenantId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    return this.service.getManufacturingReport(
+      tenantId,
+      new Date(startDate),
+      new Date(endDate),
+    );
+  }
+
+  // ============ Traceability ============
+  @Get('traceability/:batchNo')
+  @RequirePermissions('production.view_ledger')
+  @ApiOperation({ summary: 'Trace batch/lot' })
+  async traceByBatch(
+    @TenantId() tenantId: string,
+    @Param('batchNo') batchNo: string,
+  ) {
+    return this.service.traceByBatch(tenantId, batchNo);
+  }
+
+  @Get('traceability/:batchNo/forward')
+  @RequirePermissions('production.view_ledger')
+  @ApiOperation({ summary: 'Forward trace from raw material batch' })
+  async forwardTrace(
+    @TenantId() tenantId: string,
+    @Param('batchNo') batchNo: string,
+  ) {
+    return this.service.forwardTrace(tenantId, batchNo);
+  }
+
+  @Get('traceability/:batchNo/backward')
+  @RequirePermissions('production.view_ledger')
+  @ApiOperation({ summary: 'Backward trace from finished goods batch' })
+  async backwardTrace(
+    @TenantId() tenantId: string,
+    @Param('batchNo') batchNo: string,
+  ) {
+    return this.service.backwardTrace(tenantId, batchNo);
+  }
+
+  // ============ MRP ============
+  @Get('mrp')
+  @RequirePermissions('work_order.view')
+  @ApiOperation({ summary: 'Calculate MRP requirements' })
+  async getMrpRequirements(@TenantId() tenantId: string) {
+    return this.service.getMrpRequirements(tenantId);
+  }
+
+  // ============ Scheduling ============
+  @Patch('work-orders/:id/reschedule')
+  @RequirePermissions('work_order.edit')
+  @ApiOperation({ summary: 'Reschedule work order dates' })
+  async rescheduleWorkOrder(
+    @Param('id', UuidValidationPipe) id: string,
+    @Body() data: { plannedStart?: string; plannedEnd?: string },
+  ) {
+    return this.service.rescheduleWorkOrder(id, {
+      plannedStart: data.plannedStart ? new Date(data.plannedStart) : undefined,
+      plannedEnd: data.plannedEnd ? new Date(data.plannedEnd) : undefined,
+    });
+  }
+
+  // ============ Non-Conformances ============
+  @Get('non-conformances')
+  @RequirePermissions('quality.view')
+  @ApiOperation({ summary: 'List non-conformances' })
+  async listNonConformances(
+    @TenantId() tenantId: string,
+    @Query('status') status?: string,
+    @Query('severity') severity?: string,
+    @Query('workOrderId') workOrderId?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.service.listNonConformances(tenantId, { status, severity, workOrderId, search }, page, limit);
+  }
+
+  @Get('non-conformances/:id')
+  @RequirePermissions('quality.view')
+  @ApiOperation({ summary: 'Get non-conformance detail' })
+  async getNonConformance(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.getNonConformance(id);
+  }
+
+  @Post('non-conformances')
+  @RequirePermissions('quality.create')
+  @ApiOperation({ summary: 'Create non-conformance' })
+  async createNonConformance(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: {
+      workOrderId?: string;
+      itemId?: string;
+      defectType: string;
+      severity: string;
+      description: string;
+      qtyAffected?: number;
+    },
+  ) {
+    return this.service.createNonConformance({ tenantId, reportedBy: user.id, ...data });
+  }
+
+  @Patch('non-conformances/:id')
+  @RequirePermissions('quality.edit')
+  @ApiOperation({ summary: 'Update non-conformance' })
+  async updateNonConformance(
+    @Param('id', UuidValidationPipe) id: string,
+    @Body() data: {
+      defectType?: string;
+      severity?: string;
+      description?: string;
+      qtyAffected?: number;
+      disposition?: string;
+      correctiveAction?: string;
+    },
+  ) {
+    return this.service.updateNonConformance(id, data);
+  }
+
+  @Post('non-conformances/:id/resolve')
+  @RequirePermissions('quality.resolve')
+  @ApiOperation({ summary: 'Resolve non-conformance with disposition' })
+  async resolveNonConformance(
+    @Param('id', UuidValidationPipe) id: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: { disposition: string; correctiveAction: string },
+  ) {
+    return this.service.resolveNonConformance(id, { ...data, resolvedBy: user.id });
+  }
+
+  @Post('non-conformances/:id/close')
+  @RequirePermissions('quality.resolve')
+  @ApiOperation({ summary: 'Close non-conformance' })
+  async closeNonConformance(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.closeNonConformance(id);
+  }
+
   // ============ Production Ledger ============
   @Get('production-ledger')
   @RequirePermissions('production.view_ledger')

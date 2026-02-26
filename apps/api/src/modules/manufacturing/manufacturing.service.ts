@@ -5,6 +5,8 @@ import { RoutingRepository, Routing, RoutingOperation } from './repositories/rou
 import { WorkOrderRepository, WorkOrder, WorkOrderOperation, WorkOrderMaterial } from './repositories/work-order.repository';
 import { ProductionLedgerRepository, ProductionLedgerEntry } from './repositories/production-ledger.repository';
 import { ProductionDataRepository } from './repositories/production-data.repository';
+import { MrpRepository } from './repositories/mrp.repository';
+import { NonConformanceRepository } from './repositories/non-conformance.repository';
 import { StockLedgerService } from '../inventory/stock-ledger.service';
 
 @Injectable()
@@ -16,6 +18,8 @@ export class ManufacturingService {
     private readonly workOrderRepo: WorkOrderRepository,
     private readonly productionLedgerRepo: ProductionLedgerRepository,
     private readonly productionDataRepo: ProductionDataRepository,
+    private readonly mrpRepo: MrpRepository,
+    private readonly ncRepo: NonConformanceRepository,
     private readonly stockLedgerService: StockLedgerService,
   ) {}
 
@@ -961,5 +965,128 @@ export class ManufacturingService {
     const workOrder = await this.workOrderRepo.findById(workOrderId);
     if (!workOrder) throw new NotFoundException('Work order not found');
     return this.productionDataRepo.upsertProcess({ tenantId, workOrderId, ...data });
+  }
+
+  // ============ Dashboard ============
+  async getDashboardStats(tenantId: string) {
+    return this.productionLedgerRepo.getDashboardStats(tenantId);
+  }
+
+  // ============ Reports ============
+  async getManufacturingReport(tenantId: string, startDate: Date, endDate: Date) {
+    return this.productionLedgerRepo.getManufacturingReport(tenantId, startDate, endDate);
+  }
+
+  // ============ Traceability ============
+  async traceByBatch(tenantId: string, batchNo: string) {
+    return this.productionLedgerRepo.traceByBatch(tenantId, batchNo);
+  }
+
+  async forwardTrace(tenantId: string, batchNo: string) {
+    return this.productionLedgerRepo.forwardTrace(tenantId, batchNo);
+  }
+
+  async backwardTrace(tenantId: string, batchNo: string) {
+    return this.productionLedgerRepo.backwardTrace(tenantId, batchNo);
+  }
+
+  // ============ MRP ============
+  async getMrpRequirements(tenantId: string) {
+    return this.mrpRepo.calculateRequirements(tenantId);
+  }
+
+  // ============ Scheduling ============
+  async rescheduleWorkOrder(id: string, data: { plannedStart?: Date; plannedEnd?: Date }) {
+    const workOrder = await this.workOrderRepo.findById(id);
+    if (!workOrder) throw new NotFoundException('Work order not found');
+    if (['COMPLETED', 'CANCELLED'].includes(workOrder.status)) {
+      throw new BadRequestException('Cannot reschedule COMPLETED or CANCELLED work orders');
+    }
+    return this.workOrderRepo.update(id, {
+      plannedStart: data.plannedStart,
+      plannedEnd: data.plannedEnd,
+    });
+  }
+
+  // ============ Non-Conformances ============
+  async listNonConformances(
+    tenantId: string,
+    filters: { status?: string; severity?: string; workOrderId?: string; search?: string },
+    page = 1,
+    limit = 50,
+  ) {
+    const offset = (page - 1) * limit;
+    const { data, total } = await this.ncRepo.findByTenant(tenantId, filters, limit, offset);
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getNonConformance(id: string) {
+    const nc = await this.ncRepo.findById(id);
+    if (!nc) throw new NotFoundException('Non-conformance not found');
+    return nc;
+  }
+
+  async createNonConformance(data: {
+    tenantId: string;
+    workOrderId?: string;
+    itemId?: string;
+    reportedBy: string;
+    defectType: string;
+    severity: string;
+    description: string;
+    qtyAffected?: number;
+  }) {
+    const ncNo = await this.ncRepo.generateNcNo(data.tenantId);
+    return this.ncRepo.create({ ...data, ncNo });
+  }
+
+  async updateNonConformance(id: string, data: {
+    defectType?: string;
+    severity?: string;
+    description?: string;
+    qtyAffected?: number;
+    disposition?: string;
+    correctiveAction?: string;
+  }) {
+    const nc = await this.ncRepo.findById(id);
+    if (!nc) throw new NotFoundException('Non-conformance not found');
+    if (nc.status === 'CLOSED') {
+      throw new BadRequestException('Cannot update a CLOSED non-conformance');
+    }
+    return this.ncRepo.update(id, data);
+  }
+
+  async resolveNonConformance(id: string, data: {
+    disposition: string;
+    correctiveAction: string;
+    resolvedBy: string;
+  }) {
+    const nc = await this.ncRepo.findById(id);
+    if (!nc) throw new NotFoundException('Non-conformance not found');
+    if (nc.status === 'CLOSED') {
+      throw new BadRequestException('Cannot resolve a CLOSED non-conformance');
+    }
+    return this.ncRepo.update(id, {
+      ...data,
+      status: 'RESOLVED',
+      resolvedAt: new Date(),
+    });
+  }
+
+  async closeNonConformance(id: string) {
+    const nc = await this.ncRepo.findById(id);
+    if (!nc) throw new NotFoundException('Non-conformance not found');
+    if (nc.status !== 'RESOLVED') {
+      throw new BadRequestException('Only RESOLVED non-conformances can be closed');
+    }
+    return this.ncRepo.update(id, { status: 'CLOSED' });
   }
 }

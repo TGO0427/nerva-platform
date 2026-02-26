@@ -97,6 +97,12 @@ export const PERMISSIONS = {
   PRODUCTION_CAPTURE_CHECKS: 'production.capture_checks',
   PRODUCTION_CAPTURE_PROCESS: 'production.capture_process',
 
+  // Quality
+  QUALITY_VIEW: 'quality.view',
+  QUALITY_CREATE: 'quality.create',
+  QUALITY_EDIT: 'quality.edit',
+  QUALITY_RESOLVE: 'quality.resolve',
+
   // Invoicing
   INVOICE_READ: 'invoice.read',
   INVOICE_CREATE: 'invoice.create',

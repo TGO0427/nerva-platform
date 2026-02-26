@@ -264,6 +264,487 @@ export class ProductionLedgerRepository extends BaseRepository {
     }));
   }
 
+  async getDashboardStats(tenantId: string): Promise<{
+    activeWorkOrders: number;
+    todayOutput: number;
+    yieldRate: number;
+    workstationUtilization: number;
+    statusDistribution: Array<{ status: string; count: number }>;
+    dailyOutput: Array<{ date: string; output: number; scrap: number }>;
+    topItems: Array<{ itemId: string; sku: string; description: string; totalOutput: number }>;
+    activeOrders: Array<{ id: string; workOrderNo: string; itemSku: string; status: string; plannedEnd: Date | null }>;
+  }> {
+    const [
+      activeWoResult,
+      todayOutputResult,
+      yieldResult,
+      utilizationActiveResult,
+      utilizationTotalResult,
+      statusRows,
+      dailyRows,
+      topItemRows,
+      activeOrderRows,
+    ] = await Promise.all([
+      this.queryOne<Record<string, unknown>>(
+        `SELECT COUNT(*) as count FROM work_orders WHERE status IN ('RELEASED', 'IN_PROGRESS') AND tenant_id = $1`,
+        [tenantId],
+      ),
+      this.queryOne<Record<string, unknown>>(
+        `SELECT COALESCE(SUM(ABS(qty)), 0) as total
+         FROM production_ledger
+         WHERE entry_type = 'PRODUCTION_OUTPUT' AND created_at::date = CURRENT_DATE AND tenant_id = $1`,
+        [tenantId],
+      ),
+      this.queryOne<Record<string, unknown>>(
+        `SELECT
+           COALESCE(SUM(CASE WHEN entry_type = 'PRODUCTION_OUTPUT' THEN qty ELSE 0 END), 0) as output,
+           COALESCE(SUM(CASE WHEN entry_type = 'SCRAP' THEN ABS(qty) ELSE 0 END), 0) as scrap
+         FROM production_ledger
+         WHERE tenant_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '30 days'`,
+        [tenantId],
+      ),
+      this.queryOne<Record<string, unknown>>(
+        `SELECT COUNT(DISTINCT workstation_id) as count
+         FROM work_order_operations
+         WHERE status = 'IN_PROGRESS' AND tenant_id = $1`,
+        [tenantId],
+      ),
+      this.queryOne<Record<string, unknown>>(
+        `SELECT COUNT(*) as count FROM workstations WHERE status = 'ACTIVE' AND tenant_id = $1`,
+        [tenantId],
+      ),
+      this.queryMany<Record<string, unknown>>(
+        `SELECT status, COUNT(*) as count FROM work_orders WHERE tenant_id = $1 GROUP BY status`,
+        [tenantId],
+      ),
+      this.queryMany<Record<string, unknown>>(
+        `SELECT
+           created_at::date as date,
+           COALESCE(SUM(CASE WHEN entry_type = 'PRODUCTION_OUTPUT' THEN qty ELSE 0 END), 0) as output,
+           COALESCE(SUM(CASE WHEN entry_type = 'SCRAP' THEN ABS(qty) ELSE 0 END), 0) as scrap
+         FROM production_ledger
+         WHERE tenant_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '30 days'
+         GROUP BY created_at::date
+         ORDER BY date`,
+        [tenantId],
+      ),
+      this.queryMany<Record<string, unknown>>(
+        `SELECT pl.item_id, i.sku, i.description,
+                COALESCE(SUM(pl.qty), 0) as total_output
+         FROM production_ledger pl
+         JOIN items i ON i.id = pl.item_id
+         WHERE pl.tenant_id = $1 AND pl.entry_type = 'PRODUCTION_OUTPUT'
+           AND pl.created_at >= CURRENT_DATE - INTERVAL '30 days'
+         GROUP BY pl.item_id, i.sku, i.description
+         ORDER BY total_output DESC
+         LIMIT 10`,
+        [tenantId],
+      ),
+      this.queryMany<Record<string, unknown>>(
+        `SELECT wo.id, wo.work_order_no, i.sku as item_sku, wo.status, wo.planned_end
+         FROM work_orders wo
+         JOIN items i ON i.id = wo.item_id
+         WHERE wo.tenant_id = $1 AND wo.status IN ('RELEASED', 'IN_PROGRESS')
+         ORDER BY wo.planned_end ASC NULLS LAST
+         LIMIT 20`,
+        [tenantId],
+      ),
+    ]);
+
+    const output = parseFloat((yieldResult?.output as string) || '0');
+    const scrap = parseFloat((yieldResult?.scrap as string) || '0');
+    const yieldRate = output + scrap > 0 ? (output / (output + scrap)) * 100 : 0;
+
+    const activeWs = parseFloat((utilizationActiveResult?.count as string) || '0');
+    const totalWs = parseFloat((utilizationTotalResult?.count as string) || '0');
+    const workstationUtilization = totalWs > 0 ? (activeWs / totalWs) * 100 : 0;
+
+    return {
+      activeWorkOrders: parseInt((activeWoResult?.count as string) || '0', 10),
+      todayOutput: parseFloat((todayOutputResult?.total as string) || '0'),
+      yieldRate,
+      workstationUtilization,
+      statusDistribution: statusRows.map((r) => ({
+        status: r.status as string,
+        count: parseInt((r.count as string) || '0', 10),
+      })),
+      dailyOutput: dailyRows.map((r) => ({
+        date: (r.date as string).substring(0, 10),
+        output: parseFloat((r.output as string) || '0'),
+        scrap: parseFloat((r.scrap as string) || '0'),
+      })),
+      topItems: topItemRows.map((r) => ({
+        itemId: r.item_id as string,
+        sku: r.sku as string,
+        description: r.description as string,
+        totalOutput: parseFloat((r.total_output as string) || '0'),
+      })),
+      activeOrders: activeOrderRows.map((r) => ({
+        id: r.id as string,
+        workOrderNo: r.work_order_no as string,
+        itemSku: r.item_sku as string,
+        status: r.status as string,
+        plannedEnd: (r.planned_end as Date) || null,
+      })),
+    };
+  }
+
+  async getManufacturingReport(
+    tenantId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<{
+    summary: {
+      totalOutput: number;
+      totalScrap: number;
+      totalMaterialIssued: number;
+      yieldRate: number;
+      uniqueWorkOrders: number;
+    };
+    productionByDay: Array<{ date: string; output: number; scrap: number }>;
+    yieldByItem: Array<{
+      itemId: string;
+      sku: string;
+      description: string;
+      output: number;
+      scrap: number;
+      yieldRate: number;
+    }>;
+    materialConsumption: Array<{
+      itemId: string;
+      sku: string;
+      description: string;
+      totalConsumed: number;
+      totalReturned: number;
+      netConsumed: number;
+    }>;
+    workstationEfficiency: Array<{
+      workstationId: string;
+      name: string;
+      operationsCompleted: number;
+      avgRunTime: number;
+      totalRunTime: number;
+    }>;
+  }> {
+    const [summaryResult, productionByDayRows, yieldByItemRows, materialRows, workstationRows] =
+      await Promise.all([
+        this.queryOne<Record<string, unknown>>(
+          `SELECT
+             COALESCE(SUM(CASE WHEN entry_type = 'PRODUCTION_OUTPUT' THEN qty ELSE 0 END), 0) as total_output,
+             COALESCE(SUM(CASE WHEN entry_type = 'SCRAP' THEN ABS(qty) ELSE 0 END), 0) as total_scrap,
+             COALESCE(SUM(CASE WHEN entry_type = 'MATERIAL_ISSUE' THEN ABS(qty) ELSE 0 END), 0) as total_material_issued,
+             COUNT(DISTINCT work_order_id) as unique_work_orders
+           FROM production_ledger
+           WHERE tenant_id = $1 AND created_at >= $2 AND created_at <= $3`,
+          [tenantId, startDate, endDate],
+        ),
+        this.queryMany<Record<string, unknown>>(
+          `SELECT
+             created_at::date as date,
+             COALESCE(SUM(CASE WHEN entry_type = 'PRODUCTION_OUTPUT' THEN qty ELSE 0 END), 0) as output,
+             COALESCE(SUM(CASE WHEN entry_type = 'SCRAP' THEN ABS(qty) ELSE 0 END), 0) as scrap
+           FROM production_ledger
+           WHERE tenant_id = $1 AND created_at >= $2 AND created_at <= $3
+           GROUP BY created_at::date
+           ORDER BY date`,
+          [tenantId, startDate, endDate],
+        ),
+        this.queryMany<Record<string, unknown>>(
+          `SELECT
+             i.id as item_id, i.sku, i.description,
+             COALESCE(SUM(CASE WHEN pl.entry_type = 'PRODUCTION_OUTPUT' THEN pl.qty ELSE 0 END), 0) as output,
+             COALESCE(SUM(CASE WHEN pl.entry_type = 'SCRAP' THEN ABS(pl.qty) ELSE 0 END), 0) as scrap
+           FROM production_ledger pl
+           JOIN items i ON i.id = pl.item_id
+           WHERE pl.tenant_id = $1 AND pl.created_at >= $2 AND pl.created_at <= $3
+             AND pl.entry_type IN ('PRODUCTION_OUTPUT', 'SCRAP')
+           GROUP BY i.id, i.sku, i.description
+           ORDER BY i.sku`,
+          [tenantId, startDate, endDate],
+        ),
+        this.queryMany<Record<string, unknown>>(
+          `SELECT
+             i.id as item_id, i.sku, i.description,
+             COALESCE(SUM(CASE WHEN pl.entry_type = 'MATERIAL_ISSUE' THEN ABS(pl.qty) ELSE 0 END), 0) as total_consumed,
+             COALESCE(SUM(CASE WHEN pl.entry_type = 'MATERIAL_RETURN' THEN ABS(pl.qty) ELSE 0 END), 0) as total_returned
+           FROM production_ledger pl
+           JOIN items i ON i.id = pl.item_id
+           WHERE pl.tenant_id = $1 AND pl.created_at >= $2 AND pl.created_at <= $3
+             AND pl.entry_type IN ('MATERIAL_ISSUE', 'MATERIAL_RETURN')
+           GROUP BY i.id, i.sku, i.description
+           ORDER BY i.sku`,
+          [tenantId, startDate, endDate],
+        ),
+        this.queryMany<Record<string, unknown>>(
+          `SELECT
+             ws.id as workstation_id, ws.name,
+             COUNT(*) as operations_completed,
+             COALESCE(AVG(woo.run_time_actual), 0) as avg_run_time,
+             COALESCE(SUM(woo.run_time_actual), 0) as total_run_time
+           FROM work_order_operations woo
+           JOIN workstations ws ON ws.id = woo.workstation_id
+           WHERE woo.tenant_id = $1 AND woo.status = 'COMPLETED'
+             AND woo.actual_end >= $2 AND woo.actual_end <= $3
+           GROUP BY ws.id, ws.name
+           ORDER BY ws.name`,
+          [tenantId, startDate, endDate],
+        ),
+      ]);
+
+    const totalOutput = parseFloat((summaryResult?.total_output as string) || '0');
+    const totalScrap = parseFloat((summaryResult?.total_scrap as string) || '0');
+    const summaryYieldRate =
+      totalOutput + totalScrap > 0 ? (totalOutput / (totalOutput + totalScrap)) * 100 : 0;
+
+    return {
+      summary: {
+        totalOutput,
+        totalScrap,
+        totalMaterialIssued: parseFloat((summaryResult?.total_material_issued as string) || '0'),
+        yieldRate: summaryYieldRate,
+        uniqueWorkOrders: parseInt((summaryResult?.unique_work_orders as string) || '0', 10),
+      },
+      productionByDay: productionByDayRows.map((r) => ({
+        date: (r.date as string).substring(0, 10),
+        output: parseFloat((r.output as string) || '0'),
+        scrap: parseFloat((r.scrap as string) || '0'),
+      })),
+      yieldByItem: yieldByItemRows.map((r) => {
+        const itemOutput = parseFloat((r.output as string) || '0');
+        const itemScrap = parseFloat((r.scrap as string) || '0');
+        return {
+          itemId: r.item_id as string,
+          sku: r.sku as string,
+          description: r.description as string,
+          output: itemOutput,
+          scrap: itemScrap,
+          yieldRate: itemOutput + itemScrap > 0 ? (itemOutput / (itemOutput + itemScrap)) * 100 : 0,
+        };
+      }),
+      materialConsumption: materialRows.map((r) => {
+        const totalConsumed = parseFloat((r.total_consumed as string) || '0');
+        const totalReturned = parseFloat((r.total_returned as string) || '0');
+        return {
+          itemId: r.item_id as string,
+          sku: r.sku as string,
+          description: r.description as string,
+          totalConsumed,
+          totalReturned,
+          netConsumed: totalConsumed - totalReturned,
+        };
+      }),
+      workstationEfficiency: workstationRows.map((r) => ({
+        workstationId: r.workstation_id as string,
+        name: r.name as string,
+        operationsCompleted: parseInt((r.operations_completed as string) || '0', 10),
+        avgRunTime: parseFloat((r.avg_run_time as string) || '0'),
+        totalRunTime: parseFloat((r.total_run_time as string) || '0'),
+      })),
+    };
+  }
+
+  async traceByBatch(
+    tenantId: string,
+    batchNo: string,
+  ): Promise<{
+    workOrder: {
+      id: string;
+      workOrderNo: string;
+      batchNo: string;
+      itemSku: string;
+      itemDescription: string;
+      status: string;
+    } | null;
+    materialsUsed: Array<{
+      id: string;
+      itemId: string;
+      itemSku: string;
+      qty: number;
+      uom: string;
+      batchNo: string | null;
+      createdAt: Date;
+    }>;
+    outputProduced: Array<{
+      id: string;
+      itemId: string;
+      qty: number;
+      uom: string;
+      batchNo: string | null;
+      createdAt: Date;
+    }>;
+    scrapEntries: Array<{
+      id: string;
+      itemId: string;
+      qty: number;
+      uom: string;
+      reasonCode: string | null;
+      notes: string | null;
+      createdAt: Date;
+    }>;
+  }> {
+    const workOrderRow = await this.queryOne<Record<string, unknown>>(
+      `SELECT wo.id, wo.work_order_no, wo.batch_no, wo.status,
+              i.sku as item_sku, i.description as item_description
+       FROM work_orders wo
+       JOIN items i ON i.id = wo.item_id
+       WHERE wo.tenant_id = $1 AND wo.batch_no = $2`,
+      [tenantId, batchNo],
+    );
+
+    if (!workOrderRow) {
+      return { workOrder: null, materialsUsed: [], outputProduced: [], scrapEntries: [] };
+    }
+
+    const workOrderId = workOrderRow.id as string;
+
+    const [materialRows, outputRows, scrapRows] = await Promise.all([
+      this.queryMany<Record<string, unknown>>(
+        `SELECT pl.id, pl.item_id, i.sku as item_sku, pl.qty, pl.uom, pl.batch_no, pl.created_at
+         FROM production_ledger pl
+         JOIN items i ON i.id = pl.item_id
+         WHERE pl.tenant_id = $1 AND pl.work_order_id = $2 AND pl.entry_type = 'MATERIAL_ISSUE'
+         ORDER BY pl.created_at`,
+        [tenantId, workOrderId],
+      ),
+      this.queryMany<Record<string, unknown>>(
+        `SELECT pl.id, pl.item_id, pl.qty, pl.uom, pl.batch_no, pl.created_at
+         FROM production_ledger pl
+         WHERE pl.tenant_id = $1 AND pl.work_order_id = $2 AND pl.entry_type = 'PRODUCTION_OUTPUT'
+         ORDER BY pl.created_at`,
+        [tenantId, workOrderId],
+      ),
+      this.queryMany<Record<string, unknown>>(
+        `SELECT pl.id, pl.item_id, pl.qty, pl.uom, pl.reason_code, pl.notes, pl.created_at
+         FROM production_ledger pl
+         WHERE pl.tenant_id = $1 AND pl.work_order_id = $2 AND pl.entry_type = 'SCRAP'
+         ORDER BY pl.created_at`,
+        [tenantId, workOrderId],
+      ),
+    ]);
+
+    return {
+      workOrder: {
+        id: workOrderRow.id as string,
+        workOrderNo: workOrderRow.work_order_no as string,
+        batchNo: workOrderRow.batch_no as string,
+        itemSku: workOrderRow.item_sku as string,
+        itemDescription: workOrderRow.item_description as string,
+        status: workOrderRow.status as string,
+      },
+      materialsUsed: materialRows.map((r) => ({
+        id: r.id as string,
+        itemId: r.item_id as string,
+        itemSku: r.item_sku as string,
+        qty: parseFloat((r.qty as string) || '0'),
+        uom: r.uom as string,
+        batchNo: (r.batch_no as string) || null,
+        createdAt: r.created_at as Date,
+      })),
+      outputProduced: outputRows.map((r) => ({
+        id: r.id as string,
+        itemId: r.item_id as string,
+        qty: parseFloat((r.qty as string) || '0'),
+        uom: r.uom as string,
+        batchNo: (r.batch_no as string) || null,
+        createdAt: r.created_at as Date,
+      })),
+      scrapEntries: scrapRows.map((r) => ({
+        id: r.id as string,
+        itemId: r.item_id as string,
+        qty: parseFloat((r.qty as string) || '0'),
+        uom: r.uom as string,
+        reasonCode: (r.reason_code as string) || null,
+        notes: (r.notes as string) || null,
+        createdAt: r.created_at as Date,
+      })),
+    };
+  }
+
+  async forwardTrace(
+    tenantId: string,
+    batchNo: string,
+  ): Promise<{
+    sourceBatchNo: string;
+    workOrders: Array<{
+      id: string;
+      workOrderNo: string;
+      itemSku: string;
+      finishedBatchNo: string | null;
+      qtyConsumed: number;
+    }>;
+  }> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT pl.work_order_id as id, wo.work_order_no, i.sku as item_sku,
+              wo.batch_no as finished_batch_no, ABS(pl.qty) as qty_consumed
+       FROM production_ledger pl
+       JOIN work_orders wo ON wo.id = pl.work_order_id
+       JOIN items i ON i.id = wo.item_id
+       WHERE pl.tenant_id = $1 AND pl.batch_no = $2 AND pl.entry_type = 'MATERIAL_ISSUE'
+       ORDER BY wo.work_order_no`,
+      [tenantId, batchNo],
+    );
+
+    return {
+      sourceBatchNo: batchNo,
+      workOrders: rows.map((r) => ({
+        id: r.id as string,
+        workOrderNo: r.work_order_no as string,
+        itemSku: r.item_sku as string,
+        finishedBatchNo: (r.finished_batch_no as string) || null,
+        qtyConsumed: parseFloat((r.qty_consumed as string) || '0'),
+      })),
+    };
+  }
+
+  async backwardTrace(
+    tenantId: string,
+    batchNo: string,
+  ): Promise<{
+    finishedBatchNo: string;
+    workOrderId: string | null;
+    workOrderNo: string | null;
+    materials: Array<{
+      itemSku: string;
+      itemDescription: string;
+      batchNo: string | null;
+      qty: number;
+    }>;
+  }> {
+    const workOrderRow = await this.queryOne<Record<string, unknown>>(
+      `SELECT wo.id, wo.work_order_no
+       FROM work_orders wo
+       WHERE wo.tenant_id = $1 AND wo.batch_no = $2`,
+      [tenantId, batchNo],
+    );
+
+    if (!workOrderRow) {
+      return { finishedBatchNo: batchNo, workOrderId: null, workOrderNo: null, materials: [] };
+    }
+
+    const workOrderId = workOrderRow.id as string;
+
+    const materialRows = await this.queryMany<Record<string, unknown>>(
+      `SELECT i.sku as item_sku, i.description as item_description, pl.batch_no, pl.qty
+       FROM production_ledger pl
+       JOIN items i ON i.id = pl.item_id
+       WHERE pl.tenant_id = $1 AND pl.work_order_id = $2 AND pl.entry_type = 'MATERIAL_ISSUE'
+       ORDER BY i.sku`,
+      [tenantId, workOrderId],
+    );
+
+    return {
+      finishedBatchNo: batchNo,
+      workOrderId: workOrderRow.id as string,
+      workOrderNo: workOrderRow.work_order_no as string,
+      materials: materialRows.map((r) => ({
+        itemSku: r.item_sku as string,
+        itemDescription: r.item_description as string,
+        batchNo: (r.batch_no as string) || null,
+        qty: parseFloat((r.qty as string) || '0'),
+      })),
+    };
+  }
+
   private mapEntry(row: Record<string, unknown>): ProductionLedgerEntry {
     return {
       id: row.id as string,

@@ -7,6 +7,8 @@ import { RoutingRepository } from './repositories/routing.repository';
 import { WorkOrderRepository } from './repositories/work-order.repository';
 import { ProductionLedgerRepository } from './repositories/production-ledger.repository';
 import { ProductionDataRepository } from './repositories/production-data.repository';
+import { MrpRepository } from './repositories/mrp.repository';
+import { NonConformanceRepository } from './repositories/non-conformance.repository';
 import { WorkOrderPdfService } from './work-order-pdf.service';
 import { BomPdfService } from './bom-pdf.service';
 import { BatchSheetPdfService } from './batch-sheet-pdf.service';
@@ -25,6 +27,8 @@ import { MasterDataModule } from '../masterdata/masterdata.module';
     WorkOrderRepository,
     ProductionLedgerRepository,
     ProductionDataRepository,
+    MrpRepository,
+    NonConformanceRepository,
     WorkOrderPdfService,
     BomPdfService,
     BatchSheetPdfService,

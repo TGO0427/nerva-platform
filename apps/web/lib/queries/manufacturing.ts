@@ -14,6 +14,13 @@ import type {
   BomExplosion,
   WorkOrderChecks,
   WorkOrderProcess,
+  ManufacturingDashboardData,
+  ManufacturingReportData,
+  BatchTraceData,
+  ForwardTraceResult,
+  BackwardTraceResult,
+  MrpData,
+  NonConformance,
   PaginatedResult,
 } from '@nerva/shared';
 import type { QueryParams } from './use-query-params';
@@ -26,6 +33,11 @@ const WORK_ORDERS_KEY = 'work-orders';
 const PRODUCTION_LEDGER_KEY = 'production-ledger';
 const WO_CHECKS_KEY = 'work-order-checks';
 const WO_PROCESS_KEY = 'work-order-process';
+const MFG_DASHBOARD_KEY = 'manufacturing-dashboard';
+const MFG_REPORTS_KEY = 'manufacturing-reports';
+const TRACEABILITY_KEY = 'traceability';
+const MRP_KEY = 'mrp';
+const NON_CONFORMANCES_KEY = 'non-conformances';
 
 // ============ Workstations ============
 interface WorkstationFilters {
@@ -851,6 +863,213 @@ export function useProductionSummaryByItem(startDate?: string, endDate?: string)
         totalScrapped: number;
       }>>(`/manufacturing/production-ledger/summary/by-item?${searchParams.toString()}`);
       return response.data;
+    },
+  });
+}
+
+// ============ Manufacturing Dashboard ============
+export function useManufacturingDashboard() {
+  return useQuery({
+    queryKey: [MFG_DASHBOARD_KEY],
+    queryFn: async () => {
+      const response = await api.get<ManufacturingDashboardData>('/manufacturing/dashboard');
+      return response.data;
+    },
+    refetchInterval: 30000,
+  });
+}
+
+// ============ Manufacturing Reports ============
+export function useManufacturingReport(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: [MFG_REPORTS_KEY, startDate, endDate],
+    queryFn: async () => {
+      const response = await api.get<ManufacturingReportData>(
+        `/manufacturing/reports?startDate=${startDate}&endDate=${endDate}`
+      );
+      return response.data;
+    },
+    enabled: !!startDate && !!endDate,
+  });
+}
+
+// ============ Traceability ============
+export function useBatchTrace(batchNo: string | undefined) {
+  return useQuery({
+    queryKey: [TRACEABILITY_KEY, batchNo],
+    queryFn: async () => {
+      const response = await api.get<BatchTraceData>(`/manufacturing/traceability/${batchNo}`);
+      return response.data;
+    },
+    enabled: !!batchNo,
+  });
+}
+
+export function useForwardTrace(batchNo: string | undefined) {
+  return useQuery({
+    queryKey: [TRACEABILITY_KEY, 'forward', batchNo],
+    queryFn: async () => {
+      const response = await api.get<ForwardTraceResult>(`/manufacturing/traceability/${batchNo}/forward`);
+      return response.data;
+    },
+    enabled: !!batchNo,
+  });
+}
+
+export function useBackwardTrace(batchNo: string | undefined) {
+  return useQuery({
+    queryKey: [TRACEABILITY_KEY, 'backward', batchNo],
+    queryFn: async () => {
+      const response = await api.get<BackwardTraceResult>(`/manufacturing/traceability/${batchNo}/backward`);
+      return response.data;
+    },
+    enabled: !!batchNo,
+  });
+}
+
+// ============ MRP ============
+export function useMrpRequirements() {
+  return useQuery({
+    queryKey: [MRP_KEY],
+    queryFn: async () => {
+      const response = await api.get<MrpData>('/manufacturing/mrp');
+      return response.data;
+    },
+  });
+}
+
+// ============ Scheduling ============
+export function useRescheduleWorkOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, plannedStart, plannedEnd }: {
+      id: string;
+      plannedStart?: string;
+      plannedEnd?: string;
+    }) => {
+      const response = await api.patch<WorkOrder>(`/manufacturing/work-orders/${id}/reschedule`, {
+        plannedStart,
+        plannedEnd,
+      });
+      return response.data;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, id] });
+    },
+  });
+}
+
+// ============ Non-Conformances ============
+interface NcFilters {
+  status?: string;
+  severity?: string;
+  workOrderId?: string;
+  search?: string;
+}
+
+export function useNonConformances(params: QueryParams & NcFilters) {
+  return useQuery({
+    queryKey: [NON_CONFORMANCES_KEY, params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      searchParams.set('page', String(params.page));
+      searchParams.set('limit', String(params.limit));
+      if (params.status) searchParams.set('status', params.status);
+      if (params.severity) searchParams.set('severity', params.severity);
+      if (params.workOrderId) searchParams.set('workOrderId', params.workOrderId);
+      if (params.search) searchParams.set('search', params.search);
+
+      const response = await api.get<PaginatedResult<NonConformance>>(
+        `/manufacturing/non-conformances?${searchParams.toString()}`
+      );
+      return response.data;
+    },
+  });
+}
+
+export function useNonConformance(id: string | undefined) {
+  return useQuery({
+    queryKey: [NON_CONFORMANCES_KEY, id],
+    queryFn: async () => {
+      const response = await api.get<NonConformance>(`/manufacturing/non-conformances/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+}
+
+export function useCreateNonConformance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      workOrderId?: string;
+      itemId?: string;
+      defectType: string;
+      severity: string;
+      description: string;
+      qtyAffected?: number;
+    }) => {
+      const response = await api.post<NonConformance>('/manufacturing/non-conformances', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY] });
+    },
+  });
+}
+
+export function useUpdateNonConformance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: {
+      id: string;
+      defectType?: string;
+      severity?: string;
+      description?: string;
+      qtyAffected?: number;
+      disposition?: string;
+      correctiveAction?: string;
+      status?: string;
+    }) => {
+      const response = await api.patch<NonConformance>(`/manufacturing/non-conformances/${id}`, data);
+      return response.data;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY] });
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY, id] });
+    },
+  });
+}
+
+export function useResolveNonConformance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: {
+      id: string;
+      disposition: string;
+      correctiveAction: string;
+    }) => {
+      const response = await api.post<NonConformance>(`/manufacturing/non-conformances/${id}/resolve`, data);
+      return response.data;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY] });
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY, id] });
+    },
+  });
+}
+
+export function useCloseNonConformance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<NonConformance>(`/manufacturing/non-conformances/${id}/close`);
+      return response.data;
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY] });
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY, id] });
     },
   });
 }

@@ -815,3 +815,153 @@ export interface WorkOrderProcess {
   createdAt: string;
   updatedAt: string;
 }
+
+// Manufacturing Dashboard
+export interface ManufacturingDashboardData {
+  activeWorkOrders: number;
+  todayOutput: number;
+  yieldRate: number;
+  workstationUtilization: number;
+  statusDistribution: Array<{ status: string; count: number }>;
+  dailyOutput: Array<{ date: string; output: number; scrap: number }>;
+  topItems: Array<{ itemId: string; itemSku: string; itemDescription: string; totalOutput: number }>;
+  activeOrders: Array<{
+    id: string;
+    workOrderNo: string;
+    itemSku: string;
+    status: string;
+    qtyOrdered: number;
+    qtyCompleted: number;
+    plannedEnd: string | null;
+  }>;
+}
+
+// Manufacturing Reports
+export interface ManufacturingReportData {
+  summary: {
+    totalOutput: number;
+    totalScrap: number;
+    totalMaterialIssued: number;
+    yieldRate: number;
+    uniqueWorkOrders: number;
+  };
+  productionByDay: Array<{ date: string; output: number; scrap: number }>;
+  yieldByItem: Array<{ itemSku: string; itemDescription: string; output: number; scrap: number; yieldRate: number }>;
+  materialConsumption: Array<{ itemSku: string; itemDescription: string; totalConsumed: number; totalReturned: number; netConsumed: number }>;
+  workstationEfficiency: Array<{ workstationName: string; operationsCompleted: number; avgRunTime: number; totalRunTime: number }>;
+}
+
+// Batch Traceability
+export interface BatchTraceData {
+  workOrder: {
+    id: string;
+    workOrderNo: string;
+    batchNo: string | null;
+    itemSku: string;
+    itemDescription: string;
+    status: string;
+    qtyOrdered: number;
+    qtyCompleted: number;
+  } | null;
+  materialsUsed: Array<{
+    itemSku: string;
+    itemDescription: string;
+    batchNo: string | null;
+    qty: number;
+    createdAt: string;
+  }>;
+  outputProduced: Array<{
+    itemSku: string;
+    batchNo: string | null;
+    qty: number;
+    createdAt: string;
+  }>;
+  scrapEntries: Array<{
+    itemSku: string;
+    batchNo: string | null;
+    qty: number;
+    reasonCode: string | null;
+    createdAt: string;
+  }>;
+}
+
+export interface ForwardTraceResult {
+  sourceBatchNo: string;
+  workOrders: Array<{
+    id: string;
+    workOrderNo: string;
+    itemSku: string;
+    finishedBatchNo: string | null;
+    qtyConsumed: number;
+  }>;
+}
+
+export interface BackwardTraceResult {
+  finishedBatchNo: string;
+  workOrderId: string;
+  workOrderNo: string;
+  materials: Array<{
+    itemSku: string;
+    itemDescription: string;
+    batchNo: string | null;
+    qty: number;
+  }>;
+}
+
+// MRP
+export interface MrpData {
+  workOrderDemand: Array<{
+    workOrderId: string;
+    workOrderNo: string;
+    workOrderStatus: string;
+    itemId: string;
+    itemSku: string;
+    itemDescription: string;
+    qtyRequired: number;
+    qtyIssued: number;
+    qtyOutstanding: number;
+    availableStock: number;
+    shortage: number;
+  }>;
+  itemSummary: Array<{
+    itemId: string;
+    itemSku: string;
+    itemDescription: string;
+    totalDemand: number;
+    totalOutstanding: number;
+    availableStock: number;
+    netShortage: number;
+  }>;
+}
+
+// Non-Conformance
+export type NonConformanceStatus = 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'CLOSED';
+export type NcSeverity = 'MINOR' | 'MAJOR' | 'CRITICAL';
+export type NcDisposition = 'USE_AS_IS' | 'REWORK' | 'SCRAP' | 'RETURN_TO_SUPPLIER' | 'SORT_AND_INSPECT';
+export type NcDefectType = 'DIMENSIONAL' | 'VISUAL' | 'FUNCTIONAL' | 'MATERIAL' | 'CONTAMINATION' | 'PACKAGING' | 'LABELLING' | 'OTHER';
+
+export interface NonConformance {
+  id: string;
+  tenantId: string;
+  ncNo: string;
+  workOrderId: string | null;
+  itemId: string | null;
+  reportedBy: string;
+  defectType: NcDefectType;
+  severity: NcSeverity;
+  description: string;
+  qtyAffected: number;
+  disposition: NcDisposition | null;
+  correctiveAction: string | null;
+  status: NonConformanceStatus;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Joined fields
+  itemSku?: string;
+  itemDescription?: string;
+  workOrderNo?: string;
+  reportedByName?: string;
+  resolvedByName?: string;
+}
