@@ -199,12 +199,13 @@ export class WorkOrderRepository extends BaseRepository {
   }
 
   async generateWorkOrderNo(tenantId: string): Promise<string> {
-    const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM work_orders WHERE tenant_id = $1',
+    const result = await this.queryOne<{ max_no: string | null }>(
+      `SELECT MAX(CAST(SUBSTRING(work_order_no FROM 'WO-([0-9]+)') AS integer)) as max_no
+       FROM work_orders WHERE tenant_id = $1 AND work_order_no ~ '^WO-[0-9]+$'`,
       [tenantId],
     );
-    const count = parseInt(result?.count || '0', 10) + 1;
-    return `WO-${count.toString().padStart(6, '0')}`;
+    const next = (parseInt(result?.max_no || '0', 10) || 0) + 1;
+    return `WO-${next.toString().padStart(6, '0')}`;
   }
 
   async generateBatchNo(tenantId: string): Promise<string> {
