@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,303 +25,99 @@ const navigation: NavGroup[] = [
   {
     name: 'Overview',
     items: [
-      {
-        name: 'Dashboard',
-        href: '/dashboard',
-        icon: <HomeIcon />,
-      },
+      { name: 'Dashboard', href: '/dashboard', icon: <HomeIcon /> },
     ],
   },
   {
-    name: 'Operations',
+    name: 'Orders',
     items: [
-      {
-        name: 'Sales Orders',
-        href: '/sales',
-        icon: <ClipboardIcon />,
-        permissions: [PERMISSIONS.SALES_ORDER_READ],
-      },
-      {
-        name: 'Fulfilment',
-        href: '/fulfilment',
-        icon: <TruckIcon />,
-        permissions: [PERMISSIONS.PICK_WAVE_CREATE, PERMISSIONS.PICK_TASK_EXECUTE],
-      },
-      {
-        name: 'Packing Station',
-        href: '/fulfilment/packing',
-        icon: <PackageIcon />,
-        permissions: [PERMISSIONS.SHIPMENT_CREATE],
-      },
-      {
-        name: 'Dispatch',
-        href: '/dispatch',
-        icon: <MapIcon />,
-        permissions: [PERMISSIONS.DISPATCH_PLAN, PERMISSIONS.DISPATCH_EXECUTE],
-      },
-      {
-        name: 'Returns',
-        href: '/returns',
-        icon: <RefreshIcon />,
-        permissions: [PERMISSIONS.RMA_CREATE, PERMISSIONS.RMA_RECEIVE],
-      },
+      { name: 'Sales Orders', href: '/sales', icon: <ClipboardIcon />, permissions: [PERMISSIONS.SALES_ORDER_READ] },
+      { name: 'Returns', href: '/returns', icon: <RefreshIcon />, permissions: [PERMISSIONS.RMA_CREATE, PERMISSIONS.RMA_RECEIVE] },
+    ],
+  },
+  {
+    name: 'Fulfilment',
+    items: [
+      { name: 'Fulfilment', href: '/fulfilment', icon: <TruckIcon />, permissions: [PERMISSIONS.PICK_WAVE_CREATE, PERMISSIONS.PICK_TASK_EXECUTE] },
+      { name: 'Packing Station', href: '/fulfilment/packing', icon: <PackageIcon />, permissions: [PERMISSIONS.SHIPMENT_CREATE] },
+      { name: 'Dispatch', href: '/dispatch', icon: <MapIcon />, permissions: [PERMISSIONS.DISPATCH_PLAN, PERMISSIONS.DISPATCH_EXECUTE] },
     ],
   },
   {
     name: 'Finance',
     items: [
-      {
-        name: 'Invoices',
-        href: '/finance/invoices',
-        icon: <InvoiceIcon />,
-        permissions: [PERMISSIONS.INVOICE_READ],
-      },
-      {
-        name: 'Credit Notes',
-        href: '/returns/credit-notes',
-        icon: <CreditNoteIcon />,
-        permissions: [PERMISSIONS.CREDIT_CREATE],
-      },
+      { name: 'Invoices', href: '/finance/invoices', icon: <InvoiceIcon />, permissions: [PERMISSIONS.INVOICE_READ] },
+      { name: 'Credit Notes', href: '/returns/credit-notes', icon: <CreditNoteIcon />, permissions: [PERMISSIONS.CREDIT_CREATE] },
     ],
   },
   {
     name: 'Manufacturing',
     items: [
-      {
-        name: 'Production Dashboard',
-        href: '/manufacturing/dashboard',
-        icon: <DashboardIcon />,
-        permissions: [PERMISSIONS.PRODUCTION_VIEW_LEDGER],
-      },
-      {
-        name: 'Shop Floor',
-        href: '/manufacturing/shop-floor',
-        icon: <ShopFloorIcon />,
-        permissions: [PERMISSIONS.WORK_ORDER_VIEW],
-      },
-      {
-        name: 'Work Orders',
-        href: '/manufacturing/work-orders',
-        icon: <WorkOrderIcon />,
-        permissions: [PERMISSIONS.WORK_ORDER_VIEW],
-      },
-      {
-        name: 'Schedule',
-        href: '/manufacturing/schedule',
-        icon: <ScheduleIcon />,
-        permissions: [PERMISSIONS.WORK_ORDER_VIEW],
-      },
-      {
-        name: 'BOMs',
-        href: '/manufacturing/boms',
-        icon: <BomIcon />,
-        permissions: [PERMISSIONS.BOM_VIEW],
-      },
-      {
-        name: 'BOM Calculator',
-        href: '/manufacturing/bom-calculator',
-        icon: <CalculatorIcon />,
-        permissions: [PERMISSIONS.BOM_VIEW],
-      },
-      {
-        name: 'Routings',
-        href: '/manufacturing/routings',
-        icon: <RoutingIcon />,
-        permissions: [PERMISSIONS.ROUTING_VIEW],
-      },
-      {
-        name: 'Workstations',
-        href: '/manufacturing/workstations',
-        icon: <FactoryIcon />,
-        permissions: [PERMISSIONS.WORKSTATION_VIEW],
-      },
-      {
-        name: 'MRP',
-        href: '/manufacturing/mrp',
-        icon: <MrpIcon />,
-        permissions: [PERMISSIONS.WORK_ORDER_VIEW],
-      },
-      {
-        name: 'Quality',
-        href: '/manufacturing/quality',
-        icon: <QualityIcon />,
-        permissions: [PERMISSIONS.QUALITY_VIEW],
-      },
-      {
-        name: 'Traceability',
-        href: '/manufacturing/traceability',
-        icon: <TraceabilityIcon />,
-        permissions: [PERMISSIONS.PRODUCTION_VIEW_LEDGER],
-      },
-      {
-        name: 'Production Ledger',
-        href: '/manufacturing/ledger',
-        icon: <LedgerIcon />,
-        permissions: [PERMISSIONS.PRODUCTION_VIEW_LEDGER],
-      },
+      { name: 'Production Dashboard', href: '/manufacturing/dashboard', icon: <DashboardIcon />, permissions: [PERMISSIONS.PRODUCTION_VIEW_LEDGER] },
+      { name: 'Shop Floor', href: '/manufacturing/shop-floor', icon: <ShopFloorIcon />, permissions: [PERMISSIONS.WORK_ORDER_VIEW] },
+      { name: 'Work Orders', href: '/manufacturing/work-orders', icon: <WorkOrderIcon />, permissions: [PERMISSIONS.WORK_ORDER_VIEW] },
+      { name: 'Schedule', href: '/manufacturing/schedule', icon: <ScheduleIcon />, permissions: [PERMISSIONS.WORK_ORDER_VIEW] },
+      { name: 'MRP', href: '/manufacturing/mrp', icon: <MrpIcon />, permissions: [PERMISSIONS.WORK_ORDER_VIEW] },
+      { name: 'Quality', href: '/manufacturing/quality', icon: <QualityIcon />, permissions: [PERMISSIONS.QUALITY_VIEW] },
+      { name: 'Traceability', href: '/manufacturing/traceability', icon: <TraceabilityIcon />, permissions: [PERMISSIONS.PRODUCTION_VIEW_LEDGER] },
+      { name: 'Production Ledger', href: '/manufacturing/ledger', icon: <LedgerIcon />, permissions: [PERMISSIONS.PRODUCTION_VIEW_LEDGER] },
     ],
   },
   {
     name: 'Warehouse',
     items: [
-      {
-        name: 'Inventory',
-        href: '/inventory',
-        icon: <BoxIcon />,
-        permissions: [PERMISSIONS.INVENTORY_READ],
-      },
-      {
-        name: 'Goods Receiving',
-        href: '/inventory/grn',
-        icon: <ReceiveIcon />,
-        permissions: [PERMISSIONS.INVENTORY_READ],
-      },
-      {
-        name: 'Putaway',
-        href: '/inventory/putaway',
-        icon: <PutawayIcon />,
-        permissions: [PERMISSIONS.PUTAWAY_EXECUTE],
-      },
-      {
-        name: 'Transfers',
-        href: '/inventory/ibts',
-        icon: <TransferIcon />,
-        permissions: [PERMISSIONS.IBT_CREATE],
-      },
-      {
-        name: 'Adjustments',
-        href: '/inventory/adjustments',
-        icon: <AdjustIcon />,
-        permissions: [PERMISSIONS.INVENTORY_ADJUST],
-      },
-      {
-        name: 'Cycle Counts',
-        href: '/inventory/cycle-counts',
-        icon: <CycleCountIcon />,
-        permissions: [PERMISSIONS.CYCLE_COUNT_MANAGE],
-      },
-      {
-        name: 'Expiry Alerts',
-        href: '/inventory/expiry-alerts',
-        icon: <ClockIcon />,
-        permissions: [PERMISSIONS.INVENTORY_READ],
-      },
+      { name: 'Inventory', href: '/inventory', icon: <BoxIcon />, permissions: [PERMISSIONS.INVENTORY_READ] },
+      { name: 'Receiving', href: '/inventory/grn', icon: <ReceiveIcon />, permissions: [PERMISSIONS.INVENTORY_READ] },
+      { name: 'Putaway', href: '/inventory/putaway', icon: <PutawayIcon />, permissions: [PERMISSIONS.PUTAWAY_EXECUTE] },
+      { name: 'Transfers', href: '/inventory/ibts', icon: <TransferIcon />, permissions: [PERMISSIONS.IBT_CREATE] },
+      { name: 'Adjustments', href: '/inventory/adjustments', icon: <AdjustIcon />, permissions: [PERMISSIONS.INVENTORY_ADJUST] },
+      { name: 'Cycle Counts', href: '/inventory/cycle-counts', icon: <CycleCountIcon />, permissions: [PERMISSIONS.CYCLE_COUNT_MANAGE] },
+      { name: 'Expiry Alerts', href: '/inventory/expiry-alerts', icon: <ClockIcon />, permissions: [PERMISSIONS.INVENTORY_READ] },
     ],
   },
   {
     name: 'Procurement',
     items: [
-      {
-        name: 'Purchase Orders',
-        href: '/procurement/purchase-orders',
-        icon: <ShoppingCartIcon />,
-        permissions: [PERMISSIONS.PURCHASE_ORDER_READ],
-      },
+      { name: 'Purchase Orders', href: '/procurement/purchase-orders', icon: <ShoppingCartIcon />, permissions: [PERMISSIONS.PURCHASE_ORDER_READ] },
     ],
   },
   {
     name: 'Reports',
     items: [
-      {
-        name: 'Sales Reports',
-        href: '/reports/sales',
-        icon: <ReportIcon />,
-        permissions: [PERMISSIONS.SALES_ORDER_READ],
-      },
-      {
-        name: 'Inventory Reports',
-        href: '/reports/inventory',
-        icon: <ReportIcon />,
-        permissions: [PERMISSIONS.INVENTORY_READ],
-      },
-      {
-        name: 'Procurement Reports',
-        href: '/reports/procurement',
-        icon: <ReportIcon />,
-        permissions: [PERMISSIONS.PURCHASE_ORDER_READ],
-      },
-      {
-        name: 'Manufacturing Reports',
-        href: '/reports/manufacturing',
-        icon: <ReportIcon />,
-        permissions: [PERMISSIONS.PRODUCTION_VIEW_LEDGER],
-      },
-      {
-        name: 'Customer Analytics',
-        href: '/sales/customer-analytics',
-        icon: <ChartIcon />,
-        permissions: [PERMISSIONS.CUSTOMER_READ],
-      },
-      {
-        name: 'Supplier Analytics',
-        href: '/procurement/supplier-analytics',
-        icon: <ChartIcon />,
-        permissions: [PERMISSIONS.SUPPLIER_READ],
-      },
+      { name: 'Sales Reports', href: '/reports/sales', icon: <ReportIcon />, permissions: [PERMISSIONS.SALES_ORDER_READ] },
+      { name: 'Inventory Reports', href: '/reports/inventory', icon: <ReportIcon />, permissions: [PERMISSIONS.INVENTORY_READ] },
+      { name: 'Procurement Reports', href: '/reports/procurement', icon: <ReportIcon />, permissions: [PERMISSIONS.PURCHASE_ORDER_READ] },
+      { name: 'Manufacturing Reports', href: '/reports/manufacturing', icon: <ReportIcon />, permissions: [PERMISSIONS.PRODUCTION_VIEW_LEDGER] },
+    ],
+  },
+  {
+    name: 'Analytics',
+    items: [
+      { name: 'Customer Analytics', href: '/sales/customer-analytics', icon: <ChartIcon />, permissions: [PERMISSIONS.CUSTOMER_READ] },
+      { name: 'Supplier Analytics', href: '/procurement/supplier-analytics', icon: <ChartIcon />, permissions: [PERMISSIONS.SUPPLIER_READ] },
     ],
   },
   {
     name: 'Master Data',
     items: [
-      {
-        name: 'Items',
-        href: '/master-data/items',
-        icon: <TagIcon />,
-        permissions: [PERMISSIONS.ITEM_READ],
-      },
-      {
-        name: 'Customers',
-        href: '/master-data/customers',
-        icon: <UsersIcon />,
-        permissions: [PERMISSIONS.CUSTOMER_READ],
-      },
-      {
-        name: 'Suppliers',
-        href: '/master-data/suppliers',
-        icon: <BuildingIcon />,
-        permissions: [PERMISSIONS.SUPPLIER_READ],
-      },
-      {
-        name: 'Warehouses',
-        href: '/master-data/warehouses',
-        icon: <WarehouseIcon />,
-        permissions: [PERMISSIONS.WAREHOUSE_MANAGE],
-      },
+      { name: 'Items', href: '/master-data/items', icon: <TagIcon />, permissions: [PERMISSIONS.ITEM_READ] },
+      { name: 'BOMs', href: '/manufacturing/boms', icon: <BomIcon />, permissions: [PERMISSIONS.BOM_VIEW] },
+      { name: 'BOM Costing', href: '/manufacturing/bom-calculator', icon: <CalculatorIcon />, permissions: [PERMISSIONS.BOM_VIEW] },
+      { name: 'Routings', href: '/manufacturing/routings', icon: <RoutingIcon />, permissions: [PERMISSIONS.ROUTING_VIEW] },
+      { name: 'Workstations', href: '/manufacturing/workstations', icon: <FactoryIcon />, permissions: [PERMISSIONS.WORKSTATION_VIEW] },
+      { name: 'Customers', href: '/master-data/customers', icon: <UsersIcon />, permissions: [PERMISSIONS.CUSTOMER_READ] },
+      { name: 'Suppliers', href: '/master-data/suppliers', icon: <BuildingIcon />, permissions: [PERMISSIONS.SUPPLIER_READ] },
+      { name: 'Warehouses', href: '/master-data/warehouses', icon: <WarehouseIcon />, permissions: [PERMISSIONS.WAREHOUSE_MANAGE] },
     ],
   },
   {
     name: 'Administration',
     items: [
-      {
-        name: 'Users',
-        href: '/settings/users',
-        icon: <UserIcon />,
-        permissions: [PERMISSIONS.USER_MANAGE],
-      },
-      {
-        name: 'Integrations',
-        href: '/settings/integrations',
-        icon: <LinkIcon />,
-        permissions: [PERMISSIONS.INTEGRATION_MANAGE],
-      },
-      {
-        name: 'Audit Log',
-        href: '/settings/audit-log',
-        icon: <AuditIcon />,
-        permissions: [PERMISSIONS.AUDIT_READ],
-      },
-      {
-        name: 'Company Profile',
-        href: '/settings/company',
-        icon: <BuildingOfficeIcon />,
-        permissions: [PERMISSIONS.TENANT_MANAGE],
-      },
-      {
-        name: 'Settings',
-        href: '/settings',
-        icon: <CogIcon />,
-        permissions: [PERMISSIONS.TENANT_MANAGE, PERMISSIONS.SITE_MANAGE],
-      },
+      { name: 'Users', href: '/settings/users', icon: <UserIcon />, permissions: [PERMISSIONS.USER_MANAGE] },
+      { name: 'Integrations', href: '/settings/integrations', icon: <LinkIcon />, permissions: [PERMISSIONS.INTEGRATION_MANAGE] },
+      { name: 'Audit Log', href: '/settings/audit-log', icon: <AuditIcon />, permissions: [PERMISSIONS.AUDIT_READ] },
+      { name: 'Company Profile', href: '/settings/company', icon: <BuildingOfficeIcon />, permissions: [PERMISSIONS.TENANT_MANAGE] },
+      { name: 'Settings', href: '/settings', icon: <CogIcon />, permissions: [PERMISSIONS.TENANT_MANAGE, PERMISSIONS.SITE_MANAGE] },
     ],
   },
 ];
@@ -415,6 +212,147 @@ function SidebarContent({
   isItemVisible,
   isGroupVisible,
 }: SidebarContentProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const hydrated = useRef(false);
+
+  // Hydrate from localStorage
+  useEffect(() => {
+    try {
+      const cg = localStorage.getItem('nerva:nav-collapsed');
+      if (cg) setCollapsedGroups(JSON.parse(cg));
+    } catch {}
+    try {
+      const fv = localStorage.getItem('nerva:nav-favorites');
+      if (fv) setFavorites(JSON.parse(fv));
+    } catch {}
+    hydrated.current = true;
+  }, []);
+
+  // Persist collapsed groups
+  useEffect(() => {
+    if (hydrated.current) {
+      localStorage.setItem('nerva:nav-collapsed', JSON.stringify(collapsedGroups));
+    }
+  }, [collapsedGroups]);
+
+  // Persist favorites
+  useEffect(() => {
+    if (hydrated.current) {
+      localStorage.setItem('nerva:nav-favorites', JSON.stringify(favorites));
+    }
+  }, [favorites]);
+
+  // Keyboard shortcut: / to focus search
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === '/' && !collapsed) {
+        const t = e.target as HTMLElement;
+        if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable) return;
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [collapsed]);
+
+  const toggleGroup = useCallback((name: string) => {
+    setCollapsedGroups(prev => ({ ...prev, [name]: !prev[name] }));
+  }, []);
+
+  const toggleFavorite = useCallback((href: string) => {
+    setFavorites(prev =>
+      prev.includes(href) ? prev.filter(h => h !== href) : [...prev, href]
+    );
+  }, []);
+
+  // All visible items with group name (for search + favorites lookup)
+  const allItems = navigation
+    .filter(isGroupVisible)
+    .flatMap(group =>
+      group.items.filter(isItemVisible).map(item => ({ ...item, groupName: group.name }))
+    );
+
+  const isSearching = searchQuery.length > 0;
+
+  const searchResults = isSearching
+    ? allItems.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : [];
+
+  const favoriteItems = favorites
+    .map(href => allItems.find(item => item.href === href))
+    .filter((item): item is NavItem & { groupName: string } => item != null);
+
+  const visibleGroups = navigation.filter(isGroupVisible);
+
+  // Shared nav item renderer
+  const renderNavItem = (
+    item: NavItem,
+    opts: { useLayoutId?: boolean; keyPrefix?: string; showStar?: boolean }
+  ) => {
+    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+    const isFav = favorites.includes(item.href);
+    const key = opts.keyPrefix ? `${opts.keyPrefix}-${item.href}` : item.href;
+
+    return (
+      <div key={key} className="relative group/nav">
+        <Link
+          href={item.href}
+          onClick={onClose}
+          title={collapsed ? item.name : undefined}
+          className="relative block"
+        >
+          <div
+            className={cn(
+              'relative flex items-center text-sm font-medium rounded-md transition-colors',
+              collapsed ? 'justify-center px-2 py-2.5' : cn('px-3 py-2', opts.showStar && 'pr-7'),
+              isActive
+                ? 'text-white'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            )}
+          >
+            {isActive && opts.useLayoutId ? (
+              <motion.div
+                layoutId="navActiveIndicator"
+                className="absolute inset-0 bg-white/[0.08] rounded-md border-l-[3px] border-emerald-400"
+                transition={springs.snappy}
+              />
+            ) : isActive ? (
+              <div className="absolute inset-0 bg-white/[0.08] rounded-md border-l-[3px] border-emerald-400" />
+            ) : null}
+            <span className={cn(
+              'relative h-5 w-5 shrink-0',
+              isActive && 'text-emerald-400',
+              !collapsed && 'mr-3'
+            )}>
+              {item.icon}
+            </span>
+            {!collapsed && (
+              <span className="relative whitespace-nowrap">{item.name}</span>
+            )}
+          </div>
+        </Link>
+        {!collapsed && opts.showStar && (
+          <button
+            onClick={() => toggleFavorite(item.href)}
+            className={cn(
+              'absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded transition-opacity z-10',
+              isFav
+                ? 'opacity-100 text-amber-400 hover:text-amber-300'
+                : 'opacity-0 group-hover/nav:opacity-100 text-slate-500 hover:text-slate-300'
+            )}
+            title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {isFav ? <StarFilledIcon className="h-3.5 w-3.5" /> : <StarIcon className="h-3.5 w-3.5" />}
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
@@ -429,63 +367,148 @@ function SidebarContent({
         </Link>
       </div>
 
+      {/* Search input */}
+      {!collapsed && (
+        <div className="px-3 pt-3 pb-1">
+          <div className="relative">
+            <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search… ( / )"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') {
+                  setSearchQuery('');
+                  searchInputRef.current?.blur();
+                }
+              }}
+              className="w-full rounded-md bg-white/5 py-1.5 pl-8 pr-3 text-sm text-slate-300 placeholder:text-slate-600 outline-none focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-colors"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className={cn(
-        'flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-5',
-        collapsed ? 'px-2' : 'px-3'
+        'flex-1 overflow-y-auto overflow-x-hidden py-4',
+        collapsed ? 'px-2 space-y-2' : 'px-3'
       )}>
-        {navigation.filter(isGroupVisible).map((group) => (
-          <div key={group.name}>
-            {!collapsed && (
-              <h3 className="px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                {group.name}
-              </h3>
+        {isSearching ? (
+          /* Search results — flat list with group labels */
+          <div className="space-y-0.5">
+            {searchResults.length === 0 && (
+              <p className="px-3 py-4 text-sm text-slate-600 text-center">No results</p>
             )}
-            {collapsed && <div className="border-t border-white/10 mb-2 mx-1" />}
-            <div className="space-y-0.5">
-              {group.items.filter(isItemVisible).map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={onClose}
-                    title={collapsed ? item.name : undefined}
-                    className="relative block"
+            {searchResults.map(item => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => { setSearchQuery(''); onClose?.(); }}
+                  className="relative block"
+                >
+                  <div
+                    className={cn(
+                      'relative flex items-center text-sm font-medium rounded-md transition-colors px-3 py-2',
+                      isActive
+                        ? 'text-white'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    )}
                   >
-                    <div
-                      className={cn(
-                        'relative flex items-center text-sm font-medium rounded-md transition-colors',
-                        collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2',
-                        isActive
-                          ? 'text-white'
-                          : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    {isActive && (
+                      <div className="absolute inset-0 bg-white/[0.08] rounded-md border-l-[3px] border-emerald-400" />
+                    )}
+                    <span className={cn('relative h-5 w-5 shrink-0 mr-3', isActive && 'text-emerald-400')}>
+                      {item.icon}
+                    </span>
+                    <span className="relative whitespace-nowrap flex-1">{item.name}</span>
+                    <span className="relative text-[10px] text-slate-600 ml-2">{item.groupName}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <>
+            {/* Favorites section */}
+            {!collapsed && favoriteItems.length > 0 && (
+              <div className="mb-2">
+                <h3 className="px-3 text-[11px] font-semibold text-amber-500/70 uppercase tracking-wider mb-1.5">
+                  Favorites
+                </h3>
+                <div className="space-y-0.5">
+                  {favoriteItems.map(item =>
+                    renderNavItem(item, { useLayoutId: false, keyPrefix: 'fav', showStar: true })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Nav groups */}
+            {visibleGroups.map((group, groupIndex) => {
+              const isOverview = group.name === 'Overview';
+              const isGroupCollapsed = collapsedGroups[group.name] ?? false;
+              const showDivider = !collapsed && (groupIndex > 0 || favoriteItems.length > 0);
+              const visibleItems = group.items.filter(isItemVisible);
+
+              return (
+                <div key={group.name} className={cn(!collapsed && groupIndex > 0 && 'mt-2')}>
+                  {/* Group header */}
+                  {collapsed ? (
+                    <div className="border-t border-white/10 mb-2 mx-1" />
+                  ) : (
+                    <>
+                      {showDivider && <div className="border-t border-white/5 mx-1 mb-1.5" />}
+                      {isOverview ? (
+                        <h3 className="px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                          {group.name}
+                        </h3>
+                      ) : (
+                        <button
+                          onClick={() => toggleGroup(group.name)}
+                          className="flex items-center justify-between w-full px-3 py-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wider hover:text-slate-400 transition-colors mb-0.5"
+                        >
+                          <span>{group.name}</span>
+                          <ChevronDownIcon
+                            className={cn(
+                              'h-3 w-3 transition-transform duration-200',
+                              isGroupCollapsed && 'rotate-180'
+                            )}
+                          />
+                        </button>
                       )}
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="navActiveIndicator"
-                          className="absolute inset-0 bg-white/[0.08] rounded-md border-l-[3px] border-emerald-400"
-                          transition={springs.snappy}
-                        />
-                      )}
-                      <span className={cn(
-                        'relative h-5 w-5 shrink-0',
-                        isActive && 'text-emerald-400',
-                        !collapsed && 'mr-3'
-                      )}>
-                        {item.icon}
-                      </span>
-                      {!collapsed && (
-                        <span className="relative whitespace-nowrap">{item.name}</span>
+                    </>
+                  )}
+
+                  {/* Group items */}
+                  {isOverview || collapsed ? (
+                    <div className="space-y-0.5">
+                      {visibleItems.map(item =>
+                        renderNavItem(item, { useLayoutId: true, showStar: !collapsed })
                       )}
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+                  ) : (
+                    <div
+                      className="grid transition-[grid-template-rows] duration-200 ease-in-out"
+                      style={{ gridTemplateRows: isGroupCollapsed ? '0fr' : '1fr' }}
+                    >
+                      <div className="overflow-hidden min-h-0">
+                        <div className="space-y-0.5">
+                          {visibleItems.map(item =>
+                            renderNavItem(item, { useLayoutId: true, showStar: true })
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* Collapse toggle button (desktop only) */}
@@ -513,6 +536,8 @@ function SidebarContent({
   );
 }
 
+// ── Icon Components ─────────────────────────────────────────────────────────
+
 // Chevron icons for collapse toggle
 function ChevronLeftIcon() {
   return (
@@ -526,6 +551,41 @@ function ChevronRightIcon() {
   return (
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+    </svg>
+  );
+}
+
+// Chevron for collapsible group headers
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+    </svg>
+  );
+}
+
+// Search icon for sidebar search input
+function SearchIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+    </svg>
+  );
+}
+
+// Star icons for favorites
+function StarIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+    </svg>
+  );
+}
+
+function StarFilledIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
     </svg>
   );
 }
@@ -798,7 +858,7 @@ function BuildingOfficeIcon() {
   );
 }
 
-// New manufacturing icons
+// Manufacturing icons
 function DashboardIcon() {
   return (
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
