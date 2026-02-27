@@ -750,6 +750,13 @@ export class ManufacturingController {
   }
 
   // ============ Traceability ============
+  @Get('traceability/recent')
+  @RequirePermissions('production.view_ledger')
+  @ApiOperation({ summary: 'Get recent batch numbers' })
+  async getRecentBatches(@TenantId() tenantId: string) {
+    return this.service.getRecentBatches(tenantId);
+  }
+
   @Get('traceability/:batchNo')
   @RequirePermissions('production.view_ledger')
   @ApiOperation({ summary: 'Trace batch/lot' })

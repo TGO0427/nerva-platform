@@ -7,13 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { useBatchTrace, useForwardTrace, useBackwardTrace } from '@/lib/queries';
+import { useBatchTrace, useForwardTrace, useBackwardTrace, useRecentBatches } from '@/lib/queries';
 
 export default function BatchTraceabilityPage() {
   const [batchInput, setBatchInput] = useState('');
   const [searchedBatch, setSearchedBatch] = useState<string | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<'forward' | 'backward'>('forward');
 
+  const { data: recentBatches } = useRecentBatches();
   const { data: trace, isLoading: traceLoading } = useBatchTrace(searchedBatch);
   const { data: forwardTrace, isLoading: forwardLoading } = useForwardTrace(searchedBatch);
   const { data: backwardTrace, isLoading: backwardLoading } = useBackwardTrace(searchedBatch);
@@ -65,14 +66,65 @@ export default function BatchTraceabilityPage() {
         </div>
       )}
 
-      {/* No search yet */}
+      {/* No search yet — show recent batches */}
       {!searchedBatch && !isLoading && (
-        <div className="text-center py-16">
-          <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-            <TraceIcon />
-          </div>
-          <p className="text-slate-500 text-sm">Enter a batch number above to trace its production history.</p>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Batches</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentBatches && recentBatches.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Batch#</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">WO#</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Product</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
+                      <th className="px-4 py-2"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {recentBatches.map((b) => (
+                      <tr key={b.batchNo} className="hover:bg-slate-50">
+                        <td className="px-4 py-2 text-sm font-medium text-slate-800">{b.batchNo}</td>
+                        <td className="px-4 py-2 text-sm text-slate-600">{b.workOrderNo}</td>
+                        <td className="px-4 py-2 text-sm text-slate-600">{b.itemSku}</td>
+                        <td className="px-4 py-2 text-sm">
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                            style={{
+                              backgroundColor: `${STATUS_COLORS[b.status] || '#94a3b8'}20`,
+                              color: STATUS_COLORS[b.status] || '#94a3b8',
+                            }}
+                          >
+                            {b.status.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          <button
+                            onClick={() => { setBatchInput(b.batchNo); setSearchedBatch(b.batchNo); }}
+                            className="text-xs text-primary-600 hover:underline font-medium"
+                          >
+                            Trace
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                  <TraceIcon />
+                </div>
+                <p className="text-slate-500 text-sm">No batches available. Enter a batch number above to trace.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Results */}

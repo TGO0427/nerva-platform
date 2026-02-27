@@ -990,6 +990,10 @@ export class ManufacturingService {
     return this.productionLedgerRepo.backwardTrace(tenantId, batchNo);
   }
 
+  async getRecentBatches(tenantId: string) {
+    return this.productionLedgerRepo.getRecentBatches(tenantId);
+  }
+
   // ============ MRP ============
   async getMrpRequirements(tenantId: string) {
     return this.mrpRepo.calculateRequirements(tenantId);

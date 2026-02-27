@@ -271,8 +271,8 @@ export class ProductionLedgerRepository extends BaseRepository {
     workstationUtilization: number;
     statusDistribution: Array<{ status: string; count: number }>;
     dailyOutput: Array<{ date: string; output: number; scrap: number }>;
-    topItems: Array<{ itemId: string; sku: string; description: string; totalOutput: number }>;
-    activeOrders: Array<{ id: string; workOrderNo: string; itemSku: string; status: string; plannedEnd: Date | null }>;
+    topItems: Array<{ itemId: string; itemSku: string; itemDescription: string; totalOutput: number }>;
+    activeOrders: Array<{ id: string; workOrderNo: string; itemSku: string; status: string; qtyOrdered: number; qtyCompleted: number; plannedEnd: Date | null }>;
   }> {
     const [
       activeWoResult,
@@ -341,7 +341,8 @@ export class ProductionLedgerRepository extends BaseRepository {
         [tenantId],
       ),
       this.queryMany<Record<string, unknown>>(
-        `SELECT wo.id, wo.work_order_no, i.sku as item_sku, wo.status, wo.planned_end
+        `SELECT wo.id, wo.work_order_no, i.sku as item_sku, wo.status,
+                wo.qty_ordered, wo.qty_completed, wo.planned_end
          FROM work_orders wo
          JOIN items i ON i.id = wo.item_id
          WHERE wo.tenant_id = $1 AND wo.status IN ('RELEASED', 'IN_PROGRESS')
@@ -375,8 +376,8 @@ export class ProductionLedgerRepository extends BaseRepository {
       })),
       topItems: topItemRows.map((r) => ({
         itemId: r.item_id as string,
-        sku: r.sku as string,
-        description: r.description as string,
+        itemSku: r.sku as string,
+        itemDescription: r.description as string,
         totalOutput: parseFloat((r.total_output as string) || '0'),
       })),
       activeOrders: activeOrderRows.map((r) => ({
@@ -384,6 +385,8 @@ export class ProductionLedgerRepository extends BaseRepository {
         workOrderNo: r.work_order_no as string,
         itemSku: r.item_sku as string,
         status: r.status as string,
+        qtyOrdered: parseFloat((r.qty_ordered as string) || '0'),
+        qtyCompleted: parseFloat((r.qty_completed as string) || '0'),
         plannedEnd: (r.planned_end as Date) || null,
       })),
     };
@@ -554,36 +557,33 @@ export class ProductionLedgerRepository extends BaseRepository {
       itemSku: string;
       itemDescription: string;
       status: string;
+      qtyOrdered: number;
+      qtyCompleted: number;
     } | null;
     materialsUsed: Array<{
-      id: string;
-      itemId: string;
       itemSku: string;
-      qty: number;
-      uom: string;
+      itemDescription: string;
       batchNo: string | null;
+      qty: number;
       createdAt: Date;
     }>;
     outputProduced: Array<{
-      id: string;
-      itemId: string;
-      qty: number;
-      uom: string;
+      itemSku: string;
       batchNo: string | null;
+      qty: number;
       createdAt: Date;
     }>;
     scrapEntries: Array<{
-      id: string;
-      itemId: string;
+      itemSku: string;
+      batchNo: string | null;
       qty: number;
-      uom: string;
       reasonCode: string | null;
-      notes: string | null;
       createdAt: Date;
     }>;
   }> {
     const workOrderRow = await this.queryOne<Record<string, unknown>>(
       `SELECT wo.id, wo.work_order_no, wo.batch_no, wo.status,
+              wo.qty_ordered, wo.qty_completed,
               i.sku as item_sku, i.description as item_description
        FROM work_orders wo
        JOIN items i ON i.id = wo.item_id
@@ -599,7 +599,8 @@ export class ProductionLedgerRepository extends BaseRepository {
 
     const [materialRows, outputRows, scrapRows] = await Promise.all([
       this.queryMany<Record<string, unknown>>(
-        `SELECT pl.id, pl.item_id, i.sku as item_sku, pl.qty, pl.uom, pl.batch_no, pl.created_at
+        `SELECT pl.id, pl.item_id, i.sku as item_sku, i.description as item_description,
+                pl.qty, pl.uom, pl.batch_no, pl.created_at
          FROM production_ledger pl
          JOIN items i ON i.id = pl.item_id
          WHERE pl.tenant_id = $1 AND pl.work_order_id = $2 AND pl.entry_type = 'MATERIAL_ISSUE'
@@ -607,15 +608,18 @@ export class ProductionLedgerRepository extends BaseRepository {
         [tenantId, workOrderId],
       ),
       this.queryMany<Record<string, unknown>>(
-        `SELECT pl.id, pl.item_id, pl.qty, pl.uom, pl.batch_no, pl.created_at
+        `SELECT pl.id, pl.item_id, i.sku as item_sku, pl.qty, pl.uom, pl.batch_no, pl.created_at
          FROM production_ledger pl
+         JOIN items i ON i.id = pl.item_id
          WHERE pl.tenant_id = $1 AND pl.work_order_id = $2 AND pl.entry_type = 'PRODUCTION_OUTPUT'
          ORDER BY pl.created_at`,
         [tenantId, workOrderId],
       ),
       this.queryMany<Record<string, unknown>>(
-        `SELECT pl.id, pl.item_id, pl.qty, pl.uom, pl.reason_code, pl.notes, pl.created_at
+        `SELECT pl.id, pl.item_id, i.sku as item_sku, pl.qty, pl.uom, pl.batch_no,
+                pl.reason_code, pl.notes, pl.created_at
          FROM production_ledger pl
+         JOIN items i ON i.id = pl.item_id
          WHERE pl.tenant_id = $1 AND pl.work_order_id = $2 AND pl.entry_type = 'SCRAP'
          ORDER BY pl.created_at`,
         [tenantId, workOrderId],
@@ -630,31 +634,27 @@ export class ProductionLedgerRepository extends BaseRepository {
         itemSku: workOrderRow.item_sku as string,
         itemDescription: workOrderRow.item_description as string,
         status: workOrderRow.status as string,
+        qtyOrdered: parseFloat((workOrderRow.qty_ordered as string) || '0'),
+        qtyCompleted: parseFloat((workOrderRow.qty_completed as string) || '0'),
       },
       materialsUsed: materialRows.map((r) => ({
-        id: r.id as string,
-        itemId: r.item_id as string,
         itemSku: r.item_sku as string,
-        qty: parseFloat((r.qty as string) || '0'),
-        uom: r.uom as string,
+        itemDescription: r.item_description as string,
         batchNo: (r.batch_no as string) || null,
+        qty: parseFloat((r.qty as string) || '0'),
         createdAt: r.created_at as Date,
       })),
       outputProduced: outputRows.map((r) => ({
-        id: r.id as string,
-        itemId: r.item_id as string,
-        qty: parseFloat((r.qty as string) || '0'),
-        uom: r.uom as string,
+        itemSku: r.item_sku as string,
         batchNo: (r.batch_no as string) || null,
+        qty: parseFloat((r.qty as string) || '0'),
         createdAt: r.created_at as Date,
       })),
       scrapEntries: scrapRows.map((r) => ({
-        id: r.id as string,
-        itemId: r.item_id as string,
+        itemSku: r.item_sku as string,
+        batchNo: (r.batch_no as string) || null,
         qty: parseFloat((r.qty as string) || '0'),
-        uom: r.uom as string,
         reasonCode: (r.reason_code as string) || null,
-        notes: (r.notes as string) || null,
         createdAt: r.created_at as Date,
       })),
     };
@@ -743,6 +743,31 @@ export class ProductionLedgerRepository extends BaseRepository {
         qty: parseFloat((r.qty as string) || '0'),
       })),
     };
+  }
+
+  async getRecentBatches(tenantId: string): Promise<
+    Array<{
+      batchNo: string;
+      workOrderNo: string;
+      itemSku: string;
+      status: string;
+    }>
+  > {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT wo.batch_no, wo.work_order_no, i.sku as item_sku, wo.status
+       FROM work_orders wo
+       JOIN items i ON i.id = wo.item_id
+       WHERE wo.tenant_id = $1 AND wo.batch_no IS NOT NULL
+       ORDER BY wo.created_at DESC
+       LIMIT 20`,
+      [tenantId],
+    );
+    return rows.map((r) => ({
+      batchNo: r.batch_no as string,
+      workOrderNo: r.work_order_no as string,
+      itemSku: r.item_sku as string,
+      status: r.status as string,
+    }));
   }
 
   private mapEntry(row: Record<string, unknown>): ProductionLedgerEntry {

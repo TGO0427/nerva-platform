@@ -894,6 +894,21 @@ export function useManufacturingReport(startDate: string, endDate: string) {
 }
 
 // ============ Traceability ============
+export function useRecentBatches() {
+  return useQuery({
+    queryKey: [TRACEABILITY_KEY, 'recent'],
+    queryFn: async () => {
+      const response = await api.get<Array<{
+        batchNo: string;
+        workOrderNo: string;
+        itemSku: string;
+        status: string;
+      }>>('/manufacturing/traceability/recent');
+      return response.data;
+    },
+  });
+}
+
 export function useBatchTrace(batchNo: string | undefined) {
   return useQuery({
     queryKey: [TRACEABILITY_KEY, batchNo],
