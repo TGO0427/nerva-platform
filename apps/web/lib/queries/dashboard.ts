@@ -23,6 +23,8 @@ export interface DashboardStats {
   returnsRate: number;
   podCompletionPercent: number;
   avgDispatchCycleHours: number;
+  pendingGrns: number;
+  openCycleCounts: number;
 }
 
 export interface RecentActivity {

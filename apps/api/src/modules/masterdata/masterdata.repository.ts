@@ -2352,7 +2352,12 @@ export class MasterDataRepository extends BaseRepository {
          FROM dispatch_trips
          WHERE tenant_id = $1 AND status = 'COMPLETE'
          AND actual_end IS NOT NULL
-         AND created_at >= NOW() - INTERVAL '30 days') as avg_dispatch_cycle_hours
+         AND created_at >= NOW() - INTERVAL '30 days') as avg_dispatch_cycle_hours,
+
+        -- Pending GRNs (open or partial)
+        (SELECT COUNT(*) FROM grns WHERE tenant_id = $1 AND status IN ('OPEN', 'PARTIAL')) as pending_grns,
+        -- Open Cycle Counts
+        (SELECT COUNT(*) FROM cycle_counts WHERE tenant_id = $1 AND status IN ('OPEN', 'IN_PROGRESS')) as open_cycle_counts
       `,
       [tenantId],
     );
@@ -2392,6 +2397,8 @@ export class MasterDataRepository extends BaseRepository {
       returnsRate,
       podCompletionPercent,
       avgDispatchCycleHours,
+      pendingGrns: parseInt(result?.pending_grns as string || '0', 10),
+      openCycleCounts: parseInt(result?.open_cycle_counts as string || '0', 10),
     };
   }
 
@@ -3060,6 +3067,8 @@ export interface DashboardStats {
   returnsRate: number;
   podCompletionPercent: number;
   avgDispatchCycleHours: number;
+  pendingGrns: number;
+  openCycleCounts: number;
 }
 
 export interface RecentActivity {

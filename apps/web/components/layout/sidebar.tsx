@@ -6,8 +6,9 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth, hasAnyPermission } from '@/lib/auth';
-import { PERMISSIONS } from '@nerva/shared';
+import { PERMISSIONS, type CurrentUser } from '@nerva/shared';
 import { springs } from '@/lib/motion';
+import { useDashboardStats } from '@/lib/queries/dashboard';
 
 interface NavItem {
   name: string;
@@ -21,6 +22,19 @@ interface NavGroup {
   items: NavItem[];
 }
 
+// Step 3a: Synonym map for command-palette search
+const searchSynonyms: Record<string, string[]> = {
+  '/inventory/grn': ['GRN', 'goods received', 'receive'],
+  '/inventory/ibts': ['IBT', 'inter-branch'],
+  '/inventory/cycle-counts': ['stock take', 'physical count'],
+  '/inventory/adjustments': ['stock adjustment'],
+  '/manufacturing/quality': ['NCR', 'non-conformance', 'holds'],
+  '/procurement/purchase-orders': ['PO'],
+  '/fulfilment': ['pick', 'wave'],
+  '/fulfilment/packing': ['pack'],
+};
+
+// Step 4: Merged Reports + Analytics (renamed to Insights), Step 6: Administration removed
 const navigation: NavGroup[] = [
   {
     name: 'Overview',
@@ -88,13 +102,8 @@ const navigation: NavGroup[] = [
       { name: 'Inventory Reports', href: '/reports/inventory', icon: <ReportIcon />, permissions: [PERMISSIONS.INVENTORY_READ] },
       { name: 'Procurement Reports', href: '/reports/procurement', icon: <ReportIcon />, permissions: [PERMISSIONS.PURCHASE_ORDER_READ] },
       { name: 'Manufacturing Reports', href: '/reports/manufacturing', icon: <ReportIcon />, permissions: [PERMISSIONS.PRODUCTION_VIEW_LEDGER] },
-    ],
-  },
-  {
-    name: 'Analytics',
-    items: [
-      { name: 'Customer Analytics', href: '/sales/customer-analytics', icon: <ChartIcon />, permissions: [PERMISSIONS.CUSTOMER_READ] },
-      { name: 'Supplier Analytics', href: '/procurement/supplier-analytics', icon: <ChartIcon />, permissions: [PERMISSIONS.SUPPLIER_READ] },
+      { name: 'Customer Insights', href: '/sales/customer-analytics', icon: <ChartIcon />, permissions: [PERMISSIONS.CUSTOMER_READ] },
+      { name: 'Supplier Insights', href: '/procurement/supplier-analytics', icon: <ChartIcon />, permissions: [PERMISSIONS.SUPPLIER_READ] },
     ],
   },
   {
@@ -110,16 +119,21 @@ const navigation: NavGroup[] = [
       { name: 'Warehouses', href: '/master-data/warehouses', icon: <WarehouseIcon />, permissions: [PERMISSIONS.WAREHOUSE_MANAGE] },
     ],
   },
-  {
-    name: 'Administration',
-    items: [
-      { name: 'Users', href: '/settings/users', icon: <UserIcon />, permissions: [PERMISSIONS.USER_MANAGE] },
-      { name: 'Integrations', href: '/settings/integrations', icon: <LinkIcon />, permissions: [PERMISSIONS.INTEGRATION_MANAGE] },
-      { name: 'Audit Log', href: '/settings/audit-log', icon: <AuditIcon />, permissions: [PERMISSIONS.AUDIT_READ] },
-      { name: 'Company Profile', href: '/settings/company', icon: <BuildingOfficeIcon />, permissions: [PERMISSIONS.TENANT_MANAGE] },
-      { name: 'Settings', href: '/settings', icon: <CogIcon />, permissions: [PERMISSIONS.TENANT_MANAGE, PERMISSIONS.SITE_MANAGE] },
-    ],
-  },
+];
+
+// Step 2: Quick action definitions
+const quickActions = [
+  { label: '+ Order', href: '/sales/new', permissions: [PERMISSIONS.SALES_ORDER_CREATE] },
+  { label: '+ Receive', href: '/inventory/grn', permissions: [PERMISSIONS.GRN_CREATE] },
+  { label: '+ Transfer', href: '/inventory/ibts', permissions: [PERMISSIONS.IBT_CREATE] },
+];
+
+// Step 3b: Search action entries (virtual items for search only)
+const searchActions: (NavItem & { groupName: string })[] = [
+  { name: 'Create Sales Order', href: '/sales/new', icon: <ClipboardIcon />, permissions: [PERMISSIONS.SALES_ORDER_CREATE], groupName: 'Action' },
+  { name: 'Create Transfer', href: '/inventory/ibts', icon: <TransferIcon />, permissions: [PERMISSIONS.IBT_CREATE], groupName: 'Action' },
+  { name: 'Create Purchase Order', href: '/procurement/purchase-orders', icon: <ShoppingCartIcon />, permissions: [PERMISSIONS.PURCHASE_ORDER_WRITE], groupName: 'Action' },
+  { name: 'Create Work Order', href: '/manufacturing/work-orders', icon: <WorkOrderIcon />, permissions: [PERMISSIONS.WORK_ORDER_CREATE], groupName: 'Action' },
 ];
 
 interface SidebarProps {
@@ -132,6 +146,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { data: stats } = useDashboardStats();
 
   const isItemVisible = (item: NavItem) => {
     if (!item.permissions || item.permissions.length === 0) return true;
@@ -141,6 +156,24 @@ export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
   const isGroupVisible = (group: NavGroup) => {
     return group.items.some(isItemVisible);
   };
+
+  // Step 5c: Badge counts from dashboard stats
+  const badgeCounts: Record<string, number> = {};
+  if (stats) {
+    if (stats.pendingGrns > 0) badgeCounts['/inventory/grn'] = stats.pendingGrns;
+    if (stats.openCycleCounts > 0) badgeCounts['/inventory/cycle-counts'] = stats.openCycleCounts;
+    if (stats.openNCRs > 0) badgeCounts['/manufacturing/quality'] = stats.openNCRs;
+    if (stats.expiringItems > 0) badgeCounts['/inventory/expiry-alerts'] = stats.expiringItems;
+  }
+
+  // Check if user has any admin permission (for settings gear visibility)
+  const hasAdminAccess = hasAnyPermission(user, [
+    PERMISSIONS.USER_MANAGE,
+    PERMISSIONS.INTEGRATION_MANAGE,
+    PERMISSIONS.AUDIT_READ,
+    PERMISSIONS.TENANT_MANAGE,
+    PERMISSIONS.SITE_MANAGE,
+  ]);
 
   return (
     <>
@@ -171,6 +204,9 @@ export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
           navigation={navigation}
           isItemVisible={isItemVisible}
           isGroupVisible={isGroupVisible}
+          badgeCounts={badgeCounts}
+          user={user}
+          hasAdminAccess={hasAdminAccess}
         />
       </aside>
 
@@ -187,6 +223,9 @@ export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
           navigation={navigation}
           isItemVisible={isItemVisible}
           isGroupVisible={isGroupVisible}
+          badgeCounts={badgeCounts}
+          user={user}
+          hasAdminAccess={hasAdminAccess}
         />
       </motion.aside>
     </>
@@ -201,6 +240,9 @@ interface SidebarContentProps {
   navigation: NavGroup[];
   isItemVisible: (item: NavItem) => boolean;
   isGroupVisible: (group: NavGroup) => boolean;
+  badgeCounts: Record<string, number>;
+  user: CurrentUser | null;
+  hasAdminAccess: boolean;
 }
 
 function SidebarContent({
@@ -211,6 +253,9 @@ function SidebarContent({
   navigation,
   isItemVisible,
   isGroupVisible,
+  badgeCounts,
+  user,
+  hasAdminAccess,
 }: SidebarContentProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -276,19 +321,51 @@ function SidebarContent({
       group.items.filter(isItemVisible).map(item => ({ ...item, groupName: group.name }))
     );
 
+  const visibleGroups = navigation.filter(isGroupVisible);
+
+  // Step 1: Find the active group (the one containing the current page)
+  const activeGroup = visibleGroups.find(g =>
+    g.items.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
+  );
+
   const isSearching = searchQuery.length > 0;
 
+  // Step 3c: Enhanced search with synonyms + action entries
   const searchResults = isSearching
-    ? allItems.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? (() => {
+        const q = searchQuery.toLowerCase();
+        // Filter nav items by name, group name, or synonyms
+        const navMatches = allItems.filter(item => {
+          if (item.name.toLowerCase().includes(q)) return true;
+          if (item.groupName.toLowerCase().includes(q)) return true;
+          const synonyms = searchSynonyms[item.href];
+          if (synonyms && synonyms.some(s => s.toLowerCase().includes(q))) return true;
+          return false;
+        });
+        // Filter action entries
+        const actionMatches = searchActions
+          .filter(action => {
+            if (!action.permissions || action.permissions.length === 0) return true;
+            return hasAnyPermission(user, action.permissions);
+          })
+          .filter(action => action.name.toLowerCase().includes(q));
+        // Deduplicate by href (nav items take priority)
+        const seenHrefs = new Set(navMatches.map(i => i.href));
+        const uniqueActions = actionMatches.filter(a => !seenHrefs.has(a.href));
+        return [...navMatches, ...uniqueActions];
+      })()
     : [];
 
   const favoriteItems = favorites
     .map(href => allItems.find(item => item.href === href))
     .filter((item): item is NavItem & { groupName: string } => item != null);
 
-  const visibleGroups = navigation.filter(isGroupVisible);
+  // Step 2: Visible quick actions (permission-gated)
+  const visibleQuickActions = quickActions.filter(action =>
+    hasAnyPermission(user, action.permissions)
+  );
 
-  // Shared nav item renderer
+  // Shared nav item renderer (Step 5d: badge support added)
   const renderNavItem = (
     item: NavItem,
     opts: { useLayoutId?: boolean; keyPrefix?: string; showStar?: boolean }
@@ -296,6 +373,7 @@ function SidebarContent({
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
     const isFav = favorites.includes(item.href);
     const key = opts.keyPrefix ? `${opts.keyPrefix}-${item.href}` : item.href;
+    const badgeCount = badgeCounts[item.href];
 
     return (
       <div key={key} className="relative group/nav">
@@ -329,9 +407,21 @@ function SidebarContent({
               !collapsed && 'mr-3'
             )}>
               {item.icon}
+              {/* Collapsed badge: tiny red dot */}
+              {collapsed && badgeCount != null && badgeCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+              )}
             </span>
             {!collapsed && (
-              <span className="relative whitespace-nowrap">{item.name}</span>
+              <>
+                <span className="relative whitespace-nowrap">{item.name}</span>
+                {/* Expanded badge: pill counter */}
+                {badgeCount != null && badgeCount > 0 && (
+                  <span className="ml-auto relative text-[10px] bg-red-500/20 text-red-400 rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                    {badgeCount > 99 ? '99+' : badgeCount}
+                  </span>
+                )}
+              </>
             )}
           </div>
         </Link>
@@ -390,13 +480,29 @@ function SidebarContent({
         </div>
       )}
 
+      {/* Step 2: Quick actions row */}
+      {!collapsed && visibleQuickActions.length > 0 && !isSearching && (
+        <div className="px-3 pt-1.5 pb-0.5 flex gap-1.5">
+          {visibleQuickActions.map(action => (
+            <Link
+              key={action.href}
+              href={action.href}
+              onClick={onClose}
+              className="bg-white/5 hover:bg-white/10 text-slate-400 text-[11px] rounded-md px-2 py-1 transition-colors"
+            >
+              {action.label}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className={cn(
         'flex-1 overflow-y-auto overflow-x-hidden py-4',
         collapsed ? 'px-2 space-y-2' : 'px-3'
       )}>
         {isSearching ? (
-          /* Search results — flat list with group labels */
+          /* Search results — flat list with group/action labels */
           <div className="space-y-0.5">
             {searchResults.length === 0 && (
               <p className="px-3 py-4 text-sm text-slate-600 text-center">No results</p>
@@ -425,7 +531,14 @@ function SidebarContent({
                       {item.icon}
                     </span>
                     <span className="relative whitespace-nowrap flex-1">{item.name}</span>
-                    <span className="relative text-[10px] text-slate-600 ml-2">{item.groupName}</span>
+                    <span className={cn(
+                      'relative text-[10px] ml-2',
+                      item.groupName === 'Action'
+                        ? 'text-emerald-500/70 bg-emerald-500/10 rounded px-1.5 py-0.5'
+                        : 'text-slate-600'
+                    )}>
+                      {item.groupName}
+                    </span>
                   </div>
                 </Link>
               );
@@ -450,7 +563,10 @@ function SidebarContent({
             {/* Nav groups */}
             {visibleGroups.map((group, groupIndex) => {
               const isOverview = group.name === 'Overview';
-              const isGroupCollapsed = collapsedGroups[group.name] ?? false;
+              // Step 1: Auto-expand active section — never collapse the group the user is currently in
+              const isGroupCollapsed = group.name === activeGroup?.name
+                ? false
+                : (collapsedGroups[group.name] ?? false);
               const showDivider = !collapsed && (groupIndex > 0 || favoriteItems.length > 0);
               const visibleItems = group.items.filter(isItemVisible);
 
@@ -511,27 +627,75 @@ function SidebarContent({
         )}
       </nav>
 
-      {/* Collapse toggle button (desktop only) */}
-      {onToggleCollapse && (
-        <div className={cn(
-          'border-t border-white/10 p-2',
-          collapsed ? 'flex justify-center' : 'px-3'
-        )}>
-          <button
-            onClick={onToggleCollapse}
-            className={cn(
-              'flex items-center text-sm font-medium text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors',
-              collapsed ? 'p-2 justify-center' : 'px-3 py-2 w-full'
-            )}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            <span className={cn('h-5 w-5 shrink-0', !collapsed && 'mr-3')}>
-              {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-            </span>
-            {!collapsed && <span>Collapse</span>}
-          </button>
+      {/* Step 7: Bottom utility area */}
+      {onToggleCollapse ? (
+        <div className="border-t border-white/10 p-2">
+          {collapsed ? (
+            /* Collapsed: user initial + settings gear + collapse chevron */
+            <div className="flex flex-col items-center gap-1.5">
+              {user && (
+                <div
+                  className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-semibold text-slate-300 uppercase"
+                  title={user.displayName}
+                >
+                  {user.displayName.charAt(0)}
+                </div>
+              )}
+              {hasAdminAccess && (
+                <Link
+                  href="/settings"
+                  className="p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
+                  title="Settings"
+                >
+                  <span className="h-5 w-5 block"><CogIcon /></span>
+                </Link>
+              )}
+              <button
+                onClick={onToggleCollapse}
+                className="p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
+                title="Expand sidebar"
+              >
+                <span className="h-5 w-5 block"><ChevronRightIcon /></span>
+              </button>
+            </div>
+          ) : (
+            /* Expanded: user info + action row */
+            <div className="px-1">
+              {user && (
+                <div className="px-2 py-1.5 mb-1.5">
+                  <div className="text-sm font-semibold text-slate-300 truncate">{user.displayName}</div>
+                  <div className="text-[11px] text-slate-500 capitalize">{user.userType}</div>
+                </div>
+              )}
+              <div className="flex items-center gap-1">
+                {hasAdminAccess && (
+                  <Link
+                    href="/settings"
+                    className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
+                    title="Settings"
+                  >
+                    <span className="h-5 w-5 block"><CogIcon /></span>
+                  </Link>
+                )}
+                <Link
+                  href="/help"
+                  className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
+                  title="Help"
+                >
+                  <span className="h-5 w-5 block"><HelpCircleIcon /></span>
+                </Link>
+                <button
+                  onClick={onToggleCollapse}
+                  className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors ml-auto"
+                  title="Collapse sidebar"
+                >
+                  <span className="h-5 w-5 block"><ChevronLeftIcon /></span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -569,6 +733,15 @@ function SearchIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+    </svg>
+  );
+}
+
+// Help circle icon for utility area
+function HelpCircleIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
     </svg>
   );
 }
