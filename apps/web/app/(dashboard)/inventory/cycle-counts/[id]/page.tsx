@@ -12,6 +12,8 @@ import { Select } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { downloadPdf } from '@/lib/utils/export';
+import { DownloadIcon } from '@/components/ui/export-actions';
 import {
   useCycleCount,
   useCycleCountLines,
@@ -247,6 +249,26 @@ export default function CycleCountDetailPage() {
           )}
         </div>
         <div className="flex gap-2">
+          {totalLines > 0 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => downloadPdf(`/inventory/cycle-counts/${id}/count-sheet-pdf`, `CountSheet-${cc.countNo}.pdf`)}
+            >
+              <DownloadIcon />
+              Count Sheet
+            </Button>
+          )}
+          {(isPendingApproval || cc.status === 'CLOSED') && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => downloadPdf(`/inventory/cycle-counts/${id}/variance-report-pdf`, `VarianceReport-${cc.countNo}.pdf`)}
+            >
+              <DownloadIcon />
+              Variance Report
+            </Button>
+          )}
           {isOpen && (
             <>
               <Button

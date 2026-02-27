@@ -7,9 +7,13 @@ import {
   Body,
   Query,
   UseGuards,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Response } from 'express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
 import { InventoryService } from './inventory.service';
+import { CycleCountPdfService } from './cycle-count-pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -23,7 +27,10 @@ import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('inventory/cycle-counts')
 export class CycleCountController {
-  constructor(private readonly service: InventoryService) {}
+  constructor(
+    private readonly service: InventoryService,
+    private readonly pdfService: CycleCountPdfService,
+  ) {}
 
   @Get()
   @RequirePermissions('cycle_count.manage')
@@ -172,5 +179,41 @@ export class CycleCountController {
   async deleteCycleCount(@Param('id', UuidValidationPipe) id: string) {
     await this.service.deleteCycleCount(id);
     return { success: true };
+  }
+
+  @Get(':id/count-sheet-pdf')
+  @RequirePermissions('cycle_count.manage')
+  @ApiOperation({ summary: 'Download count sheet PDF' })
+  @ApiProduces('application/pdf')
+  async downloadCountSheet(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.pdfService.generateCountSheet(id, tenantId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="count-sheet-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
+  }
+
+  @Get(':id/variance-report-pdf')
+  @RequirePermissions('cycle_count.manage')
+  @ApiOperation({ summary: 'Download variance report PDF' })
+  @ApiProduces('application/pdf')
+  async downloadVarianceReport(
+    @Param('id', UuidValidationPipe) id: string,
+    @TenantId() tenantId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.pdfService.generateVarianceReport(id, tenantId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="variance-report-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    return new StreamableFile(pdfBuffer);
   }
 }

@@ -14,12 +14,13 @@ import { CycleCountRepository } from './cycle-count.repository';
 import { PutawayRepository } from './putaway.repository';
 import { IbtRepository } from './ibt.repository';
 import { GrnPdfService } from './grn-pdf.service';
+import { CycleCountPdfService } from './cycle-count-pdf.service';
 import { MasterDataModule } from '../masterdata/masterdata.module';
 
 @Module({
   imports: [forwardRef(() => MasterDataModule)],
   controllers: [InventoryController, GrnController, AdjustmentsController, CycleCountController, PutawayController, IbtController],
-  providers: [InventoryService, IbtService, StockLedgerService, InventoryRepository, BatchRepository, CycleCountRepository, PutawayRepository, IbtRepository, GrnPdfService],
+  providers: [InventoryService, IbtService, StockLedgerService, InventoryRepository, BatchRepository, CycleCountRepository, PutawayRepository, IbtRepository, GrnPdfService, CycleCountPdfService],
   exports: [InventoryService, StockLedgerService, BatchRepository],
 })
 export class InventoryModule {}
