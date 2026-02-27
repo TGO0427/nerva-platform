@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { InventoryRepository, Grn, GrnLine, Adjustment } from './inventory.repository';
+import { CycleCountRepository } from './cycle-count.repository';
+import { PutawayRepository } from './putaway.repository';
 import { StockLedgerService } from './stock-ledger.service';
 import { BatchRepository } from './batch.repository';
 import { MasterDataService } from '../masterdata/masterdata.service';
@@ -74,11 +76,47 @@ describe('InventoryService', () => {
             updateGrnStatus: jest.fn(),
             addGrnLine: jest.fn(),
             getGrnLines: jest.fn(),
+            countGrnsByTenant: jest.fn(),
             generateAdjustmentNo: jest.fn(),
             createAdjustment: jest.fn(),
             findAdjustmentById: jest.fn(),
             findAdjustmentsByTenant: jest.fn(),
+            countAdjustmentsByTenant: jest.fn(),
             approveAdjustment: jest.fn(),
+          },
+        },
+        {
+          provide: CycleCountRepository,
+          useValue: {
+            generateCountNo: jest.fn(),
+            create: jest.fn(),
+            findById: jest.fn(),
+            findByTenant: jest.fn(),
+            addLine: jest.fn(),
+            addLines: jest.fn(),
+            getLines: jest.fn(),
+            getLine: jest.fn(),
+            updateLineCount: jest.fn(),
+            deleteLine: jest.fn(),
+            updateStatus: jest.fn(),
+            deleteCycleCount: jest.fn(),
+            getLinesWithVariance: jest.fn(),
+            getCountedLineCount: jest.fn(),
+            getTotalLineCount: jest.fn(),
+          },
+        },
+        {
+          provide: PutawayRepository,
+          useValue: {
+            createMany: jest.fn(),
+            findByGrn: jest.fn(),
+            findByTenant: jest.fn(),
+            countByTenant: jest.fn(),
+            findById: jest.fn(),
+            assignTask: jest.fn(),
+            completeTask: jest.fn(),
+            cancelTask: jest.fn(),
+            countPendingByGrn: jest.fn(),
           },
         },
         {
@@ -88,7 +126,10 @@ describe('InventoryService', () => {
             getStockOnHand: jest.fn(),
             getStockInBin: jest.fn(),
             getLedgerHistory: jest.fn(),
+            countLedgerHistory: jest.fn(),
             getTotalAvailable: jest.fn(),
+            getStockSnapshots: jest.fn(),
+            getStockInWarehouse: jest.fn(),
           },
         },
         {
@@ -211,13 +252,13 @@ describe('InventoryService', () => {
   describe('listGrns', () => {
     it('should return paginated GRNs', async () => {
       repository.findGrnsByTenant.mockResolvedValue([mockGrn]);
+      repository.countGrnsByTenant.mockResolvedValue(1);
 
       const result = await service.listGrns('tenant-123', undefined, 1, 10);
 
-      expect(result).toEqual({
-        data: [mockGrn],
-        meta: { page: 1, limit: 10 },
-      });
+      expect(result.data).toEqual([mockGrn]);
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.limit).toBe(10);
       expect(repository.findGrnsByTenant).toHaveBeenCalledWith(
         'tenant-123',
         undefined,
@@ -228,6 +269,7 @@ describe('InventoryService', () => {
 
     it('should filter by status', async () => {
       repository.findGrnsByTenant.mockResolvedValue([]);
+      repository.countGrnsByTenant.mockResolvedValue(0);
 
       await service.listGrns('tenant-123', 'COMPLETE', 1, 10);
 
@@ -241,6 +283,7 @@ describe('InventoryService', () => {
 
     it('should calculate correct offset for pagination', async () => {
       repository.findGrnsByTenant.mockResolvedValue([]);
+      repository.countGrnsByTenant.mockResolvedValue(0);
 
       await service.listGrns('tenant-123', undefined, 3, 20);
 
@@ -387,7 +430,7 @@ describe('InventoryService', () => {
 
       await expect(service.completeGrn('grn-123')).rejects.toThrow(BadRequestException);
       await expect(service.completeGrn('grn-123')).rejects.toThrow(
-        'GRN must be in RECEIVED status to complete',
+        'GRN must be in RECEIVED or PUTAWAY_PENDING status to complete',
       );
     });
   });
@@ -535,13 +578,13 @@ describe('InventoryService', () => {
     it('should return paginated ledger history', async () => {
       const mockHistory = [{ id: 'entry-1', qtyChange: 10 }];
       stockLedger.getLedgerHistory.mockResolvedValue(mockHistory as any);
+      stockLedger.countLedgerHistory.mockResolvedValue(1);
 
       const result = await service.getLedgerHistory('tenant-123', 'item-123', 1, 20);
 
-      expect(result).toEqual({
-        data: mockHistory,
-        meta: { page: 1, limit: 20 },
-      });
+      expect(result.data).toEqual(mockHistory);
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.limit).toBe(20);
       expect(stockLedger.getLedgerHistory).toHaveBeenCalledWith(
         'tenant-123',
         'item-123',

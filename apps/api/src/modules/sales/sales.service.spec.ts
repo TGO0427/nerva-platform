@@ -57,6 +57,7 @@ describe('SalesService', () => {
             createOrder: jest.fn(),
             findOrderById: jest.fn(),
             findOrdersByTenant: jest.fn(),
+            countOrdersByTenant: jest.fn(),
             updateOrderStatus: jest.fn(),
             addOrderLine: jest.fn(),
             getOrderLines: jest.fn(),
@@ -187,7 +188,7 @@ describe('SalesService', () => {
       const result = await service.getOrderWithLines('order-123');
 
       expect(result).toEqual({
-        order: mockOrder,
+        ...mockOrder,
         lines: [mockOrderLine],
       });
     });
@@ -196,13 +197,13 @@ describe('SalesService', () => {
   describe('listOrders', () => {
     it('should return paginated orders', async () => {
       repository.findOrdersByTenant.mockResolvedValue([mockOrder]);
+      repository.countOrdersByTenant.mockResolvedValue(1);
 
       const result = await service.listOrders('tenant-123', {}, 1, 10);
 
-      expect(result).toEqual({
-        data: [mockOrder],
-        meta: { page: 1, limit: 10 },
-      });
+      expect(result.data).toEqual([mockOrder]);
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.limit).toBe(10);
       expect(repository.findOrdersByTenant).toHaveBeenCalledWith(
         'tenant-123',
         {},
@@ -213,6 +214,7 @@ describe('SalesService', () => {
 
     it('should pass filters to repository', async () => {
       repository.findOrdersByTenant.mockResolvedValue([]);
+      repository.countOrdersByTenant.mockResolvedValue(0);
 
       await service.listOrders('tenant-123', { status: 'CONFIRMED', customerId: 'cust-1' }, 1, 10);
 
