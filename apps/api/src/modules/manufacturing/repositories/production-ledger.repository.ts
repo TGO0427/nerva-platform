@@ -370,7 +370,7 @@ export class ProductionLedgerRepository extends BaseRepository {
         count: parseInt((r.count as string) || '0', 10),
       })),
       dailyOutput: dailyRows.map((r) => ({
-        date: (r.date as string).substring(0, 10),
+        date: r.date instanceof Date ? r.date.toISOString().substring(0, 10) : String(r.date).substring(0, 10),
         output: parseFloat((r.output as string) || '0'),
         scrap: parseFloat((r.scrap as string) || '0'),
       })),
@@ -508,7 +508,7 @@ export class ProductionLedgerRepository extends BaseRepository {
         uniqueWorkOrders: parseInt((summaryResult?.unique_work_orders as string) || '0', 10),
       },
       productionByDay: productionByDayRows.map((r) => ({
-        date: (r.date as string).substring(0, 10),
+        date: r.date instanceof Date ? r.date.toISOString().substring(0, 10) : String(r.date).substring(0, 10),
         output: parseFloat((r.output as string) || '0'),
         scrap: parseFloat((r.scrap as string) || '0'),
       })),
