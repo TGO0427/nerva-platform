@@ -30,6 +30,7 @@ export class CycleCountPdfService {
     const lines = await this.repository.getLines(cycleCountId);
     const profile = await this.tenantProfile.getProfile(tenantId);
     const warehouseName = await this.getWarehouseName(cc.warehouseId);
+    const batchMap = await this.getBatchNumbers(cycleCountId);
 
     const doc = createPdfDocument();
     const bufferPromise = pdfToBuffer(doc);
@@ -59,21 +60,23 @@ export class CycleCountPdfService {
     // Table columns — omit System Qty if blind
     const columns: TableColumn[] = [
       { key: 'rowNum', header: '#', width: 30, align: 'center' },
-      { key: 'bin', header: 'Bin', width: 80 },
-      { key: 'sku', header: 'SKU', width: 80 },
-      { key: 'description', header: 'Description', width: 175 },
+      { key: 'bin', header: 'Bin', width: 70 },
+      { key: 'sku', header: 'SKU', width: 70 },
+      { key: 'description', header: 'Description', width: 130 },
+      { key: 'batchNo', header: 'Batch #', width: 70 },
     ];
     if (!cc.isBlind) {
-      columns.push({ key: 'systemQty', header: 'System Qty', width: 65, align: 'right' });
+      columns.push({ key: 'systemQty', header: 'System Qty', width: 60, align: 'right' });
     }
-    columns.push({ key: 'countedQty', header: 'Counted Qty', width: 65, align: 'right' });
-    columns.push({ key: 'notes', header: 'Notes', width: cc.isBlind ? 85 : 20 });
+    columns.push({ key: 'countedQty', header: 'Counted Qty', width: 60, align: 'right' });
+    columns.push({ key: 'notes', header: 'Notes', width: cc.isBlind ? 85 : 25 });
 
     const rows = lines.map((line, i) => ({
       rowNum: String(i + 1),
       bin: line.binCode || '-',
       sku: line.itemSku || '-',
-      description: (line.itemDescription || '-').substring(0, 35),
+      description: (line.itemDescription || '-').substring(0, 28),
+      batchNo: batchMap.get(`${line.binId}:${line.itemId}`) || '-',
       systemQty: String(line.systemQty),
       countedQty: '',
       notes: '',
@@ -167,5 +170,21 @@ export class CycleCountPdfService {
       [warehouseId],
     );
     return result.rows[0]?.name || null;
+  }
+
+  private async getBatchNumbers(cycleCountId: string): Promise<Map<string, string>> {
+    const result = await this.pool.query(
+      `SELECT ccl.bin_id, ccl.item_id, string_agg(DISTINCT ss.batch_no, ', ' ORDER BY ss.batch_no) as batches
+       FROM cycle_count_lines ccl
+       JOIN stock_snapshot ss ON ss.bin_id = ccl.bin_id AND ss.item_id = ccl.item_id AND ss.tenant_id = ccl.tenant_id
+       WHERE ccl.cycle_count_id = $1 AND ss.batch_no != '' AND ss.qty_on_hand > 0
+       GROUP BY ccl.bin_id, ccl.item_id`,
+      [cycleCountId],
+    );
+    const map = new Map<string, string>();
+    for (const row of result.rows) {
+      map.set(`${row.bin_id}:${row.item_id}`, row.batches);
+    }
+    return map;
   }
 }
