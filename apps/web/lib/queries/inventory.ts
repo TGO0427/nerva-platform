@@ -542,7 +542,7 @@ export function useCreateCycleCount() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { warehouseId: string }) => {
+    mutationFn: async (data: { warehouseId: string; isBlind?: boolean }) => {
       const response = await api.post<CycleCountSummary>('/inventory/cycle-counts', data);
       return response.data;
     },
@@ -577,6 +577,22 @@ export function useAddCycleCountLinesFromBin(cycleCountId: string) {
       const response = await api.post(
         `/inventory/cycle-counts/${cycleCountId}/lines/from-bin`,
         data
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CYCLE_COUNT_KEY, cycleCountId, 'lines'] });
+    },
+  });
+}
+
+export function useAddCycleCountLinesFromWarehouse(cycleCountId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.post<{ count: number }>(
+        `/inventory/cycle-counts/${cycleCountId}/lines/from-warehouse`
       );
       return response.data;
     },

@@ -270,6 +270,38 @@ export class StockLedgerService {
   }
 
   /**
+   * Get stock in a specific warehouse (all bins)
+   */
+  async getStockInWarehouse(tenantId: string, warehouseId: string): Promise<StockOnHand[]> {
+    const result = await this.pool.query<{
+      item_id: string;
+      bin_id: string;
+      batch_no: string | null;
+      expiry_date: Date | null;
+      qty_on_hand: string;
+      qty_reserved: string;
+      qty_available: string;
+    }>(
+      `SELECT ss.item_id, ss.bin_id, ss.batch_no, ss.expiry_date, ss.qty_on_hand, ss.qty_reserved, ss.qty_available
+       FROM stock_snapshot ss
+       JOIN bins b ON b.id = ss.bin_id
+       WHERE ss.tenant_id = $1 AND b.warehouse_id = $2 AND ss.qty_on_hand != 0
+       ORDER BY b.code, ss.item_id, ss.expiry_date ASC NULLS LAST`,
+      [tenantId, warehouseId],
+    );
+
+    return result.rows.map((row) => ({
+      itemId: row.item_id,
+      binId: row.bin_id,
+      batchNo: row.batch_no,
+      expiryDate: row.expiry_date,
+      qtyOnHand: parseFloat(row.qty_on_hand),
+      qtyReserved: parseFloat(row.qty_reserved),
+      qtyAvailable: parseFloat(row.qty_available),
+    }));
+  }
+
+  /**
    * Get total available qty for an item (across all bins)
    */
   async getTotalAvailable(tenantId: string, itemId: string): Promise<number> {

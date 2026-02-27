@@ -40,6 +40,7 @@ export default function CycleCountsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newWarehouseId, setNewWarehouseId] = useState('');
+  const [newIsBlind, setNewIsBlind] = useState(false);
 
   const { data, isLoading } = useCycleCounts({ ...params, status: statusFilter || undefined });
   const { data: warehouses } = useWarehouses();
@@ -49,9 +50,10 @@ export default function CycleCountsPage() {
     e.preventDefault();
     if (!newWarehouseId) return;
     try {
-      const cc = await createCycleCount.mutateAsync({ warehouseId: newWarehouseId });
+      const cc = await createCycleCount.mutateAsync({ warehouseId: newWarehouseId, isBlind: newIsBlind });
       setShowCreateForm(false);
       setNewWarehouseId('');
+      setNewIsBlind(false);
       addToast('Cycle count created', 'success');
       router.push(`/inventory/cycle-counts/${cc.id}`);
     } catch (error) {
@@ -128,20 +130,29 @@ export default function CycleCountsPage() {
             <CardTitle>Create Cycle Count</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreate} className="flex items-end gap-4">
-              <div className="flex-1">
-                <Select
-                  label="Warehouse"
-                  value={newWarehouseId}
-                  onChange={(e) => setNewWarehouseId(e.target.value)}
-                  options={warehouses?.map(w => ({ value: w.id, label: w.name })) || []}
-                  placeholder="Select warehouse"
-                  required
+            <form onSubmit={handleCreate} className="space-y-4">
+              <Select
+                label="Warehouse"
+                value={newWarehouseId}
+                onChange={(e) => setNewWarehouseId(e.target.value)}
+                options={warehouses?.map(w => ({ value: w.id, label: w.name })) || []}
+                placeholder="Select warehouse"
+                required
+              />
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={newIsBlind}
+                  onChange={(e) => setNewIsBlind(e.target.checked)}
+                  className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                 />
+                Blind count (hide system quantities during counting)
+              </label>
+              <div className="flex justify-end">
+                <Button type="submit" disabled={createCycleCount.isPending}>
+                  {createCycleCount.isPending ? 'Creating...' : 'Create & Open'}
+                </Button>
               </div>
-              <Button type="submit" disabled={createCycleCount.isPending}>
-                {createCycleCount.isPending ? 'Creating...' : 'Create & Open'}
-              </Button>
             </form>
           </CardContent>
         </Card>

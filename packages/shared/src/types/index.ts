@@ -323,6 +323,7 @@ export interface CycleCount {
   closedAt: string | null;
   createdBy: string | null;
   approvedBy: string | null;
+  isBlind: boolean;
   createdAt: string;
   updatedAt: string;
 }

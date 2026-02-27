@@ -50,11 +50,12 @@ export class CycleCountController {
   async create(
     @TenantId() tenantId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: { warehouseId: string },
+    @Body() data: { warehouseId: string; isBlind?: boolean },
   ) {
     return this.service.createCycleCount({
       tenantId,
       warehouseId: data.warehouseId,
+      isBlind: data.isBlind,
       createdBy: user.id,
     });
   }
@@ -86,6 +87,16 @@ export class CycleCountController {
     @Body() data: { binId: string },
   ) {
     return this.service.addCycleCountLinesFromBin(id, { tenantId, binId: data.binId });
+  }
+
+  @Post(':id/lines/from-warehouse')
+  @RequirePermissions('cycle_count.manage')
+  @ApiOperation({ summary: 'Add all items from warehouse to cycle count' })
+  async addLinesFromWarehouse(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+  ) {
+    return this.service.addCycleCountLinesFromWarehouse(id, tenantId);
   }
 
   @Delete(':id/lines/:lineId')

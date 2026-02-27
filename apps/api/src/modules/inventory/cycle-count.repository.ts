@@ -11,6 +11,7 @@ export interface CycleCount {
   closedAt: Date | null;
   createdBy: string | null;
   approvedBy: string | null;
+  isBlind: boolean;
   createdAt: Date;
   updatedAt: Date;
   warehouseName?: string;
@@ -43,12 +44,13 @@ export class CycleCountRepository extends BaseRepository {
   }
 
   async generateCountNo(tenantId: string): Promise<string> {
-    const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM cycle_counts WHERE tenant_id = $1',
+    const result = await this.queryOne<{ max_num: string | null }>(
+      `SELECT MAX(CAST(SUBSTRING(count_no FROM 4) AS integer)) as max_num
+       FROM cycle_counts WHERE tenant_id = $1 AND count_no ~ '^CC-[0-9]+$'`,
       [tenantId],
     );
-    const count = parseInt(result?.count || '0', 10) + 1;
-    return `CC-${count.toString().padStart(6, '0')}`;
+    const next = (parseInt(result?.max_num || '0', 10) || 0) + 1;
+    return `CC-${next.toString().padStart(6, '0')}`;
   }
 
   async create(data: {
@@ -56,12 +58,13 @@ export class CycleCountRepository extends BaseRepository {
     warehouseId: string;
     countNo: string;
     createdBy?: string;
+    isBlind?: boolean;
   }): Promise<CycleCount> {
     const row = await this.queryOne<Record<string, unknown>>(
-      `INSERT INTO cycle_counts (tenant_id, warehouse_id, count_no, created_by)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO cycle_counts (tenant_id, warehouse_id, count_no, created_by, is_blind)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [data.tenantId, data.warehouseId, data.countNo, data.createdBy || null],
+      [data.tenantId, data.warehouseId, data.countNo, data.createdBy || null, data.isBlind ?? false],
     );
     return this.mapCycleCount(row!);
   }
@@ -244,6 +247,7 @@ export class CycleCountRepository extends BaseRepository {
       closedAt: row.closed_at as Date | null,
       createdBy: row.created_by as string | null,
       approvedBy: row.approved_by as string | null,
+      isBlind: row.is_blind as boolean,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,
       warehouseName: row.warehouse_name as string | undefined,

@@ -341,6 +341,7 @@ export class InventoryService {
     tenantId: string;
     warehouseId: string;
     createdBy?: string;
+    isBlind?: boolean;
   }): Promise<CycleCountEntity> {
     await this.masterDataService.getWarehouse(data.warehouseId);
     const countNo = await this.cycleCountRepo.generateCountNo(data.tenantId);
@@ -406,6 +407,32 @@ export class InventoryService {
       tenantId: data.tenantId,
       cycleCountId,
       binId: data.binId,
+      itemId: s.itemId,
+      systemQty: s.qtyOnHand,
+    }));
+
+    const count = await this.cycleCountRepo.addLines(lines);
+    return { count };
+  }
+
+  async addCycleCountLinesFromWarehouse(
+    cycleCountId: string,
+    tenantId: string,
+  ): Promise<{ count: number }> {
+    const cc = await this.getCycleCount(cycleCountId);
+    if (cc.status !== 'OPEN') {
+      throw new BadRequestException('Can only add lines to OPEN cycle counts');
+    }
+
+    const stock = await this.stockLedger.getStockInWarehouse(tenantId, cc.warehouseId);
+    if (stock.length === 0) {
+      throw new BadRequestException('No stock found in this warehouse');
+    }
+
+    const lines = stock.map((s) => ({
+      tenantId,
+      cycleCountId,
+      binId: s.binId,
       itemId: s.itemId,
       systemQty: s.qtyOnHand,
     }));

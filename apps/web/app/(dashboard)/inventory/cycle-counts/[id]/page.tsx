@@ -17,6 +17,7 @@ import {
   useCycleCountLines,
   useAddCycleCountLine,
   useAddCycleCountLinesFromBin,
+  useAddCycleCountLinesFromWarehouse,
   useRemoveCycleCountLine,
   useStartCycleCount,
   useRecordCount,
@@ -51,6 +52,7 @@ export default function CycleCountDetailPage() {
 
   const addLine = useAddCycleCountLine(id);
   const addFromBin = useAddCycleCountLinesFromBin(id);
+  const addFromWarehouse = useAddCycleCountLinesFromWarehouse(id);
   const removeLine = useRemoveCycleCountLine(id);
   const startCount = useStartCycleCount();
   const recordCount = useRecordCount(id);
@@ -75,6 +77,8 @@ export default function CycleCountDetailPage() {
   const isOpen = cc?.status === 'OPEN';
   const isInProgress = cc?.status === 'IN_PROGRESS';
   const isPendingApproval = cc?.status === 'PENDING_APPROVAL';
+  const isBlind = cc?.isBlind ?? false;
+  const hideSystemQty = isBlind && isInProgress;
 
   const countedLines = lines?.filter(l => l.countedQty !== null).length || 0;
   const totalLines = lines?.length || 0;
@@ -238,6 +242,9 @@ export default function CycleCountDetailPage() {
           <Badge variant={statusVariant[cc.status] || 'info'}>
             {cc.status.replace(/_/g, ' ')}
           </Badge>
+          {cc.isBlind && (
+            <Badge variant="default">Blind</Badge>
+          )}
         </div>
         <div className="flex gap-2">
           {isOpen && (
@@ -327,16 +334,16 @@ export default function CycleCountDetailPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-slate-500">Variances</p>
-            <p className={`text-lg font-semibold ${varianceLines.length > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {varianceLines.length} lines
+            <p className={`text-lg font-semibold ${!hideSystemQty && varianceLines.length > 0 ? 'text-red-600' : hideSystemQty ? '' : 'text-green-600'}`}>
+              {hideSystemQty ? '\u2014' : `${varianceLines.length} lines`}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-slate-500">Total Abs. Variance</p>
-            <p className={`text-lg font-semibold ${totalVariance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {totalVariance}
+            <p className={`text-lg font-semibold ${!hideSystemQty && totalVariance > 0 ? 'text-red-600' : hideSystemQty ? '' : 'text-green-600'}`}>
+              {hideSystemQty ? '\u2014' : totalVariance}
             </p>
           </CardContent>
         </Card>
@@ -349,6 +356,26 @@ export default function CycleCountDetailPage() {
             <CardTitle>Count Lines ({totalLines})</CardTitle>
             {isOpen && (
               <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={addFromWarehouse.isPending}
+                  onClick={async () => {
+                    const confirmed = window.confirm(
+                      'This will add a line for every item in every bin in this warehouse. Continue?'
+                    );
+                    if (!confirmed) return;
+                    try {
+                      const result = await addFromWarehouse.mutateAsync();
+                      addToast(`${result.count} lines added from warehouse`, 'success');
+                    } catch (error) {
+                      console.error('Failed to add lines from warehouse:', error);
+                      addToast('Failed to add lines from warehouse', 'error');
+                    }
+                  }}
+                >
+                  {addFromWarehouse.isPending ? 'Loading...' : 'Full Warehouse'}
+                </Button>
                 <Button variant="secondary" size="sm" onClick={() => { setShowAddFromBin(!showAddFromBin); setShowAddLine(false); }}>
                   {showAddFromBin ? 'Cancel' : 'Add All from Bin'}
                 </Button>
@@ -431,12 +458,14 @@ export default function CycleCountDetailPage() {
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-3 px-4 font-medium text-slate-500">Bin</th>
                     <th className="text-left py-3 px-4 font-medium text-slate-500">Item</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-500">System Qty</th>
+                    {!hideSystemQty && (
+                      <th className="text-right py-3 px-4 font-medium text-slate-500">System Qty</th>
+                    )}
                     {(isInProgress || isPendingApproval || cc.status === 'CLOSED') && (
-                      <>
-                        <th className="text-right py-3 px-4 font-medium text-slate-500">Counted Qty</th>
-                        <th className="text-right py-3 px-4 font-medium text-slate-500">Variance</th>
-                      </>
+                      <th className="text-right py-3 px-4 font-medium text-slate-500">Counted Qty</th>
+                    )}
+                    {!hideSystemQty && (isInProgress || isPendingApproval || cc.status === 'CLOSED') && (
+                      <th className="text-right py-3 px-4 font-medium text-slate-500">Variance</th>
                     )}
                     {isInProgress && (
                       <th className="text-right py-3 px-4 font-medium text-slate-500">Count</th>
@@ -452,6 +481,7 @@ export default function CycleCountDetailPage() {
                       key={line.id}
                       line={line}
                       status={cc.status}
+                      hideSystemQty={hideSystemQty}
                       countInput={countInputs[line.id] ?? ''}
                       onCountInputChange={(val) =>
                         setCountInputs((prev) => ({ ...prev, [line.id]: val }))
@@ -512,6 +542,7 @@ export default function CycleCountDetailPage() {
 function LineRow({
   line,
   status,
+  hideSystemQty,
   countInput,
   onCountInputChange,
   onRecord,
@@ -520,6 +551,7 @@ function LineRow({
 }: {
   line: CycleCountLineDetail;
   status: string;
+  hideSystemQty: boolean;
   countInput: string;
   onCountInputChange: (val: string) => void;
   onRecord: () => void;
@@ -533,7 +565,7 @@ function LineRow({
 
   return (
     <tr className={`border-b border-slate-100 hover:bg-slate-50 ${
-      isCounted && line.varianceQty !== 0 ? 'bg-red-50' : ''
+      !hideSystemQty && isCounted && line.varianceQty !== 0 ? 'bg-red-50' : ''
     }`}>
       <td className="py-3 px-4">{line.binCode || line.binId}</td>
       <td className="py-3 px-4">
@@ -544,21 +576,23 @@ function LineRow({
           )}
         </div>
       </td>
-      <td className="py-3 px-4 text-right">{line.systemQty}</td>
+      {!hideSystemQty && (
+        <td className="py-3 px-4 text-right">{line.systemQty}</td>
+      )}
       {showCounted && (
-        <>
-          <td className="py-3 px-4 text-right">
-            {isCounted ? line.countedQty : '-'}
-          </td>
-          <td className={`py-3 px-4 text-right font-medium ${
-            !isCounted ? 'text-slate-400' :
-            line.varianceQty > 0 ? 'text-orange-600' :
-            line.varianceQty < 0 ? 'text-red-600' :
-            'text-green-600'
-          }`}>
-            {!isCounted ? '-' : line.varianceQty > 0 ? `+${line.varianceQty}` : line.varianceQty}
-          </td>
-        </>
+        <td className="py-3 px-4 text-right">
+          {isCounted ? line.countedQty : '-'}
+        </td>
+      )}
+      {!hideSystemQty && showCounted && (
+        <td className={`py-3 px-4 text-right font-medium ${
+          !isCounted ? 'text-slate-400' :
+          line.varianceQty > 0 ? 'text-orange-600' :
+          line.varianceQty < 0 ? 'text-red-600' :
+          'text-green-600'
+        }`}>
+          {!isCounted ? '-' : line.varianceQty > 0 ? `+${line.varianceQty}` : line.varianceQty}
+        </td>
       )}
       {isInProgress && (
         <td className="py-3 px-4 text-right">
