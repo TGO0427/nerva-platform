@@ -258,12 +258,19 @@ function SidebarContent({
   hasAdminAccess,
 }: SidebarContentProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  // Default: all groups collapsed except Overview (non-collapsible) and Orders
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      navigation
+        .filter(g => g.name !== 'Overview' && g.name !== 'Orders')
+        .map(g => [g.name, true])
+    )
+  );
   const [favorites, setFavorites] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const hydrated = useRef(false);
 
-  // Hydrate from localStorage
+  // Hydrate from localStorage (overrides defaults on returning visits)
   useEffect(() => {
     try {
       const cg = localStorage.getItem('nerva:nav-collapsed');
