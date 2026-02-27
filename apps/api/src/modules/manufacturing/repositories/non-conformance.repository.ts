@@ -249,7 +249,7 @@ export class NonConformanceRepository extends BaseRepository {
       defectType: row.defect_type as string,
       severity: row.severity as string,
       description: row.description as string,
-      qtyAffected: row.qty_affected ? parseFloat(row.qty_affected as string) : null,
+      qtyAffected: row.qty_affected ? parseFloat(row.qty_affected as string) : 0,
       disposition: row.disposition as string | null,
       correctiveAction: row.corrective_action as string | null,
       status: row.status as string,

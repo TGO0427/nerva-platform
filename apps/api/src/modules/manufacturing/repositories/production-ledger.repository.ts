@@ -407,23 +407,23 @@ export class ProductionLedgerRepository extends BaseRepository {
     productionByDay: Array<{ date: string; output: number; scrap: number }>;
     yieldByItem: Array<{
       itemId: string;
-      sku: string;
-      description: string;
+      itemSku: string;
+      itemDescription: string;
       output: number;
       scrap: number;
       yieldRate: number;
     }>;
     materialConsumption: Array<{
       itemId: string;
-      sku: string;
-      description: string;
+      itemSku: string;
+      itemDescription: string;
       totalConsumed: number;
       totalReturned: number;
       netConsumed: number;
     }>;
     workstationEfficiency: Array<{
       workstationId: string;
-      name: string;
+      workstationName: string;
       operationsCompleted: number;
       avgRunTime: number;
       totalRunTime: number;
@@ -517,8 +517,8 @@ export class ProductionLedgerRepository extends BaseRepository {
         const itemScrap = parseFloat((r.scrap as string) || '0');
         return {
           itemId: r.item_id as string,
-          sku: r.sku as string,
-          description: r.description as string,
+          itemSku: r.sku as string,
+          itemDescription: r.description as string,
           output: itemOutput,
           scrap: itemScrap,
           yieldRate: itemOutput + itemScrap > 0 ? (itemOutput / (itemOutput + itemScrap)) * 100 : 0,
@@ -529,8 +529,8 @@ export class ProductionLedgerRepository extends BaseRepository {
         const totalReturned = parseFloat((r.total_returned as string) || '0');
         return {
           itemId: r.item_id as string,
-          sku: r.sku as string,
-          description: r.description as string,
+          itemSku: r.sku as string,
+          itemDescription: r.description as string,
           totalConsumed,
           totalReturned,
           netConsumed: totalConsumed - totalReturned,
@@ -538,7 +538,7 @@ export class ProductionLedgerRepository extends BaseRepository {
       }),
       workstationEfficiency: workstationRows.map((r) => ({
         workstationId: r.workstation_id as string,
-        name: r.name as string,
+        workstationName: r.name as string,
         operationsCompleted: parseInt((r.operations_completed as string) || '0', 10),
         avgRunTime: parseFloat((r.avg_run_time as string) || '0'),
         totalRunTime: parseFloat((r.total_run_time as string) || '0'),
