@@ -326,7 +326,7 @@ export class ReturnsRepository extends BaseRepository {
   async cancelCreditNote(id: string, reason: string): Promise<CreditNoteDraft | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE credit_notes_draft SET status = 'CANCELLED',
-       notes = CASE WHEN $2 IS NOT NULL THEN COALESCE(notes || E'\n', '') || $2 ELSE notes END
+       notes = CASE WHEN $2::text IS NOT NULL THEN COALESCE(notes || ' | ', '') || $2::text ELSE notes END
        WHERE id = $1 AND status != 'CANCELLED' RETURNING *`,
       [id, reason || null],
     );
