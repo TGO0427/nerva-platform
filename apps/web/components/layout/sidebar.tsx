@@ -25,7 +25,7 @@ interface NavGroup {
 // Step 3a: Synonym map for command-palette search
 const searchSynonyms: Record<string, string[]> = {
   '/inventory/grn': ['GRN', 'goods received', 'receive'],
-  '/inventory/ibts': ['IBT', 'inter-branch'],
+  '/inventory/ibts': ['IBT', 'inter-branch', 'bin transfer', 'stock transfer'],
   '/inventory/cycle-counts': ['stock take', 'physical count'],
   '/inventory/adjustments': ['stock adjustment'],
   '/manufacturing/quality': ['NCR', 'non-conformance', 'holds'],
