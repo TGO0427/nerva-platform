@@ -314,6 +314,25 @@ export class ReturnsRepository extends BaseRepository {
     return row ? this.mapCreditNote(row) : null;
   }
 
+  async postCreditNote(id: string): Promise<CreditNoteDraft | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE credit_notes_draft SET status = 'POSTED', posted_at = NOW()
+       WHERE id = $1 AND status = 'APPROVED' RETURNING *`,
+      [id],
+    );
+    return row ? this.mapCreditNote(row) : null;
+  }
+
+  async cancelCreditNote(id: string, reason: string): Promise<CreditNoteDraft | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE credit_notes_draft SET status = 'CANCELLED',
+       notes = CASE WHEN $2 IS NOT NULL THEN COALESCE(notes || E'\n', '') || $2 ELSE notes END
+       WHERE id = $1 AND status != 'CANCELLED' RETURNING *`,
+      [id, reason || null],
+    );
+    return row ? this.mapCreditNote(row) : null;
+  }
+
   async deleteRma(id: string): Promise<boolean> {
     const count = await this.execute('DELETE FROM rmas WHERE id = $1', [id]);
     return count > 0;

@@ -160,4 +160,28 @@ export class ReturnsController {
       data.inspectionNotes,
     );
   }
+
+  @Post(':id/complete-disposition')
+  @RequirePermissions('rma.disposition')
+  @ApiOperation({ summary: 'Complete all dispositions for RMA' })
+  async completeDisposition(@Param('id', UuidValidationPipe) rmaId: string) {
+    return this.service.completeDisposition(rmaId);
+  }
+
+  @Post(':id/close')
+  @RequirePermissions('rma.create')
+  @ApiOperation({ summary: 'Close RMA' })
+  async close(@Param('id', UuidValidationPipe) rmaId: string) {
+    return this.service.closeRma(rmaId);
+  }
+
+  @Post(':id/cancel')
+  @RequirePermissions('rma.create')
+  @ApiOperation({ summary: 'Cancel RMA' })
+  async cancel(
+    @Param('id', UuidValidationPipe) rmaId: string,
+    @Body() data: { reason: string },
+  ) {
+    return this.service.cancelRma(rmaId, data.reason);
+  }
 }

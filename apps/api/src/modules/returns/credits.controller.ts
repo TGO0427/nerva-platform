@@ -4,6 +4,7 @@ import {
   Post,
   Delete,
   Param,
+  Body,
   Query,
   UseGuards,
   Res,
@@ -86,6 +87,17 @@ export class CreditsController {
     return { success: true };
   }
 
+  @Post()
+  @RequirePermissions('credit.create')
+  @ApiOperation({ summary: 'Create standalone credit note' })
+  async create(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: { rmaId: string; amount: number; reason: string; notes?: string },
+  ) {
+    return this.service.createStandaloneCreditNote(tenantId, data, user.id);
+  }
+
   @Post(':id/approve')
   @RequirePermissions('credit.approve')
   @ApiOperation({ summary: 'Approve credit note' })
@@ -94,5 +106,22 @@ export class CreditsController {
     @CurrentUser() user: CurrentUserData,
   ) {
     return this.service.approveCreditNote(id, user.id);
+  }
+
+  @Post(':id/post')
+  @RequirePermissions('credit.approve')
+  @ApiOperation({ summary: 'Post credit note' })
+  async post(@Param('id', UuidValidationPipe) id: string) {
+    return this.service.postCreditNote(id);
+  }
+
+  @Post(':id/cancel')
+  @RequirePermissions('credit.create')
+  @ApiOperation({ summary: 'Cancel credit note' })
+  async cancel(
+    @Param('id', UuidValidationPipe) id: string,
+    @Body() data: { reason: string },
+  ) {
+    return this.service.cancelCreditNote(id, data.reason);
   }
 }

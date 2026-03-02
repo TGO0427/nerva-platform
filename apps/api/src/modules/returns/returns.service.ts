@@ -238,4 +238,103 @@ export class ReturnsService {
 
     return creditNote;
   }
+
+  async createStandaloneCreditNote(
+    tenantId: string,
+    data: { rmaId: string; amount: number; reason: string; notes?: string },
+    createdBy: string,
+  ): Promise<CreditNoteDraft> {
+    const rma = await this.getRma(data.rmaId);
+
+    const subtotal = data.amount;
+    const taxRate = 0.15;
+    const taxAmount = subtotal * taxRate;
+    const totalAmount = subtotal + taxAmount;
+
+    const creditNo = await this.repository.generateCreditNo(tenantId);
+
+    const notes = [data.reason, data.notes].filter(Boolean).join(' — ');
+
+    const creditNote = await this.repository.createCreditNoteDraft({
+      tenantId,
+      rmaId: data.rmaId,
+      creditNo,
+      subtotal,
+      taxAmount,
+      totalAmount,
+      notes: notes || undefined,
+      createdBy,
+    });
+
+    await this.repository.updateRmaStatus(data.rmaId, 'CREDIT_PENDING');
+
+    return creditNote;
+  }
+
+  async postCreditNote(id: string): Promise<CreditNoteDraft> {
+    const creditNote = await this.repository.postCreditNote(id);
+    if (!creditNote) {
+      throw new BadRequestException('Credit note not found or not in APPROVED status');
+    }
+    return creditNote;
+  }
+
+  async cancelCreditNote(id: string, reason: string): Promise<CreditNoteDraft> {
+    const creditNote = await this.repository.cancelCreditNote(id, reason);
+    if (!creditNote) {
+      throw new BadRequestException('Credit note not found or already cancelled');
+    }
+    return creditNote;
+  }
+
+  async completeDisposition(rmaId: string): Promise<Rma> {
+    const rma = await this.getRma(rmaId);
+    const lines = await this.repository.getRmaLines(rmaId);
+
+    if (lines.length === 0) {
+      throw new BadRequestException('RMA has no lines');
+    }
+
+    const allDisposed = lines.every((l) => l.disposition !== 'PENDING');
+    if (!allDisposed) {
+      throw new BadRequestException('All lines must have a disposition set before completing');
+    }
+
+    const updated = await this.repository.updateRmaStatus(rmaId, 'DISPOSITIONED');
+    if (!updated) {
+      throw new BadRequestException('Failed to update RMA status');
+    }
+    return updated;
+  }
+
+  async closeRma(rmaId: string): Promise<Rma> {
+    const rma = await this.getRma(rmaId);
+
+    const closableStatuses = ['DISPOSITIONED', 'RECEIVED', 'DISPOSITION_COMPLETE', 'CREDIT_APPROVED'];
+    if (!closableStatuses.includes(rma.status)) {
+      throw new BadRequestException(
+        `RMA cannot be closed from status ${rma.status}. Must be in: ${closableStatuses.join(', ')}`,
+      );
+    }
+
+    const updated = await this.repository.updateRmaStatus(rmaId, 'CLOSED');
+    if (!updated) {
+      throw new BadRequestException('Failed to update RMA status');
+    }
+    return updated;
+  }
+
+  async cancelRma(rmaId: string, reason: string): Promise<Rma> {
+    const rma = await this.getRma(rmaId);
+
+    if (rma.status === 'CLOSED' || rma.status === 'CANCELLED') {
+      throw new BadRequestException(`RMA cannot be cancelled from status ${rma.status}`);
+    }
+
+    const updated = await this.repository.updateRmaStatus(rmaId, 'CANCELLED');
+    if (!updated) {
+      throw new BadRequestException('Failed to update RMA status');
+    }
+    return updated;
+  }
 }
