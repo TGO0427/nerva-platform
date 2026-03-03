@@ -19,6 +19,7 @@ import {
   Bin,
 } from './masterdata.repository';
 import { buildPaginatedResult, normalizePagination, PaginationParams } from '../../common/utils/pagination';
+import type { ImportResult } from './dto/import.dto';
 
 @Injectable()
 export class MasterDataService {
@@ -67,6 +68,18 @@ export class MasterDataService {
     const refs = await this.repository.countItemReferences(id);
     if (refs > 0) throw new BadRequestException('Cannot delete item: referenced by existing orders');
     await this.repository.deleteItem(id);
+  }
+
+  async importItems(
+    tenantId: string,
+    items: Array<{ sku: string; description: string; uom?: string; weightKg?: number; lengthCm?: number; widthCm?: number; heightCm?: number }>,
+  ): Promise<ImportResult> {
+    const result = await this.repository.bulkCreateItems(tenantId, items);
+    return {
+      imported: result.created.length,
+      skipped: result.skippedCodes.length,
+      skippedCodes: result.skippedCodes,
+    };
   }
 
   // Customers
@@ -138,6 +151,24 @@ export class MasterDataService {
     const refs = await this.repository.countCustomerReferences(id);
     if (refs > 0) throw new BadRequestException('Cannot delete customer: has existing sales orders');
     await this.repository.deleteCustomer(id);
+  }
+
+  async importCustomers(
+    tenantId: string,
+    customers: Array<{
+      code?: string; name: string; email?: string; phone?: string; vatNo?: string;
+      billingAddressLine1?: string; billingAddressLine2?: string; billingCity?: string;
+      billingState?: string; billingPostalCode?: string; billingCountry?: string;
+      shippingAddressLine1?: string; shippingAddressLine2?: string; shippingCity?: string;
+      shippingState?: string; shippingPostalCode?: string; shippingCountry?: string;
+    }>,
+  ): Promise<ImportResult> {
+    const result = await this.repository.bulkCreateCustomers(tenantId, customers);
+    return {
+      imported: result.created.length,
+      skipped: result.skippedCodes.length,
+      skippedCodes: result.skippedCodes,
+    };
   }
 
   // Suppliers
@@ -213,6 +244,24 @@ export class MasterDataService {
     const refs = await this.repository.countSupplierReferences(id);
     if (refs > 0) throw new BadRequestException('Cannot delete supplier: has existing purchase orders');
     await this.repository.deleteSupplier(id);
+  }
+
+  async importSuppliers(
+    tenantId: string,
+    suppliers: Array<{
+      code?: string; name: string; email?: string; phone?: string; vatNo?: string;
+      contactPerson?: string; registrationNo?: string;
+      addressLine1?: string; addressLine2?: string; city?: string; postalCode?: string; country?: string;
+      tradingAddressLine1?: string; tradingAddressLine2?: string; tradingCity?: string;
+      tradingPostalCode?: string; tradingCountry?: string;
+    }>,
+  ): Promise<ImportResult> {
+    const result = await this.repository.bulkCreateSuppliers(tenantId, suppliers);
+    return {
+      imported: result.created.length,
+      skipped: result.skippedCodes.length,
+      skippedCodes: result.skippedCodes,
+    };
   }
 
   // Supplier Contacts

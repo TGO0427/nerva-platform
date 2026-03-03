@@ -82,6 +82,24 @@ export function useUpdateItem() {
   });
 }
 
+// Import items (bulk)
+export function useImportItems() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (items: Record<string, unknown>[]) => {
+      const response = await api.post<{ imported: number; skipped: number; skippedCodes: string[] }>(
+        '/masterdata/items/import',
+        { items },
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ITEMS_KEY] });
+    },
+  });
+}
+
 // Delete item (soft delete by setting isActive to false)
 export function useDeleteItem() {
   const queryClient = useQueryClient();

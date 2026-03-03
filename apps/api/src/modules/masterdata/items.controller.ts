@@ -17,7 +17,8 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { TenantId } from '../../common/decorators/tenant.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
-import { CreateItemDto, UpdateItemDto } from './dto';
+import { CreateItemDto, UpdateItemDto, ImportItemsDto } from './dto';
+import type { ImportResult } from './dto';
 
 @ApiTags('master-data')
 @ApiBearerAuth()
@@ -36,6 +37,16 @@ export class ItemsController {
     @Query('search') search?: string,
   ) {
     return this.service.listItems(tenantId, { page, limit, search });
+  }
+
+  @Post('import')
+  @RequirePermissions('item.write')
+  @ApiOperation({ summary: 'Bulk import items from CSV' })
+  async import(
+    @TenantId() tenantId: string,
+    @Body() data: ImportItemsDto,
+  ): Promise<ImportResult> {
+    return this.service.importItems(tenantId, data.items);
   }
 
   @Get(':id')

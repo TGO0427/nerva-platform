@@ -44,6 +44,10 @@ export { UpdateWarehouseDto } from './update-warehouse.dto';
 export { CreateBinDto } from './create-bin.dto';
 export { UpdateBinDto } from './update-bin.dto';
 
+// Import (Bulk)
+export { ImportItemsDto, ImportCustomersDto, ImportSuppliersDto } from './import.dto';
+export type { ImportResult } from './import.dto';
+
 // Purchase Orders
 export { CreatePurchaseOrderDto } from './create-purchase-order.dto';
 export { UpdatePurchaseOrderDto } from './update-purchase-order.dto';

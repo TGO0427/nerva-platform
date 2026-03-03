@@ -31,7 +31,9 @@ import {
   UpdateSupplierItemDto,
   CreateSupplierContractDto,
   UpdateSupplierContractDto,
+  ImportSuppliersDto,
 } from './dto';
+import type { ImportResult } from './dto';
 
 @ApiTags('master-data')
 @ApiBearerAuth()
@@ -53,6 +55,16 @@ export class SuppliersController {
     @Query('search') search?: string,
   ) {
     return this.service.listSuppliers(tenantId, { page, limit, search });
+  }
+
+  @Post('import')
+  @RequirePermissions('supplier.write')
+  @ApiOperation({ summary: 'Bulk import suppliers from CSV' })
+  async import(
+    @TenantId() tenantId: string,
+    @Body() data: ImportSuppliersDto,
+  ): Promise<ImportResult> {
+    return this.service.importSuppliers(tenantId, data.suppliers);
   }
 
   @Get(':id')

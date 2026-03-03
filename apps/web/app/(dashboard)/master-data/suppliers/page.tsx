@@ -1,25 +1,33 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ExportActions } from '@/components/ui/export-actions';
+import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
-import { useSuppliers, useQueryParams } from '@/lib/queries';
+import { useSuppliers, useImportSuppliers, useQueryParams } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename } from '@/lib/utils/export';
+import { supplierImportConfig } from '@/lib/config/csv-import';
 import type { Supplier } from '@nerva/shared';
 
 export default function SuppliersPage() {
   const router = useRouter();
   const { params, setPage, setSort, setSearch } = useQueryParams();
   const { data, isLoading } = useSuppliers(params);
+  const importMutation = useImportSuppliers();
+  const [importOpen, setImportOpen] = useState(false);
+
+  const handleImport = useCallback(async (rows: Record<string, unknown>[]) => {
+    return importMutation.mutateAsync(rows);
+  }, [importMutation]);
 
   const tableData = data?.data || [];
 
@@ -163,6 +171,10 @@ export default function SuppliersPage() {
             onReset={resetColumns}
             alwaysVisible={['code', 'name']}
           />
+          <Button variant="ghost" size="sm" onClick={() => setImportOpen(true)}>
+            <ImportIcon />
+            Import
+          </Button>
           <ExportActions onExport={handleExport} selectedCount={selectedCount} />
         </div>
       }
@@ -212,7 +224,23 @@ export default function SuppliersPage() {
           ),
         }}
       />
+
+      <CsvImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => {}}
+        config={supplierImportConfig}
+        importFn={handleImport}
+      />
     </ListPageTemplate>
+  );
+}
+
+function ImportIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+    </svg>
   );
 }
 

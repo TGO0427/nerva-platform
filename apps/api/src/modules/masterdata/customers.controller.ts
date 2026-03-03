@@ -25,7 +25,9 @@ import {
   CreateCustomerContactDto,
   UpdateCustomerContactDto,
   CreateCustomerNoteDto,
+  ImportCustomersDto,
 } from './dto';
+import type { ImportResult } from './dto';
 
 @ApiTags('master-data')
 @ApiBearerAuth()
@@ -47,6 +49,16 @@ export class CustomersController {
     @Query('search') search?: string,
   ) {
     return this.service.listCustomers(tenantId, { page, limit, search });
+  }
+
+  @Post('import')
+  @RequirePermissions('customer.write')
+  @ApiOperation({ summary: 'Bulk import customers from CSV' })
+  async import(
+    @TenantId() tenantId: string,
+    @Body() data: ImportCustomersDto,
+  ): Promise<ImportResult> {
+    return this.service.importCustomers(tenantId, data.customers);
   }
 
   @Get(':id')

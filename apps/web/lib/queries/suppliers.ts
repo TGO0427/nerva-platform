@@ -106,6 +106,24 @@ export function useUpdateSupplier() {
   });
 }
 
+// Import suppliers (bulk)
+export function useImportSuppliers() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (suppliers: Record<string, unknown>[]) => {
+      const response = await api.post<{ imported: number; skipped: number; skippedCodes: string[] }>(
+        '/masterdata/suppliers/import',
+        { suppliers },
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY] });
+    },
+  });
+}
+
 // Delete supplier
 export function useDeleteSupplier() {
   const queryClient = useQueryClient();

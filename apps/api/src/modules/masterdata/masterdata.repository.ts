@@ -3031,6 +3031,274 @@ export class MasterDataRepository extends BaseRepository {
 
     return { orders, purchaseOrders, customers, items, suppliers, trips, shipments, invoices, rmas, workOrders };
   }
+
+  // ============================
+  // Bulk Import Methods
+  // ============================
+
+  async bulkCreateItems(
+    tenantId: string,
+    items: Array<{
+      sku: string;
+      description: string;
+      uom?: string;
+      weightKg?: number;
+      lengthCm?: number;
+      widthCm?: number;
+      heightCm?: number;
+    }>,
+  ): Promise<{ created: Item[]; skippedCodes: string[] }> {
+    if (items.length === 0) return { created: [], skippedCodes: [] };
+
+    // Deduplicate within batch (first occurrence wins)
+    const seen = new Set<string>();
+    const unique: typeof items = [];
+    const batchDuplicates: string[] = [];
+    for (const item of items) {
+      const key = item.sku.toLowerCase();
+      if (seen.has(key)) {
+        batchDuplicates.push(item.sku);
+      } else {
+        seen.add(key);
+        unique.push(item);
+      }
+    }
+
+    // Pre-flight: find existing SKUs
+    const skus = unique.map((i) => i.sku);
+    const existingRows = await this.queryMany<Record<string, unknown>>(
+      `SELECT sku FROM items WHERE tenant_id = $1 AND LOWER(sku) = ANY($2::text[])`,
+      [tenantId, skus.map((s) => s.toLowerCase())],
+    );
+    const existingSkus = new Set(existingRows.map((r) => (r.sku as string).toLowerCase()));
+
+    const toInsert = unique.filter((i) => !existingSkus.has(i.sku.toLowerCase()));
+    const skippedCodes = [
+      ...unique.filter((i) => existingSkus.has(i.sku.toLowerCase())).map((i) => i.sku),
+      ...batchDuplicates,
+    ];
+
+    if (toInsert.length === 0) return { created: [], skippedCodes };
+
+    // Batch insert in groups of 50
+    const created: Item[] = [];
+    const batchSize = 50;
+    for (let i = 0; i < toInsert.length; i += batchSize) {
+      const batch = toInsert.slice(i, i + batchSize);
+      const values: unknown[] = [];
+      const placeholders: string[] = [];
+      let idx = 1;
+
+      for (const item of batch) {
+        placeholders.push(`($${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++})`);
+        values.push(tenantId, item.sku, item.description, item.uom || 'EA', item.weightKg ?? null);
+      }
+
+      const rows = await this.queryMany<Record<string, unknown>>(
+        `INSERT INTO items (tenant_id, sku, description, uom, weight_kg)
+         VALUES ${placeholders.join(', ')}
+         ON CONFLICT (tenant_id, sku) DO NOTHING
+         RETURNING *`,
+        values,
+      );
+      created.push(...rows.map((r) => this.mapItem(r)));
+    }
+
+    return { created, skippedCodes };
+  }
+
+  async bulkCreateCustomers(
+    tenantId: string,
+    customers: Array<{
+      code?: string;
+      name: string;
+      email?: string;
+      phone?: string;
+      vatNo?: string;
+      billingAddressLine1?: string;
+      billingAddressLine2?: string;
+      billingCity?: string;
+      billingState?: string;
+      billingPostalCode?: string;
+      billingCountry?: string;
+      shippingAddressLine1?: string;
+      shippingAddressLine2?: string;
+      shippingCity?: string;
+      shippingState?: string;
+      shippingPostalCode?: string;
+      shippingCountry?: string;
+    }>,
+  ): Promise<{ created: Customer[]; skippedCodes: string[] }> {
+    if (customers.length === 0) return { created: [], skippedCodes: [] };
+
+    // Deduplicate within batch by code (first occurrence wins)
+    const seen = new Set<string>();
+    const unique: typeof customers = [];
+    const batchDuplicates: string[] = [];
+    for (const cust of customers) {
+      const key = cust.code?.toLowerCase();
+      if (key && seen.has(key)) {
+        batchDuplicates.push(cust.code!);
+      } else {
+        if (key) seen.add(key);
+        unique.push(cust);
+      }
+    }
+
+    // Pre-flight: find existing codes
+    const codes = unique.map((c) => c.code).filter(Boolean) as string[];
+    let existingCodes = new Set<string>();
+    if (codes.length > 0) {
+      const existingRows = await this.queryMany<Record<string, unknown>>(
+        `SELECT code FROM customers WHERE tenant_id = $1 AND LOWER(code) = ANY($2::text[])`,
+        [tenantId, codes.map((c) => c.toLowerCase())],
+      );
+      existingCodes = new Set(existingRows.map((r) => (r.code as string).toLowerCase()));
+    }
+
+    const toInsert = unique.filter(
+      (c) => !c.code || !existingCodes.has(c.code.toLowerCase()),
+    );
+    const skippedCodes = [
+      ...unique.filter((c) => c.code && existingCodes.has(c.code.toLowerCase())).map((c) => c.code!),
+      ...batchDuplicates,
+    ];
+
+    if (toInsert.length === 0) return { created: [], skippedCodes };
+
+    // Batch insert in groups of 50
+    const created: Customer[] = [];
+    const batchSize = 50;
+    const colCount = 16;
+    for (let i = 0; i < toInsert.length; i += batchSize) {
+      const batch = toInsert.slice(i, i + batchSize);
+      const values: unknown[] = [];
+      const placeholders: string[] = [];
+      let idx = 1;
+
+      for (const c of batch) {
+        const indices = Array.from({ length: colCount }, () => `$${idx++}`);
+        placeholders.push(`(${indices.join(', ')})`);
+        values.push(
+          tenantId, c.code || null, c.name, c.email || null, c.phone || null, c.vatNo || null,
+          c.billingAddressLine1 || null, c.billingAddressLine2 || null,
+          c.billingCity || null, c.billingPostalCode || null, c.billingCountry || null,
+          c.shippingAddressLine1 || null, c.shippingAddressLine2 || null,
+          c.shippingCity || null, c.shippingPostalCode || null, c.shippingCountry || null,
+        );
+      }
+
+      const rows = await this.queryMany<Record<string, unknown>>(
+        `INSERT INTO customers (
+          tenant_id, code, name, email, phone, vat_no,
+          billing_address_line1, billing_address_line2, billing_city, billing_postal_code, billing_country,
+          shipping_address_line1, shipping_address_line2, shipping_city, shipping_postal_code, shipping_country
+        ) VALUES ${placeholders.join(', ')}
+         RETURNING *`,
+        values,
+      );
+      created.push(...rows.map((r) => this.mapCustomer(r)));
+    }
+
+    return { created, skippedCodes };
+  }
+
+  async bulkCreateSuppliers(
+    tenantId: string,
+    suppliers: Array<{
+      code?: string;
+      name: string;
+      email?: string;
+      phone?: string;
+      vatNo?: string;
+      contactPerson?: string;
+      registrationNo?: string;
+      addressLine1?: string;
+      addressLine2?: string;
+      city?: string;
+      postalCode?: string;
+      country?: string;
+      tradingAddressLine1?: string;
+      tradingAddressLine2?: string;
+      tradingCity?: string;
+      tradingPostalCode?: string;
+      tradingCountry?: string;
+    }>,
+  ): Promise<{ created: Supplier[]; skippedCodes: string[] }> {
+    if (suppliers.length === 0) return { created: [], skippedCodes: [] };
+
+    // Deduplicate within batch by code (first occurrence wins)
+    const seen = new Set<string>();
+    const unique: typeof suppliers = [];
+    const batchDuplicates: string[] = [];
+    for (const sup of suppliers) {
+      const key = sup.code?.toLowerCase();
+      if (key && seen.has(key)) {
+        batchDuplicates.push(sup.code!);
+      } else {
+        if (key) seen.add(key);
+        unique.push(sup);
+      }
+    }
+
+    // Pre-flight: find existing codes
+    const codes = unique.map((s) => s.code).filter(Boolean) as string[];
+    let existingCodes = new Set<string>();
+    if (codes.length > 0) {
+      const existingRows = await this.queryMany<Record<string, unknown>>(
+        `SELECT code FROM suppliers WHERE tenant_id = $1 AND LOWER(code) = ANY($2::text[])`,
+        [tenantId, codes.map((c) => c.toLowerCase())],
+      );
+      existingCodes = new Set(existingRows.map((r) => (r.code as string).toLowerCase()));
+    }
+
+    const toInsert = unique.filter(
+      (s) => !s.code || !existingCodes.has(s.code.toLowerCase()),
+    );
+    const skippedCodes = [
+      ...unique.filter((s) => s.code && existingCodes.has(s.code.toLowerCase())).map((s) => s.code!),
+      ...batchDuplicates,
+    ];
+
+    if (toInsert.length === 0) return { created: [], skippedCodes };
+
+    // Batch insert in groups of 50
+    const created: Supplier[] = [];
+    const batchSize = 50;
+    const colCount = 18;
+    for (let i = 0; i < toInsert.length; i += batchSize) {
+      const batch = toInsert.slice(i, i + batchSize);
+      const values: unknown[] = [];
+      const placeholders: string[] = [];
+      let idx = 1;
+
+      for (const s of batch) {
+        const indices = Array.from({ length: colCount }, () => `$${idx++}`);
+        placeholders.push(`(${indices.join(', ')})`);
+        values.push(
+          tenantId, s.code || null, s.name, s.email || null, s.phone || null,
+          s.vatNo || null, s.contactPerson || null, s.registrationNo || null,
+          s.addressLine1 || null, s.addressLine2 || null,
+          s.city || null, s.postalCode || null, s.country || null,
+          s.tradingAddressLine1 || null, s.tradingAddressLine2 || null,
+          s.tradingCity || null, s.tradingPostalCode || null, s.tradingCountry || null,
+        );
+      }
+
+      const rows = await this.queryMany<Record<string, unknown>>(
+        `INSERT INTO suppliers (
+          tenant_id, code, name, email, phone, vat_no, contact_person, registration_no,
+          address_line1, address_line2, city, postal_code, country,
+          trading_address_line1, trading_address_line2, trading_city, trading_postal_code, trading_country
+        ) VALUES ${placeholders.join(', ')}
+         RETURNING *`,
+        values,
+      );
+      created.push(...rows.map((r) => this.mapSupplier(r)));
+    }
+
+    return { created, skippedCodes };
+  }
 }
 
 export interface Notification {

@@ -96,6 +96,24 @@ export function useUpdateCustomer() {
   });
 }
 
+// Import customers (bulk)
+export function useImportCustomers() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (customers: Record<string, unknown>[]) => {
+      const response = await api.post<{ imported: number; skipped: number; skippedCodes: string[] }>(
+        '/masterdata/customers/import',
+        { customers },
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CUSTOMERS_KEY] });
+    },
+  });
+}
+
 // Delete customer
 export function useDeleteCustomer() {
   const queryClient = useQueryClient();
