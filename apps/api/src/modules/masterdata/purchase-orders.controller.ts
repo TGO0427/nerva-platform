@@ -28,7 +28,9 @@ import {
   UpdatePurchaseOrderDto,
   CreatePurchaseOrderLineDto,
   UpdatePurchaseOrderLineDto,
+  ImportPurchaseOrdersDto,
 } from './dto';
+import type { ImportResult } from './dto/import.dto';
 
 @ApiTags('purchase-orders')
 @ApiBearerAuth()
@@ -60,6 +62,21 @@ export class PurchaseOrdersController {
   @ApiOperation({ summary: 'Get purchase order status counts' })
   async stats(@TenantId() tenantId: string) {
     return this.service.getPurchaseOrderStats(tenantId);
+  }
+
+  @Post('import')
+  @RequirePermissions('purchase_order.write')
+  @ApiOperation({ summary: 'Bulk import purchase orders from spreadsheet' })
+  async importOrders(
+    @TenantId() tenantId: string,
+    @SiteId() siteId: string,
+    @CurrentUser() user: { id: string },
+    @Body() data: ImportPurchaseOrdersDto,
+  ): Promise<ImportResult> {
+    if (!siteId) {
+      throw new BadRequestException('Please select a site before importing purchase orders');
+    }
+    return this.service.importPurchaseOrders(tenantId, siteId, user.id, data.rows);
   }
 
   @Get(':id')

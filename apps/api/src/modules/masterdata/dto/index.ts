@@ -53,3 +53,4 @@ export { CreatePurchaseOrderDto } from './create-purchase-order.dto';
 export { UpdatePurchaseOrderDto } from './update-purchase-order.dto';
 export { CreatePurchaseOrderLineDto } from './create-purchase-order-line.dto';
 export { UpdatePurchaseOrderLineDto } from './update-purchase-order-line.dto';
+export { ImportPurchaseOrdersDto } from './po-import.dto';

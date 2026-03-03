@@ -597,6 +597,16 @@ export class MasterDataRepository extends BaseRepository {
     return row ? this.mapSupplier(row) : null;
   }
 
+  async findSuppliersByCodes(tenantId: string, codes: string[]): Promise<Array<{ id: string; code: string }>> {
+    if (codes.length === 0) return [];
+    const lowerCodes = codes.map((c) => c.toLowerCase());
+    const rows = await this.queryMany<{ id: string; code: string }>(
+      'SELECT id, code FROM suppliers WHERE tenant_id = $1 AND LOWER(code) = ANY($2)',
+      [tenantId, lowerCodes],
+    );
+    return rows;
+  }
+
   async createSupplier(data: {
     tenantId: string;
     code?: string;

@@ -20,6 +20,7 @@ import {
 } from './masterdata.repository';
 import { buildPaginatedResult, normalizePagination, PaginationParams } from '../../common/utils/pagination';
 import type { ImportResult } from './dto/import.dto';
+import type { PurchaseOrderImportRowDto } from './dto/po-import.dto';
 
 @Injectable()
 export class MasterDataService {
@@ -279,6 +280,15 @@ export class MasterDataService {
     const map = new Map<string, string>();
     for (const row of rows) {
       map.set(row.sku.toLowerCase(), row.id);
+    }
+    return map;
+  }
+
+  async resolveSupplierCodes(tenantId: string, codes: string[]): Promise<Map<string, string>> {
+    const rows = await this.repository.findSuppliersByCodes(tenantId, codes);
+    const map = new Map<string, string>();
+    for (const row of rows) {
+      map.set(row.code.toLowerCase(), row.id);
     }
     return map;
   }
@@ -718,6 +728,83 @@ export class MasterDataService {
       throw new BadRequestException('Only DRAFT purchase orders can be deleted');
     }
     await this.repository.deletePurchaseOrder(id);
+  }
+
+  // Bulk import purchase orders
+  async importPurchaseOrders(
+    tenantId: string,
+    siteId: string,
+    createdBy: string,
+    rows: PurchaseOrderImportRowDto[],
+  ): Promise<ImportResult> {
+    // 1. Resolve warehouse: get first warehouse for site
+    const warehouses = await this.listWarehouses(tenantId, siteId);
+    if (warehouses.length === 0) {
+      throw new BadRequestException('No warehouse found for the selected site');
+    }
+    const warehouseId = warehouses[0].id;
+
+    // 2. Resolve supplier codes
+    const uniqueSupplierCodes = [...new Set(rows.map((r) => r.supplierCode))];
+    const supplierMap = await this.resolveSupplierCodes(tenantId, uniqueSupplierCodes);
+    const unknownSuppliers = uniqueSupplierCodes.filter((c) => !supplierMap.has(c.toLowerCase()));
+    if (unknownSuppliers.length > 0) {
+      throw new BadRequestException(`Unknown supplier codes: ${unknownSuppliers.join(', ')}`);
+    }
+
+    // 3. Resolve SKUs
+    const uniqueSkus = [...new Set(rows.map((r) => r.sku))];
+    const itemMap = await this.resolveItemSkus(tenantId, uniqueSkus);
+    const unknownSkus = uniqueSkus.filter((s) => !itemMap.has(s.toLowerCase()));
+    if (unknownSkus.length > 0) {
+      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(', ')}`);
+    }
+
+    // 4. Group rows by orderGroup
+    const groups = new Map<number, PurchaseOrderImportRowDto[]>();
+    for (const row of rows) {
+      const group = groups.get(row.orderGroup) || [];
+      group.push(row);
+      groups.set(row.orderGroup, group);
+    }
+
+    // 5. Create purchase orders
+    let imported = 0;
+    const skippedCodes: string[] = [];
+
+    for (const [, groupRows] of groups) {
+      const header = groupRows[0];
+      const supplierId = supplierMap.get(header.supplierCode.toLowerCase())!;
+
+      const po = await this.createPurchaseOrder({
+        tenantId,
+        siteId,
+        supplierId,
+        expectedDate: header.expectedDate ? new Date(header.expectedDate) : undefined,
+        shipToWarehouseId: warehouseId,
+        notes: header.notes,
+        createdBy,
+      });
+
+      for (const r of groupRows) {
+        await this.createPurchaseOrderLine({
+          tenantId,
+          purchaseOrderId: po.id,
+          itemId: itemMap.get(r.sku.toLowerCase())!,
+          qtyOrdered: r.qty,
+          unitCost: r.unitCost,
+        });
+      }
+
+      await this.recalculatePurchaseOrderTotals(po.id);
+      imported++;
+    }
+
+    return {
+      imported,
+      skipped: skippedCodes.length,
+      skippedCodes,
+    };
   }
 
   // Supplier Performance Analytics

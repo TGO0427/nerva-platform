@@ -64,6 +64,21 @@ export const salesOrderImportConfig: CsvImportConfig = {
   ],
 };
 
+export const purchaseOrderImportConfig: CsvImportConfig = {
+  title: 'Import Purchase Orders',
+  templateFilename: 'purchase-orders-template.xlsx',
+  maxRows: 500,
+  columns: [
+    { header: 'Order Group', field: 'orderGroup', required: true, type: 'number' },
+    { header: 'Supplier Code', field: 'supplierCode', required: true, type: 'string' },
+    { header: 'Expected Date', field: 'expectedDate', required: false, type: 'string' },
+    { header: 'Notes', field: 'notes', required: false, type: 'string' },
+    { header: 'SKU', field: 'sku', required: true, type: 'string' },
+    { header: 'Qty', field: 'qty', required: true, type: 'number' },
+    { header: 'Unit Cost', field: 'unitCost', required: false, type: 'number' },
+  ],
+};
+
 export const supplierImportConfig: CsvImportConfig = {
   title: 'Import Suppliers',
   templateFilename: 'suppliers-template.xlsx',

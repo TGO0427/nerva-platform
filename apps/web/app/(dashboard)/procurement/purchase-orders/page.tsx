@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ExportActions } from '@/components/ui/export-actions';
+import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -12,9 +13,10 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
-import { usePurchaseOrders, usePurchaseOrderStats, useQueryParams } from '@/lib/queries';
+import { usePurchaseOrders, usePurchaseOrderStats, useImportPurchaseOrders, useQueryParams } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport, formatCurrencyForExport } from '@/lib/utils/export';
+import { purchaseOrderImportConfig } from '@/lib/config/csv-import';
 import type { PurchaseOrder, PurchaseOrderStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -33,6 +35,12 @@ export default function PurchaseOrdersPage() {
   const router = useRouter();
   const { params, setSearch, setPage } = useQueryParams({ page: 1, limit: 20 });
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const importMutation = useImportPurchaseOrders();
+  const [importOpen, setImportOpen] = useState(false);
+
+  const handleImport = useCallback(async (rows: Record<string, unknown>[]) => {
+    return importMutation.mutateAsync(rows);
+  }, [importMutation]);
 
   const { data, isLoading } = usePurchaseOrders({
     ...params,
@@ -149,12 +157,18 @@ export default function PurchaseOrdersPage() {
       title="Purchase Orders"
       subtitle="Manage supplier orders and receiving"
       headerActions={
-        <Link href="/procurement/purchase-orders/new">
-          <Button>
-            <PlusIcon />
-            Create Purchase Order
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setImportOpen(true)}>
+            <ImportIcon />
+            Import
           </Button>
-        </Link>
+          <Link href="/procurement/purchase-orders/new">
+            <Button>
+              <PlusIcon />
+              Create Purchase Order
+            </Button>
+          </Link>
+        </div>
       }
       stats={[
         {
@@ -254,7 +268,22 @@ export default function PurchaseOrdersPage() {
           ),
         }}
       />
+      <CsvImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => {}}
+        config={purchaseOrderImportConfig}
+        importFn={handleImport}
+      />
     </ListPageTemplate>
+  );
+}
+
+function ImportIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+    </svg>
   );
 }
 
