@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useRef } from 'react';
 import Papa from 'papaparse';
-import { read, utils, writeFile } from 'xlsx';
 import { Modal } from './modal';
 import { Button } from './button';
 import type { CsvImportConfig, CsvColumnMapping } from '@/lib/config/csv-import';
@@ -124,13 +123,14 @@ export function CsvImportDialog({ open, onClose, onSuccess, config, importFn }: 
 
     if (ext === 'xlsx' || ext === 'xls') {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
+          const XLSX = await import('xlsx');
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = read(data, { type: 'array' });
+          const workbook = XLSX.read(data, { type: 'array' });
           const sheetName = workbook.SheetNames[0];
           const sheet = workbook.Sheets[sheetName];
-          const rows = utils.sheet_to_json<Record<string, string>>(sheet, { raw: false, defval: '' });
+          const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { raw: false, defval: '' });
           const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
           handleParsedData(rows, headers);
         } catch {
@@ -196,12 +196,13 @@ export function CsvImportDialog({ open, onClose, onSuccess, config, importFn }: 
     }
   }, [parsedRows, importFn, onSuccess]);
 
-  const downloadTemplate = useCallback(() => {
+  const downloadTemplate = useCallback(async () => {
+    const XLSX = await import('xlsx');
     const headers = config.columns.map(c => c.header);
-    const ws = utils.aoa_to_sheet([headers]);
-    const wb = utils.book_new();
-    utils.book_append_sheet(wb, ws, 'Template');
-    writeFile(wb, config.templateFilename);
+    const ws = XLSX.utils.aoa_to_sheet([headers]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    XLSX.writeFile(wb, config.templateFilename);
   }, [config]);
 
   const previewColumns = config.columns.filter(c =>
