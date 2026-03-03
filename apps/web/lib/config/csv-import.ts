@@ -14,7 +14,7 @@ export interface CsvImportConfig {
 
 export const itemImportConfig: CsvImportConfig = {
   title: 'Import Items',
-  templateFilename: 'items-template.csv',
+  templateFilename: 'items-template.xlsx',
   maxRows: 500,
   columns: [
     { header: 'SKU', field: 'sku', required: true, type: 'string' },
@@ -29,7 +29,7 @@ export const itemImportConfig: CsvImportConfig = {
 
 export const customerImportConfig: CsvImportConfig = {
   title: 'Import Customers',
-  templateFilename: 'customers-template.csv',
+  templateFilename: 'customers-template.xlsx',
   maxRows: 500,
   columns: [
     { header: 'Code', field: 'code', required: true, type: 'string' },
@@ -50,7 +50,7 @@ export const customerImportConfig: CsvImportConfig = {
 
 export const supplierImportConfig: CsvImportConfig = {
   title: 'Import Suppliers',
-  templateFilename: 'suppliers-template.csv',
+  templateFilename: 'suppliers-template.xlsx',
   maxRows: 500,
   columns: [
     { header: 'Code', field: 'code', required: true, type: 'string' },

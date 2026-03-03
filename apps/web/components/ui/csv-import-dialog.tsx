@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import Papa from 'papaparse';
+import { read, utils, writeFile } from 'xlsx';
 import { Modal } from './modal';
 import { Button } from './button';
 import type { CsvImportConfig, CsvColumnMapping } from '@/lib/config/csv-import';
@@ -82,56 +83,80 @@ export function CsvImportDialog({ open, onClose, onSuccess, config, importFn }: 
     return { mapped, rowErrors, rowIndex: 0 };
   }, [config.columns]);
 
-  const processFile = useCallback((file: File) => {
-    if (!file.name.endsWith('.csv')) {
-      setImportError('Please select a CSV file');
+  const handleParsedData = useCallback((data: Record<string, string>[], headers: string[]) => {
+    if (data.length === 0) {
+      setImportError('The file is empty');
       return;
     }
 
-    Papa.parse<Record<string, string>>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        if (results.data.length === 0) {
-          setImportError('The CSV file is empty');
-          return;
-        }
+    if (data.length > config.maxRows) {
+      setImportError(`File contains ${data.length} rows, but the maximum is ${config.maxRows}`);
+      return;
+    }
 
-        if (results.data.length > config.maxRows) {
-          setImportError(`CSV contains ${results.data.length} rows, but the maximum is ${config.maxRows}`);
-          return;
-        }
+    // Validate header columns
+    const requiredHeaders = config.columns.filter(c => c.required).map(c => c.header);
+    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
 
-        // Validate header columns
-        const headers = results.meta.fields || [];
-        const requiredHeaders = config.columns.filter(c => c.required).map(c => c.header);
-        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+    if (missingHeaders.length > 0) {
+      setImportError(`Missing required columns: ${missingHeaders.join(', ')}`);
+      return;
+    }
 
-        if (missingHeaders.length > 0) {
-          setImportError(`Missing required columns: ${missingHeaders.join(', ')}`);
-          return;
-        }
+    const allErrors: ValidationError[] = [];
+    const mappedRows: Record<string, unknown>[] = [];
 
-        const allErrors: ValidationError[] = [];
-        const mappedRows: Record<string, unknown>[] = [];
-
-        results.data.forEach((rawRow, index) => {
-          const { mapped, rowErrors } = mapRow(rawRow);
-          rowErrors.forEach(e => { e.row = index + 1; });
-          allErrors.push(...rowErrors);
-          mappedRows.push(mapped);
-        });
-
-        setParsedRows(mappedRows);
-        setErrors(allErrors);
-        setImportError(null);
-        setStep('preview');
-      },
-      error: (err) => {
-        setImportError(`Failed to parse CSV: ${err.message}`);
-      },
+    data.forEach((rawRow, index) => {
+      const { mapped, rowErrors } = mapRow(rawRow);
+      rowErrors.forEach(e => { e.row = index + 1; });
+      allErrors.push(...rowErrors);
+      mappedRows.push(mapped);
     });
+
+    setParsedRows(mappedRows);
+    setErrors(allErrors);
+    setImportError(null);
+    setStep('preview');
   }, [config, mapRow]);
+
+  const processFile = useCallback((file: File) => {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+
+    if (ext === 'xlsx' || ext === 'xls') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const rows = utils.sheet_to_json<Record<string, string>>(sheet, { raw: false, defval: '' });
+          const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+          handleParsedData(rows, headers);
+        } catch {
+          setImportError('Failed to parse Excel file');
+        }
+      };
+      reader.onerror = () => {
+        setImportError('Failed to read file');
+      };
+      reader.readAsArrayBuffer(file);
+    } else if (ext === 'csv') {
+      Papa.parse<Record<string, string>>(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const headers = results.meta.fields || [];
+          handleParsedData(results.data, headers);
+        },
+        error: (err) => {
+          setImportError(`Failed to parse CSV: ${err.message}`);
+        },
+      });
+    } else {
+      setImportError('Please select a CSV or Excel (.xlsx, .xls) file');
+    }
+  }, [handleParsedData]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -172,14 +197,11 @@ export function CsvImportDialog({ open, onClose, onSuccess, config, importFn }: 
   }, [parsedRows, importFn, onSuccess]);
 
   const downloadTemplate = useCallback(() => {
-    const headers = config.columns.map(c => c.header).join(',');
-    const blob = new Blob([headers + '\n'], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = config.templateFilename;
-    a.click();
-    URL.revokeObjectURL(url);
+    const headers = config.columns.map(c => c.header);
+    const ws = utils.aoa_to_sheet([headers]);
+    const wb = utils.book_new();
+    utils.book_append_sheet(wb, ws, 'Template');
+    writeFile(wb, config.templateFilename);
   }, [config]);
 
   const previewColumns = config.columns.filter(c =>
@@ -205,7 +227,7 @@ export function CsvImportDialog({ open, onClose, onSuccess, config, importFn }: 
           >
             <UploadIcon />
             <p className="mt-2 text-sm text-gray-600">
-              Drag and drop a CSV file here, or{' '}
+              Drag and drop a CSV or Excel file here, or{' '}
               <button
                 type="button"
                 className="text-primary-600 hover:text-primary-700 font-medium"
@@ -218,7 +240,7 @@ export function CsvImportDialog({ open, onClose, onSuccess, config, importFn }: 
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv"
+              accept=".csv,.xlsx,.xls"
               className="hidden"
               onChange={handleFileChange}
             />
