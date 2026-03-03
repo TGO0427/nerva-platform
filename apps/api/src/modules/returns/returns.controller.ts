@@ -22,6 +22,7 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+import { CreateRmaDto, ReceiveRmaLineDto, SetDispositionDto, CancelRmaDto } from './dto/returns.dto';
 
 @ApiTags('returns')
 @ApiBearerAuth()
@@ -79,22 +80,7 @@ export class ReturnsController {
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      warehouseId: string;
-      customerId: string;
-      salesOrderId?: string;
-      shipmentId?: string;
-      returnType?: string;
-      notes?: string;
-      lines: Array<{
-        itemId: string;
-        qtyExpected: number;
-        reasonCode: string;
-        unitCreditAmount?: number;
-        salesOrderLineId?: string;
-      }>;
-    },
+    @Body() data: CreateRmaDto,
   ) {
     if (!siteId) {
       throw new BadRequestException('Please select a site before creating an RMA');
@@ -113,12 +99,7 @@ export class ReturnsController {
   async receiveLine(
     @Param('id', UuidValidationPipe) rmaId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      lineId: string;
-      qtyReceived: number;
-      receivingBinId: string;
-    },
+    @Body() data: ReceiveRmaLineDto,
   ) {
     return this.service.receiveRmaLine(
       rmaId,
@@ -143,13 +124,7 @@ export class ReturnsController {
   async setDisposition(
     @Param('id', UuidValidationPipe) rmaId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      lineId: string;
-      disposition: string;
-      dispositionBinId: string;
-      inspectionNotes?: string;
-    },
+    @Body() data: SetDispositionDto,
   ) {
     return this.service.setLineDisposition(
       rmaId,
@@ -180,7 +155,7 @@ export class ReturnsController {
   @ApiOperation({ summary: 'Cancel RMA' })
   async cancel(
     @Param('id', UuidValidationPipe) rmaId: string,
-    @Body() data: { reason: string },
+    @Body() data: CancelRmaDto,
   ) {
     return this.service.cancelRma(rmaId, data.reason);
   }

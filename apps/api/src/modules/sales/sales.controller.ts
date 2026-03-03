@@ -23,6 +23,7 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+import { CreateSalesOrderDto, UpdateSalesOrderDto } from './dto/sales.dto';
 
 @ApiTags('sales')
 @ApiBearerAuth()
@@ -94,23 +95,7 @@ export class SalesController {
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      warehouseId: string;
-      customerId: string;
-      orderNo?: string;
-      externalRef?: string;
-      priority?: number;
-      requestedShipDate?: Date;
-      shippingAddressLine1?: string;
-      shippingCity?: string;
-      notes?: string;
-      lines: Array<{
-        itemId: string;
-        qtyOrdered: number;
-        unitPrice?: number;
-      }>;
-    },
+    @Body() data: CreateSalesOrderDto,
   ) {
     if (!siteId) {
       throw new BadRequestException('Please select a site before creating a sales order');
@@ -128,19 +113,7 @@ export class SalesController {
   @ApiOperation({ summary: 'Update sales order (draft only)' })
   async update(
     @Param('id', UuidValidationPipe) id: string,
-    @Body()
-    data: {
-      customerId?: string;
-      warehouseId?: string;
-      priority?: number;
-      requestedShipDate?: Date | null;
-      notes?: string | null;
-      lines?: Array<{
-        itemId: string;
-        qtyOrdered: number;
-        unitPrice?: number;
-      }>;
-    },
+    @Body() data: UpdateSalesOrderDto,
   ) {
     return this.service.updateOrder(id, data);
   }

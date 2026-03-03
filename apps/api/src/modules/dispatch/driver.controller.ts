@@ -19,6 +19,7 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { TenantId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+import { DeliverStopDto, FailStopDriverDto, CapturePodDto } from './dto/driver.dto';
 
 @ApiTags('dispatch')
 @ApiBearerAuth()
@@ -80,15 +81,7 @@ export class DriverController {
     @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) stopId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      recipientName?: string;
-      signatureRef?: string;
-      photoRefs?: string[];
-      gpsLat?: number;
-      gpsLng?: number;
-      notes?: string;
-    },
+    @Body() data: DeliverStopDto,
   ) {
     return this.service.capturesPod({
       tenantId,
@@ -106,14 +99,7 @@ export class DriverController {
     @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) stopId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      failureReason: string;
-      notes?: string;
-      photoRefs?: string[];
-      gpsLat?: number;
-      gpsLng?: number;
-    },
+    @Body() data: FailStopDriverDto,
   ) {
     return this.service.capturesPod({
       tenantId,
@@ -135,17 +121,7 @@ export class DriverController {
     @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) stopId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      status: string;
-      recipientName?: string;
-      signatureRef?: string;
-      photoRefs?: string[];
-      gpsLat?: number;
-      gpsLng?: number;
-      notes?: string;
-      failureReason?: string;
-    },
+    @Body() data: CapturePodDto,
   ) {
     return this.service.capturesPod({
       tenantId,

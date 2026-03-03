@@ -21,6 +21,7 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+import { CreateGrnDto, ScanGrnItemDto } from './dto/grn.dto';
 
 @ApiTags('inventory')
 @ApiBearerAuth()
@@ -76,13 +77,7 @@ export class GrnController {
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      warehouseId: string;
-      purchaseOrderId?: string;
-      supplierId?: string;
-      notes?: string;
-    },
+    @Body() data: CreateGrnDto,
   ) {
     return this.service.createGrn({
       tenantId,
@@ -106,14 +101,7 @@ export class GrnController {
     @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) grnId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      itemId: string;
-      qtyReceived: number;
-      batchNo?: string;
-      expiryDate?: string;
-      receivingBinId: string;
-    },
+    @Body() data: ScanGrnItemDto,
   ) {
     return this.service.receiveGrnLine(grnId, {
       tenantId,

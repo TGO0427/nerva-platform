@@ -17,6 +17,7 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { TenantId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+import { CreateIbtDto, AddIbtLineDto, ShipIbtDto, ReceiveIbtDto } from './dto/ibt.dto';
 
 @ApiTags('inventory')
 @ApiBearerAuth()
@@ -50,12 +51,7 @@ export class IbtController {
   async create(
     @TenantId() tenantId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      fromWarehouseId: string;
-      toWarehouseId: string;
-      notes?: string;
-    },
+    @Body() data: CreateIbtDto,
   ) {
     return this.ibtService.createIbt({
       tenantId,
@@ -84,13 +80,7 @@ export class IbtController {
   async addLine(
     @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
-    @Body()
-    data: {
-      itemId: string;
-      qtyRequested: number;
-      fromBinId?: string;
-      batchNo?: string;
-    },
+    @Body() data: AddIbtLineDto,
   ) {
     return this.ibtService.addLine(id, { tenantId, ...data });
   }
@@ -136,10 +126,7 @@ export class IbtController {
   async ship(
     @Param('id', UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      lines: Array<{ lineId: string; qtyShipped: number }>;
-    },
+    @Body() data: ShipIbtDto,
   ) {
     return this.ibtService.shipLines(id, data.lines, user.id);
   }
@@ -150,10 +137,7 @@ export class IbtController {
   async receive(
     @Param('id', UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      lines: Array<{ lineId: string; qtyReceived: number; toBinId: string }>;
-    },
+    @Body() data: ReceiveIbtDto,
   ) {
     return this.ibtService.receiveLines(id, data.lines, user.id);
   }

@@ -16,6 +16,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { TenantId } from '../../common/decorators/tenant.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+import { ConnectIntegrationDto, PostDocumentDto } from './dto/integrations.dto';
 
 @ApiTags('integrations')
 @ApiBearerAuth()
@@ -40,7 +41,7 @@ export class IntegrationsController {
   async connect(
     @TenantId() tenantId: string,
     @Param('type') type: string,
-    @Body() data: { name: string; authData?: Record<string, unknown> },
+    @Body() data: ConnectIntegrationDto,
   ) {
     const connection = await this.integrationsService.createConnection({
       tenantId,
@@ -88,7 +89,7 @@ export class IntegrationsController {
     @TenantId() tenantId: string,
     @Param('docType') docType: string,
     @Param('docId', UuidValidationPipe) docId: string,
-    @Body() data: { integrationId: string; payload: Record<string, unknown> },
+    @Body() data: PostDocumentDto,
   ) {
     // Enqueue the document
     const queueItem = await this.postingQueueService.enqueue({

@@ -22,6 +22,14 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { TenantId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+import {
+  CreatePickWaveDto,
+  CancelPickWaveDto,
+  ConfirmPickTaskDto,
+  CancelPickTaskDto,
+  CreateShipmentDto,
+  ShipShipmentDto,
+} from './dto/fulfilment.dto';
 
 @ApiTags('fulfilment')
 @ApiBearerAuth()
@@ -63,7 +71,7 @@ export class FulfilmentController {
   async createPickWave(
     @TenantId() tenantId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: { warehouseId: string; orderIds: string[] },
+    @Body() data: CreatePickWaveDto,
   ) {
     return this.service.createPickWave({
       tenantId,
@@ -112,7 +120,7 @@ export class FulfilmentController {
   @ApiOperation({ summary: 'Cancel pick wave' })
   async cancelPickWave(
     @Param('id', UuidValidationPipe) id: string,
-    @Body() data: { reason: string },
+    @Body() data: CancelPickWaveDto,
   ) {
     return this.service.cancelPickWave(id, data.reason);
   }
@@ -161,7 +169,7 @@ export class FulfilmentController {
   async confirmTask(
     @Param('id', UuidValidationPipe) taskId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: { qtyPicked: number; shortReason?: string },
+    @Body() data: ConfirmPickTaskDto,
   ) {
     return this.service.confirmPickTask(taskId, {
       ...data,
@@ -174,7 +182,7 @@ export class FulfilmentController {
   @ApiOperation({ summary: 'Cancel pick task' })
   async cancelTask(
     @Param('id', UuidValidationPipe) taskId: string,
-    @Body() data: { reason: string },
+    @Body() data: CancelPickTaskDto,
   ) {
     return this.service.cancelPickTask(taskId, data.reason);
   }
@@ -208,7 +216,7 @@ export class FulfilmentController {
   async createShipment(
     @TenantId() tenantId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: { siteId?: string; warehouseId?: string; salesOrderId: string },
+    @Body() data: CreateShipmentDto,
   ) {
     return this.service.createShipment({
       tenantId,
@@ -285,7 +293,7 @@ export class FulfilmentController {
   @ApiOperation({ summary: 'Ship shipment with carrier info' })
   async shipShipment(
     @Param('id', UuidValidationPipe) id: string,
-    @Body() data: { carrier: string; trackingNo: string },
+    @Body() data: ShipShipmentDto,
   ) {
     return this.service.shipShipment(id, data);
   }

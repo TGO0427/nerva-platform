@@ -26,6 +26,29 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+import {
+  CreateWorkstationDto,
+  UpdateWorkstationDto,
+  CreateBomDto,
+  UpdateBomDto,
+  AddBomLineDto,
+  UpdateBomLineDto,
+  CreateRoutingDto,
+  UpdateRoutingDto,
+  CreateWorkOrderDto,
+  UpdateWorkOrderDto,
+  UpsertWorkOrderChecksDto,
+  UpsertWorkOrderProcessDto,
+  CompleteOperationDto,
+  IssueMaterialDto,
+  ReturnMaterialDto,
+  RecordOutputDto,
+  RecordScrapDto,
+  RescheduleWorkOrderDto,
+  CreateNonConformanceDto,
+  UpdateNonConformanceDto,
+  ResolveNonConformanceDto,
+} from './dto/manufacturing.dto';
 
 @ApiTags('manufacturing')
 @ApiBearerAuth()
@@ -68,14 +91,7 @@ export class ManufacturingController {
   async createWorkstation(
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
-    @Body() data: {
-      code: string;
-      name: string;
-      description?: string;
-      workstationType: string;
-      capacityPerHour?: number;
-      costPerHour?: number;
-    },
+    @Body() data: CreateWorkstationDto,
   ) {
     return this.service.createWorkstation({ tenantId, siteId, ...data });
   }
@@ -85,15 +101,7 @@ export class ManufacturingController {
   @ApiOperation({ summary: 'Update workstation' })
   async updateWorkstation(
     @Param('id', UuidValidationPipe) id: string,
-    @Body() data: {
-      code?: string;
-      name?: string;
-      description?: string;
-      workstationType?: string;
-      capacityPerHour?: number;
-      costPerHour?: number;
-      status?: string;
-    },
+    @Body() data: UpdateWorkstationDto,
   ) {
     return this.service.updateWorkstation(id, data);
   }
@@ -152,23 +160,7 @@ export class ManufacturingController {
   async createBom(
     @TenantId() tenantId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: {
-      itemId: string;
-      baseQty?: number;
-      uom?: string;
-      effectiveFrom?: Date;
-      effectiveTo?: Date;
-      notes?: string;
-      lines: Array<{
-        itemId: string;
-        qtyPer: number;
-        uom?: string;
-        scrapPct?: number;
-        isCritical?: boolean;
-        category?: string;
-        notes?: string;
-      }>;
-    },
+    @Body() data: CreateBomDto,
   ) {
     return this.service.createBom({ tenantId, createdBy: user.id, ...data });
   }
@@ -178,14 +170,7 @@ export class ManufacturingController {
   @ApiOperation({ summary: 'Update BOM (draft only)' })
   async updateBom(
     @Param('id', UuidValidationPipe) id: string,
-    @Body() data: {
-      revision?: string;
-      baseQty?: number;
-      uom?: string;
-      effectiveFrom?: Date;
-      effectiveTo?: Date;
-      notes?: string;
-    },
+    @Body() data: UpdateBomDto,
   ) {
     return this.service.updateBom(id, data);
   }
@@ -262,15 +247,7 @@ export class ManufacturingController {
   @ApiOperation({ summary: 'Add BOM line' })
   async addBomLine(
     @Param('bomId', UuidValidationPipe) bomId: string,
-    @Body() data: {
-      itemId: string;
-      qtyPer: number;
-      uom?: string;
-      scrapPct?: number;
-      isCritical?: boolean;
-      category?: string;
-      notes?: string;
-    },
+    @Body() data: AddBomLineDto,
   ) {
     return this.service.addBomLine(bomId, data);
   }
@@ -280,14 +257,7 @@ export class ManufacturingController {
   @ApiOperation({ summary: 'Update BOM line' })
   async updateBomLine(
     @Param('lineId', UuidValidationPipe) lineId: string,
-    @Body() data: {
-      qtyPer?: number;
-      uom?: string;
-      scrapPct?: number;
-      isCritical?: boolean;
-      category?: string;
-      notes?: string;
-    },
+    @Body() data: UpdateBomLineDto,
   ) {
     return this.service.updateBomLine(lineId, data);
   }
@@ -328,23 +298,7 @@ export class ManufacturingController {
   async createRouting(
     @TenantId() tenantId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: {
-      itemId: string;
-      effectiveFrom?: Date;
-      effectiveTo?: Date;
-      notes?: string;
-      operations: Array<{
-        name: string;
-        description?: string;
-        workstationId?: string;
-        setupTimeMins?: number;
-        runTimeMins: number;
-        queueTimeMins?: number;
-        overlapPct?: number;
-        isSubcontracted?: boolean;
-        instructions?: string;
-      }>;
-    },
+    @Body() data: CreateRoutingDto,
   ) {
     return this.service.createRouting({ tenantId, createdBy: user.id, ...data });
   }
@@ -354,11 +308,7 @@ export class ManufacturingController {
   @ApiOperation({ summary: 'Update routing (draft only)' })
   async updateRouting(
     @Param('id', UuidValidationPipe) id: string,
-    @Body() data: {
-      effectiveFrom?: Date;
-      effectiveTo?: Date;
-      notes?: string;
-    },
+    @Body() data: UpdateRoutingDto,
   ) {
     return this.service.updateRouting(id, data);
   }
@@ -464,19 +414,7 @@ export class ManufacturingController {
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: {
-      warehouseId: string;
-      workOrderNo?: string;
-      itemId: string;
-      bomHeaderId?: string;
-      routingId?: string;
-      priority?: number;
-      qtyOrdered: number;
-      plannedStart?: Date;
-      plannedEnd?: Date;
-      salesOrderId?: string;
-      notes?: string;
-    },
+    @Body() data: CreateWorkOrderDto,
   ) {
     return this.service.createWorkOrder({ tenantId, siteId, createdBy: user.id, ...data });
   }
@@ -486,16 +424,7 @@ export class ManufacturingController {
   @ApiOperation({ summary: 'Update work order (draft only)' })
   async updateWorkOrder(
     @Param('id', UuidValidationPipe) id: string,
-    @Body() data: {
-      bomHeaderId?: string;
-      routingId?: string;
-      priority?: number;
-      qtyOrdered?: number;
-      plannedStart?: Date;
-      plannedEnd?: Date;
-      batchNo?: string;
-      notes?: string;
-    },
+    @Body() data: UpdateWorkOrderDto,
   ) {
     return this.service.updateWorkOrder(id, data);
   }
@@ -557,17 +486,7 @@ export class ManufacturingController {
   async upsertWorkOrderChecks(
     @Param('id', UuidValidationPipe) id: string,
     @TenantId() tenantId: string,
-    @Body() data: {
-      reworkProduct?: string;
-      reworkQtyKgs?: number;
-      theoreticalBoxes?: number;
-      actualBoxes?: number;
-      actualOvers?: number;
-      actualTotal?: number;
-      diffToTheoretical?: number;
-      loaderSignature?: string;
-      operationsManagerSignature?: string;
-    },
+    @Body() data: UpsertWorkOrderChecksDto,
   ) {
     return this.service.upsertWorkOrderChecks(id, tenantId, data);
   }
@@ -586,19 +505,7 @@ export class ManufacturingController {
   async upsertWorkOrderProcess(
     @Param('id', UuidValidationPipe) id: string,
     @TenantId() tenantId: string,
-    @Body() data: {
-      instructions?: string;
-      specsJson?: Record<string, unknown>;
-      operator?: string;
-      potUsed?: string;
-      timeStarted?: string;
-      time85c?: string;
-      timeFlavourAdded?: string;
-      timeCompleted?: string;
-      additions?: string;
-      reasonForAddition?: string;
-      comments?: string;
-    },
+    @Body() data: UpsertWorkOrderProcessDto,
   ) {
     return this.service.upsertWorkOrderProcess(id, tenantId, data);
   }
@@ -643,13 +550,7 @@ export class ManufacturingController {
   @ApiOperation({ summary: 'Complete operation' })
   async completeOperation(
     @Param('opId', UuidValidationPipe) opId: string,
-    @Body() data: {
-      qtyCompleted: number;
-      qtyScrapped?: number;
-      setupTimeActual?: number;
-      runTimeActual?: number;
-      notes?: string;
-    },
+    @Body() data: CompleteOperationDto,
   ) {
     return this.service.completeOperation(opId, data);
   }
@@ -661,12 +562,7 @@ export class ManufacturingController {
   async issueMaterial(
     @Param('id', UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: {
-      materialId: string;
-      qty: number;
-      binId: string;
-      batchNo?: string;
-    },
+    @Body() data: IssueMaterialDto,
   ) {
     return this.service.issueMaterial(id, { ...data, operatorId: user.id, createdBy: user.id });
   }
@@ -677,13 +573,7 @@ export class ManufacturingController {
   async returnMaterial(
     @Param('id', UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: {
-      materialId: string;
-      qty: number;
-      binId: string;
-      batchNo?: string;
-      reasonCode?: string;
-    },
+    @Body() data: ReturnMaterialDto,
   ) {
     return this.service.returnMaterial(id, { ...data, operatorId: user.id, createdBy: user.id });
   }
@@ -694,14 +584,7 @@ export class ManufacturingController {
   async recordOutput(
     @Param('id', UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: {
-      qty: number;
-      binId: string;
-      batchNo?: string;
-      operationId?: string;
-      workstationId?: string;
-      notes?: string;
-    },
+    @Body() data: RecordOutputDto,
   ) {
     return this.service.recordOutput(id, { ...data, operatorId: user.id, createdBy: user.id });
   }
@@ -712,15 +595,7 @@ export class ManufacturingController {
   async recordScrap(
     @Param('id', UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: {
-      itemId: string;
-      qty: number;
-      binId?: string;
-      batchNo?: string;
-      operationId?: string;
-      reasonCode?: string;
-      notes?: string;
-    },
+    @Body() data: RecordScrapDto,
   ) {
     return this.service.recordScrap(id, { ...data, createdBy: user.id });
   }
@@ -801,12 +676,9 @@ export class ManufacturingController {
   @ApiOperation({ summary: 'Reschedule work order dates' })
   async rescheduleWorkOrder(
     @Param('id', UuidValidationPipe) id: string,
-    @Body() data: { plannedStart?: string; plannedEnd?: string },
+    @Body() data: RescheduleWorkOrderDto,
   ) {
-    return this.service.rescheduleWorkOrder(id, {
-      plannedStart: data.plannedStart ? new Date(data.plannedStart) : undefined,
-      plannedEnd: data.plannedEnd ? new Date(data.plannedEnd) : undefined,
-    });
+    return this.service.rescheduleWorkOrder(id, data);
   }
 
   // ============ Non-Conformances ============
@@ -838,14 +710,7 @@ export class ManufacturingController {
   async createNonConformance(
     @TenantId() tenantId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: {
-      workOrderId?: string;
-      itemId?: string;
-      defectType: string;
-      severity: string;
-      description: string;
-      qtyAffected?: number;
-    },
+    @Body() data: CreateNonConformanceDto,
   ) {
     return this.service.createNonConformance({ tenantId, reportedBy: user.id, ...data });
   }
@@ -855,14 +720,7 @@ export class ManufacturingController {
   @ApiOperation({ summary: 'Update non-conformance' })
   async updateNonConformance(
     @Param('id', UuidValidationPipe) id: string,
-    @Body() data: {
-      defectType?: string;
-      severity?: string;
-      description?: string;
-      qtyAffected?: number;
-      disposition?: string;
-      correctiveAction?: string;
-    },
+    @Body() data: UpdateNonConformanceDto,
   ) {
     return this.service.updateNonConformance(id, data);
   }
@@ -873,7 +731,7 @@ export class ManufacturingController {
   async resolveNonConformance(
     @Param('id', UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: { disposition: string; correctiveAction: string },
+    @Body() data: ResolveNonConformanceDto,
   ) {
     return this.service.resolveNonConformance(id, { ...data, resolvedBy: user.id });
   }

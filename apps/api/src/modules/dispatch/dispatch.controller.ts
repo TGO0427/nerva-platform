@@ -20,6 +20,17 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+import {
+  CreateTripDto,
+  AddStopDto,
+  AssignTripDto,
+  CompleteTripDto,
+  CancelTripDto,
+  ResequenceStopsDto,
+  CompleteStopDto,
+  FailStopDto,
+  SkipStopDto,
+} from './dto/dispatch.dto';
 
 @ApiTags('dispatch')
 @ApiBearerAuth()
@@ -57,16 +68,7 @@ export class DispatchController {
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      warehouseId?: string;
-      vehicleId?: string;
-      driverId?: string;
-      plannedDate?: string;
-      plannedStart?: string;
-      notes?: string;
-      shipmentIds?: string[];
-    },
+    @Body() data: CreateTripDto,
   ) {
     // Log incoming request for debugging
     console.log(`Creating trip for tenant ${tenantId} with ${data.shipmentIds?.length || 0} shipments`);
@@ -127,15 +129,7 @@ export class DispatchController {
   async addStop(
     @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) tripId: string,
-    @Body()
-    data: {
-      customerId?: string;
-      addressLine1: string;
-      city?: string;
-      gpsLat?: number;
-      gpsLng?: number;
-      notes?: string;
-    },
+    @Body() data: AddStopDto,
   ) {
     return this.service.addStop({ tenantId, tripId, ...data });
   }
@@ -145,12 +139,7 @@ export class DispatchController {
   @ApiOperation({ summary: 'Assign vehicle and driver to trip' })
   async assignTrip(
     @Param('id', UuidValidationPipe) tripId: string,
-    @Body() data: {
-      vehicleId?: string;
-      driverId?: string;
-      vehiclePlate?: string;
-      driverName?: string;
-    },
+    @Body() data: AssignTripDto,
   ) {
     return this.service.assignTrip(tripId, {
       vehicleId: data.vehicleId,
@@ -172,7 +161,7 @@ export class DispatchController {
   @ApiOperation({ summary: 'Complete trip' })
   async completeTrip(
     @Param('id', UuidValidationPipe) tripId: string,
-    @Body() data?: { forceComplete?: boolean },
+    @Body() data: CompleteTripDto,
   ) {
     return this.service.completeTrip(tripId, data?.forceComplete);
   }
@@ -182,7 +171,7 @@ export class DispatchController {
   @ApiOperation({ summary: 'Cancel trip' })
   async cancelTrip(
     @Param('id', UuidValidationPipe) tripId: string,
-    @Body() data: { reason: string },
+    @Body() data: CancelTripDto,
   ) {
     return this.service.cancelTrip(tripId, data.reason);
   }
@@ -192,7 +181,7 @@ export class DispatchController {
   @ApiOperation({ summary: 'Resequence stops' })
   async resequenceStops(
     @Param('id', UuidValidationPipe) tripId: string,
-    @Body() data: { stopIds: string[] },
+    @Body() data: ResequenceStopsDto,
   ) {
     return this.service.resequenceStops(tripId, data.stopIds);
   }
@@ -215,11 +204,7 @@ export class DispatchController {
     @TenantId() tenantId: string,
     @Param('tripId', UuidValidationPipe) tripId: string,
     @Param('stopId', UuidValidationPipe) stopId: string,
-    @Body() data: {
-      podSignature?: string;
-      podPhoto?: string;
-      podNotes?: string;
-    },
+    @Body() data: CompleteStopDto,
   ) {
     return this.service.completeStopWithPod(tripId, stopId, tenantId, data);
   }
@@ -230,7 +215,7 @@ export class DispatchController {
   async failStop(
     @Param('tripId', UuidValidationPipe) tripId: string,
     @Param('stopId', UuidValidationPipe) stopId: string,
-    @Body() data: { reason: string },
+    @Body() data: FailStopDto,
   ) {
     return this.service.failStop(tripId, stopId, data.reason);
   }
@@ -241,7 +226,7 @@ export class DispatchController {
   async skipStop(
     @Param('tripId', UuidValidationPipe) tripId: string,
     @Param('stopId', UuidValidationPipe) stopId: string,
-    @Body() data: { reason: string },
+    @Body() data: SkipStopDto,
   ) {
     return this.service.skipStop(tripId, stopId, data.reason);
   }

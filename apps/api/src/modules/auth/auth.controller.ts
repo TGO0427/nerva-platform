@@ -15,6 +15,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { TenantProfileService } from '../../common/pdf/tenant-profile.service';
+import { UpdateTenantProfileDto } from './dto/update-tenant-profile.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -82,7 +83,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Update company profile for current tenant' })
   async updateTenantProfile(
     @CurrentUser() user: CurrentUserData,
-    @Body() data: Record<string, string>,
+    @Body() data: UpdateTenantProfileDto,
   ) {
     return this.tenantProfileService.updateProfile(user.tenantId, data);
   }

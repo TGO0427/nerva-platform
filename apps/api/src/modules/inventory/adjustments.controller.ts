@@ -17,6 +17,7 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { TenantId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+import { CreateAdjustmentDto, AddAdjustmentLineDto } from './dto/adjustments.dto';
 
 @ApiTags('inventory')
 @ApiBearerAuth()
@@ -50,13 +51,7 @@ export class AdjustmentsController {
   async create(
     @TenantId() tenantId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body()
-    data: {
-      warehouseId: string;
-      reason: string;
-      notes?: string;
-      cycleCountId?: string;
-    },
+    @Body() data: CreateAdjustmentDto,
   ) {
     return this.service.createAdjustment({
       tenantId,
@@ -78,13 +73,7 @@ export class AdjustmentsController {
   async addLine(
     @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
-    @Body()
-    data: {
-      binId: string;
-      itemId: string;
-      qtyAfter: number;
-      batchNo?: string;
-    },
+    @Body() data: AddAdjustmentLineDto,
   ) {
     return this.service.addAdjustmentLine(id, { tenantId, ...data });
   }

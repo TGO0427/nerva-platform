@@ -21,6 +21,7 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { TenantId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+import { CreateCycleCountDto, AddCycleCountLineDto, AddCycleCountLinesFromBinDto, RecordCountDto } from './dto/cycle-count.dto';
 
 @ApiTags('inventory')
 @ApiBearerAuth()
@@ -57,7 +58,7 @@ export class CycleCountController {
   async create(
     @TenantId() tenantId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: { warehouseId: string; isBlind?: boolean },
+    @Body() data: CreateCycleCountDto,
   ) {
     return this.service.createCycleCount({
       tenantId,
@@ -80,7 +81,7 @@ export class CycleCountController {
   async addLine(
     @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
-    @Body() data: { binId: string; itemId: string },
+    @Body() data: AddCycleCountLineDto,
   ) {
     return this.service.addCycleCountLine(id, { tenantId, ...data });
   }
@@ -91,7 +92,7 @@ export class CycleCountController {
   async addLinesFromBin(
     @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
-    @Body() data: { binId: string },
+    @Body() data: AddCycleCountLinesFromBinDto,
   ) {
     return this.service.addCycleCountLinesFromBin(id, { tenantId, binId: data.binId });
   }
@@ -131,7 +132,7 @@ export class CycleCountController {
     @Param('id', UuidValidationPipe) id: string,
     @Param('lineId', UuidValidationPipe) lineId: string,
     @CurrentUser() user: CurrentUserData,
-    @Body() data: { countedQty: number },
+    @Body() data: RecordCountDto,
   ) {
     return this.service.recordCount(lineId, {
       countedQty: data.countedQty,
