@@ -3,6 +3,8 @@ import { SalesRepository, SalesOrder, SalesOrderLine } from './sales.repository'
 import { StockLedgerService } from '../inventory/stock-ledger.service';
 import { MasterDataService } from '../masterdata/masterdata.service';
 import { buildPaginatedResult } from '../../common/utils/pagination';
+import type { ImportResult } from '../masterdata/dto/import.dto';
+import type { SalesOrderImportRowDto } from './dto/sales-import.dto';
 
 @Injectable()
 export class SalesService {
@@ -260,6 +262,100 @@ export class SalesService {
       throw new BadRequestException('Only DRAFT orders can be deleted');
     }
     await this.repository.deleteOrder(id);
+  }
+
+  // Bulk import
+  async importOrders(
+    tenantId: string,
+    siteId: string,
+    createdBy: string,
+    rows: SalesOrderImportRowDto[],
+  ): Promise<ImportResult> {
+    // 1. Resolve warehouse: get first warehouse for site
+    const warehouses = await this.masterDataService.listWarehouses(tenantId, siteId);
+    if (warehouses.length === 0) {
+      throw new BadRequestException('No warehouse found for the selected site');
+    }
+    const warehouseId = warehouses[0].id;
+
+    // 2. Resolve customer codes
+    const uniqueCustomerCodes = [...new Set(rows.map((r) => r.customerCode))];
+    const customerMap = await this.masterDataService.resolveCustomerCodes(tenantId, uniqueCustomerCodes);
+    const unknownCustomers = uniqueCustomerCodes.filter((c) => !customerMap.has(c.toLowerCase()));
+    if (unknownCustomers.length > 0) {
+      throw new BadRequestException(`Unknown customer codes: ${unknownCustomers.join(', ')}`);
+    }
+
+    // 3. Resolve SKUs
+    const uniqueSkus = [...new Set(rows.map((r) => r.sku))];
+    const itemMap = await this.masterDataService.resolveItemSkus(tenantId, uniqueSkus);
+    const unknownSkus = uniqueSkus.filter((s) => !itemMap.has(s.toLowerCase()));
+    if (unknownSkus.length > 0) {
+      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(', ')}`);
+    }
+
+    // 4. Group rows by orderGroup
+    const groups = new Map<number, SalesOrderImportRowDto[]>();
+    for (const row of rows) {
+      const group = groups.get(row.orderGroup) || [];
+      group.push(row);
+      groups.set(row.orderGroup, group);
+    }
+
+    // 5. Check for duplicate external refs
+    const refsToCheck: Array<{ externalRef: string; customerId: string }> = [];
+    for (const [, groupRows] of groups) {
+      const header = groupRows[0];
+      if (header.externalRef) {
+        const customerId = customerMap.get(header.customerCode.toLowerCase())!;
+        refsToCheck.push({ externalRef: header.externalRef, customerId });
+      }
+    }
+    const existingRefs = await this.repository.findExistingExternalRefs(tenantId, refsToCheck);
+
+    // 6. Create orders
+    let imported = 0;
+    const skippedCodes: string[] = [];
+
+    for (const [groupNo, groupRows] of groups) {
+      const header = groupRows[0];
+      const customerId = customerMap.get(header.customerCode.toLowerCase())!;
+
+      // Skip if duplicate external ref for this customer
+      if (header.externalRef) {
+        const key = `${header.externalRef}::${customerId}`;
+        if (existingRefs.has(key)) {
+          skippedCodes.push(`Group ${groupNo}: duplicate external ref '${header.externalRef}'`);
+          continue;
+        }
+      }
+
+      const lines = groupRows.map((r) => ({
+        itemId: itemMap.get(r.sku.toLowerCase())!,
+        qtyOrdered: r.qty,
+        unitPrice: r.unitPrice,
+      }));
+
+      await this.createOrder({
+        tenantId,
+        siteId,
+        warehouseId,
+        customerId,
+        externalRef: header.externalRef,
+        priority: header.priority,
+        requestedShipDate: header.requestedShipDate ? new Date(header.requestedShipDate) : undefined,
+        createdBy,
+        lines,
+      });
+
+      imported++;
+    }
+
+    return {
+      imported,
+      skipped: skippedCodes.length,
+      skippedCodes,
+    };
   }
 
   // Generic status update for internal use (e.g., from fulfilment service)

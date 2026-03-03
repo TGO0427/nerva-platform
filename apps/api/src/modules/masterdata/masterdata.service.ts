@@ -264,6 +264,25 @@ export class MasterDataService {
     };
   }
 
+  // Batch resolution helpers for imports
+  async resolveCustomerCodes(tenantId: string, codes: string[]): Promise<Map<string, string>> {
+    const rows = await this.repository.findCustomersByCodes(tenantId, codes);
+    const map = new Map<string, string>();
+    for (const row of rows) {
+      map.set(row.code.toLowerCase(), row.id);
+    }
+    return map;
+  }
+
+  async resolveItemSkus(tenantId: string, skus: string[]): Promise<Map<string, string>> {
+    const rows = await this.repository.findItemsBySkus(tenantId, skus);
+    const map = new Map<string, string>();
+    for (const row of rows) {
+      map.set(row.sku.toLowerCase(), row.id);
+    }
+    return map;
+  }
+
   // Supplier Contacts
   async listSupplierContacts(supplierId: string): Promise<SupplierContact[]> {
     return this.repository.findSupplierContacts(supplierId);

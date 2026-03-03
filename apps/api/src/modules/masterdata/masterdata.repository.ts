@@ -334,6 +334,16 @@ export class MasterDataRepository extends BaseRepository {
     return row ? this.mapItem(row) : null;
   }
 
+  async findItemsBySkus(tenantId: string, skus: string[]): Promise<Array<{ id: string; sku: string }>> {
+    if (skus.length === 0) return [];
+    const lowerSkus = skus.map((s) => s.toLowerCase());
+    const rows = await this.queryMany<{ id: string; sku: string }>(
+      'SELECT id, sku FROM items WHERE tenant_id = $1 AND LOWER(sku) = ANY($2)',
+      [tenantId, lowerSkus],
+    );
+    return rows;
+  }
+
   async createItem(data: {
     tenantId: string;
     sku: string;
@@ -424,6 +434,16 @@ export class MasterDataRepository extends BaseRepository {
       [id],
     );
     return row ? this.mapCustomer(row) : null;
+  }
+
+  async findCustomersByCodes(tenantId: string, codes: string[]): Promise<Array<{ id: string; code: string }>> {
+    if (codes.length === 0) return [];
+    const lowerCodes = codes.map((c) => c.toLowerCase());
+    const rows = await this.queryMany<{ id: string; code: string }>(
+      'SELECT id, code FROM customers WHERE tenant_id = $1 AND LOWER(code) = ANY($2)',
+      [tenantId, lowerCodes],
+    );
+    return rows;
   }
 
   async createCustomer(data: {

@@ -24,6 +24,8 @@ import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 import { CreateSalesOrderDto, UpdateSalesOrderDto } from './dto/sales.dto';
+import { ImportSalesOrdersDto } from './dto/sales-import.dto';
+import type { ImportResult } from '../masterdata/dto/import.dto';
 
 @ApiTags('sales')
 @ApiBearerAuth()
@@ -61,6 +63,21 @@ export class SalesController {
   async getNextNumber(@TenantId() tenantId: string) {
     const orderNo = await this.service.getNextOrderNumber(tenantId);
     return { orderNo };
+  }
+
+  @Post('import')
+  @RequirePermissions('sales_order.create')
+  @ApiOperation({ summary: 'Bulk import sales orders from spreadsheet' })
+  async importOrders(
+    @TenantId() tenantId: string,
+    @SiteId() siteId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: ImportSalesOrdersDto,
+  ): Promise<ImportResult> {
+    if (!siteId) {
+      throw new BadRequestException('Please select a site before importing sales orders');
+    }
+    return this.service.importOrders(tenantId, siteId, user.id, data.rows);
   }
 
   @Get(':id')

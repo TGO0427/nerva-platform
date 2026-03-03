@@ -1,20 +1,22 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ExportActions } from '@/components/ui/export-actions';
+import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
-import { useOrders, useSalesOrderStats, useQueryParams, SalesOrderWithCustomer } from '@/lib/queries';
+import { useOrders, useSalesOrderStats, useImportSalesOrders, useQueryParams, SalesOrderWithCustomer } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { useCopy } from '@/lib/hooks/use-copy';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { salesOrderImportConfig } from '@/lib/config/csv-import';
 import type { SalesOrderStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -36,6 +38,12 @@ export default function SalesOrdersPage() {
   const { copy } = useCopy();
   const [status, setStatus] = useState<SalesOrderStatus | ''>('');
   const [lateOnly, setLateOnly] = useState(false);
+  const importMutation = useImportSalesOrders();
+  const [importOpen, setImportOpen] = useState(false);
+
+  const handleImport = useCallback(async (rows: Record<string, unknown>[]) => {
+    return importMutation.mutateAsync(rows);
+  }, [importMutation]);
   const { params, setPage } = useQueryParams();
 
   // Handle URL query params
@@ -165,12 +173,18 @@ export default function SalesOrdersPage() {
       title="Sales Orders"
       subtitle="Manage customer orders and fulfilment"
       headerActions={
-        <Link href="/sales/new">
-          <Button>
-            <PlusIcon />
-            New Order
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setImportOpen(true)}>
+            <ImportIcon />
+            Import
           </Button>
-        </Link>
+          <Link href="/sales/new">
+            <Button>
+              <PlusIcon />
+              New Order
+            </Button>
+          </Link>
+        </div>
       }
       stats={[
         {
@@ -272,7 +286,22 @@ export default function SalesOrdersPage() {
           ),
         }}
       />
+      <CsvImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => {}}
+        config={salesOrderImportConfig}
+        importFn={handleImport}
+      />
     </ListPageTemplate>
+  );
+}
+
+function ImportIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+    </svg>
   );
 }
 

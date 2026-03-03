@@ -270,6 +270,31 @@ export class SalesRepository extends BaseRepository {
     };
   }
 
+  async findExistingExternalRefs(
+    tenantId: string,
+    refs: Array<{ externalRef: string; customerId: string }>,
+  ): Promise<Set<string>> {
+    if (refs.length === 0) return new Set();
+    // Build a query that checks for existing orders with the same external_ref + customer_id
+    const conditions: string[] = [];
+    const params: unknown[] = [tenantId];
+    let idx = 2;
+    for (const ref of refs) {
+      conditions.push(`(external_ref = $${idx} AND customer_id = $${idx + 1})`);
+      params.push(ref.externalRef, ref.customerId);
+      idx += 2;
+    }
+    const rows = await this.queryMany<{ external_ref: string; customer_id: string }>(
+      `SELECT external_ref, customer_id FROM sales_orders WHERE tenant_id = $1 AND (${conditions.join(' OR ')})`,
+      params,
+    );
+    const set = new Set<string>();
+    for (const row of rows) {
+      set.add(`${row.external_ref}::${row.customer_id}`);
+    }
+    return set;
+  }
+
   async generateOrderNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
       'SELECT COUNT(*) as count FROM sales_orders WHERE tenant_id = $1',

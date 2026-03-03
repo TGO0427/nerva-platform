@@ -237,3 +237,21 @@ export function useDeleteSalesOrder() {
     },
   });
 }
+
+// Import sales orders
+export function useImportSalesOrders() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (rows: Record<string, unknown>[]) => {
+      const response = await api.post<{ imported: number; skipped: number; skippedCodes: string[] }>(
+        '/sales/orders/import',
+        { rows },
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ORDERS_KEY] });
+    },
+  });
+}
