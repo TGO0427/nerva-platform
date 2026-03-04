@@ -199,9 +199,10 @@ export default function WorkstationsPage() {
       />
       <CsvImportDialog
         open={importOpen}
-        onOpenChange={setImportOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => setImportOpen(false)}
         config={workstationImportConfig}
-        mutation={importMutation}
+        importFn={async (rows) => importMutation.mutateAsync(rows)}
       />
     </ListPageTemplate>
   );

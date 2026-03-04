@@ -209,9 +209,10 @@ export default function RoutingsPage() {
       />
       <CsvImportDialog
         open={importOpen}
-        onOpenChange={setImportOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => setImportOpen(false)}
         config={routingImportConfig}
-        mutation={importMutation}
+        importFn={async (rows) => importMutation.mutateAsync(rows)}
       />
     </ListPageTemplate>
   );

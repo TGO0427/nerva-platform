@@ -262,9 +262,10 @@ export default function BomsPage() {
       />
       <CsvImportDialog
         open={importOpen}
-        onOpenChange={setImportOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => setImportOpen(false)}
         config={bomImportConfig}
-        mutation={importMutation}
+        importFn={async (rows) => importMutation.mutateAsync(rows)}
       />
     </ListPageTemplate>
   );
