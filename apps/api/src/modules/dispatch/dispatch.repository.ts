@@ -110,7 +110,7 @@ export class DispatchRepository extends BaseRepository {
 
   async findTripsByTenant(
     tenantId: string,
-    filters: { status?: string; driverId?: string; date?: Date },
+    filters: { status?: string; driverId?: string; date?: Date; search?: string },
     limit = 50,
     offset = 0,
   ): Promise<DispatchTrip[]> {
@@ -130,6 +130,11 @@ export class DispatchRepository extends BaseRepository {
       sql += ` AND planned_date = $${idx++}`;
       params.push(filters.date);
     }
+    if (filters.search) {
+      sql += ` AND (trip_no ILIKE $${idx} OR vehicle_reg ILIKE $${idx} OR driver_name ILIKE $${idx})`;
+      params.push(`%${filters.search}%`);
+      idx++;
+    }
 
     sql += ` ORDER BY planned_date DESC, created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
     params.push(limit, offset);
@@ -140,7 +145,7 @@ export class DispatchRepository extends BaseRepository {
 
   async countTripsByTenant(
     tenantId: string,
-    filters: { status?: string; driverId?: string; date?: Date },
+    filters: { status?: string; driverId?: string; date?: Date; search?: string },
   ): Promise<number> {
     let sql = 'SELECT COUNT(*) as count FROM dispatch_trips WHERE tenant_id = $1';
     const params: unknown[] = [tenantId];
@@ -157,6 +162,11 @@ export class DispatchRepository extends BaseRepository {
     if (filters.date) {
       sql += ` AND planned_date = $${idx++}`;
       params.push(filters.date);
+    }
+    if (filters.search) {
+      sql += ` AND (trip_no ILIKE $${idx} OR vehicle_reg ILIKE $${idx} OR driver_name ILIKE $${idx})`;
+      params.push(`%${filters.search}%`);
+      idx++;
     }
 
     const result = await this.queryOne<{ count: string }>(sql, params);

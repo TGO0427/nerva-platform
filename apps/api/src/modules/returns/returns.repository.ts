@@ -102,28 +102,33 @@ export class ReturnsRepository extends BaseRepository {
 
   async findRmasByTenant(
     tenantId: string,
-    filters: { status?: string; customerId?: string; siteId?: string },
+    filters: { status?: string; customerId?: string; siteId?: string; search?: string },
     limit = 50,
     offset = 0,
   ): Promise<Rma[]> {
-    let sql = 'SELECT * FROM rmas WHERE tenant_id = $1';
+    let sql = 'SELECT r.* FROM rmas r WHERE r.tenant_id = $1';
     const params: unknown[] = [tenantId];
     let idx = 2;
 
     if (filters.siteId) {
-      sql += ` AND site_id = $${idx++}`;
+      sql += ` AND r.site_id = $${idx++}`;
       params.push(filters.siteId);
     }
     if (filters.status) {
-      sql += ` AND status = $${idx++}`;
+      sql += ` AND r.status = $${idx++}`;
       params.push(filters.status);
     }
     if (filters.customerId) {
-      sql += ` AND customer_id = $${idx++}`;
+      sql += ` AND r.customer_id = $${idx++}`;
       params.push(filters.customerId);
     }
+    if (filters.search) {
+      sql += ` AND (r.rma_no ILIKE $${idx} OR EXISTS (SELECT 1 FROM customers c WHERE c.id = r.customer_id AND c.name ILIKE $${idx}))`;
+      params.push(`%${filters.search}%`);
+      idx++;
+    }
 
-    sql += ` ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
+    sql += ` ORDER BY r.created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
     params.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
@@ -132,23 +137,28 @@ export class ReturnsRepository extends BaseRepository {
 
   async countRmasByTenant(
     tenantId: string,
-    filters: { status?: string; customerId?: string; siteId?: string },
+    filters: { status?: string; customerId?: string; siteId?: string; search?: string },
   ): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM rmas WHERE tenant_id = $1';
+    let sql = 'SELECT COUNT(*) as count FROM rmas r WHERE r.tenant_id = $1';
     const params: unknown[] = [tenantId];
     let idx = 2;
 
     if (filters.siteId) {
-      sql += ` AND site_id = $${idx++}`;
+      sql += ` AND r.site_id = $${idx++}`;
       params.push(filters.siteId);
     }
     if (filters.status) {
-      sql += ` AND status = $${idx++}`;
+      sql += ` AND r.status = $${idx++}`;
       params.push(filters.status);
     }
     if (filters.customerId) {
-      sql += ` AND customer_id = $${idx++}`;
+      sql += ` AND r.customer_id = $${idx++}`;
       params.push(filters.customerId);
+    }
+    if (filters.search) {
+      sql += ` AND (r.rma_no ILIKE $${idx} OR EXISTS (SELECT 1 FROM customers c WHERE c.id = r.customer_id AND c.name ILIKE $${idx}))`;
+      params.push(`%${filters.search}%`);
+      idx++;
     }
 
     const result = await this.queryOne<{ count: string }>(sql, params);

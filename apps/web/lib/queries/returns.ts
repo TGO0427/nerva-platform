@@ -62,7 +62,7 @@ export interface CreditNote {
 }
 
 // RMA queries
-export function useRmas(params: QueryParams & { status?: RmaStatus; customerId?: string }) {
+export function useRmas(params: QueryParams & { status?: RmaStatus; customerId?: string; search?: string }) {
   return useQuery({
     queryKey: [RMA_KEY, params],
     queryFn: async () => {
@@ -71,6 +71,7 @@ export function useRmas(params: QueryParams & { status?: RmaStatus; customerId?:
       searchParams.set('limit', String(params.limit));
       if (params.status) searchParams.set('status', params.status);
       if (params.customerId) searchParams.set('customerId', params.customerId);
+      if (params.search) searchParams.set('search', params.search);
 
       const response = await api.get<PaginatedResult<Rma>>(
         `/returns/rmas?${searchParams.toString()}`

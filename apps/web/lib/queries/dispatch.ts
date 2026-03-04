@@ -69,7 +69,7 @@ export interface Driver {
 }
 
 // Trip queries
-export function useTrips(params: QueryParams & { status?: TripStatus; date?: string }) {
+export function useTrips(params: QueryParams & { status?: TripStatus; date?: string; search?: string }) {
   return useQuery({
     queryKey: [TRIPS_KEY, params],
     queryFn: async () => {
@@ -78,6 +78,7 @@ export function useTrips(params: QueryParams & { status?: TripStatus; date?: str
       searchParams.set('limit', String(params.limit));
       if (params.status) searchParams.set('status', params.status);
       if (params.date) searchParams.set('date', params.date);
+      if (params.search) searchParams.set('search', params.search);
 
       const response = await api.get<PaginatedResult<Trip>>(
         `/dispatch/trips?${searchParams.toString()}`

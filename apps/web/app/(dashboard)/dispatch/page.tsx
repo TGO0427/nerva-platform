@@ -104,6 +104,7 @@ export default function DispatchPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('board');
   const [status, setStatus] = useState<TripStatus | ''>('');
   const [date, setDate] = useState('');
+  const [search, setSearch] = useState('');
   const [selectedShipments, setSelectedShipments] = useState<Set<string>>(new Set());
   const [plannedDate, setPlannedDate] = useState('');
   const [error, setError] = useState('');
@@ -137,6 +138,7 @@ export default function DispatchPage() {
     limit: 100, // Get more for board view
     status: status || undefined,
     date: date || undefined,
+    search: search || undefined,
   });
 
   const { data: readyShipments, isLoading: shipmentsLoading, refetch: refetchShipments } = useReadyForDispatchShipments();
@@ -649,6 +651,12 @@ export default function DispatchPage() {
         <>
           {/* Sticky filter bar */}
           <div className="sticky top-0 z-10 bg-white border-b border-slate-100 -mx-6 px-6 py-3 mb-4 flex flex-wrap items-center gap-4">
+            <Input
+              placeholder="Search trips..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-48"
+            />
             <Select
               value={status}
               onChange={(e) => setStatus(e.target.value as TripStatus | '')}
@@ -661,13 +669,14 @@ export default function DispatchPage() {
               onChange={(e) => setDate(e.target.value)}
               className="w-48"
             />
-            {(status || date) && (
+            {(status || date || search) && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
                   setStatus('');
                   setDate('');
+                  setSearch('');
                 }}
               >
                 Clear Filters

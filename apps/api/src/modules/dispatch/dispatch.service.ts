@@ -171,7 +171,7 @@ export class DispatchService {
 
   async listTrips(
     tenantId: string,
-    filters: { status?: string; driverId?: string; date?: Date },
+    filters: { status?: string; driverId?: string; date?: Date; search?: string },
     page = 1,
     limit = 50,
   ) {

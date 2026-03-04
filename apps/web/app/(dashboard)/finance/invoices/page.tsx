@@ -2,14 +2,19 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 import { Breadcrumbs } from '@/components/layout';
 import { ExportActions } from '@/components/ui/export-actions';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/ui/stat-card';
 import { DataTable, Column } from '@/components/ui/data-table';
-import { useInvoices, useInvoiceStats, useQueryParams, Invoice } from '@/lib/queries';
+import { useInvoices, useInvoiceStats, useCancelInvoice, useQueryParams, Invoice } from '@/lib/queries';
+import { useTableSelection } from '@/lib/hooks';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { exportToCSV, generateExportFilename, formatDateForExport, formatCurrencyForExport } from '@/lib/utils/export';
 
 const STATUS_OPTIONS = [
@@ -29,6 +34,9 @@ function formatAmount(amount: number): string {
 
 export default function InvoicesPage() {
   const router = useRouter();
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
+  const cancelInvoice = useCancelInvoice();
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
   const { params, setPage } = useQueryParams();
@@ -40,6 +48,19 @@ export default function InvoicesPage() {
   });
 
   const { data: stats } = useInvoiceStats();
+
+  const tableData = data?.data || [];
+
+  const {
+    selectedIds,
+    selectedCount,
+    isSelected,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
 
   const safeStats = stats || {
     outstandingCount: 0,
@@ -114,6 +135,10 @@ export default function InvoicesPage() {
   };
 
   const handleExport = () => {
+    const exportData = selectedCount > 0
+      ? tableData.filter(row => selectedIds.has(row.id))
+      : tableData;
+
     const exportColumns = [
       { key: 'invoiceNo', header: 'Invoice No.' },
       { key: 'status', header: 'Status', getValue: (row: Invoice) => row.status?.replace(/_/g, ' ') },
@@ -126,7 +151,31 @@ export default function InvoicesPage() {
       { key: 'createdAt', header: 'Created', getValue: (row: Invoice) => formatDateForExport(row.createdAt) },
     ];
 
-    exportToCSV(data?.data || [], exportColumns, generateExportFilename('invoices'));
+    exportToCSV(exportData, exportColumns, generateExportFilename('invoices'));
+  };
+
+  const handleBulkCancel = async () => {
+    const cancellable = tableData.filter(r => selectedIds.has(r.id) && r.status === 'DRAFT');
+    if (cancellable.length === 0) {
+      addToast('No selected invoices can be cancelled (must be Draft)', 'error');
+      return;
+    }
+    const confirmed = await confirm({
+      title: 'Cancel Invoices',
+      message: `Cancel ${cancellable.length} draft invoice(s)? This cannot be undone.`,
+      confirmLabel: 'Cancel Invoices',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    let count = 0;
+    for (const inv of cancellable) {
+      try {
+        await cancelInvoice.mutateAsync(inv.id);
+        count++;
+      } catch { /* skip failures */ }
+    }
+    addToast(`${count} invoice(s) cancelled`, 'success');
+    clearSelection();
   };
 
   return (
@@ -139,7 +188,7 @@ export default function InvoicesPage() {
           <p className="text-slate-500 mt-1">Manage customer invoices and payments</p>
         </div>
         <div className="flex gap-2 print:hidden">
-          <ExportActions onExport={handleExport} />
+          <ExportActions onExport={handleExport} selectedCount={selectedCount} />
         </div>
       </div>
 
@@ -186,11 +235,29 @@ export default function InvoicesPage() {
         />
       </div>
 
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <ExportActions onExport={handleExport} />
+          <Button variant="danger" size="sm" onClick={handleBulkCancel}>
+            Cancel Selected
+          </Button>
+        </BulkActionBar>
+      )}
+
       <DataTable
         columns={columns}
-        data={data?.data || []}
+        data={tableData}
         keyField="id"
         isLoading={isLoading}
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,

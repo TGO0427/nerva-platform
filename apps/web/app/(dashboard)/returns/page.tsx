@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ExportActions } from '@/components/ui/export-actions';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -11,8 +12,10 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
-import { useRmas, useQueryParams, Rma } from '@/lib/queries';
+import { useRmas, useCancelRma, useQueryParams, Rma } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { RmaStatus } from '@nerva/shared';
 
@@ -31,12 +34,17 @@ const STATUS_OPTIONS = [
 
 export default function ReturnsPage() {
   const router = useRouter();
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
+  const cancelRma = useCancelRma();
   const [status, setStatus] = useState<RmaStatus | ''>('');
+  const [search, setSearch] = useState('');
   const { params, setPage } = useQueryParams();
 
   const { data, isLoading } = useRmas({
     ...params,
     status: status || undefined,
+    search: search || undefined,
   });
 
   const tableData = data?.data || [];
@@ -177,12 +185,20 @@ export default function ReturnsPage() {
       ]}
       statsColumns={4}
       filters={
-        <Select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as RmaStatus | '')}
-          options={STATUS_OPTIONS}
-          className="max-w-xs"
-        />
+        <div className="flex gap-2">
+          <Input
+            placeholder="Search RMAs..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="max-w-xs"
+          />
+          <Select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as RmaStatus | '')}
+            options={STATUS_OPTIONS}
+            className="max-w-xs"
+          />
+        </div>
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
@@ -203,6 +219,35 @@ export default function ReturnsPage() {
           onClearSelection={clearSelection}
         >
           <ExportActions onExport={handleExport} />
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={async () => {
+              const cancellable = tableData.filter(r => selectedIds.has(r.id) && ['OPEN', 'AWAITING_RETURN'].includes(r.status));
+              if (cancellable.length === 0) {
+                addToast('No selected RMAs can be cancelled (must be Open or Awaiting Return)', 'error');
+                return;
+              }
+              const confirmed = await confirm({
+                title: 'Cancel RMAs',
+                message: `Cancel ${cancellable.length} RMA(s)? This cannot be undone.`,
+                confirmLabel: 'Cancel RMAs',
+                variant: 'danger',
+              });
+              if (!confirmed) return;
+              let count = 0;
+              for (const rma of cancellable) {
+                try {
+                  await cancelRma.mutateAsync({ rmaId: rma.id, reason: 'Bulk cancelled' });
+                  count++;
+                } catch { /* skip failures */ }
+              }
+              addToast(`${count} RMA(s) cancelled`, 'success');
+              clearSelection();
+            }}
+          >
+            Cancel Selected
+          </Button>
         </BulkActionBar>
       )}
 

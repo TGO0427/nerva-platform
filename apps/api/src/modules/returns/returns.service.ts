@@ -58,7 +58,7 @@ export class ReturnsService {
   async listRmas(
     tenantId: string,
     siteId: string | undefined,
-    filters: { status?: string; customerId?: string },
+    filters: { status?: string; customerId?: string; search?: string },
     page = 1,
     limit = 50,
   ) {

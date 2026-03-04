@@ -42,10 +42,11 @@ export class ReturnsController {
     @SiteId() siteId: string,
     @Query('status') status?: string,
     @Query('customerId') customerId?: string,
+    @Query('search') search?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.service.listRmas(tenantId, siteId, { status, customerId }, page, limit);
+    return this.service.listRmas(tenantId, siteId, { status, customerId, search }, page, limit);
   }
 
   @Get(':id')

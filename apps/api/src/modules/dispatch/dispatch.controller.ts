@@ -50,12 +50,13 @@ export class DispatchController {
     @Query('status') status?: string,
     @Query('driverId') driverId?: string,
     @Query('date') date?: string,
+    @Query('search') search?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
     return this.service.listTrips(
       tenantId,
-      { status, driverId, date: date ? new Date(date) : undefined },
+      { status, driverId, date: date ? new Date(date) : undefined, search },
       page,
       limit,
     );
