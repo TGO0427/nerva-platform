@@ -1,19 +1,21 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ExportActions } from '@/components/ui/export-actions';
+import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ListPageTemplate } from '@/components/templates';
-import { useWorkOrders, useQueryParams } from '@/lib/queries';
+import { useWorkOrders, useImportWorkOrders, useQueryParams } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { workOrderImportConfig } from '@/lib/config/csv-import';
 import type { WorkOrder, WorkOrderStatus } from '@nerva/shared';
 
 type WorkOrderWithMeta = WorkOrder & { itemSku?: string; itemDescription?: string; warehouseName?: string };
@@ -31,6 +33,13 @@ const STATUS_OPTIONS = [
 export default function WorkOrdersPage() {
   const router = useRouter();
   const [status, setStatus] = useState<WorkOrderStatus | ''>('');
+  const importMutation = useImportWorkOrders();
+  const [importOpen, setImportOpen] = useState(false);
+
+  const handleImport = useCallback(async (rows: Record<string, unknown>[]) => {
+    return importMutation.mutateAsync(rows);
+  }, [importMutation]);
+
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useWorkOrders({ ...params, status: status || undefined });
 
@@ -167,12 +176,18 @@ export default function WorkOrdersPage() {
       title="Work Orders"
       subtitle="Manage production work orders"
       headerActions={
-        <Link href="/manufacturing/work-orders/new">
-          <Button>
-            <PlusIcon />
-            New Work Order
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setImportOpen(true)}>
+            <ImportIcon />
+            Import
           </Button>
-        </Link>
+          <Link href="/manufacturing/work-orders/new">
+            <Button>
+              <PlusIcon />
+              New Work Order
+            </Button>
+          </Link>
+        </div>
       }
       stats={[
         {
@@ -261,7 +276,22 @@ export default function WorkOrdersPage() {
           ),
         }}
       />
+      <CsvImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => {}}
+        config={workOrderImportConfig}
+        importFn={handleImport}
+      />
     </ListPageTemplate>
+  );
+}
+
+function ImportIcon() {
+  return (
+    <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+    </svg>
   );
 }
 

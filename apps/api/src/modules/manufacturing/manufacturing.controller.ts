@@ -49,6 +49,8 @@ import {
   UpdateNonConformanceDto,
   ResolveNonConformanceDto,
 } from './dto/manufacturing.dto';
+import { ImportWorkOrdersDto } from './dto/wo-import.dto';
+import type { ImportResult } from '../masterdata/dto/import.dto';
 
 @ApiTags('manufacturing')
 @ApiBearerAuth()
@@ -352,6 +354,21 @@ export class ManufacturingController {
     @Query('limit') limit?: number,
   ) {
     return this.service.listWorkOrders(tenantId, { status, itemId, warehouseId, search }, page, limit);
+  }
+
+  @Post('work-orders/import')
+  @RequirePermissions('work_order.create')
+  @ApiOperation({ summary: 'Bulk import work orders from spreadsheet' })
+  async importWorkOrders(
+    @TenantId() tenantId: string,
+    @SiteId() siteId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: ImportWorkOrdersDto,
+  ): Promise<ImportResult> {
+    if (!siteId) {
+      throw new BadRequestException('Please select a site before importing work orders');
+    }
+    return this.service.importWorkOrders(tenantId, siteId, user.id, data.rows);
   }
 
   @Get('work-orders/:id')

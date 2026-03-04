@@ -513,6 +513,22 @@ export function useDeleteWorkOrder() {
   });
 }
 
+export function useImportWorkOrders() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (rows: Record<string, unknown>[]) => {
+      const response = await api.post<{ imported: number; skipped: number; skippedCodes: string[] }>(
+        '/manufacturing/work-orders/import',
+        { rows },
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
+    },
+  });
+}
+
 export function useUpdateWorkOrder() {
   const queryClient = useQueryClient();
   return useMutation({

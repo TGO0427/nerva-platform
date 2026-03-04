@@ -8,6 +8,9 @@ import { ProductionDataRepository } from './repositories/production-data.reposit
 import { MrpRepository } from './repositories/mrp.repository';
 import { NonConformanceRepository } from './repositories/non-conformance.repository';
 import { StockLedgerService } from '../inventory/stock-ledger.service';
+import { MasterDataService } from '../masterdata/masterdata.service';
+import type { ImportResult } from '../masterdata/dto/import.dto';
+import type { WorkOrderImportRowDto } from './dto/wo-import.dto';
 
 @Injectable()
 export class ManufacturingService {
@@ -21,6 +24,7 @@ export class ManufacturingService {
     private readonly mrpRepo: MrpRepository,
     private readonly ncRepo: NonConformanceRepository,
     private readonly stockLedgerService: StockLedgerService,
+    private readonly masterDataService: MasterDataService,
   ) {}
 
   // ============ Workstations ============
@@ -552,6 +556,71 @@ export class ManufacturingService {
       throw new BadRequestException('Can only delete DRAFT work orders');
     }
     await this.workOrderRepo.delete(id);
+  }
+
+  // Bulk import work orders
+  async importWorkOrders(
+    tenantId: string,
+    siteId: string,
+    createdBy: string,
+    rows: WorkOrderImportRowDto[],
+  ): Promise<ImportResult> {
+    // 1. Resolve warehouse: get first warehouse for site
+    const warehouses = await this.masterDataService.listWarehouses(tenantId, siteId);
+    if (warehouses.length === 0) {
+      throw new BadRequestException('No warehouse found for the selected site');
+    }
+    const warehouseId = warehouses[0].id;
+
+    // 2. Resolve SKUs
+    const uniqueSkus = [...new Set(rows.map((r) => r.sku))];
+    const itemMap = await this.masterDataService.resolveItemSkus(tenantId, uniqueSkus);
+    const unknownSkus = uniqueSkus.filter((s) => !itemMap.has(s.toLowerCase()));
+    if (unknownSkus.length > 0) {
+      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(', ')}`);
+    }
+
+    // 3. Pre-fetch active BOMs and routings for each unique item
+    const bomMap = new Map<string, string>();
+    const routingMap = new Map<string, string>();
+    for (const sku of uniqueSkus) {
+      const itemId = itemMap.get(sku.toLowerCase())!;
+      const activeBom = await this.bomRepo.findActiveForItem(tenantId, itemId);
+      if (activeBom) bomMap.set(itemId, activeBom.id);
+      const activeRouting = await this.routingRepo.findActiveForItem(tenantId, itemId);
+      if (activeRouting) routingMap.set(itemId, activeRouting.id);
+    }
+
+    // 4. Create work orders
+    let imported = 0;
+    const skippedCodes: string[] = [];
+
+    for (const row of rows) {
+      const itemId = itemMap.get(row.sku.toLowerCase())!;
+
+      await this.createWorkOrder({
+        tenantId,
+        siteId,
+        warehouseId,
+        itemId,
+        bomHeaderId: bomMap.get(itemId),
+        routingId: routingMap.get(itemId),
+        priority: row.priority,
+        qtyOrdered: row.qtyOrdered,
+        plannedStart: row.plannedStart ? new Date(row.plannedStart) : undefined,
+        plannedEnd: row.plannedEnd ? new Date(row.plannedEnd) : undefined,
+        notes: row.notes,
+        createdBy,
+      });
+
+      imported++;
+    }
+
+    return {
+      imported,
+      skipped: skippedCodes.length,
+      skippedCodes,
+    };
   }
 
   async releaseWorkOrder(id: string) {
