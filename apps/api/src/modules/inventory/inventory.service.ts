@@ -6,6 +6,8 @@ import { StockLedgerService } from './stock-ledger.service';
 import { BatchRepository } from './batch.repository';
 import { MasterDataService } from '../masterdata/masterdata.service';
 import { buildPaginatedResult } from '../../common/utils/pagination';
+import type { AdjustmentImportRowDto } from './dto/adjustment-import.dto';
+import type { ImportResult } from '../masterdata/dto/import.dto';
 
 @Injectable()
 export class InventoryService {
@@ -334,6 +336,101 @@ export class InventoryService {
 
     const updated = await this.repository.updateAdjustmentStatus(id, 'POSTED');
     return updated!;
+  }
+
+  // Bulk import adjustments
+  async importAdjustments(
+    tenantId: string,
+    siteId: string,
+    createdBy: string,
+    rows: AdjustmentImportRowDto[],
+  ): Promise<ImportResult> {
+    // 1. Resolve warehouse names
+    const uniqueWarehouseNames = [...new Set(rows.map((r) => r.warehouseName))];
+    const warehouseMap = await this.masterDataService.resolveWarehouseNames(tenantId, siteId, uniqueWarehouseNames);
+    const unknownWarehouses = uniqueWarehouseNames.filter((n) => !warehouseMap.has(n.toLowerCase()));
+    if (unknownWarehouses.length > 0) {
+      throw new BadRequestException(`Unknown warehouse names: ${unknownWarehouses.join(', ')}`);
+    }
+
+    // 2. Resolve SKUs
+    const uniqueSkus = [...new Set(rows.map((r) => r.sku))];
+    const itemMap = await this.masterDataService.resolveItemSkus(tenantId, uniqueSkus);
+    const unknownSkus = uniqueSkus.filter((s) => !itemMap.has(s.toLowerCase()));
+    if (unknownSkus.length > 0) {
+      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(', ')}`);
+    }
+
+    // 3. Resolve bin codes per warehouse
+    const binMaps = new Map<string, Map<string, string>>();
+    const warehouseBinCodes = new Map<string, Set<string>>();
+    for (const row of rows) {
+      const wh = warehouseMap.get(row.warehouseName.toLowerCase())!;
+      if (!warehouseBinCodes.has(wh.id)) {
+        warehouseBinCodes.set(wh.id, new Set());
+      }
+      warehouseBinCodes.get(wh.id)!.add(row.binCode);
+    }
+
+    const unknownBins: string[] = [];
+    for (const [warehouseId, codes] of warehouseBinCodes) {
+      const binMap = await this.masterDataService.resolveBinCodes(tenantId, warehouseId, [...codes]);
+      binMaps.set(warehouseId, binMap);
+      for (const code of codes) {
+        if (!binMap.has(code.toLowerCase())) {
+          unknownBins.push(code);
+        }
+      }
+    }
+    if (unknownBins.length > 0) {
+      throw new BadRequestException(`Unknown bin codes: ${unknownBins.join(', ')}`);
+    }
+
+    // 4. Group rows by adjustmentGroup
+    const groups = new Map<number, AdjustmentImportRowDto[]>();
+    for (const row of rows) {
+      const group = groups.get(row.adjustmentGroup) || [];
+      group.push(row);
+      groups.set(row.adjustmentGroup, group);
+    }
+
+    // 5. Create adjustments
+    let imported = 0;
+
+    for (const [, groupRows] of groups) {
+      const header = groupRows[0];
+      const warehouse = warehouseMap.get(header.warehouseName.toLowerCase())!;
+
+      const adjustment = await this.createAdjustment({
+        tenantId,
+        warehouseId: warehouse.id,
+        reason: header.reason,
+        notes: header.notes,
+        createdBy,
+      });
+
+      for (const row of groupRows) {
+        const itemId = itemMap.get(row.sku.toLowerCase())!;
+        const binMap = binMaps.get(warehouse.id)!;
+        const binId = binMap.get(row.binCode.toLowerCase())!;
+
+        await this.addAdjustmentLine(adjustment.id, {
+          tenantId,
+          binId,
+          itemId,
+          qtyAfter: row.qtyAfter,
+          batchNo: row.batchNo,
+        });
+      }
+
+      imported++;
+    }
+
+    return {
+      imported,
+      skipped: 0,
+      skippedCodes: [],
+    };
   }
 
   // Cycle Count operations

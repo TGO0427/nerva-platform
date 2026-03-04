@@ -14,10 +14,11 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { TenantId } from '../../common/decorators/tenant.decorator';
+import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
 import { CreateAdjustmentDto, AddAdjustmentLineDto } from './dto/adjustments.dto';
+import { ImportAdjustmentsDto } from './dto/adjustment-import.dto';
 
 @ApiTags('inventory')
 @ApiBearerAuth()
@@ -36,6 +37,18 @@ export class AdjustmentsController {
     @Query('limit') limit?: number,
   ) {
     return this.service.listAdjustments(tenantId, status, page, limit);
+  }
+
+  @Post('import')
+  @RequirePermissions('inventory.adjust')
+  @ApiOperation({ summary: 'Bulk import stock adjustments' })
+  async importAdjustments(
+    @TenantId() tenantId: string,
+    @SiteId() siteId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: ImportAdjustmentsDto,
+  ) {
+    return this.service.importAdjustments(tenantId, siteId, user.id, data.rows);
   }
 
   @Get(':id')

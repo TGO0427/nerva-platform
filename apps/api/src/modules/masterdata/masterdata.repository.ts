@@ -1027,6 +1027,26 @@ export class MasterDataRepository extends BaseRepository {
     return rows.map(this.mapBin);
   }
 
+  async findWarehousesByNames(tenantId: string, siteId: string, names: string[]): Promise<Warehouse[]> {
+    if (names.length === 0) return [];
+    const lowerNames = names.map((n) => n.toLowerCase());
+    const rows = await this.queryMany<Record<string, unknown>>(
+      'SELECT * FROM warehouses WHERE tenant_id = $1 AND site_id = $2 AND LOWER(name) = ANY($3) AND is_active = true',
+      [tenantId, siteId, lowerNames],
+    );
+    return rows.map(this.mapWarehouse);
+  }
+
+  async findBinsByCodes(tenantId: string, warehouseId: string, codes: string[]): Promise<Bin[]> {
+    if (codes.length === 0) return [];
+    const lowerCodes = codes.map((c) => c.toLowerCase());
+    const rows = await this.queryMany<Record<string, unknown>>(
+      'SELECT * FROM bins WHERE tenant_id = $1 AND warehouse_id = $2 AND LOWER(code) = ANY($3) AND is_active = true',
+      [tenantId, warehouseId, lowerCodes],
+    );
+    return rows.map(this.mapBin);
+  }
+
   async findBinById(id: string): Promise<Bin | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       'SELECT * FROM bins WHERE id = $1',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -9,10 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
 import { useToast } from '@/components/ui/toast';
-import { useAdjustments, useCreateAdjustment } from '@/lib/queries/inventory';
+import { useAdjustments, useCreateAdjustment, useImportAdjustments } from '@/lib/queries/inventory';
 import { useWarehouses } from '@/lib/queries/warehouses';
 import { useQueryParams } from '@/lib/queries';
+import { adjustmentImportConfig } from '@/lib/config/csv-import';
 import type { Adjustment } from '@nerva/shared';
 
 const STATUS_TABS = [
@@ -40,6 +42,13 @@ export default function AdjustmentsPage() {
   const [newWarehouseId, setNewWarehouseId] = useState('');
   const [newReason, setNewReason] = useState('');
   const [newNotes, setNewNotes] = useState('');
+
+  const importMutation = useImportAdjustments();
+  const [importOpen, setImportOpen] = useState(false);
+
+  const handleImport = useCallback(async (rows: Record<string, unknown>[]) => {
+    return importMutation.mutateAsync(rows);
+  }, [importMutation]);
 
   const { data, isLoading } = useAdjustments({ ...params, status: statusFilter || undefined });
   const { data: warehouses } = useWarehouses();
@@ -116,9 +125,15 @@ export default function AdjustmentsPage() {
             Create and manage inventory adjustments
           </p>
         </div>
-        <Button onClick={() => setShowCreateForm(!showCreateForm)}>
-          {showCreateForm ? 'Cancel' : 'New Adjustment'}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setImportOpen(true)}>
+            <ImportIcon />
+            Import
+          </Button>
+          <Button onClick={() => setShowCreateForm(!showCreateForm)}>
+            {showCreateForm ? 'Cancel' : 'New Adjustment'}
+          </Button>
+        </div>
       </div>
 
       {showCreateForm && (
@@ -221,6 +236,19 @@ export default function AdjustmentsPage() {
           </div>
         </div>
       )}
+      <CsvImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => {}}
+        config={adjustmentImportConfig}
+        importFn={handleImport}
+      />
     </div>
+  );
+}
+
+function ImportIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
   );
 }

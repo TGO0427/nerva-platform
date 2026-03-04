@@ -468,6 +468,22 @@ export function useDeleteAdjustment() {
   });
 }
 
+export function useImportAdjustments() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (rows: Record<string, unknown>[]) => {
+      const response = await api.post<{ imported: number; skipped: number; skippedCodes: string[] }>(
+        '/inventory/adjustments/import',
+        { rows },
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADJUSTMENT_KEY] });
+    },
+  });
+}
+
 export function usePostAdjustment() {
   const queryClient = useQueryClient();
 

@@ -93,6 +93,22 @@ export const purchaseOrderImportConfig: CsvImportConfig = {
   ],
 };
 
+export const adjustmentImportConfig: CsvImportConfig = {
+  title: 'Import Stock Adjustments',
+  templateFilename: 'adjustments-template.xlsx',
+  maxRows: 500,
+  columns: [
+    { header: 'Adjustment Group', field: 'adjustmentGroup', required: true, type: 'number' },
+    { header: 'Warehouse Name', field: 'warehouseName', required: true, type: 'string' },
+    { header: 'Reason', field: 'reason', required: true, type: 'string' },
+    { header: 'Notes', field: 'notes', required: false, type: 'string' },
+    { header: 'SKU', field: 'sku', required: true, type: 'string' },
+    { header: 'Bin Code', field: 'binCode', required: true, type: 'string' },
+    { header: 'Qty After', field: 'qtyAfter', required: true, type: 'number' },
+    { header: 'Batch No', field: 'batchNo', required: false, type: 'string' },
+  ],
+};
+
 export const supplierImportConfig: CsvImportConfig = {
   title: 'Import Suppliers',
   templateFilename: 'suppliers-template.xlsx',

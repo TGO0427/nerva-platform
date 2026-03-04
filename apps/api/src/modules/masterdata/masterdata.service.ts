@@ -284,6 +284,24 @@ export class MasterDataService {
     return map;
   }
 
+  async resolveWarehouseNames(tenantId: string, siteId: string, names: string[]): Promise<Map<string, Warehouse>> {
+    const rows = await this.repository.findWarehousesByNames(tenantId, siteId, names);
+    const map = new Map<string, Warehouse>();
+    for (const row of rows) {
+      map.set(row.name.toLowerCase(), row);
+    }
+    return map;
+  }
+
+  async resolveBinCodes(tenantId: string, warehouseId: string, codes: string[]): Promise<Map<string, string>> {
+    const rows = await this.repository.findBinsByCodes(tenantId, warehouseId, codes);
+    const map = new Map<string, string>();
+    for (const row of rows) {
+      map.set(row.code.toLowerCase(), row.id);
+    }
+    return map;
+  }
+
   async resolveSupplierCodes(tenantId: string, codes: string[]): Promise<Map<string, string>> {
     const rows = await this.repository.findSuppliersByCodes(tenantId, codes);
     const map = new Map<string, string>();
