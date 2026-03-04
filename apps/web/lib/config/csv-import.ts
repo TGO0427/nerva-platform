@@ -109,6 +109,53 @@ export const adjustmentImportConfig: CsvImportConfig = {
   ],
 };
 
+export const workstationImportConfig: CsvImportConfig = {
+  title: 'Import Workstations',
+  templateFilename: 'workstations-template.xlsx',
+  maxRows: 500,
+  columns: [
+    { header: 'Code', field: 'code', required: true, type: 'string' },
+    { header: 'Name', field: 'name', required: true, type: 'string' },
+    { header: 'Type', field: 'workstationType', required: true, type: 'string' },
+    { header: 'Capacity/Hr', field: 'capacityPerHour', required: false, type: 'number' },
+    { header: 'Cost/Hr', field: 'costPerHour', required: false, type: 'number' },
+    { header: 'Description', field: 'description', required: false, type: 'string' },
+  ],
+};
+
+export const bomImportConfig: CsvImportConfig = {
+  title: 'Import BOMs',
+  templateFilename: 'boms-template.xlsx',
+  maxRows: 500,
+  columns: [
+    { header: 'BOM Group', field: 'bomGroup', required: true, type: 'number' },
+    { header: 'Product SKU', field: 'productSku', required: true, type: 'string' },
+    { header: 'Base Qty', field: 'baseQty', required: false, type: 'number' },
+    { header: 'UOM', field: 'uom', required: false, type: 'string' },
+    { header: 'Notes', field: 'notes', required: false, type: 'string' },
+    { header: 'Component SKU', field: 'componentSku', required: true, type: 'string' },
+    { header: 'Qty Per', field: 'qtyPer', required: true, type: 'number' },
+    { header: 'Scrap %', field: 'scrapPct', required: false, type: 'number' },
+    { header: 'Category', field: 'category', required: false, type: 'string' },
+  ],
+};
+
+export const routingImportConfig: CsvImportConfig = {
+  title: 'Import Routings',
+  templateFilename: 'routings-template.xlsx',
+  maxRows: 500,
+  columns: [
+    { header: 'Routing Group', field: 'routingGroup', required: true, type: 'number' },
+    { header: 'Product SKU', field: 'productSku', required: true, type: 'string' },
+    { header: 'Notes', field: 'notes', required: false, type: 'string' },
+    { header: 'Operation Name', field: 'operationName', required: true, type: 'string' },
+    { header: 'Workstation Code', field: 'workstationCode', required: false, type: 'string' },
+    { header: 'Setup Time (mins)', field: 'setupTimeMins', required: false, type: 'number' },
+    { header: 'Run Time (mins)', field: 'runTimeMins', required: true, type: 'number' },
+    { header: 'Queue Time (mins)', field: 'queueTimeMins', required: false, type: 'number' },
+  ],
+};
+
 export const supplierImportConfig: CsvImportConfig = {
   title: 'Import Suppliers',
   templateFilename: 'suppliers-template.xlsx',

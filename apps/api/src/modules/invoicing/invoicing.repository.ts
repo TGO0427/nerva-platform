@@ -132,7 +132,7 @@ export class InvoicingRepository extends BaseRepository {
 
   async findInvoicesByTenant(
     tenantId: string,
-    filters: { status?: string; customerId?: string },
+    filters: { status?: string; customerId?: string; search?: string },
     limit = 50,
     offset = 0,
   ): Promise<Invoice[]> {
@@ -152,6 +152,11 @@ export class InvoicingRepository extends BaseRepository {
       sql += ` AND i.customer_id = $${idx++}`;
       params.push(filters.customerId);
     }
+    if (filters.search) {
+      sql += ` AND (i.invoice_no ILIKE $${idx} OR c.name ILIKE $${idx})`;
+      params.push(`%${filters.search}%`);
+      idx++;
+    }
 
     sql += ` ORDER BY i.created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
     params.push(limit, offset);
@@ -162,19 +167,26 @@ export class InvoicingRepository extends BaseRepository {
 
   async countByTenant(
     tenantId: string,
-    filters: { status?: string; customerId?: string },
+    filters: { status?: string; customerId?: string; search?: string },
   ): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM invoices WHERE tenant_id = $1';
+    let sql = `SELECT COUNT(*) as count FROM invoices i
+               LEFT JOIN customers c ON c.id = i.customer_id
+               WHERE i.tenant_id = $1`;
     const params: unknown[] = [tenantId];
     let idx = 2;
 
     if (filters.status) {
-      sql += ` AND status = $${idx++}`;
+      sql += ` AND i.status = $${idx++}`;
       params.push(filters.status);
     }
     if (filters.customerId) {
-      sql += ` AND customer_id = $${idx++}`;
+      sql += ` AND i.customer_id = $${idx++}`;
       params.push(filters.customerId);
+    }
+    if (filters.search) {
+      sql += ` AND (i.invoice_no ILIKE $${idx} OR c.name ILIKE $${idx})`;
+      params.push(`%${filters.search}%`);
+      idx++;
     }
 
     const result = await this.queryOne<{ count: string }>(sql, params);

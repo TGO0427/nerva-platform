@@ -513,6 +513,54 @@ export function useDeleteWorkOrder() {
   });
 }
 
+export function useImportWorkstations() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (rows: Record<string, unknown>[]) => {
+      const response = await api.post<{ imported: number; skipped: number; skippedCodes: string[] }>(
+        '/manufacturing/workstations/import',
+        { rows },
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [WORKSTATIONS_KEY] });
+    },
+  });
+}
+
+export function useImportBoms() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (rows: Record<string, unknown>[]) => {
+      const response = await api.post<{ imported: number; skipped: number; skippedCodes: string[] }>(
+        '/manufacturing/boms/import',
+        { rows },
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [BOMS_KEY] });
+    },
+  });
+}
+
+export function useImportRoutings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (rows: Record<string, unknown>[]) => {
+      const response = await api.post<{ imported: number; skipped: number; skippedCodes: string[] }>(
+        '/manufacturing/routings/import',
+        { rows },
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ROUTINGS_KEY] });
+    },
+  });
+}
+
 export function useImportWorkOrders() {
   const queryClient = useQueryClient();
   return useMutation({

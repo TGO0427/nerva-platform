@@ -82,6 +82,7 @@ export class CycleCountRepository extends BaseRepository {
     status?: string,
     limit = 50,
     offset = 0,
+    search?: string,
   ): Promise<CycleCount[]> {
     let sql = `SELECT cc.*,
       w.name as warehouse_name,
@@ -93,8 +94,12 @@ export class CycleCountRepository extends BaseRepository {
     const params: unknown[] = [tenantId];
 
     if (status) {
-      sql += ' AND cc.status = $2';
       params.push(status);
+      sql += ` AND cc.status = $${params.length}`;
+    }
+    if (search) {
+      params.push(`%${search}%`);
+      sql += ` AND (cc.count_no ILIKE $${params.length} OR w.name ILIKE $${params.length})`;
     }
 
     sql += ` ORDER BY cc.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;

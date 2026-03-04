@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { ExportActions } from '@/components/ui/export-actions';
+import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/ui/stat-card';
@@ -29,11 +30,13 @@ function formatAmount(amount: number): string {
 export default function InvoicesPage() {
   const router = useRouter();
   const [status, setStatus] = useState('');
+  const [search, setSearch] = useState('');
   const { params, setPage } = useQueryParams();
 
   const { data, isLoading } = useInvoices({
     ...params,
     status: status || undefined,
+    search: search || undefined,
   });
 
   const { data: stats } = useInvoiceStats();
@@ -168,11 +171,17 @@ export default function InvoicesPage() {
         />
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 flex gap-4">
         <Select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           options={STATUS_OPTIONS}
+          className="max-w-xs"
+        />
+        <Input
+          placeholder="Search invoice no. or customer..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="max-w-xs"
         />
       </div>

@@ -513,7 +513,7 @@ export interface CycleCountLineDetail extends CycleCountLine {
 }
 
 // Cycle Count queries
-export function useCycleCounts(params: QueryParams & { status?: string }) {
+export function useCycleCounts(params: QueryParams & { status?: string; search?: string }) {
   return useQuery({
     queryKey: [CYCLE_COUNT_KEY, params],
     queryFn: async () => {
@@ -521,6 +521,7 @@ export function useCycleCounts(params: QueryParams & { status?: string }) {
       searchParams.set('page', String(params.page));
       searchParams.set('limit', String(params.limit));
       if (params.status) searchParams.set('status', params.status);
+      if (params.search) searchParams.set('search', params.search);
 
       const response = await api.get<PaginatedResult<CycleCountSummary>>(
         `/inventory/cycle-counts?${searchParams.toString()}`

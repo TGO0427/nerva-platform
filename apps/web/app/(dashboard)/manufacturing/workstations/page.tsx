@@ -8,9 +8,13 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { ColumnToggle } from '@/components/ui/column-toggle';
+import { ExportActions } from '@/components/ui/export-actions';
+import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
 import { ListPageTemplate } from '@/components/templates';
-import { useWorkstations, useQueryParams } from '@/lib/queries';
+import { useWorkstations, useImportWorkstations, useQueryParams } from '@/lib/queries';
+import { workstationImportConfig } from '@/lib/config/csv-import';
 import { useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename } from '@/lib/utils/export';
 import type { Workstation, WorkstationStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -23,8 +27,10 @@ const STATUS_OPTIONS = [
 export default function WorkstationsPage() {
   const router = useRouter();
   const [status, setStatus] = useState<WorkstationStatus | ''>('');
+  const [importOpen, setImportOpen] = useState(false);
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useWorkstations({ ...params, status: status || undefined });
+  const importMutation = useImportWorkstations();
 
   const tableData = data?.data || [];
 
@@ -92,6 +98,19 @@ export default function WorkstationsPage() {
     router.push(`/manufacturing/workstations/${row.id}`);
   };
 
+  const handleExport = () => {
+    const exportColumns = [
+      { key: 'code', header: 'Code' },
+      { key: 'name', header: 'Name' },
+      { key: 'workstationType', header: 'Type' },
+      { key: 'status', header: 'Status' },
+      { key: 'capacityPerHour', header: 'Capacity/Hr', getValue: (r: Workstation) => r.capacityPerHour ?? '' },
+      { key: 'costPerHour', header: 'Cost/Hr', getValue: (r: Workstation) => r.costPerHour ? Number(r.costPerHour).toFixed(2) : '' },
+      { key: 'description', header: 'Description', getValue: (r: Workstation) => r.description || '' },
+    ];
+    exportToCSV(tableData, exportColumns, generateExportFilename('workstations'));
+  };
+
   const totalWorkstations = data?.meta?.total || 0;
   const activeCount = tableData.filter(w => w.status === 'ACTIVE').length;
   const maintenanceCount = tableData.filter(w => w.status === 'MAINTENANCE').length;
@@ -101,12 +120,19 @@ export default function WorkstationsPage() {
       title="Workstations"
       subtitle="Manage machines and work centers"
       headerActions={
-        <Link href="/manufacturing/workstations/new">
-          <Button>
-            <PlusIcon />
-            New Workstation
+        <div className="flex gap-2">
+          <ExportActions onExport={handleExport} />
+          <Button variant="secondary" onClick={() => setImportOpen(true)}>
+            <ImportIcon />
+            Import
           </Button>
-        </Link>
+          <Link href="/manufacturing/workstations/new">
+            <Button>
+              <PlusIcon />
+              New Workstation
+            </Button>
+          </Link>
+        </div>
       }
       stats={[
         {
@@ -171,7 +197,21 @@ export default function WorkstationsPage() {
           ),
         }}
       />
+      <CsvImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        config={workstationImportConfig}
+        mutation={importMutation}
+      />
     </ListPageTemplate>
+  );
+}
+
+function ImportIcon() {
+  return (
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+    </svg>
   );
 }
 

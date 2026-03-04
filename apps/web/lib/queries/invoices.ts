@@ -76,7 +76,7 @@ export interface InvoiceWithDetails extends Invoice {
 }
 
 // Queries
-export function useInvoices(params: QueryParams & { status?: string; customerId?: string }) {
+export function useInvoices(params: QueryParams & { status?: string; customerId?: string; search?: string }) {
   return useQuery({
     queryKey: [INVOICES_KEY, params],
     queryFn: async () => {
@@ -85,6 +85,7 @@ export function useInvoices(params: QueryParams & { status?: string; customerId?
       searchParams.set('limit', String(params.limit));
       if (params.status) searchParams.set('status', params.status);
       if (params.customerId) searchParams.set('customerId', params.customerId);
+      if (params.search) searchParams.set('search', params.search);
 
       const response = await api.get<{ data: Invoice[]; meta: { page: number; limit: number; total: number; totalPages: number } }>(
         `/finance/invoices?${searchParams.toString()}`

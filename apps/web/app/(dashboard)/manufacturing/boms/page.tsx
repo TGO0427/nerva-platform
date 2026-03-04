@@ -9,8 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
+import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
 import { ListPageTemplate } from '@/components/templates';
-import { useBoms, useQueryParams } from '@/lib/queries';
+import { useBoms, useImportBoms, useQueryParams } from '@/lib/queries';
+import { bomImportConfig } from '@/lib/config/csv-import';
 import { useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { BomHeader, BomStatus } from '@nerva/shared';
@@ -28,8 +30,10 @@ const STATUS_OPTIONS = [
 export default function BomsPage() {
   const router = useRouter();
   const [status, setStatus] = useState<BomStatus | ''>('');
+  const [importOpen, setImportOpen] = useState(false);
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useBoms({ ...params, status: status || undefined });
+  const importMutation = useImportBoms();
 
   const tableData = data?.data || [];
 
@@ -165,12 +169,18 @@ export default function BomsPage() {
       title="Bills of Materials"
       subtitle="Manage product recipes and components"
       headerActions={
-        <Link href="/manufacturing/boms/new">
-          <Button>
-            <PlusIcon />
-            New BOM
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setImportOpen(true)}>
+            <ImportIcon />
+            Import
           </Button>
-        </Link>
+          <Link href="/manufacturing/boms/new">
+            <Button>
+              <PlusIcon />
+              New BOM
+            </Button>
+          </Link>
+        </div>
       }
       stats={[
         {
@@ -250,7 +260,21 @@ export default function BomsPage() {
           ),
         }}
       />
+      <CsvImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        config={bomImportConfig}
+        mutation={importMutation}
+      />
     </ListPageTemplate>
+  );
+}
+
+function ImportIcon() {
+  return (
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+    </svg>
   );
 }
 

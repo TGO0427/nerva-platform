@@ -50,6 +50,9 @@ import {
   ResolveNonConformanceDto,
 } from './dto/manufacturing.dto';
 import { ImportWorkOrdersDto } from './dto/wo-import.dto';
+import { ImportWorkstationsDto } from './dto/workstation-import.dto';
+import { ImportBomsDto } from './dto/bom-import.dto';
+import { ImportRoutingsDto } from './dto/routing-import.dto';
 import type { ImportResult } from '../masterdata/dto/import.dto';
 
 @ApiTags('manufacturing')
@@ -78,6 +81,20 @@ export class ManufacturingController {
     @Query('limit') limit?: number,
   ) {
     return this.service.listWorkstations(tenantId, { siteId, status, search }, page, limit);
+  }
+
+  @Post('workstations/import')
+  @RequirePermissions('workstation.create')
+  @ApiOperation({ summary: 'Bulk import workstations from spreadsheet' })
+  async importWorkstations(
+    @TenantId() tenantId: string,
+    @SiteId() siteId: string,
+    @Body() data: ImportWorkstationsDto,
+  ): Promise<ImportResult> {
+    if (!siteId) {
+      throw new BadRequestException('Please select a site before importing workstations');
+    }
+    return this.service.importWorkstations(tenantId, siteId, data.rows);
   }
 
   @Get('workstations/:id')
@@ -129,6 +146,17 @@ export class ManufacturingController {
     @Query('limit') limit?: number,
   ) {
     return this.service.listBoms(tenantId, { itemId, status, search }, page, limit);
+  }
+
+  @Post('boms/import')
+  @RequirePermissions('bom.create')
+  @ApiOperation({ summary: 'Bulk import BOMs from spreadsheet' })
+  async importBoms(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: ImportBomsDto,
+  ): Promise<ImportResult> {
+    return this.service.importBoms(tenantId, user.id, data.rows);
   }
 
   @Get('boms/:id')
@@ -285,6 +313,17 @@ export class ManufacturingController {
     @Query('limit') limit?: number,
   ) {
     return this.service.listRoutings(tenantId, { itemId, status, search }, page, limit);
+  }
+
+  @Post('routings/import')
+  @RequirePermissions('routing.create')
+  @ApiOperation({ summary: 'Bulk import routings from spreadsheet' })
+  async importRoutings(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: ImportRoutingsDto,
+  ): Promise<ImportResult> {
+    return this.service.importRoutings(tenantId, user.id, data.rows);
   }
 
   @Get('routings/:id')

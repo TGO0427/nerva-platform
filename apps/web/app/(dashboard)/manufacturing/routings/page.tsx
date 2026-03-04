@@ -8,9 +8,13 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { ColumnToggle } from '@/components/ui/column-toggle';
+import { ExportActions } from '@/components/ui/export-actions';
+import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
 import { ListPageTemplate } from '@/components/templates';
-import { useRoutings, useQueryParams } from '@/lib/queries';
+import { useRoutings, useImportRoutings, useQueryParams } from '@/lib/queries';
+import { routingImportConfig } from '@/lib/config/csv-import';
 import { useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { Routing, RoutingStatus } from '@nerva/shared';
 
 type RoutingWithMeta = Routing & { itemSku?: string; itemDescription?: string; operationCount?: number };
@@ -25,8 +29,10 @@ const STATUS_OPTIONS = [
 export default function RoutingsPage() {
   const router = useRouter();
   const [status, setStatus] = useState<RoutingStatus | ''>('');
+  const [importOpen, setImportOpen] = useState(false);
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useRoutings({ ...params, status: status || undefined });
+  const importMutation = useImportRoutings();
 
   const tableData = data?.data || [];
 
@@ -101,6 +107,20 @@ export default function RoutingsPage() {
     router.push(`/manufacturing/routings/${row.id}`);
   };
 
+  const handleExport = () => {
+    const exportColumns = [
+      { key: 'itemSku', header: 'Product SKU', getValue: (r: RoutingWithMeta) => r.itemSku || '' },
+      { key: 'itemDescription', header: 'Description', getValue: (r: RoutingWithMeta) => r.itemDescription || '' },
+      { key: 'version', header: 'Version', getValue: (r: RoutingWithMeta) => `V${r.version}` },
+      { key: 'status', header: 'Status' },
+      { key: 'operationCount', header: 'Operations', getValue: (r: RoutingWithMeta) => r.operationCount || 0 },
+      { key: 'effectiveFrom', header: 'Effective From', getValue: (r: RoutingWithMeta) => formatDateForExport(r.effectiveFrom) },
+      { key: 'effectiveTo', header: 'Effective To', getValue: (r: RoutingWithMeta) => formatDateForExport(r.effectiveTo) },
+      { key: 'createdAt', header: 'Created', getValue: (r: RoutingWithMeta) => formatDateForExport(r.createdAt) },
+    ];
+    exportToCSV(tableData, exportColumns, generateExportFilename('routings'));
+  };
+
   const totalRoutings = data?.meta?.total || 0;
   const draftCount = tableData.filter(r => r.status === 'DRAFT').length;
   const approvedCount = tableData.filter(r => r.status === 'APPROVED').length;
@@ -110,12 +130,19 @@ export default function RoutingsPage() {
       title="Routings"
       subtitle="Manage production sequences and operations"
       headerActions={
-        <Link href="/manufacturing/routings/new">
-          <Button>
-            <PlusIcon />
-            New Routing
+        <div className="flex gap-2">
+          <ExportActions onExport={handleExport} />
+          <Button variant="secondary" onClick={() => setImportOpen(true)}>
+            <ImportIcon />
+            Import
           </Button>
-        </Link>
+          <Link href="/manufacturing/routings/new">
+            <Button>
+              <PlusIcon />
+              New Routing
+            </Button>
+          </Link>
+        </div>
       }
       stats={[
         {
@@ -180,7 +207,21 @@ export default function RoutingsPage() {
           ),
         }}
       />
+      <CsvImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        config={routingImportConfig}
+        mutation={importMutation}
+      />
     </ListPageTemplate>
+  );
+}
+
+function ImportIcon() {
+  return (
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+    </svg>
   );
 }
 

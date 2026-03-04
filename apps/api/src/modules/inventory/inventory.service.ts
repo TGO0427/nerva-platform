@@ -458,9 +458,9 @@ export class InventoryService {
     return cc;
   }
 
-  async listCycleCounts(tenantId: string, status?: string, page = 1, limit = 50) {
+  async listCycleCounts(tenantId: string, status?: string, page = 1, limit = 50, search?: string) {
     const offset = (page - 1) * limit;
-    const data = await this.cycleCountRepo.findByTenant(tenantId, status, limit, offset);
+    const data = await this.cycleCountRepo.findByTenant(tenantId, status, limit, offset, search);
     return { data, meta: { page, limit } };
   }
 

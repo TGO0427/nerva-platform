@@ -39,10 +39,11 @@ export class CycleCountController {
   async list(
     @TenantId() tenantId: string,
     @Query('status') status?: string,
+    @Query('search') search?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.service.listCycleCounts(tenantId, status, page, limit);
+    return this.service.listCycleCounts(tenantId, status, page, limit, search);
   }
 
   @Get(':id')

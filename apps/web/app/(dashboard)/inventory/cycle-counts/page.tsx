@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { ExportActions } from '@/components/ui/export-actions';
 import { useToast } from '@/components/ui/toast';
 import {
   useCycleCounts,
@@ -16,6 +18,7 @@ import {
 } from '@/lib/queries/inventory';
 import { useWarehouses } from '@/lib/queries/warehouses';
 import { useQueryParams } from '@/lib/queries';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 
 const STATUS_TABS = [
   { label: 'All', value: '' },
@@ -38,11 +41,12 @@ export default function CycleCountsPage() {
   const { addToast } = useToast();
   const { params, setPage } = useQueryParams({ page: 1, limit: 25 });
   const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newWarehouseId, setNewWarehouseId] = useState('');
   const [newIsBlind, setNewIsBlind] = useState(false);
 
-  const { data, isLoading } = useCycleCounts({ ...params, status: statusFilter || undefined });
+  const { data, isLoading } = useCycleCounts({ ...params, status: statusFilter || undefined, search: search || undefined });
   const { data: warehouses } = useWarehouses();
   const createCycleCount = useCreateCycleCount();
 
@@ -60,6 +64,18 @@ export default function CycleCountsPage() {
       console.error('Failed to create cycle count:', error);
       addToast('Failed to create cycle count', 'error');
     }
+  };
+
+  const handleExport = () => {
+    const exportColumns = [
+      { key: 'countNo', header: 'Count No' },
+      { key: 'warehouseName', header: 'Warehouse', getValue: (cc: CycleCountSummary) => cc.warehouseName || '' },
+      { key: 'status', header: 'Status', getValue: (cc: CycleCountSummary) => cc.status.replace(/_/g, ' ') },
+      { key: 'lineCount', header: 'Lines', getValue: (cc: CycleCountSummary) => cc.lineCount ?? 0 },
+      { key: 'varianceCount', header: 'Variances', getValue: (cc: CycleCountSummary) => cc.varianceCount ?? 0 },
+      { key: 'createdAt', header: 'Created', getValue: (cc: CycleCountSummary) => formatDateForExport(cc.createdAt) },
+    ];
+    exportToCSV(data?.data || [], exportColumns, generateExportFilename('cycle-counts'));
   };
 
   const columns: Column<CycleCountSummary>[] = [
@@ -119,9 +135,12 @@ export default function CycleCountsPage() {
             Physical inventory counting and variance management
           </p>
         </div>
-        <Button onClick={() => setShowCreateForm(!showCreateForm)}>
-          {showCreateForm ? 'Cancel' : 'New Cycle Count'}
-        </Button>
+        <div className="flex gap-2">
+          <ExportActions onExport={handleExport} />
+          <Button onClick={() => setShowCreateForm(!showCreateForm)}>
+            {showCreateForm ? 'Cancel' : 'New Cycle Count'}
+          </Button>
+        </div>
       </div>
 
       {showCreateForm && (
@@ -158,23 +177,31 @@ export default function CycleCountsPage() {
         </Card>
       )}
 
-      <div className="flex gap-2 border-b border-slate-200 pb-2">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => {
-              setStatusFilter(tab.value);
-              setPage(1);
-            }}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              statusFilter === tab.value
-                ? 'bg-primary-100 text-primary-700'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex gap-2 border-b border-slate-200 pb-2">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => {
+                setStatusFilter(tab.value);
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                statusFilter === tab.value
+                  ? 'bg-primary-100 text-primary-700'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <Input
+          placeholder="Search count no. or warehouse..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          className="max-w-xs"
+        />
       </div>
 
       <Card>

@@ -11,6 +11,9 @@ import { StockLedgerService } from '../inventory/stock-ledger.service';
 import { MasterDataService } from '../masterdata/masterdata.service';
 import type { ImportResult } from '../masterdata/dto/import.dto';
 import type { WorkOrderImportRowDto } from './dto/wo-import.dto';
+import type { WorkstationImportRowDto } from './dto/workstation-import.dto';
+import type { BomImportRowDto } from './dto/bom-import.dto';
+import type { RoutingImportRowDto } from './dto/routing-import.dto';
 
 @Injectable()
 export class ManufacturingService {
@@ -556,6 +559,164 @@ export class ManufacturingService {
       throw new BadRequestException('Can only delete DRAFT work orders');
     }
     await this.workOrderRepo.delete(id);
+  }
+
+  // Bulk import workstations
+  async importWorkstations(
+    tenantId: string,
+    siteId: string,
+    rows: WorkstationImportRowDto[],
+  ): Promise<ImportResult> {
+    let imported = 0;
+    const skippedCodes: string[] = [];
+
+    // Check for duplicate codes within the import
+    const existingCodes = await this.workstationRepo.findByCodes(
+      tenantId,
+      rows.map(r => r.code),
+    );
+    const existingCodeSet = new Set(existingCodes.map(w => w.code.toLowerCase()));
+
+    for (const row of rows) {
+      if (existingCodeSet.has(row.code.toLowerCase())) {
+        skippedCodes.push(row.code);
+        continue;
+      }
+
+      await this.workstationRepo.create({
+        tenantId,
+        siteId,
+        code: row.code,
+        name: row.name,
+        workstationType: row.workstationType,
+        description: row.description,
+        capacityPerHour: row.capacityPerHour,
+        costPerHour: row.costPerHour,
+      });
+
+      existingCodeSet.add(row.code.toLowerCase());
+      imported++;
+    }
+
+    return { imported, skipped: skippedCodes.length, skippedCodes };
+  }
+
+  // Bulk import BOMs
+  async importBoms(
+    tenantId: string,
+    createdBy: string,
+    rows: BomImportRowDto[],
+  ): Promise<ImportResult> {
+    // 1. Resolve all unique SKUs (products + components)
+    const allSkus = [...new Set([
+      ...rows.map(r => r.productSku),
+      ...rows.map(r => r.componentSku),
+    ])];
+    const itemMap = await this.masterDataService.resolveItemSkus(tenantId, allSkus);
+    const unknownSkus = allSkus.filter(s => !itemMap.has(s.toLowerCase()));
+    if (unknownSkus.length > 0) {
+      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(', ')}`);
+    }
+
+    // 2. Group by bomGroup
+    const groups = new Map<number, BomImportRowDto[]>();
+    for (const row of rows) {
+      const group = groups.get(row.bomGroup) || [];
+      group.push(row);
+      groups.set(row.bomGroup, group);
+    }
+
+    // 3. Create BOMs
+    let imported = 0;
+    const skippedCodes: string[] = [];
+
+    for (const [, groupRows] of groups) {
+      const firstRow = groupRows[0];
+      const productId = itemMap.get(firstRow.productSku.toLowerCase())!;
+
+      await this.createBom({
+        tenantId,
+        itemId: productId,
+        baseQty: firstRow.baseQty,
+        uom: firstRow.uom,
+        notes: firstRow.notes,
+        createdBy,
+        lines: groupRows.map(r => ({
+          itemId: itemMap.get(r.componentSku.toLowerCase())!,
+          qtyPer: r.qtyPer,
+          scrapPct: r.scrapPct,
+          category: r.category,
+        })),
+      });
+
+      imported++;
+    }
+
+    return { imported, skipped: skippedCodes.length, skippedCodes };
+  }
+
+  // Bulk import routings
+  async importRoutings(
+    tenantId: string,
+    createdBy: string,
+    rows: RoutingImportRowDto[],
+  ): Promise<ImportResult> {
+    // 1. Resolve product SKUs
+    const uniqueSkus = [...new Set(rows.map(r => r.productSku))];
+    const itemMap = await this.masterDataService.resolveItemSkus(tenantId, uniqueSkus);
+    const unknownSkus = uniqueSkus.filter(s => !itemMap.has(s.toLowerCase()));
+    if (unknownSkus.length > 0) {
+      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(', ')}`);
+    }
+
+    // 2. Resolve workstation codes (if any)
+    const wsCodes = [...new Set(rows.filter(r => r.workstationCode).map(r => r.workstationCode!))];
+    const wsMap = new Map<string, string>();
+    if (wsCodes.length > 0) {
+      const workstations = await this.workstationRepo.findByCodes(tenantId, wsCodes);
+      for (const ws of workstations) {
+        wsMap.set(ws.code.toLowerCase(), ws.id);
+      }
+      const unknownWs = wsCodes.filter(c => !wsMap.has(c.toLowerCase()));
+      if (unknownWs.length > 0) {
+        throw new BadRequestException(`Unknown workstation codes: ${unknownWs.join(', ')}`);
+      }
+    }
+
+    // 3. Group by routingGroup
+    const groups = new Map<number, RoutingImportRowDto[]>();
+    for (const row of rows) {
+      const group = groups.get(row.routingGroup) || [];
+      group.push(row);
+      groups.set(row.routingGroup, group);
+    }
+
+    // 4. Create routings
+    let imported = 0;
+    const skippedCodes: string[] = [];
+
+    for (const [, groupRows] of groups) {
+      const firstRow = groupRows[0];
+      const productId = itemMap.get(firstRow.productSku.toLowerCase())!;
+
+      await this.createRouting({
+        tenantId,
+        itemId: productId,
+        notes: firstRow.notes,
+        createdBy,
+        operations: groupRows.map(r => ({
+          name: r.operationName,
+          workstationId: r.workstationCode ? wsMap.get(r.workstationCode.toLowerCase()) : undefined,
+          setupTimeMins: r.setupTimeMins,
+          runTimeMins: r.runTimeMins,
+          queueTimeMins: r.queueTimeMins,
+        })),
+      });
+
+      imported++;
+    }
+
+    return { imported, skipped: skippedCodes.length, skippedCodes };
   }
 
   // Bulk import work orders

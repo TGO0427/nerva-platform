@@ -39,10 +39,11 @@ export class InvoicesController {
     @TenantId() tenantId: string,
     @Query('status') status?: string,
     @Query('customerId') customerId?: string,
+    @Query('search') search?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.service.listInvoices(tenantId, { status, customerId }, page, limit);
+    return this.service.listInvoices(tenantId, { status, customerId, search }, page, limit);
   }
 
   @Get('stats')

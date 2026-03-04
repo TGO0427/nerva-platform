@@ -106,7 +106,7 @@ export class InvoicingService {
 
   async listInvoices(
     tenantId: string,
-    filters: { status?: string; customerId?: string },
+    filters: { status?: string; customerId?: string; search?: string },
     page = 1,
     limit = 50,
   ) {

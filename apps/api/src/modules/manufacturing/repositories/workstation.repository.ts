@@ -159,6 +159,16 @@ export class WorkstationRepository extends BaseRepository {
     return row ? this.mapWorkstation(row) : null;
   }
 
+  async findByCodes(tenantId: string, codes: string[]): Promise<Workstation[]> {
+    if (codes.length === 0) return [];
+    const lowerCodes = codes.map(c => c.toLowerCase());
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT * FROM workstations WHERE tenant_id = $1 AND LOWER(code) = ANY($2)`,
+      [tenantId, lowerCodes],
+    );
+    return rows.map(r => this.mapWorkstation(r));
+  }
+
   async delete(id: string): Promise<boolean> {
     const count = await this.execute('DELETE FROM workstations WHERE id = $1', [id]);
     return count > 0;

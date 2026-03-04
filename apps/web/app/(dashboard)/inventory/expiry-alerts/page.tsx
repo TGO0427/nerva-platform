@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { ExportActions } from '@/components/ui/export-actions';
 import { Select } from '@/components/ui/select';
 import {
   useExpiryAlertsSummary,
@@ -16,6 +18,7 @@ import {
   ExpiringStock,
 } from '@/lib/queries/inventory';
 import { useWarehouses } from '@/lib/queries';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 
 type FilterStatus = 'all' | 'EXPIRED' | 'CRITICAL' | 'WARNING';
 
@@ -23,6 +26,7 @@ export default function ExpiryAlertsPage() {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [daysAhead, setDaysAhead] = useState<number>(30);
   const [warehouseId, setWarehouseId] = useState<string>('');
+  const [search, setSearch] = useState('');
 
   const { data: summary, isLoading: summaryLoading } = useExpiryAlertsSummary();
   const { data: expiringStock, isLoading: expiringLoading } = useExpiringStock(
@@ -40,10 +44,22 @@ export default function ExpiryAlertsPage() {
     ...(expiringStock?.filter((s) => s.expiryStatus !== 'EXPIRED') || []),
   ];
 
-  const filteredStock =
+  const statusFiltered =
     filterStatus === 'all'
       ? allStock
       : allStock.filter((s) => s.expiryStatus === filterStatus);
+
+  const filteredStock = useMemo(() => {
+    if (!search) return statusFiltered;
+    const q = search.toLowerCase();
+    return statusFiltered.filter(
+      (s) =>
+        s.itemSku.toLowerCase().includes(q) ||
+        s.itemDescription.toLowerCase().includes(q) ||
+        s.batchNo?.toLowerCase().includes(q) ||
+        s.binCode?.toLowerCase().includes(q),
+    );
+  }, [statusFiltered, search]);
 
   const columns: Column<ExpiringStock>[] = [
     {
@@ -141,12 +157,27 @@ export default function ExpiryAlertsPage() {
             Monitor batch expiry dates and take action on expiring stock
           </p>
         </div>
-        <Link href="/inventory">
-          <Button variant="secondary">
-            <BackIcon />
-            Back to Inventory
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <ExportActions onExport={() => {
+            const exportColumns = [
+              { key: 'itemSku', header: 'SKU' },
+              { key: 'itemDescription', header: 'Description' },
+              { key: 'batchNo', header: 'Batch No' },
+              { key: 'binCode', header: 'Bin' },
+              { key: 'expiryDate', header: 'Expiry Date', getValue: (r: ExpiringStock) => formatDateForExport(r.expiryDate) },
+              { key: 'daysUntilExpiry', header: 'Days Until Expiry' },
+              { key: 'qtyOnHand', header: 'Qty On Hand' },
+              { key: 'expiryStatus', header: 'Status' },
+            ];
+            exportToCSV(filteredStock, exportColumns, generateExportFilename('expiry-alerts'));
+          }} />
+          <Link href="/inventory">
+            <Button variant="secondary">
+              <BackIcon />
+              Back to Inventory
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -202,6 +233,12 @@ export default function ExpiryAlertsPage() {
               {filterStatus === 'all' ? 'All Expiring Stock' : `${filterStatus} Stock`}
             </CardTitle>
             <div className="flex gap-2">
+              <Input
+                placeholder="Search SKU, batch, bin..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-48"
+              />
               <Select
                 value={daysAhead.toString()}
                 onChange={(e) => setDaysAhead(Number(e.target.value))}
