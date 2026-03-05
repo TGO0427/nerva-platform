@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
 import { Select } from '@/components/ui/select';
 import {
@@ -18,6 +19,7 @@ import {
   ExpiringStock,
 } from '@/lib/queries/inventory';
 import { useWarehouses } from '@/lib/queries';
+import { useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 
 type FilterStatus = 'all' | 'EXPIRED' | 'CRITICAL' | 'WARNING';
@@ -61,7 +63,7 @@ export default function ExpiryAlertsPage() {
     );
   }, [statusFiltered, search]);
 
-  const columns: Column<ExpiringStock>[] = [
+  const allColumns: Column<ExpiringStock>[] = useMemo(() => [
     {
       key: 'itemSku',
       header: 'SKU',
@@ -142,7 +144,14 @@ export default function ExpiryAlertsPage() {
         );
       },
     },
-  ];
+  ], []);
+
+  const {
+    visibleKeys,
+    visibleColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(allColumns, { storageKey: 'expiry-alerts', alwaysVisible: ['itemSku'] });
 
   const isLoading = summaryLoading || expiringLoading || expiredLoading;
 
@@ -260,12 +269,19 @@ export default function ExpiryAlertsPage() {
                 ]}
                 className="w-48"
               />
+              <ColumnToggle
+                columns={allColumns}
+                visibleKeys={visibleKeys}
+                onToggle={toggleColumn}
+                onReset={resetColumns}
+                alwaysVisible={['itemSku']}
+              />
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
             data={filteredStock}
             keyField="binId"
             isLoading={isLoading}

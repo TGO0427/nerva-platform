@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { ColumnToggle } from '@/components/ui/column-toggle';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert } from '@/components/ui/alert';
 import { PageShell, MetricGrid } from '@/components/ui/motion';
@@ -20,6 +21,7 @@ import { Drawer, StopsProgress } from '@/components/ui/drawer';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useCopy } from '@/lib/hooks/use-copy';
+import { useColumnVisibility } from '@/lib/hooks';
 import {
   useTrips,
   useCreateTrip,
@@ -262,7 +264,7 @@ export default function DispatchPage() {
     return groups;
   }, [tripsData?.data]);
 
-  const tripColumns: Column<Trip>[] = [
+  const tripColumns: Column<Trip>[] = useMemo(() => [
     {
       key: 'tripNo',
       header: 'Trip No.',
@@ -350,7 +352,14 @@ export default function DispatchPage() {
         </div>
       ),
     },
-  ];
+  ], []);
+
+  const {
+    visibleKeys,
+    visibleColumns: visibleTripColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(tripColumns, { storageKey: 'dispatch-trips', alwaysVisible: ['tripNo'] });
 
   const shipmentColumns: Column<Shipment>[] = [
     {
@@ -683,13 +692,20 @@ export default function DispatchPage() {
               </Button>
             )}
             <div className="flex-1" />
+            <ColumnToggle
+              columns={tripColumns}
+              visibleKeys={visibleKeys}
+              onToggle={toggleColumn}
+              onReset={resetColumns}
+              alwaysVisible={['tripNo']}
+            />
             <span className="text-sm text-slate-500">
               {totalTrips} trip{totalTrips !== 1 ? 's' : ''}
             </span>
           </div>
 
           <DataTable
-            columns={tripColumns}
+            columns={visibleTripColumns}
             data={tripsData?.data || []}
             keyField="id"
             isLoading={tripsLoading}

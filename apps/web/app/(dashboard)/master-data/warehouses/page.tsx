@@ -10,10 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ListPageTemplate } from '@/components/templates';
 import { useWarehouses, useCreateWarehouse, useUpdateWarehouse } from '@/lib/queries/warehouses';
 import { useSites } from '@/lib/queries';
-import { useColumnVisibility } from '@/lib/hooks';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
@@ -72,6 +73,16 @@ export default function WarehousesPage() {
     return filtered;
   }, [warehouses, sites, search, statusFilter]);
 
+  const {
+    selectedIds,
+    selectedCount,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -113,6 +124,10 @@ export default function WarehousesPage() {
   };
 
   const handleExport = () => {
+    const exportData = selectedCount > 0
+      ? tableData.filter(row => selectedIds.has(row.id))
+      : tableData;
+
     const exportColumns = [
       { key: 'code', header: 'Code', getValue: (r: WarehouseWithSite) => r.code || '' },
       { key: 'name', header: 'Name' },
@@ -120,7 +135,7 @@ export default function WarehousesPage() {
       { key: 'isActive', header: 'Status', getValue: (r: WarehouseWithSite) => r.isActive ? 'Active' : 'Inactive' },
       { key: 'createdAt', header: 'Created', getValue: (r: WarehouseWithSite) => formatDateForExport(r.createdAt) },
     ];
-    exportToCSV(tableData, exportColumns, generateExportFilename('warehouses'));
+    exportToCSV(exportData, exportColumns, generateExportFilename('warehouses'));
   };
 
   const allColumns: Column<WarehouseWithSite>[] = useMemo(() => [
@@ -192,7 +207,6 @@ export default function WarehousesPage() {
       subtitle="Manage warehouse locations and storage bins"
       headerActions={
         <div className="flex gap-2">
-          <ExportActions onExport={handleExport} />
           {!showCreateForm && (
             <Button onClick={() => setShowCreateForm(true)}>
               <PlusIcon />
@@ -239,13 +253,16 @@ export default function WarehousesPage() {
         </div>
       }
       filterActions={
-        <ColumnToggle
-          columns={allColumns}
-          visibleKeys={visibleKeys}
-          onToggle={toggleColumn}
-          onReset={resetColumns}
-          alwaysVisible={['name']}
-        />
+        <div className="flex gap-2 print:hidden">
+          <ExportActions onExport={handleExport} selectedCount={selectedCount} />
+          <ColumnToggle
+            columns={allColumns}
+            visibleKeys={visibleKeys}
+            onToggle={toggleColumn}
+            onReset={resetColumns}
+            alwaysVisible={['name']}
+          />
+        </div>
       }
     >
       {/* Inline Create Form */}
@@ -308,12 +325,27 @@ export default function WarehousesPage() {
         </div>
       )}
 
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <ExportActions onExport={handleExport} />
+        </BulkActionBar>
+      )}
+
       <DataTable
         columns={visibleColumns}
         data={tableData}
         keyField="id"
         isLoading={isLoading}
         variant="embedded"
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
         onRowClick={handleRowClick}
         emptyState={{
           icon: <WarehouseIconLarge />,
