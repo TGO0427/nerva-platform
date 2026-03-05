@@ -33,10 +33,11 @@ export class AdjustmentsController {
   async list(
     @TenantId() tenantId: string,
     @Query('status') status?: string,
+    @Query('search') search?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.service.listAdjustments(tenantId, status, page, limit);
+    return this.service.listAdjustments(tenantId, { status, search }, page, limit);
   }
 
   @Post('import')

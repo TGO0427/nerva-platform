@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
@@ -11,9 +12,10 @@ import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
 import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
 import { ListPageTemplate } from '@/components/templates';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { useBoms, useImportBoms, useQueryParams } from '@/lib/queries';
 import { bomImportConfig } from '@/lib/config/csv-import';
-import { useColumnVisibility } from '@/lib/hooks';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { BomHeader, BomStatus } from '@nerva/shared';
 
@@ -30,12 +32,23 @@ const STATUS_OPTIONS = [
 export default function BomsPage() {
   const router = useRouter();
   const [status, setStatus] = useState<BomStatus | ''>('');
+  const [search, setSearch] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const { params, setPage } = useQueryParams();
-  const { data, isLoading } = useBoms({ ...params, status: status || undefined });
+  const { data, isLoading } = useBoms({ ...params, status: status || undefined, search: search || undefined });
   const importMutation = useImportBoms();
 
   const tableData = data?.data || [];
+
+  const {
+    selectedIds,
+    selectedCount,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
 
   const allColumns: Column<BomWithMeta>[] = useMemo(() => [
     {
@@ -117,6 +130,10 @@ export default function BomsPage() {
   };
 
   const handleExport = () => {
+    const exportData = selectedCount > 0
+      ? tableData.filter(row => selectedIds.has(row.id))
+      : tableData;
+
     const exportColumns = [
       { key: 'itemSku', header: 'Product SKU' },
       { key: 'itemDescription', header: 'Description' },
@@ -156,7 +173,7 @@ export default function BomsPage() {
         getValue: (row: BomWithMeta) => formatDateForExport(row.createdAt),
       },
     ];
-    exportToCSV(tableData, exportColumns, generateExportFilename('boms'));
+    exportToCSV(exportData, exportColumns, generateExportFilename('boms'));
   };
 
   const totalBoms = data?.meta?.total || 0;
@@ -209,12 +226,20 @@ export default function BomsPage() {
         },
       ]}
       filters={
-        <Select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as BomStatus | '')}
-          options={STATUS_OPTIONS}
-          className="max-w-xs"
-        />
+        <div className="flex gap-2">
+          <Input
+            placeholder="Search product SKU..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="max-w-xs"
+          />
+          <Select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as BomStatus | '')}
+            options={STATUS_OPTIONS}
+            className="max-w-xs"
+          />
+        </div>
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
@@ -224,7 +249,7 @@ export default function BomsPage() {
               Compare BOMs
             </Button>
           </Link>
-          <ExportActions onExport={handleExport} />
+          <ExportActions onExport={handleExport} selectedCount={selectedCount} />
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}
@@ -235,12 +260,27 @@ export default function BomsPage() {
         </div>
       }
     >
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <ExportActions onExport={handleExport} />
+        </BulkActionBar>
+      )}
+
       <DataTable
         columns={visibleColumns}
         data={tableData}
         keyField="id"
         isLoading={isLoading}
         variant="embedded"
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,

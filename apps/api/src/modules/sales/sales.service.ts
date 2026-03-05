@@ -99,7 +99,7 @@ export class SalesService {
 
   async listOrders(
     tenantId: string,
-    filters: { status?: string; customerId?: string },
+    filters: { status?: string; customerId?: string; search?: string },
     page = 1,
     limit = 50,
   ) {

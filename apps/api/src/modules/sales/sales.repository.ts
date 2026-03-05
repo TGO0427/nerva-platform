@@ -89,7 +89,7 @@ export class SalesRepository extends BaseRepository {
 
   async findOrdersByTenant(
     tenantId: string,
-    filters: { status?: string; customerId?: string },
+    filters: { status?: string; customerId?: string; search?: string },
     limit = 50,
     offset = 0,
   ): Promise<SalesOrder[]> {
@@ -108,6 +108,11 @@ export class SalesRepository extends BaseRepository {
       sql += ` AND so.customer_id = $${idx++}`;
       params.push(filters.customerId);
     }
+    if (filters.search) {
+      sql += ` AND (so.order_no ILIKE $${idx} OR c.name ILIKE $${idx})`;
+      params.push(`%${filters.search}%`);
+      idx++;
+    }
 
     sql += ` ORDER BY so.priority ASC, so.created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
     params.push(limit, offset);
@@ -118,19 +123,26 @@ export class SalesRepository extends BaseRepository {
 
   async countOrdersByTenant(
     tenantId: string,
-    filters: { status?: string; customerId?: string },
+    filters: { status?: string; customerId?: string; search?: string },
   ): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM sales_orders WHERE tenant_id = $1';
+    let sql = `SELECT COUNT(*) as count FROM sales_orders so
+               LEFT JOIN customers c ON c.id = so.customer_id AND c.tenant_id = so.tenant_id
+               WHERE so.tenant_id = $1`;
     const params: unknown[] = [tenantId];
     let idx = 2;
 
     if (filters.status) {
-      sql += ` AND status = $${idx++}`;
+      sql += ` AND so.status = $${idx++}`;
       params.push(filters.status);
     }
     if (filters.customerId) {
-      sql += ` AND customer_id = $${idx++}`;
+      sql += ` AND so.customer_id = $${idx++}`;
       params.push(filters.customerId);
+    }
+    if (filters.search) {
+      sql += ` AND (so.order_no ILIKE $${idx} OR c.name ILIKE $${idx})`;
+      params.push(`%${filters.search}%`);
+      idx++;
     }
 
     const result = await this.queryOne<{ count: string }>(sql, params);

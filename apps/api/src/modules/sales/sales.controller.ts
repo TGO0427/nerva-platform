@@ -44,10 +44,11 @@ export class SalesController {
     @TenantId() tenantId: string,
     @Query('status') status?: string,
     @Query('customerId') customerId?: string,
+    @Query('search') search?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.service.listOrders(tenantId, { status, customerId }, page, limit);
+    return this.service.listOrders(tenantId, { status, customerId, search }, page, limit);
   }
 
   @Get('stats')

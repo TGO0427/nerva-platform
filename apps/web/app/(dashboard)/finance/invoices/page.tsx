@@ -1,18 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Breadcrumbs } from '@/components/layout';
 import { ExportActions } from '@/components/ui/export-actions';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { StatCard } from '@/components/ui/stat-card';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { ColumnToggle } from '@/components/ui/column-toggle';
+import { ListPageTemplate } from '@/components/templates';
 import { useInvoices, useInvoiceStats, useCancelInvoice, useQueryParams, Invoice } from '@/lib/queries';
-import { useTableSelection } from '@/lib/hooks';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { exportToCSV, generateExportFilename, formatDateForExport, formatCurrencyForExport } from '@/lib/utils/export';
@@ -54,7 +54,6 @@ export default function InvoicesPage() {
   const {
     selectedIds,
     selectedCount,
-    isSelected,
     isAllSelected,
     isSomeSelected,
     toggle,
@@ -71,7 +70,7 @@ export default function InvoicesPage() {
     totalThisMonth: 0,
   };
 
-  const columns: Column<Invoice>[] = [
+  const allColumns: Column<Invoice>[] = useMemo(() => [
     {
       key: 'invoiceNo',
       header: 'Invoice No.',
@@ -128,7 +127,14 @@ export default function InvoicesPage() {
       sortable: true,
       render: (row) => new Date(row.createdAt).toLocaleDateString(),
     },
-  ];
+  ], []);
+
+  const {
+    visibleKeys,
+    visibleColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(allColumns, { storageKey: 'invoices', alwaysVisible: ['invoiceNo'] });
 
   const handleRowClick = (row: Invoice) => {
     router.push(`/finance/invoices/${row.id}`);
@@ -179,62 +185,68 @@ export default function InvoicesPage() {
   };
 
   return (
-    <div>
-      <Breadcrumbs />
-
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Invoices</h1>
-          <p className="text-slate-500 mt-1">Manage customer invoices and payments</p>
+    <ListPageTemplate
+      title="Invoices"
+      subtitle="Manage customer invoices and payments"
+      stats={[
+        {
+          title: 'Outstanding',
+          value: safeStats.outstandingCount,
+          subtitle: formatAmount(safeStats.outstandingAmount),
+          icon: <InvoiceSmIcon />,
+          iconColor: 'blue',
+        },
+        {
+          title: 'Overdue',
+          value: safeStats.overdueCount,
+          subtitle: formatAmount(safeStats.overdueAmount),
+          subtitleType: 'negative',
+          icon: <AlertIcon />,
+          iconColor: 'red',
+          alert: safeStats.overdueCount > 0,
+        },
+        {
+          title: 'Paid This Month',
+          value: formatAmount(safeStats.paidThisMonth),
+          icon: <CheckIcon />,
+          iconColor: 'green',
+        },
+        {
+          title: 'Total This Month',
+          value: formatAmount(safeStats.totalThisMonth),
+          icon: <ChartIcon />,
+          iconColor: 'purple',
+        },
+      ]}
+      filters={
+        <div className="flex gap-2">
+          <Input
+            placeholder="Search invoice no. or customer..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="max-w-xs"
+          />
+          <Select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            options={STATUS_OPTIONS}
+            className="max-w-xs"
+          />
         </div>
+      }
+      filterActions={
         <div className="flex gap-2 print:hidden">
+          <ColumnToggle
+            columns={allColumns}
+            visibleKeys={visibleKeys}
+            onToggle={toggleColumn}
+            onReset={resetColumns}
+            alwaysVisible={['invoiceNo']}
+          />
           <ExportActions onExport={handleExport} selectedCount={selectedCount} />
         </div>
-      </div>
-
-      {/* Quick stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <StatCard
-          title="Outstanding"
-          value={safeStats.outstandingCount}
-          subtitle={formatAmount(safeStats.outstandingAmount)}
-          iconColor="blue"
-        />
-        <StatCard
-          title="Overdue"
-          value={safeStats.overdueCount}
-          subtitle={formatAmount(safeStats.overdueAmount)}
-          subtitleType="negative"
-          iconColor="red"
-          alert={safeStats.overdueCount > 0}
-        />
-        <StatCard
-          title="Paid This Month"
-          value={formatAmount(safeStats.paidThisMonth)}
-          iconColor="green"
-        />
-        <StatCard
-          title="Total This Month"
-          value={formatAmount(safeStats.totalThisMonth)}
-          iconColor="purple"
-        />
-      </div>
-
-      <div className="mb-4 flex gap-4">
-        <Select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          options={STATUS_OPTIONS}
-          className="max-w-xs"
-        />
-        <Input
-          placeholder="Search invoice no. or customer..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="max-w-xs"
-        />
-      </div>
-
+      }
+    >
       {selectedCount > 0 && (
         <BulkActionBar
           selectedCount={selectedCount}
@@ -248,10 +260,11 @@ export default function InvoicesPage() {
       )}
 
       <DataTable
-        columns={columns}
+        columns={visibleColumns}
         data={tableData}
         keyField="id"
         isLoading={isLoading}
+        variant="embedded"
         selectable
         selectedIds={selectedIds}
         onSelectionChange={toggle}
@@ -269,34 +282,58 @@ export default function InvoicesPage() {
         emptyState={{
           icon: <InvoiceIcon />,
           title: 'No invoices found',
-          description: status
-            ? 'No invoices match the selected filter'
+          description: status || search
+            ? 'No invoices match the selected filters'
             : 'Invoices will appear here once created from sales orders',
         }}
       />
-    </div>
+    </ListPageTemplate>
   );
 }
 
 function getStatusVariant(status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' {
   switch (status) {
-    case 'DRAFT':
-      return 'default';
-    case 'SENT':
-      return 'warning';
-    case 'PAID':
-      return 'success';
-    case 'PARTIALLY_PAID':
-      return 'info';
-    case 'OVERDUE':
-      return 'danger';
-    case 'CANCELLED':
-      return 'default';
-    case 'VOID':
-      return 'default';
-    default:
-      return 'default';
+    case 'DRAFT': return 'default';
+    case 'SENT': return 'warning';
+    case 'PAID': return 'success';
+    case 'PARTIALLY_PAID': return 'info';
+    case 'OVERDUE': return 'danger';
+    case 'CANCELLED': return 'default';
+    case 'VOID': return 'default';
+    default: return 'default';
   }
+}
+
+function InvoiceSmIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+    </svg>
+  );
+}
+
+function AlertIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+    </svg>
+  );
 }
 
 function InvoiceIcon() {

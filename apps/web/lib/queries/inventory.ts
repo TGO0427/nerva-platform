@@ -334,7 +334,7 @@ export function useExpiredStock(warehouseId?: string) {
 }
 
 // Adjustment queries
-export function useAdjustments(params: QueryParams & { status?: string }) {
+export function useAdjustments(params: QueryParams & { status?: string; search?: string }) {
   return useQuery({
     queryKey: [ADJUSTMENT_KEY, params],
     queryFn: async () => {
@@ -342,6 +342,7 @@ export function useAdjustments(params: QueryParams & { status?: string }) {
       searchParams.set('page', String(params.page));
       searchParams.set('limit', String(params.limit));
       if (params.status) searchParams.set('status', params.status);
+      if (params.search) searchParams.set('search', params.search);
 
       const response = await api.get<PaginatedResult<Adjustment>>(
         `/inventory/adjustments?${searchParams.toString()}`

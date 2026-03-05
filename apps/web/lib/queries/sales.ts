@@ -37,6 +37,7 @@ interface OrderFilters {
   status?: SalesOrderStatus;
   customerId?: string;
   late?: boolean;
+  search?: string;
 }
 
 // Order stats (full dataset counts by status)
@@ -66,6 +67,7 @@ export function useOrders(params: QueryParams & OrderFilters) {
       if (params.status) searchParams.set('status', params.status);
       if (params.customerId) searchParams.set('customerId', params.customerId);
       if (params.late) searchParams.set('late', 'true');
+      if (params.search) searchParams.set('search', params.search);
       if (params.sortBy) searchParams.set('sortBy', params.sortBy);
       if (params.sortOrder) searchParams.set('sortOrder', params.sortOrder);
 

@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ExportActions } from '@/components/ui/export-actions';
 import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
 import { Select } from '@/components/ui/select';
@@ -37,6 +38,7 @@ export default function SalesOrdersPage() {
   const searchParams = useSearchParams();
   const { copy } = useCopy();
   const [status, setStatus] = useState<SalesOrderStatus | ''>('');
+  const [search, setSearch] = useState('');
   const [lateOnly, setLateOnly] = useState(false);
   const importMutation = useImportSalesOrders();
   const [importOpen, setImportOpen] = useState(false);
@@ -56,6 +58,7 @@ export default function SalesOrdersPage() {
   const { data, isLoading } = useOrders({
     ...params,
     status: status || undefined,
+    search: search || undefined,
     late: lateOnly || undefined,
   });
   const { data: stats } = useSalesOrderStats();
@@ -214,6 +217,12 @@ export default function SalesOrdersPage() {
       ]}
       filters={
         <div className="flex flex-wrap items-center gap-3">
+          <Input
+            placeholder="Search order no. or customer..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="max-w-xs"
+          />
           <Select
             value={status}
             onChange={(e) => setStatus(e.target.value as SalesOrderStatus | '')}

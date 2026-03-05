@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ExportActions } from '@/components/ui/export-actions';
 import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
 import { Select } from '@/components/ui/select';
@@ -33,6 +34,7 @@ const STATUS_OPTIONS = [
 export default function WorkOrdersPage() {
   const router = useRouter();
   const [status, setStatus] = useState<WorkOrderStatus | ''>('');
+  const [search, setSearch] = useState('');
   const importMutation = useImportWorkOrders();
   const [importOpen, setImportOpen] = useState(false);
 
@@ -41,7 +43,7 @@ export default function WorkOrdersPage() {
   }, [importMutation]);
 
   const { params, setPage } = useQueryParams();
-  const { data, isLoading } = useWorkOrders({ ...params, status: status || undefined });
+  const { data, isLoading } = useWorkOrders({ ...params, status: status || undefined, search: search || undefined });
 
   const tableData = data?.data || [];
 
@@ -216,12 +218,20 @@ export default function WorkOrdersPage() {
         },
       ]}
       filters={
-        <Select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as WorkOrderStatus | '')}
-          options={STATUS_OPTIONS}
-          className="max-w-xs"
-        />
+        <div className="flex gap-2">
+          <Input
+            placeholder="Search WO#, product..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="max-w-xs"
+          />
+          <Select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as WorkOrderStatus | '')}
+            options={STATUS_OPTIONS}
+            className="max-w-xs"
+          />
+        </div>
       }
       filterActions={
         <div className="flex gap-2 print:hidden">

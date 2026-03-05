@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Breadcrumbs } from '@/components/layout';
-import { StatCard } from '@/components/ui/stat-card';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useNonConformances } from '@/lib/queries';
+import { DataTable, Column } from '@/components/ui/data-table';
+import { ColumnToggle } from '@/components/ui/column-toggle';
+import { ExportActions } from '@/components/ui/export-actions';
+import { ListPageTemplate } from '@/components/templates';
+import { useNonConformances, useQueryParams } from '@/lib/queries';
+import { useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { NonConformance, NonConformanceStatus, NcSeverity } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -30,293 +33,235 @@ const SEVERITY_OPTIONS = [
 
 function getStatusVariant(status: NonConformanceStatus): 'default' | 'success' | 'warning' | 'danger' | 'info' {
   switch (status) {
-    case 'OPEN':
-      return 'info';
-    case 'UNDER_REVIEW':
-      return 'warning';
-    case 'RESOLVED':
-      return 'success';
-    case 'CLOSED':
-      return 'default';
-    default:
-      return 'default';
+    case 'OPEN': return 'info';
+    case 'UNDER_REVIEW': return 'warning';
+    case 'RESOLVED': return 'success';
+    case 'CLOSED': return 'default';
+    default: return 'default';
   }
 }
 
 function getSeverityVariant(severity: NcSeverity): 'default' | 'success' | 'warning' | 'danger' | 'info' {
   switch (severity) {
-    case 'MINOR':
-      return 'default';
-    case 'MAJOR':
-      return 'warning';
-    case 'CRITICAL':
-      return 'danger';
-    default:
-      return 'default';
+    case 'MINOR': return 'default';
+    case 'MAJOR': return 'warning';
+    case 'CRITICAL': return 'danger';
+    default: return 'default';
   }
-}
-
-function formatStatus(status: string): string {
-  return status.replace(/_/g, ' ');
 }
 
 export default function QualityPage() {
   const router = useRouter();
-  const [params, setParams] = useState({
-    page: 1,
-    limit: 20,
-    status: '',
-    severity: '',
-    search: '',
-  });
+  const [status, setStatus] = useState('');
+  const [severity, setSeverity] = useState('');
+  const [search, setSearch] = useState('');
+  const { params, setPage } = useQueryParams();
 
   const { data, isLoading } = useNonConformances({
-    page: params.page,
-    limit: params.limit,
-    status: params.status || undefined,
-    severity: params.severity || undefined,
-    search: params.search || undefined,
+    ...params,
+    status: status || undefined,
+    severity: severity || undefined,
+    search: search || undefined,
   });
 
-  const ncList = data?.data ?? [];
-  const meta = data?.meta;
-  const totalCount = meta?.total ?? 0;
-  const totalPages = meta?.totalPages ?? 1;
+  const tableData = data?.data ?? [];
+  const totalCount = data?.meta?.total ?? 0;
 
-  const handleSearch = (value: string) => {
-    setParams((prev) => ({ ...prev, search: value, page: 1 }));
+  const allColumns: Column<NonConformance>[] = useMemo(() => [
+    {
+      key: 'ncNo',
+      header: 'NC#',
+      sortable: true,
+      render: (row) => (
+        <span className="font-medium text-primary-600">{row.ncNo}</span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '140px',
+      render: (row) => (
+        <Badge variant={getStatusVariant(row.status)}>
+          {row.status.replace(/_/g, ' ')}
+        </Badge>
+      ),
+    },
+    {
+      key: 'severity',
+      header: 'Severity',
+      width: '100px',
+      render: (row) => (
+        <Badge variant={getSeverityVariant(row.severity)}>
+          {row.severity}
+        </Badge>
+      ),
+    },
+    {
+      key: 'itemSku',
+      header: 'Product',
+      render: (row) => row.itemSku || '-',
+    },
+    {
+      key: 'workOrderNo',
+      header: 'WO#',
+      render: (row) => row.workOrderNo ? (
+        <Link
+          href={`/manufacturing/work-orders/${row.workOrderId}`}
+          className="text-blue-600 hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {row.workOrderNo}
+        </Link>
+      ) : '-',
+    },
+    {
+      key: 'defectType',
+      header: 'Defect Type',
+      render: (row) => row.defectType.replace(/_/g, ' '),
+    },
+    {
+      key: 'qtyAffected',
+      header: 'Qty Affected',
+      className: 'text-right',
+      width: '110px',
+      render: (row) => row.qtyAffected.toLocaleString(),
+    },
+    {
+      key: 'createdAt',
+      header: 'Date',
+      sortable: true,
+      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+    },
+  ], []);
+
+  const {
+    visibleKeys,
+    visibleColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(allColumns, { storageKey: 'quality-ncs', alwaysVisible: ['ncNo'] });
+
+  const handleExport = () => {
+    const exportColumns = [
+      { key: 'ncNo', header: 'NC#' },
+      { key: 'status', header: 'Status', getValue: (r: NonConformance) => r.status.replace(/_/g, ' ') },
+      { key: 'severity', header: 'Severity' },
+      { key: 'itemSku', header: 'Product', getValue: (r: NonConformance) => r.itemSku || '' },
+      { key: 'workOrderNo', header: 'WO#', getValue: (r: NonConformance) => r.workOrderNo || '' },
+      { key: 'defectType', header: 'Defect Type', getValue: (r: NonConformance) => r.defectType.replace(/_/g, ' ') },
+      { key: 'qtyAffected', header: 'Qty Affected' },
+      { key: 'description', header: 'Description', getValue: (r: NonConformance) => r.description || '' },
+      { key: 'createdAt', header: 'Date', getValue: (r: NonConformance) => formatDateForExport(r.createdAt) },
+    ];
+    exportToCSV(tableData, exportColumns, generateExportFilename('non-conformances'));
   };
 
-  const handleStatusFilter = (value: string) => {
-    setParams((prev) => ({ ...prev, status: value, page: 1 }));
-  };
-
-  const handleSeverityFilter = (value: string) => {
-    setParams((prev) => ({ ...prev, severity: value, page: 1 }));
-  };
-
-  const handlePageChange = (page: number) => {
-    setParams((prev) => ({ ...prev, page }));
-  };
+  const openCount = tableData.filter(nc => nc.status === 'OPEN').length;
+  const reviewCount = tableData.filter(nc => nc.status === 'UNDER_REVIEW').length;
+  const criticalCount = tableData.filter(nc => nc.severity === 'CRITICAL').length;
 
   return (
-    <div className="p-6 space-y-6">
-      <Breadcrumbs />
-
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Quality / Non-Conformances</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Track and manage product quality issues and defects
-          </p>
-        </div>
+    <ListPageTemplate
+      title="Quality / Non-Conformances"
+      subtitle="Track and manage product quality issues and defects"
+      headerActions={
         <Link href="/manufacturing/quality/new">
           <Button>
             <PlusIcon />
             New NC
           </Button>
         </Link>
-      </div>
-
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <StatCard
-          title="Total NCs"
-          value={totalCount}
-          icon={<ClipboardIcon />}
-          iconColor="gray"
-        />
-        <StatCard
-          title="Open"
-          value={ncList.filter((nc) => nc.status === 'OPEN').length}
-          icon={<AlertCircleIcon />}
-          iconColor="blue"
-        />
-        <StatCard
-          title="Under Review"
-          value={ncList.filter((nc) => nc.status === 'UNDER_REVIEW').length}
-          icon={<SearchIcon />}
-          iconColor="yellow"
-        />
-        <StatCard
-          title="Critical"
-          value={ncList.filter((nc) => nc.severity === 'CRITICAL').length}
-          icon={<ExclamationIcon />}
-          iconColor="red"
-          alert={ncList.filter((nc) => nc.severity === 'CRITICAL').length > 0}
-        />
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="w-48">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-              <select
-                className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:border-primary-500 focus:ring-primary-500"
-                value={params.status}
-                onChange={(e) => handleStatusFilter(e.target.value)}
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="w-48">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Severity</label>
-              <select
-                className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:border-primary-500 focus:ring-primary-500"
-                value={params.severity}
-                onChange={(e) => handleSeverityFilter(e.target.value)}
-              >
-                {SEVERITY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Search</label>
-              <Input
-                placeholder="Search by NC#, description..."
-                value={params.search}
-                onChange={(e) => handleSearch(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Data Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Spinner size="lg" />
-            </div>
-          ) : ncList.length === 0 ? (
-            <div className="text-center py-16">
-              <QualityIcon />
-              <h3 className="mt-4 text-lg font-medium text-slate-900">No non-conformances found</h3>
-              <p className="mt-1 text-sm text-slate-500">
-                {params.status || params.severity || params.search
-                  ? 'No results match the selected filters'
-                  : 'Create your first non-conformance report'}
-              </p>
-              {!params.status && !params.severity && !params.search && (
-                <Link href="/manufacturing/quality/new">
-                  <Button className="mt-4">Create NC Report</Button>
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">NC#</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Severity</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Product</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">WO#</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Defect Type</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-600">Qty Affected</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ncList.map((nc: NonConformance) => (
-                    <tr
-                      key={nc.id}
-                      className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
-                      onClick={() => router.push(`/manufacturing/quality/${nc.id}`)}
-                    >
-                      <td className="py-3 px-4">
-                        <Link
-                          href={`/manufacturing/quality/${nc.id}`}
-                          className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {nc.ncNo}
-                        </Link>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant={getStatusVariant(nc.status)}>
-                          {formatStatus(nc.status)}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant={getSeverityVariant(nc.severity)}>
-                          {nc.severity}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-slate-900">
-                        {nc.itemSku || '-'}
-                      </td>
-                      <td className="py-3 px-4">
-                        {nc.workOrderId && nc.workOrderNo ? (
-                          <Link
-                            href={`/manufacturing/work-orders/${nc.workOrderId}`}
-                            className="text-blue-600 hover:text-blue-800 hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {nc.workOrderNo}
-                          </Link>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">
-                        {nc.defectType.replace(/_/g, ' ')}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {nc.qtyAffected.toLocaleString()}
-                      </td>
-                      <td className="py-3 px-4 text-slate-500">
-                        {new Date(nc.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {meta && totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200">
-              <p className="text-sm text-slate-500">
-                Showing {(params.page - 1) * params.limit + 1} to{' '}
-                {Math.min(params.page * params.limit, totalCount)} of {totalCount} results
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  disabled={params.page <= 1}
-                  onClick={() => handlePageChange(params.page - 1)}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-slate-600">
-                  Page {params.page} of {totalPages}
-                </span>
-                <Button
-                  variant="secondary"
-                  disabled={params.page >= totalPages}
-                  onClick={() => handlePageChange(params.page + 1)}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      }
+      stats={[
+        {
+          title: 'Total NCs',
+          value: totalCount,
+          icon: <ClipboardIcon />,
+          iconColor: 'gray',
+        },
+        {
+          title: 'Open',
+          value: openCount,
+          icon: <AlertCircleIcon />,
+          iconColor: 'blue',
+        },
+        {
+          title: 'Under Review',
+          value: reviewCount,
+          icon: <SearchIcon />,
+          iconColor: 'yellow',
+        },
+        {
+          title: 'Critical',
+          value: criticalCount,
+          icon: <ExclamationIcon />,
+          iconColor: 'red',
+          alert: criticalCount > 0,
+        },
+      ]}
+      filters={
+        <div className="flex gap-2">
+          <Input
+            placeholder="Search NC#, description..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="max-w-xs"
+          />
+          <Select
+            value={status}
+            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+            options={STATUS_OPTIONS}
+            className="max-w-xs"
+          />
+          <Select
+            value={severity}
+            onChange={(e) => { setSeverity(e.target.value); setPage(1); }}
+            options={SEVERITY_OPTIONS}
+            className="max-w-xs"
+          />
+        </div>
+      }
+      filterActions={
+        <div className="flex gap-2 print:hidden">
+          <ColumnToggle
+            columns={allColumns}
+            visibleKeys={visibleKeys}
+            onToggle={toggleColumn}
+            onReset={resetColumns}
+            alwaysVisible={['ncNo']}
+          />
+          <ExportActions onExport={handleExport} />
+        </div>
+      }
+    >
+      <DataTable
+        columns={visibleColumns}
+        data={tableData}
+        keyField="id"
+        isLoading={isLoading}
+        variant="embedded"
+        pagination={data?.meta ? {
+          page: data.meta.page,
+          limit: data.meta.limit,
+          total: data.meta.total || 0,
+          totalPages: data.meta.totalPages || 1,
+        } : undefined}
+        onPageChange={setPage}
+        onRowClick={(nc) => router.push(`/manufacturing/quality/${nc.id}`)}
+        emptyState={{
+          icon: <QualityIcon />,
+          title: 'No non-conformances found',
+          description: status || severity || search
+            ? 'No results match the selected filters'
+            : 'Create your first non-conformance report',
+          action: !status && !severity && !search && (
+            <Link href="/manufacturing/quality/new">
+              <Button>Create NC Report</Button>
+            </Link>
+          ),
+        }}
+      />
+    </ListPageTemplate>
   );
 }
 

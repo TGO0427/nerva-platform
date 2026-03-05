@@ -231,11 +231,11 @@ export class InventoryService {
     return adjustment;
   }
 
-  async listAdjustments(tenantId: string, status?: string, page = 1, limit = 50) {
+  async listAdjustments(tenantId: string, filters: { status?: string; search?: string }, page = 1, limit = 50) {
     const offset = (page - 1) * limit;
     const [data, total] = await Promise.all([
-      this.repository.findAdjustmentsByTenant(tenantId, status, limit, offset),
-      this.repository.countAdjustmentsByTenant(tenantId, status),
+      this.repository.findAdjustmentsByTenant(tenantId, filters, limit, offset),
+      this.repository.countAdjustmentsByTenant(tenantId, filters),
     ]);
     return buildPaginatedResult(data, total, page, limit);
   }

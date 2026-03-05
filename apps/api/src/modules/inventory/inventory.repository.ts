@@ -218,32 +218,46 @@ export class InventoryRepository extends BaseRepository {
 
   async findAdjustmentsByTenant(
     tenantId: string,
-    status?: string,
+    filters: { status?: string; search?: string },
     limit = 50,
     offset = 0,
   ): Promise<Adjustment[]> {
     let sql = 'SELECT * FROM adjustments WHERE tenant_id = $1';
     const params: unknown[] = [tenantId];
+    let idx = 2;
 
-    if (status) {
-      sql += ' AND status = $2';
-      params.push(status);
+    if (filters.status) {
+      sql += ` AND status = $${idx++}`;
+      params.push(filters.status);
+    }
+    if (filters.search) {
+      sql += ` AND (adjustment_no ILIKE $${idx} OR reason ILIKE $${idx})`;
+      params.push(`%${filters.search}%`);
+      idx++;
     }
 
-    sql += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    sql += ` ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
     params.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
     return rows.map(this.mapAdjustment);
   }
 
-  async countAdjustmentsByTenant(tenantId: string, status?: string): Promise<number> {
+  async countAdjustmentsByTenant(tenantId: string, filters: { status?: string; search?: string }): Promise<number> {
     let sql = 'SELECT COUNT(*) as count FROM adjustments WHERE tenant_id = $1';
     const params: unknown[] = [tenantId];
-    if (status) {
-      sql += ' AND status = $2';
-      params.push(status);
+    let idx = 2;
+
+    if (filters.status) {
+      sql += ` AND status = $${idx++}`;
+      params.push(filters.status);
     }
+    if (filters.search) {
+      sql += ` AND (adjustment_no ILIKE $${idx} OR reason ILIKE $${idx})`;
+      params.push(`%${filters.search}%`);
+      idx++;
+    }
+
     const result = await this.queryOne<{ count: string }>(sql, params);
     return parseInt(result?.count || '0', 10);
   }

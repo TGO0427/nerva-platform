@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
@@ -11,9 +12,10 @@ import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
 import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
 import { ListPageTemplate } from '@/components/templates';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { useRoutings, useImportRoutings, useQueryParams } from '@/lib/queries';
 import { routingImportConfig } from '@/lib/config/csv-import';
-import { useColumnVisibility } from '@/lib/hooks';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import type { Routing, RoutingStatus } from '@nerva/shared';
 
@@ -29,12 +31,23 @@ const STATUS_OPTIONS = [
 export default function RoutingsPage() {
   const router = useRouter();
   const [status, setStatus] = useState<RoutingStatus | ''>('');
+  const [search, setSearch] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const { params, setPage } = useQueryParams();
-  const { data, isLoading } = useRoutings({ ...params, status: status || undefined });
+  const { data, isLoading } = useRoutings({ ...params, status: status || undefined, search: search || undefined });
   const importMutation = useImportRoutings();
 
   const tableData = data?.data || [];
+
+  const {
+    selectedIds,
+    selectedCount,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
 
   const allColumns: Column<RoutingWithMeta>[] = useMemo(() => [
     {
@@ -108,6 +121,10 @@ export default function RoutingsPage() {
   };
 
   const handleExport = () => {
+    const exportData = selectedCount > 0
+      ? tableData.filter(row => selectedIds.has(row.id))
+      : tableData;
+
     const exportColumns = [
       { key: 'itemSku', header: 'Product SKU', getValue: (r: RoutingWithMeta) => r.itemSku || '' },
       { key: 'itemDescription', header: 'Description', getValue: (r: RoutingWithMeta) => r.itemDescription || '' },
@@ -118,7 +135,7 @@ export default function RoutingsPage() {
       { key: 'effectiveTo', header: 'Effective To', getValue: (r: RoutingWithMeta) => formatDateForExport(r.effectiveTo) },
       { key: 'createdAt', header: 'Created', getValue: (r: RoutingWithMeta) => formatDateForExport(r.createdAt) },
     ];
-    exportToCSV(tableData, exportColumns, generateExportFilename('routings'));
+    exportToCSV(exportData, exportColumns, generateExportFilename('routings'));
   };
 
   const totalRoutings = data?.meta?.total || 0;
@@ -131,7 +148,6 @@ export default function RoutingsPage() {
       subtitle="Manage production sequences and operations"
       headerActions={
         <div className="flex gap-2">
-          <ExportActions onExport={handleExport} />
           <Button variant="secondary" onClick={() => setImportOpen(true)}>
             <ImportIcon />
             Import
@@ -165,29 +181,55 @@ export default function RoutingsPage() {
         },
       ]}
       filters={
-        <Select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as RoutingStatus | '')}
-          options={STATUS_OPTIONS}
-          className="max-w-xs"
-        />
+        <div className="flex gap-2">
+          <Input
+            placeholder="Search product SKU..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="max-w-xs"
+          />
+          <Select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as RoutingStatus | '')}
+            options={STATUS_OPTIONS}
+            className="max-w-xs"
+          />
+        </div>
       }
       filterActions={
-        <ColumnToggle
+        <div className="flex gap-2 print:hidden">
+          <ExportActions onExport={handleExport} selectedCount={selectedCount} />
+          <ColumnToggle
           columns={allColumns}
           visibleKeys={visibleKeys}
           onToggle={toggleColumn}
           onReset={resetColumns}
           alwaysVisible={['itemSku']}
         />
+        </div>
       }
     >
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <ExportActions onExport={handleExport} />
+        </BulkActionBar>
+      )}
+
       <DataTable
         columns={visibleColumns}
         data={tableData}
         keyField="id"
         isLoading={isLoading}
         variant="embedded"
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,
