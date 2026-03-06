@@ -13,7 +13,7 @@ export function AppShell({ children }: AppShellProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="h-screen overflow-hidden bg-surface">
       <div className="flex">
         <Sidebar
           isOpen={isSidebarOpen}
@@ -22,13 +22,13 @@ export function AppShell({ children }: AppShellProps) {
           onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
         />
 
-        <div className="flex-1 flex flex-col min-h-screen lg:pl-0">
+        <div className="flex-1 flex flex-col h-screen lg:pl-0">
           {/* Sticky header */}
           <div className="sticky top-0 z-40 print:hidden">
             <Header onMenuClick={() => setIsSidebarOpen(true)} />
           </div>
 
-          <main className="flex-1 p-4 lg:p-6">
+          <main className="flex-1 overflow-y-auto p-4 lg:p-6">
             {children}
           </main>
         </div>
