@@ -20,6 +20,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
+import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: '#94a3b8',
@@ -50,6 +51,7 @@ function getTimeAgo(dateString: string): string {
 }
 
 export default function DashboardPage() {
+  const ct = useChartTheme();
   const { user } = useAuth();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: activity, isLoading: activityLoading } = useRecentActivity(8);
@@ -188,10 +190,10 @@ export default function DashboardPage() {
           {weeklyTrend && weeklyTrend.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={weeklyTrend} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="week" tick={{ fontSize: 12, fill: '#64748b' }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                <XAxis dataKey="week" tick={{ fontSize: 12, fill: ct.tick }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: ct.tick }} />
+                <Tooltip contentStyle={tooltipStyle(ct)} />
                 <Legend wrapperStyle={{ fontSize: 13 }} />
                 <Line type="monotone" dataKey="orders" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Orders" />
                 <Line type="monotone" dataKey="shipments" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Shipments" />
@@ -225,7 +227,7 @@ export default function DashboardPage() {
                     />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }} />
+                <Tooltip contentStyle={tooltipStyle(ct)} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -238,10 +240,10 @@ export default function DashboardPage() {
           {warehouseData && warehouseData.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={warehouseData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="warehouse" tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                <XAxis dataKey="warehouse" tick={{ fontSize: 11, fill: ct.tick }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: ct.tick }} />
+                <Tooltip contentStyle={tooltipStyle(ct)} />
                 <Line type="monotone" dataKey="orders" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} name="Orders" />
               </LineChart>
             </ResponsiveContainer>

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useManufacturingReport } from '@/lib/queries';
+import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
@@ -21,6 +22,7 @@ export default function ManufacturingReportPage() {
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
+  const ct = useChartTheme();
   const { data: report, isLoading } = useManufacturingReport(startDate, endDate);
 
   function handleExportCsv() {
@@ -160,12 +162,12 @@ export default function ManufacturingReportPage() {
         {report?.productionByDay && report.productionByDay.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={report.productionByDay} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
               <XAxis
                 dataKey="date"
-                axisLine={{ stroke: '#cbd5e1' }}
+                axisLine={{ stroke: ct.axis }}
                 tickLine={false}
-                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                tick={{ fontSize: 11, fill: ct.tick }}
                 tickFormatter={(v: string) => {
                   const d = new Date(v);
                   return `${d.getDate()}/${d.getMonth() + 1}`;
@@ -173,12 +175,12 @@ export default function ManufacturingReportPage() {
               />
               <YAxis
                 allowDecimals={false}
-                tick={{ fontSize: 12, fill: '#94a3b8' }}
+                tick={{ fontSize: 12, fill: ct.tick }}
                 axisLine={false}
                 tickLine={false}
               />
               <Tooltip
-                contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                contentStyle={tooltipStyle(ct)}
               />
               <Legend
                 verticalAlign="bottom"
@@ -190,8 +192,8 @@ export default function ManufacturingReportPage() {
                 dataKey="output"
                 stroke="#10b981"
                 strokeWidth={2.5}
-                dot={{ r: 4, fill: '#ffffff', stroke: '#10b981', strokeWidth: 2 }}
-                activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
+                dot={{ r: 4, fill: ct.dotFill, stroke: '#10b981', strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: '#10b981', stroke: ct.activeDotStroke, strokeWidth: 2 }}
                 name="Output"
               />
               <Line
@@ -199,8 +201,8 @@ export default function ManufacturingReportPage() {
                 dataKey="scrap"
                 stroke="#ef4444"
                 strokeWidth={2.5}
-                dot={{ r: 4, fill: '#ffffff', stroke: '#ef4444', strokeWidth: 2 }}
-                activeDot={{ r: 6, fill: '#ef4444', stroke: '#fff', strokeWidth: 2 }}
+                dot={{ r: 4, fill: ct.dotFill, stroke: '#ef4444', strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: '#ef4444', stroke: ct.activeDotStroke, strokeWidth: 2 }}
                 name="Scrap"
               />
             </LineChart>

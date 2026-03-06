@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { useProcurementReport } from '@/lib/queries';
+import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -25,6 +26,7 @@ export default function ProcurementReportPage() {
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const { data: report, isLoading } = useProcurementReport(startDate, endDate);
+  const ct = useChartTheme();
 
   const chartData = useMemo(() => {
     if (!report?.byMonth) return [];
@@ -118,9 +120,9 @@ export default function ProcurementReportPage() {
               <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
                 <XAxis
                   dataKey="month"
-                  axisLine={{ stroke: '#cbd5e1' }}
+                  axisLine={{ stroke: ct.axis }}
                   tickLine={false}
-                  tick={{ fontSize: 12, fill: '#94a3b8' }}
+                  tick={{ fontSize: 12, fill: ct.tick }}
                   tickFormatter={(v: string) => {
                     const [y, m] = v.split('-');
                     return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2);
@@ -128,22 +130,22 @@ export default function ProcurementReportPage() {
                 />
                 <YAxis
                   yAxisId="value"
-                  tick={{ fontSize: 12, fill: '#94a3b8' }}
+                  tick={{ fontSize: 12, fill: ct.tick }}
                   tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
                   axisLine={false}
                   tickLine={false}
                 />
-                <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="count" orientation="right" tick={{ fontSize: 12, fill: ct.tick }} axisLine={false} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                  contentStyle={tooltipStyle(ct)}
                   formatter={(value: unknown, name?: string) => {
                     if (name === 'PO Value') return [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, name];
                     return [Number(value).toLocaleString(), name ?? ''];
                   }}
                 />
                 <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ paddingTop: 16, fontSize: 13 }} />
-                <Line yAxisId="count" type="natural" dataKey="poCount" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#3b82f6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} name="POs" />
-                <Line yAxisId="value" type="natural" dataKey="monthlyValue" stroke="#10b981" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#10b981', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }} name="PO Value" />
+                <Line yAxisId="count" type="natural" dataKey="poCount" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 5, fill: ct.dotFill, stroke: '#3b82f6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#3b82f6', stroke: ct.activeDotStroke, strokeWidth: 2 }} name="POs" />
+                <Line yAxisId="value" type="natural" dataKey="monthlyValue" stroke="#10b981" strokeWidth={2.5} dot={{ r: 5, fill: ct.dotFill, stroke: '#10b981', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#10b981', stroke: ct.activeDotStroke, strokeWidth: 2 }} name="PO Value" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -170,7 +172,7 @@ export default function ProcurementReportPage() {
                     <Cell key={entry.status} fill={PO_STATUS_COLORS[entry.status] || PIE_COLORS[index % PIE_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }} />
+                <Tooltip contentStyle={tooltipStyle(ct)} />
               </PieChart>
             </ResponsiveContainer>
           ) : (

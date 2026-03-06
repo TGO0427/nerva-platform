@@ -16,6 +16,7 @@ import {
   usePurchaseOrderTrends,
   type SupplierPerformanceStats,
 } from '@/lib/queries/suppliers';
+import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -49,6 +50,7 @@ export default function SupplierAnalyticsPage() {
   });
   const { data: ncrTrends } = useNcrTrends(monthsCount);
   const { data: poTrends } = usePurchaseOrderTrends(monthsCount);
+  const ct = useChartTheme();
 
   const fillMonths = useMemo(() => {
     const months: string[] = [];
@@ -230,10 +232,10 @@ export default function SupplierAnalyticsPage() {
           {ncrData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={ncrData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                <XAxis dataKey="month" axisLine={{ stroke: '#cbd5e1' }} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} />
-                <Line type="natural" dataKey="count" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#ef4444', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#ef4444', stroke: '#fff', strokeWidth: 2 }} name="NCRs" />
+                <XAxis dataKey="month" axisLine={{ stroke: ct.axis }} tickLine={false} tick={{ fontSize: 12, fill: ct.tick }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: ct.tick }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle(ct)} />
+                <Line type="natural" dataKey="count" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 5, fill: ct.dotFill, stroke: '#ef4444', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#ef4444', stroke: ct.activeDotStroke, strokeWidth: 2 }} name="NCRs" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -245,10 +247,10 @@ export default function SupplierAnalyticsPage() {
           {poData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={poData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                <XAxis dataKey="month" axisLine={{ stroke: '#cbd5e1' }} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
-                <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'PO Value']} />
-                <Line type="natural" dataKey="value" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#3b82f6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} name="PO Value" />
+                <XAxis dataKey="month" axisLine={{ stroke: ct.axis }} tickLine={false} tick={{ fontSize: 12, fill: ct.tick }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
+                <YAxis tick={{ fontSize: 12, fill: ct.tick }} tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle(ct)} formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'PO Value']} />
+                <Line type="natural" dataKey="value" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 5, fill: ct.dotFill, stroke: '#3b82f6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#3b82f6', stroke: ct.activeDotStroke, strokeWidth: 2 }} name="PO Value" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -263,10 +265,10 @@ export default function SupplierAnalyticsPage() {
           {poData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={poData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                <XAxis dataKey="month" axisLine={{ stroke: '#cbd5e1' }} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} />
-                <Line type="natural" dataKey="count" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#8b5cf6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }} name="Purchase Orders" />
+                <XAxis dataKey="month" axisLine={{ stroke: ct.axis }} tickLine={false} tick={{ fontSize: 12, fill: ct.tick }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: ct.tick }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle(ct)} />
+                <Line type="natural" dataKey="count" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 5, fill: ct.dotFill, stroke: '#8b5cf6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#8b5cf6', stroke: ct.activeDotStroke, strokeWidth: 2 }} name="Purchase Orders" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -294,7 +296,7 @@ export default function SupplierAnalyticsPage() {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                  contentStyle={tooltipStyle(ct)}
                   formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Spend']}
                 />
               </PieChart>

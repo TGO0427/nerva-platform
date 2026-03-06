@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useInventoryReport } from '@/lib/queries';
+import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -25,6 +26,7 @@ export default function InventoryReportPage() {
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const { data: report, isLoading } = useInventoryReport();
+  const ct = useChartTheme();
 
   if (isLoading) {
     return (
@@ -108,18 +110,18 @@ export default function InventoryReportPage() {
           <ChartCard title="Inventory by Warehouse" subtitle="Stock quantity">
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={report.byWarehouse} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                <XAxis dataKey="name" axisLine={{ stroke: '#cbd5e1' }} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                <XAxis dataKey="name" axisLine={{ stroke: ct.axis }} tickLine={false} tick={{ fontSize: 12, fill: ct.tick }} />
                 <YAxis
-                  tick={{ fontSize: 12, fill: '#94a3b8' }}
+                  tick={{ fontSize: 12, fill: ct.tick }}
                   tickFormatter={(v: number) => v.toLocaleString()}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip
-                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                  contentStyle={tooltipStyle(ct)}
                   formatter={(value: unknown) => [Number(value).toLocaleString(), 'Qty']}
                 />
-                <Line type="natural" dataKey="totalQty" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 5, fill: '#ffffff', stroke: '#8b5cf6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }} name="Stock Qty" />
+                <Line type="natural" dataKey="totalQty" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 5, fill: ct.dotFill, stroke: '#8b5cf6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#8b5cf6', stroke: ct.activeDotStroke, strokeWidth: 2 }} name="Stock Qty" />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -143,7 +145,7 @@ export default function InventoryReportPage() {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }}
+                  contentStyle={tooltipStyle(ct)}
                   formatter={(value: unknown) => [Number(value).toLocaleString(), 'Qty']}
                 />
               </PieChart>

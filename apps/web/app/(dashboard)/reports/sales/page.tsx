@@ -12,8 +12,10 @@ import { useSalesReport } from '@/lib/queries';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
+import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
 
 export default function SalesReportPage() {
+  const ct = useChartTheme();
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() - 1);
@@ -115,9 +117,9 @@ export default function SalesReportPage() {
             <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
               <XAxis
                 dataKey="date"
-                axisLine={{ stroke: '#cbd5e1' }}
+                axisLine={{ stroke: ct.axis }}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: '#94a3b8' }}
+                tick={{ fontSize: 12, fill: ct.tick }}
                 tickFormatter={(v: string) => {
                   const [y, m] = v.split('-');
                   return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2);
@@ -125,7 +127,7 @@ export default function SalesReportPage() {
               />
               <YAxis
                 yAxisId="value"
-                tick={{ fontSize: 12, fill: '#94a3b8' }}
+                tick={{ fontSize: 12, fill: ct.tick }}
                 tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
                 axisLine={false}
                 tickLine={false}
@@ -133,12 +135,12 @@ export default function SalesReportPage() {
               <YAxis
                 yAxisId="count"
                 orientation="right"
-                tick={{ fontSize: 12, fill: '#94a3b8' }}
+                tick={{ fontSize: 12, fill: ct.tick }}
                 axisLine={false}
                 tickLine={false}
               />
               <Tooltip
-                contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                contentStyle={tooltipStyle(ct)}
                 formatter={(value: unknown, name?: string) => {
                   if (name === 'Sales') return [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, name];
                   return [Number(value).toLocaleString(), name ?? ''];
@@ -155,8 +157,8 @@ export default function SalesReportPage() {
                 dataKey="orderCount"
                 stroke="#3b82f6"
                 strokeWidth={2.5}
-                dot={{ r: 5, fill: '#ffffff', stroke: '#3b82f6', strokeWidth: 2 }}
-                activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
+                dot={{ r: 5, fill: ct.dotFill, stroke: '#3b82f6', strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: '#3b82f6', stroke: ct.activeDotStroke, strokeWidth: 2 }}
                 name="Orders"
               />
               <Line
@@ -165,8 +167,8 @@ export default function SalesReportPage() {
                 dataKey="dailyValue"
                 stroke="#10b981"
                 strokeWidth={2.5}
-                dot={{ r: 5, fill: '#ffffff', stroke: '#10b981', strokeWidth: 2 }}
-                activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
+                dot={{ r: 5, fill: ct.dotFill, stroke: '#10b981', strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: '#10b981', stroke: ct.activeDotStroke, strokeWidth: 2 }}
                 name="Sales"
               />
             </LineChart>

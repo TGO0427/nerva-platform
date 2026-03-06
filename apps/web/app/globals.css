@@ -128,6 +128,11 @@ html.dark body {
   color: rgb(203 213 225) !important;
 }
 
+.dark .text-slate-800,
+.dark .text-gray-800 {
+  color: rgb(226 232 240) !important;
+}
+
 .dark .text-slate-600,
 .dark .text-gray-600 {
   color: rgb(148 163 184) !important;
@@ -147,6 +152,11 @@ html.dark body {
 .dark .border-gray-200,
 .dark .border-slate-200 {
   border-color: rgb(51 65 85) !important;
+}
+
+.dark .border-gray-50,
+.dark .border-slate-50 {
+  border-color: rgb(30 41 59) !important;
 }
 
 .dark .border-gray-100,

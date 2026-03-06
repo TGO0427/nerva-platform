@@ -10,6 +10,7 @@ import {
   XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
+import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: '#94a3b8',
@@ -23,6 +24,7 @@ const PIE_FALLBACK_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d
 
 export default function ProductionDashboardPage() {
   const { data: dashboard, isLoading } = useManufacturingDashboard();
+  const ct = useChartTheme();
 
   if (isLoading) {
     return (
@@ -94,7 +96,7 @@ export default function ProductionDashboardPage() {
                     />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }} />
+                <Tooltip contentStyle={tooltipStyle(ct)} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -107,17 +109,17 @@ export default function ProductionDashboardPage() {
           {dashboard?.dailyOutput && dashboard.dailyOutput.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={dashboard.dailyOutput} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  tick={{ fontSize: 11, fill: ct.tick }}
                   tickFormatter={(v: string) => {
                     const d = new Date(v);
                     return `${d.getDate()}/${d.getMonth() + 1}`;
                   }}
                 />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: ct.tick }} />
+                <Tooltip contentStyle={tooltipStyle(ct)} />
                 <Legend wrapperStyle={{ fontSize: 13 }} />
                 <Line type="monotone" dataKey="output" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Output" />
                 <Line type="monotone" dataKey="scrap" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} name="Scrap" />
@@ -137,15 +139,15 @@ export default function ProductionDashboardPage() {
                 layout="vertical"
                 margin={{ top: 5, right: 20, left: 80, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis type="number" tick={{ fontSize: 12, fill: '#64748b' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                <XAxis type="number" tick={{ fontSize: 12, fill: ct.tick }} />
                 <YAxis
                   type="category"
                   dataKey="itemSku"
-                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  tick={{ fontSize: 11, fill: ct.tick }}
                   width={75}
                 />
-                <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: 13 }} />
+                <Tooltip contentStyle={tooltipStyle(ct)} />
                 <Bar dataKey="totalOutput" fill="#3b82f6" radius={[0, 4, 4, 0]} name="Output" />
               </BarChart>
             </ResponsiveContainer>
