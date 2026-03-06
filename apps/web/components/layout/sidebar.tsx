@@ -766,7 +766,7 @@ function SidebarFooter({
   ];
 
   return (
-    <div className="border-t border-white/10">
+    <div className="border-t border-white/10 overflow-y-auto max-h-[40vh] shrink-0">
       {/* Quick Stats */}
       {stats && (
         <div className="px-4 py-3 border-b border-white/10">

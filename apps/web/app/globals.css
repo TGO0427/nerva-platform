@@ -66,7 +66,7 @@ body {
   }
 }
 
-/* Dark mode */
+/* ── Dark mode ─────────────────────────────────────────────────────────────── */
 .dark {
   --foreground-rgb: 226, 232, 240;
   --surface-bg: 15 23 42;          /* slate-900 */
@@ -81,30 +81,11 @@ html.dark body {
   background: rgb(15 23 42);
 }
 
+/* ── Surfaces ────────────────────────────────────────────────────────────── */
 .dark .card,
 .dark .bg-white {
   background-color: rgb(30 41 59) !important;
   border-color: rgb(51 65 85) !important;
-}
-
-.dark .border-gray-200,
-.dark .border-slate-200 {
-  border-color: rgb(51 65 85) !important;
-}
-
-.dark .text-slate-900,
-.dark .text-gray-900 {
-  color: rgb(226 232 240) !important;
-}
-
-.dark .text-slate-700,
-.dark .text-gray-700 {
-  color: rgb(203 213 225) !important;
-}
-
-.dark .text-slate-500,
-.dark .text-gray-500 {
-  color: rgb(148 163 184) !important;
 }
 
 .dark .bg-surface {
@@ -121,6 +102,71 @@ html.dark body {
   background-color: rgb(51 65 85) !important;
 }
 
+.dark .bg-slate-200,
+.dark .bg-gray-200 {
+  background-color: rgb(51 65 85) !important;
+}
+
+.dark .hover\:bg-slate-200:hover,
+.dark .hover\:bg-gray-200:hover {
+  background-color: rgb(71 85 105) !important;
+}
+
+.dark .hover\:bg-slate-300:hover,
+.dark .hover\:bg-gray-300:hover {
+  background-color: rgb(71 85 105) !important;
+}
+
+/* ── Text ────────────────────────────────────────────────────────────────── */
+.dark .text-slate-900,
+.dark .text-gray-900 {
+  color: rgb(226 232 240) !important;
+}
+
+.dark .text-slate-700,
+.dark .text-gray-700 {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .text-slate-600,
+.dark .text-gray-600 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .text-slate-500,
+.dark .text-gray-500 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .text-slate-400,
+.dark .text-gray-400 {
+  color: rgb(100 116 139) !important;
+}
+
+/* ── Borders ─────────────────────────────────────────────────────────────── */
+.dark .border-gray-200,
+.dark .border-slate-200 {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .border-gray-100,
+.dark .border-slate-100 {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .border-gray-300,
+.dark .border-slate-300 {
+  border-color: rgb(71 85 105) !important;
+}
+
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(51 65 85) !important;
+}
+
+/* ── Forms ───────────────────────────────────────────────────────────────── */
 .dark input,
 .dark select,
 .dark textarea {
@@ -129,8 +175,182 @@ html.dark body {
   color: rgb(226 232 240);
 }
 
+/* ── Hover states ────────────────────────────────────────────────────────── */
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-gray-50:hover {
+  background-color: rgb(51 65 85) !important;
+}
+
+.dark .hover\:bg-slate-100:hover,
+.dark .hover\:bg-gray-100:hover {
+  background-color: rgb(51 65 85) !important;
+}
+
+.dark .hover\:text-slate-600:hover,
+.dark .hover\:text-gray-600:hover {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .hover\:text-slate-700:hover,
+.dark .hover\:text-gray-700:hover {
+  color: rgb(226 232 240) !important;
+}
+
+.dark .hover\:bg-red-50:hover {
+  background-color: rgb(127 29 29 / 0.2) !important;
+}
+
+.dark .hover\:border-slate-300:hover,
+.dark .hover\:border-gray-300:hover,
+.dark .hover\:border-gray-400:hover {
+  border-color: rgb(100 116 139) !important;
+}
+
+/* ── Rings (badge outlines, pagination) ──────────────────────────────────── */
+.dark .ring-slate-200,
+.dark .ring-slate-300 {
+  --tw-ring-color: rgb(71 85 105) !important;
+}
+
+.dark .ring-blue-200 {
+  --tw-ring-color: rgb(30 64 175 / 0.5) !important;
+}
+
+.dark .ring-green-200,
+.dark .ring-emerald-200 {
+  --tw-ring-color: rgb(6 95 70 / 0.5) !important;
+}
+
+.dark .ring-red-200 {
+  --tw-ring-color: rgb(153 27 27 / 0.5) !important;
+}
+
+.dark .ring-amber-200 {
+  --tw-ring-color: rgb(146 64 14 / 0.5) !important;
+}
+
+/* ── Colored backgrounds (badges, alerts, notifications) ─────────────────── */
+.dark .bg-blue-50 {
+  background-color: rgb(30 58 138 / 0.3) !important;
+}
+.dark .bg-blue-100 {
+  background-color: rgb(30 58 138 / 0.4) !important;
+}
+
+.dark .bg-green-50 {
+  background-color: rgb(20 83 45 / 0.3) !important;
+}
+.dark .bg-green-100 {
+  background-color: rgb(20 83 45 / 0.4) !important;
+}
+
+.dark .bg-red-50 {
+  background-color: rgb(127 29 29 / 0.3) !important;
+}
+.dark .bg-red-100 {
+  background-color: rgb(127 29 29 / 0.4) !important;
+}
+
+.dark .bg-amber-50,
+.dark .bg-yellow-50 {
+  background-color: rgb(120 53 15 / 0.3) !important;
+}
+.dark .bg-amber-100,
+.dark .bg-yellow-100 {
+  background-color: rgb(120 53 15 / 0.4) !important;
+}
+
+.dark .bg-primary-50 {
+  background-color: rgb(12 74 110 / 0.3) !important;
+}
+.dark .bg-primary-100 {
+  background-color: rgb(12 74 110 / 0.4) !important;
+}
+
+.dark .bg-emerald-100 { background-color: rgb(6 78 59 / 0.4) !important; }
+.dark .bg-orange-100 { background-color: rgb(124 45 18 / 0.4) !important; }
+.dark .bg-purple-100 { background-color: rgb(88 28 135 / 0.4) !important; }
+.dark .bg-violet-100 { background-color: rgb(76 29 149 / 0.4) !important; }
+.dark .bg-cyan-100 { background-color: rgb(22 78 99 / 0.4) !important; }
+.dark .bg-rose-100 { background-color: rgb(136 19 55 / 0.4) !important; }
+.dark .bg-teal-100 { background-color: rgb(19 78 74 / 0.4) !important; }
+.dark .bg-pink-100 { background-color: rgb(131 24 67 / 0.4) !important; }
+.dark .bg-indigo-100 { background-color: rgb(49 46 129 / 0.4) !important; }
+
+/* ── Colored text (badges, alerts) ───────────────────────────────────────── */
+.dark .text-blue-700,
+.dark .text-blue-800 {
+  color: rgb(147 197 253) !important;
+}
+
+.dark .text-green-700,
+.dark .text-green-800 {
+  color: rgb(134 239 172) !important;
+}
+
+.dark .text-red-700,
+.dark .text-red-800 {
+  color: rgb(252 165 165) !important;
+}
+
+.dark .text-amber-700,
+.dark .text-amber-800,
+.dark .text-yellow-800 {
+  color: rgb(252 211 77) !important;
+}
+
+/* ── Shadows ─────────────────────────────────────────────────────────────── */
 .dark .shadow-sm {
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3) !important;
+}
+
+.dark .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4) !important;
+}
+
+.dark .shadow-xl {
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4) !important;
+}
+
+/* ── Gradient overrides (stat cards, kpi cards) ──────────────────────────── */
+.dark [class*="from-slate-50"],
+.dark [class*="from-blue-50"],
+.dark [class*="from-emerald-50"],
+.dark [class*="from-red-50"],
+.dark [class*="from-amber-50"],
+.dark [class*="from-violet-50"],
+.dark [class*="from-orange-50"] {
+  --tw-gradient-from: rgb(30 41 59) !important;
+}
+
+.dark [class*="to-white"] {
+  --tw-gradient-to: rgb(30 41 59) !important;
+}
+
+/* ── Scrollbar styling ───────────────────────────────────────────────────── */
+/* ── Focus ring offset ────────────────────────────────────────────────────── */
+.dark .focus\:ring-offset-2:focus {
+  --tw-ring-offset-color: rgb(30 41 59) !important;
+}
+
+/* ── Toast ────────────────────────────────────────────────────────────────── */
+.dark {
+  --toast-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* ── Scrollbar styling ───────────────────────────────────────────────────── */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: rgb(15 23 42);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(51 65 85);
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgb(71 85 105);
 }
 
 /* Print styles */

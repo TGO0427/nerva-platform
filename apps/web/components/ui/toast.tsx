@@ -120,10 +120,9 @@ function ToastItem({ toast, removeToast }: { toast: Toast; removeToast: (id: str
       animate="animate"
       exit="exit"
       role="alert"
-      className="pointer-events-auto relative overflow-hidden rounded-lg"
+      className="pointer-events-auto relative overflow-hidden rounded-lg bg-white dark:bg-slate-800"
       style={{
-        background: '#ffffff',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+        boxShadow: 'var(--toast-shadow, 0 4px 12px rgba(0,0,0,0.08))',
         minHeight: 48,
       }}
     >
