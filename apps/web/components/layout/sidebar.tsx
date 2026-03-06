@@ -133,8 +133,8 @@ const quickActions = [
 const searchActions: (NavItem & { groupName: string })[] = [
   { name: 'Create Sales Order', href: '/sales/new', icon: <ClipboardIcon />, permissions: [PERMISSIONS.SALES_ORDER_CREATE], groupName: 'Action' },
   { name: 'Create Transfer', href: '/inventory/ibts', icon: <TransferIcon />, permissions: [PERMISSIONS.IBT_CREATE], groupName: 'Action' },
-  { name: 'Create Purchase Order', href: '/procurement/purchase-orders', icon: <ShoppingCartIcon />, permissions: [PERMISSIONS.PURCHASE_ORDER_WRITE], groupName: 'Action' },
-  { name: 'Create Work Order', href: '/manufacturing/work-orders', icon: <WorkOrderIcon />, permissions: [PERMISSIONS.WORK_ORDER_CREATE], groupName: 'Action' },
+  { name: 'Create Purchase Order', href: '/procurement/purchase-orders/new', icon: <ShoppingCartIcon />, permissions: [PERMISSIONS.PURCHASE_ORDER_WRITE], groupName: 'Action' },
+  { name: 'Create Work Order', href: '/manufacturing/work-orders/new', icon: <WorkOrderIcon />, permissions: [PERMISSIONS.WORK_ORDER_CREATE], groupName: 'Action' },
 ];
 
 interface SidebarProps {

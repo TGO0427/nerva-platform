@@ -110,26 +110,6 @@ export function useTripStops(tripId: string | undefined) {
   });
 }
 
-export function useVehicles() {
-  return useQuery({
-    queryKey: ['vehicles'],
-    queryFn: async () => {
-      const response = await api.get<Vehicle[]>('/dispatch/vehicles');
-      return response.data;
-    },
-  });
-}
-
-export function useDrivers() {
-  return useQuery({
-    queryKey: ['drivers'],
-    queryFn: async () => {
-      const response = await api.get<Driver[]>('/dispatch/drivers');
-      return response.data;
-    },
-  });
-}
-
 // Trip mutations
 export function useCreateTrip() {
   const queryClient = useQueryClient();
