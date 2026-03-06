@@ -66,6 +66,73 @@ body {
   }
 }
 
+/* Dark mode */
+.dark {
+  --foreground-rgb: 226, 232, 240;
+  --surface-bg: 15 23 42;          /* slate-900 */
+  --surface-card: 30 41 59;        /* slate-800 */
+  --surface-border: 51 65 85;      /* slate-700 */
+  --surface-hover: 51 65 85;       /* slate-700 */
+}
+
+.dark body,
+html.dark body {
+  color: rgb(226 232 240);
+  background: rgb(15 23 42);
+}
+
+.dark .card,
+.dark .bg-white {
+  background-color: rgb(30 41 59) !important;
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .border-gray-200,
+.dark .border-slate-200 {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .text-slate-900,
+.dark .text-gray-900 {
+  color: rgb(226 232 240) !important;
+}
+
+.dark .text-slate-700,
+.dark .text-gray-700 {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .text-slate-500,
+.dark .text-gray-500 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .bg-surface {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark .bg-slate-50,
+.dark .bg-gray-50 {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .bg-slate-100,
+.dark .bg-gray-100 {
+  background-color: rgb(51 65 85) !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: rgb(30 41 59);
+  border-color: rgb(51 65 85);
+  color: rgb(226 232 240);
+}
+
+.dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3) !important;
+}
+
 /* Print styles */
 @media print {
   body {

@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -26,6 +27,10 @@ module.exports = {
           900: '#0c4a6e',
           950: '#082f49',
         },
+      },
+      backgroundColor: {
+        'dark-surface': '#0f172a',
+        'dark-card': '#1e293b',
       },
       keyframes: {
         'slide-in': {
