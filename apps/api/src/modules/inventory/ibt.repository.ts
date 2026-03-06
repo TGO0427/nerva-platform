@@ -103,8 +103,8 @@ export class IbtRepository extends BaseRepository {
       `SELECT ibt.*,
               fw.name AS from_warehouse_name,
               tw.name AS to_warehouse_name,
-              uc.first_name || ' ' || uc.last_name AS created_by_name,
-              ua.first_name || ' ' || ua.last_name AS approved_by_name,
+              uc.display_name AS created_by_name,
+              ua.display_name AS approved_by_name,
               (SELECT COUNT(*)::int FROM ibt_lines WHERE ibt_id = ibt.id) AS line_count
        FROM ibts ibt
        JOIN warehouses fw ON fw.id = ibt.from_warehouse_id
@@ -130,8 +130,8 @@ export class IbtRepository extends BaseRepository {
       `SELECT ibt.*,
               fw.name AS from_warehouse_name,
               tw.name AS to_warehouse_name,
-              uc.first_name || ' ' || uc.last_name AS created_by_name,
-              ua.first_name || ' ' || ua.last_name AS approved_by_name,
+              uc.display_name AS created_by_name,
+              ua.display_name AS approved_by_name,
               (SELECT COUNT(*)::int FROM ibt_lines WHERE ibt_id = ibt.id) AS line_count
        FROM ibts ibt
        JOIN warehouses fw ON fw.id = ibt.from_warehouse_id

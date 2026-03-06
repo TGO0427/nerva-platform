@@ -65,7 +65,7 @@ export class PutawayRepository extends BaseRepository {
       `SELECT pt.*,
               i.sku AS item_sku, i.description AS item_description,
               fb.code AS from_bin_code, tb.code AS to_bin_code,
-              u.first_name || ' ' || u.last_name AS assigned_to_name,
+              u.display_name AS assigned_to_name,
               gl.grn_id, gl.batch_no
        FROM putaway_tasks pt
        JOIN items i ON i.id = pt.item_id
@@ -92,7 +92,7 @@ export class PutawayRepository extends BaseRepository {
       `SELECT pt.*,
               i.sku AS item_sku, i.description AS item_description,
               fb.code AS from_bin_code, tb.code AS to_bin_code,
-              u.first_name || ' ' || u.last_name AS assigned_to_name,
+              u.display_name AS assigned_to_name,
               gl.grn_id, gl.batch_no
        FROM putaway_tasks pt
        JOIN items i ON i.id = pt.item_id
@@ -126,7 +126,7 @@ export class PutawayRepository extends BaseRepository {
       `SELECT pt.*,
               i.sku AS item_sku, i.description AS item_description,
               fb.code AS from_bin_code, tb.code AS to_bin_code,
-              u.first_name || ' ' || u.last_name AS assigned_to_name,
+              u.display_name AS assigned_to_name,
               gl.grn_id, gl.batch_no
        FROM putaway_tasks pt
        JOIN items i ON i.id = pt.item_id
