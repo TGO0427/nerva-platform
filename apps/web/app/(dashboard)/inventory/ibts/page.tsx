@@ -15,7 +15,7 @@ import { ExportActions } from '@/components/ui/export-actions';
 import { ListPageTemplate } from '@/components/templates';
 import { useToast } from '@/components/ui/toast';
 import { useIbts, useCreateIbt, useQueryParams, type IbtDetail } from '@/lib/queries';
-import { useWarehouses } from '@/lib/queries/warehouses';
+import { useAllWarehouses } from '@/lib/queries/warehouses';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 
@@ -55,7 +55,7 @@ export default function IbtListPage() {
 
   const { addToast } = useToast();
   const createIbt = useCreateIbt();
-  const { data: warehouses } = useWarehouses();
+  const { data: warehouses } = useAllWarehouses();
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useIbts({ ...params, status: status || undefined });
 

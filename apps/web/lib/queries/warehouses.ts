@@ -14,6 +14,16 @@ export function useWarehouses() {
   });
 }
 
+export function useAllWarehouses() {
+  return useQuery({
+    queryKey: [WAREHOUSES_KEY, 'all'],
+    queryFn: async () => {
+      const response = await api.get<Warehouse[]>('/masterdata/warehouses?allSites=true');
+      return response.data;
+    },
+  });
+}
+
 export function useWarehouse(id: string | undefined) {
   return useQuery({
     queryKey: [WAREHOUSES_KEY, id],

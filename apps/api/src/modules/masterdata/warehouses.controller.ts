@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -28,8 +29,12 @@ export class WarehousesController {
   @Get()
   @RequirePermissions('warehouse.manage')
   @ApiOperation({ summary: 'List warehouses' })
-  async list(@TenantId() tenantId: string, @SiteId() siteId?: string) {
-    return this.service.listWarehouses(tenantId, siteId);
+  async list(
+    @TenantId() tenantId: string,
+    @SiteId() siteId?: string,
+    @Query('allSites') allSites?: string,
+  ) {
+    return this.service.listWarehouses(tenantId, allSites === 'true' ? undefined : siteId);
   }
 
   @Get(':id')
