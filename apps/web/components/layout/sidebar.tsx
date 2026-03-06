@@ -9,6 +9,7 @@ import { useAuth, hasAnyPermission } from '@/lib/auth';
 import { PERMISSIONS, type CurrentUser } from '@nerva/shared';
 import { springs } from '@/lib/motion';
 import { useDashboardStats } from '@/lib/queries/dashboard';
+import { useRouter } from 'next/navigation';
 
 interface NavItem {
   name: string;
@@ -634,75 +635,177 @@ function SidebarContent({
         )}
       </nav>
 
-      {/* Step 7: Bottom utility area */}
-      {onToggleCollapse ? (
-        <div className="border-t border-white/10 p-2">
-          {collapsed ? (
-            /* Collapsed: user initial + settings gear + collapse chevron */
-            <div className="flex flex-col items-center gap-1.5">
-              {user && (
-                <div
-                  className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-semibold text-slate-300 uppercase"
-                  title={user.displayName}
-                >
-                  {user.displayName.charAt(0)}
-                </div>
-              )}
-              {hasAdminAccess && (
-                <Link
-                  href="/settings"
-                  className="p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
-                  title="Settings"
-                >
-                  <span className="h-5 w-5 block"><CogIcon /></span>
-                </Link>
-              )}
-              <button
-                onClick={onToggleCollapse}
-                className="p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
-                title="Expand sidebar"
-              >
-                <span className="h-5 w-5 block"><ChevronRightIcon /></span>
-              </button>
-            </div>
-          ) : (
-            /* Expanded: user info + action row */
-            <div className="px-1">
-              {user && (
-                <div className="px-2 py-1.5 mb-1.5">
-                  <div className="text-sm font-semibold text-slate-300 truncate">{user.displayName}</div>
-                  <div className="text-[11px] text-slate-500 capitalize">{user.userType}</div>
-                </div>
-              )}
-              <div className="flex items-center gap-1">
-                {hasAdminAccess && (
-                  <Link
-                    href="/settings"
-                    className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
-                    title="Settings"
-                  >
-                    <span className="h-5 w-5 block"><CogIcon /></span>
-                  </Link>
-                )}
-                <Link
-                  href="/help"
-                  className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
-                  title="Help"
-                >
-                  <span className="h-5 w-5 block"><HelpCircleIcon /></span>
-                </Link>
-                <button
-                  onClick={onToggleCollapse}
-                  className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors ml-auto"
-                  title="Collapse sidebar"
-                >
-                  <span className="h-5 w-5 block"><ChevronLeftIcon /></span>
-                </button>
-              </div>
+      {/* Bottom utility area */}
+      <SidebarFooter
+        collapsed={collapsed}
+        onToggleCollapse={onToggleCollapse}
+        hasAdminAccess={hasAdminAccess}
+        user={user}
+      />
+    </div>
+  );
+}
+
+// ── Sidebar Footer ──────────────────────────────────────────────────────────
+
+function SidebarFooter({
+  collapsed,
+  onToggleCollapse,
+  hasAdminAccess,
+  user,
+}: {
+  collapsed: boolean;
+  onToggleCollapse?: () => void;
+  hasAdminAccess: boolean;
+  user: CurrentUser | null;
+}) {
+  const { data: stats } = useDashboardStats();
+  const { logout } = useAuth();
+  const router = useRouter();
+  const [darkMode, setDarkMode] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
+
+  if (!onToggleCollapse) return null;
+
+  if (collapsed) {
+    return (
+      <div className="border-t border-white/10 p-2">
+        <div className="flex flex-col items-center gap-1.5">
+          {user && (
+            <div
+              className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-semibold text-slate-300 uppercase"
+              title={user.displayName}
+            >
+              {user.displayName.charAt(0)}
             </div>
           )}
+          {hasAdminAccess && (
+            <Link
+              href="/settings"
+              className="p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
+              title="Settings"
+            >
+              <span className="h-5 w-5 block"><CogIcon /></span>
+            </Link>
+          )}
+          <button
+            onClick={onToggleCollapse}
+            className="p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
+            title="Expand sidebar"
+          >
+            <span className="h-5 w-5 block"><ChevronRightIcon /></span>
+          </button>
         </div>
-      ) : null}
+      </div>
+    );
+  }
+
+  const footerLinks: { label: string; icon: React.ReactNode; href?: string; onClick?: () => void; show?: boolean }[] = [
+    {
+      label: 'Dark Mode',
+      icon: <MoonIcon />,
+      onClick: () => setDarkMode(!darkMode),
+    },
+    {
+      label: 'Help & Guide',
+      icon: <HelpCircleIcon />,
+      href: '/help',
+    },
+    {
+      label: 'Settings',
+      icon: <CogIcon />,
+      href: '/settings',
+      show: hasAdminAccess,
+    },
+    {
+      label: 'Notifications',
+      icon: <BellIcon />,
+      href: '/notifications',
+    },
+    {
+      label: 'Supplier Portal',
+      icon: <BuildingOfficeIcon />,
+      href: '/portal',
+    },
+    {
+      label: 'User Management',
+      icon: <UsersIcon />,
+      href: '/settings/users',
+      show: hasAdminAccess,
+    },
+    {
+      label: 'Logout',
+      icon: <LogoutIcon />,
+      onClick: handleLogout,
+    },
+  ];
+
+  return (
+    <div className="border-t border-white/10">
+      {/* Quick Stats */}
+      {stats && (
+        <div className="px-4 py-3 border-b border-white/10">
+          <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Quick Stats</h4>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">Total Items</span>
+              <span className="text-slate-200 font-medium">{stats.lowStockItems + stats.expiringItems}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">In Transit</span>
+              <span className="text-slate-200 font-medium">{stats.tripsInProgress}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">Delayed</span>
+              <span className={cn('font-medium', stats.lateOrders > 0 ? 'text-red-400' : 'text-slate-200')}>
+                {stats.lateOrders}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Footer links */}
+      <div className="px-2 py-2 space-y-0.5">
+        {footerLinks
+          .filter((item) => item.show !== false)
+          .map((item) => {
+            const content = (
+              <div className="flex items-center gap-3 px-3 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer">
+                <span className="h-4 w-4 shrink-0">{item.icon}</span>
+                <span>{item.label}</span>
+              </div>
+            );
+
+            if (item.href) {
+              return (
+                <Link key={item.label} href={item.href}>
+                  {content}
+                </Link>
+              );
+            }
+            return (
+              <div key={item.label} onClick={item.onClick}>
+                {content}
+              </div>
+            );
+          })}
+      </div>
+
+      {/* Collapse toggle */}
+      <div className="px-2 pb-2">
+        <button
+          onClick={onToggleCollapse}
+          className="flex items-center justify-center w-full p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
+          title="Collapse sidebar"
+        >
+          <span className="h-5 w-5 block"><ChevronLeftIcon /></span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -1083,6 +1186,30 @@ function TraceabilityIcon() {
   return (
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+    </svg>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
     </svg>
   );
 }
