@@ -227,45 +227,57 @@ export default function IbtListPage() {
             <CardTitle>Create Transfer</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">From Warehouse</label>
-                <Select
-                  value={fromWarehouseId}
-                  onChange={(e) => setFromWarehouseId(e.target.value)}
-                  options={warehouses?.map((w) => ({ value: w.id, label: w.name })) || []}
-                  placeholder="Select source"
-                />
+            {(warehouses?.length || 0) < 2 ? (
+              <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                You need at least two warehouses to create an inter-branch transfer.{' '}
+                <Link href="/master-data/warehouses/new" className="font-medium text-primary-600 hover:underline">
+                  Create another warehouse
+                </Link>{' '}
+                first.
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">To Warehouse</label>
-                <Select
-                  value={toWarehouseId}
-                  onChange={(e) => setToWarehouseId(e.target.value)}
-                  options={(warehouses || [])
-                    .filter((w) => w.id !== fromWarehouseId)
-                    .map((w) => ({ value: w.id, label: w.name }))}
-                  placeholder="Select destination"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
-                <Input
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Optional notes"
-                />
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <Button
-                onClick={handleCreate}
-                disabled={!fromWarehouseId || !toWarehouseId || fromWarehouseId === toWarehouseId || createIbt.isPending}
-                isLoading={createIbt.isPending}
-              >
-                Create Transfer
-              </Button>
-            </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">From Warehouse</label>
+                    <Select
+                      value={fromWarehouseId}
+                      onChange={(e) => setFromWarehouseId(e.target.value)}
+                      options={warehouses?.map((w) => ({ value: w.id, label: w.name })) || []}
+                      placeholder="Select source"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">To Warehouse</label>
+                    <Select
+                      value={toWarehouseId}
+                      onChange={(e) => setToWarehouseId(e.target.value)}
+                      options={(warehouses || [])
+                        .filter((w) => w.id !== fromWarehouseId)
+                        .map((w) => ({ value: w.id, label: w.name }))}
+                      placeholder="Select destination"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+                    <Input
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Optional notes"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    onClick={handleCreate}
+                    disabled={!fromWarehouseId || !toWarehouseId || fromWarehouseId === toWarehouseId || createIbt.isPending}
+                    isLoading={createIbt.isPending}
+                  >
+                    Create Transfer
+                  </Button>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
