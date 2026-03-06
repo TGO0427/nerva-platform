@@ -1,62 +1,156 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { DataTable, type Column } from '@/components/ui/data-table';
-import { PageShell, MetricGrid } from '@/components/ui/motion';
-import { StatCard } from '@/components/ui/stat-card';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTable, Column } from '@/components/ui/data-table';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
+import { ColumnToggle } from '@/components/ui/column-toggle';
+import { ExportActions } from '@/components/ui/export-actions';
+import { ListPageTemplate } from '@/components/templates';
 import { useToast } from '@/components/ui/toast';
-import { useIbts, useCreateIbt, type IbtDetail } from '@/lib/queries/ibt';
+import { useIbts, useCreateIbt, useQueryParams, type IbtDetail } from '@/lib/queries';
 import { useWarehouses } from '@/lib/queries/warehouses';
+import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
+import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 
-const STATUS_TABS = [
-  { label: 'All', value: '' },
-  { label: 'Draft', value: 'DRAFT' },
-  { label: 'Pending Approval', value: 'PENDING_APPROVAL' },
-  { label: 'Approved', value: 'APPROVED' },
-  { label: 'In Transit', value: 'IN_TRANSIT' },
-  { label: 'Received', value: 'RECEIVED' },
+const STATUS_OPTIONS = [
+  { value: '', label: 'All Statuses' },
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'PENDING_APPROVAL', label: 'Pending Approval' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'PICKING', label: 'Picking' },
+  { value: 'IN_TRANSIT', label: 'In Transit' },
+  { value: 'RECEIVED', label: 'Received' },
+  { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
-const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
-  DRAFT: 'default',
-  PENDING_APPROVAL: 'warning',
-  APPROVED: 'info',
-  PICKING: 'warning',
-  IN_TRANSIT: 'info',
-  RECEIVED: 'success',
-  CANCELLED: 'danger',
-};
+function getStatusVariant(status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' {
+  switch (status) {
+    case 'RECEIVED': return 'success';
+    case 'PENDING_APPROVAL': case 'IN_TRANSIT': return 'warning';
+    case 'APPROVED': case 'PICKING': return 'info';
+    case 'CANCELLED': return 'danger';
+    case 'DRAFT': default: return 'default';
+  }
+}
 
-const statusLabel: Record<string, string> = {
-  DRAFT: 'Draft',
-  PENDING_APPROVAL: 'Pending Approval',
-  APPROVED: 'Approved',
-  PICKING: 'Picking',
-  IN_TRANSIT: 'In Transit',
-  RECEIVED: 'Received',
-  CANCELLED: 'Cancelled',
-};
+function formatStatus(status: string): string {
+  return status?.replace(/_/g, ' ') || '';
+}
 
 export default function IbtListPage() {
   const router = useRouter();
-  const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [status, setStatus] = useState('');
+  const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [fromWarehouseId, setFromWarehouseId] = useState('');
   const [toWarehouseId, setToWarehouseId] = useState('');
   const [notes, setNotes] = useState('');
-  const limit = 25;
 
-  const { data, isLoading } = useIbts({ page, limit, status: statusFilter || undefined });
-  const { data: warehouses } = useWarehouses();
   const { addToast } = useToast();
   const createIbt = useCreateIbt();
+  const { data: warehouses } = useWarehouses();
+  const { params, setPage } = useQueryParams();
+  const { data, isLoading } = useIbts({ ...params, status: status || undefined });
+
+  const tableData = useMemo(() => {
+    if (!data?.data) return [];
+    if (!search) return data.data;
+    const q = search.toLowerCase();
+    return data.data.filter(
+      (row) =>
+        row.ibtNo?.toLowerCase().includes(q) ||
+        row.fromWarehouseName?.toLowerCase().includes(q) ||
+        row.toWarehouseName?.toLowerCase().includes(q),
+    );
+  }, [data?.data, search]);
+
+  const {
+    selectedIds,
+    selectedCount,
+    isAllSelected,
+    isSomeSelected,
+    toggle,
+    togglePage,
+    clearSelection,
+  } = useTableSelection(tableData);
+
+  const allColumns: Column<IbtDetail>[] = useMemo(() => [
+    {
+      key: 'ibtNo',
+      header: 'IBT No',
+      sortable: true,
+      render: (row) => (
+        <span className="font-medium text-primary-600">{row.ibtNo}</span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '140px',
+      render: (row) => (
+        <Badge variant={getStatusVariant(row.status)}>
+          {formatStatus(row.status)}
+        </Badge>
+      ),
+    },
+    {
+      key: 'fromWarehouseName',
+      header: 'From Warehouse',
+      render: (row) => row.fromWarehouseName || '-',
+    },
+    {
+      key: 'toWarehouseName',
+      header: 'To Warehouse',
+      render: (row) => row.toWarehouseName || '-',
+    },
+    {
+      key: 'lineCount',
+      header: 'Lines',
+      width: '80px',
+      render: (row) => row.lineCount ?? 0,
+    },
+    {
+      key: 'createdAt',
+      header: 'Created',
+      sortable: true,
+      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+    },
+  ], []);
+
+  const {
+    visibleKeys,
+    visibleColumns,
+    toggle: toggleColumn,
+    reset: resetColumns,
+  } = useColumnVisibility(allColumns, { storageKey: 'ibts', alwaysVisible: ['ibtNo'] });
+
+  const handleRowClick = (row: IbtDetail) => {
+    router.push(`/inventory/ibts/${row.id}`);
+  };
+
+  const handleExport = useCallback(() => {
+    const exportData = selectedCount > 0
+      ? tableData.filter((row) => selectedIds.has(row.id))
+      : tableData;
+
+    const exportColumns = [
+      { key: 'ibtNo', header: 'IBT No' },
+      { key: 'status', header: 'Status' },
+      { key: 'fromWarehouseName', header: 'From Warehouse' },
+      { key: 'toWarehouseName', header: 'To Warehouse' },
+      { key: 'lineCount', header: 'Lines' },
+      { key: 'createdAt', header: 'Created', getValue: (row: IbtDetail) => formatDateForExport(row.createdAt) },
+    ];
+
+    exportToCSV(exportData, exportColumns, generateExportFilename('ibts'));
+  }, [tableData, selectedCount, selectedIds]);
 
   const handleCreate = async () => {
     if (!fromWarehouseId || !toWarehouseId) return;
@@ -72,101 +166,63 @@ export default function IbtListPage() {
       setToWarehouseId('');
       setNotes('');
       router.push(`/inventory/ibts/${result.id}`);
-    } catch (e) {
-      console.error('Failed to create IBT:', e);
+    } catch {
       addToast('Failed to create transfer', 'error');
     }
   };
 
-  const columns: Column<IbtDetail>[] = [
-    {
-      key: 'ibtNo',
-      header: 'IBT No',
-      render: (row) => <span className="font-medium text-primary-600">{row.ibtNo}</span>,
-    },
-    {
-      key: 'fromWarehouseName',
-      header: 'From',
-      render: (row) => row.fromWarehouseName,
-    },
-    {
-      key: 'toWarehouseName',
-      header: 'To',
-      render: (row) => row.toWarehouseName,
-    },
-    {
-      key: 'lineCount',
-      header: 'Lines',
-      render: (row) => row.lineCount,
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => (
-        <Badge variant={statusVariant[row.status] || 'default'}>
-          {statusLabel[row.status] || row.status}
-        </Badge>
-      ),
-    },
-    {
-      key: 'createdAt',
-      header: 'Created',
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
-    },
-  ];
-
-  const totalPages = data?.meta?.totalPages || 0;
-
-  // Stats
-  const draftCount = data?.data?.filter(i => i.status === 'DRAFT').length || 0;
-  const pendingApproval = data?.data?.filter(i => i.status === 'PENDING_APPROVAL').length || 0;
-  const inTransitCount = data?.data?.filter(i => i.status === 'IN_TRANSIT').length || 0;
   const totalIbts = data?.meta?.total || 0;
+  const draftCount = tableData.filter((o) => o.status === 'DRAFT').length;
+  const inTransitCount = tableData.filter((o) => o.status === 'IN_TRANSIT').length;
+  const receivedCount = tableData.filter((o) => o.status === 'RECEIVED').length;
 
   return (
-    <PageShell>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Internal Transfers</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Transfer stock between warehouses with approval workflow
-          </p>
-        </div>
+    <ListPageTemplate
+      title="Inter-Branch Transfers"
+      subtitle="Transfer stock between warehouses"
+      headerActions={
         <Button onClick={() => setShowCreate(!showCreate)}>
+          <PlusIcon />
           {showCreate ? 'Cancel' : 'New Transfer'}
         </Button>
-      </div>
-
-      <MetricGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard
-          title="Draft"
-          value={draftCount}
-          icon={<DraftIcon />}
-          iconColor="gray"
-        />
-        <StatCard
-          title="Pending Approval"
-          value={pendingApproval}
-          icon={<ClockIcon />}
-          iconColor="yellow"
-          alert={pendingApproval > 0}
-        />
-        <StatCard
-          title="In Transit"
-          value={inTransitCount}
-          icon={<TruckIcon />}
-          iconColor="blue"
-        />
-        <StatCard
-          title="Total Transfers"
-          value={totalIbts}
-          icon={<TransferIcon />}
-          iconColor="gray"
-        />
-      </MetricGrid>
-
+      }
+      stats={[
+        { title: 'Total', value: totalIbts, icon: <TransferIcon />, iconColor: 'gray' },
+        { title: 'Draft', value: draftCount, icon: <DraftIcon />, iconColor: 'blue' },
+        { title: 'In Transit', value: inTransitCount, icon: <TruckIcon />, iconColor: 'yellow' },
+        { title: 'Received', value: receivedCount, icon: <CheckIcon />, iconColor: 'green' },
+      ]}
+      filters={
+        <div className="flex gap-2">
+          <Input
+            placeholder="Search IBT#, warehouse..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="max-w-xs"
+          />
+          <Select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            options={STATUS_OPTIONS}
+            className="max-w-xs"
+          />
+        </div>
+      }
+      filterActions={
+        <div className="flex gap-2 print:hidden">
+          <ColumnToggle
+            columns={allColumns}
+            visibleKeys={visibleKeys}
+            onToggle={toggleColumn}
+            onReset={resetColumns}
+            alwaysVisible={['ibtNo']}
+          />
+          <ExportActions onExport={handleExport} selectedCount={selectedCount} />
+        </div>
+      }
+    >
       {showCreate && (
-        <Card>
+        <Card className="mx-6 mb-4">
           <CardHeader>
             <CardTitle>Create Transfer</CardTitle>
           </CardHeader>
@@ -214,83 +270,52 @@ export default function IbtListPage() {
         </Card>
       )}
 
-      <div className="flex gap-2 border-b border-slate-200 pb-2">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => {
-              setStatusFilter(tab.value);
-              setPage(1);
-            }}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              statusFilter === tab.value
-                ? 'bg-primary-100 text-primary-700'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <Card>
-        <CardContent className="p-0">
-          <DataTable
-            data={data?.data || []}
-            columns={columns}
-            keyField="id"
-            isLoading={isLoading}
-            onRowClick={(row) => router.push(`/inventory/ibts/${row.id}`)}
-            emptyState={{
-              title: 'No transfers found',
-              description: statusFilter
-                ? 'No transfers match the current filter.'
-                : 'Create a new transfer to move stock between warehouses.',
-            }}
-          />
-        </CardContent>
-      </Card>
-
-      {data && (data.meta?.total || 0) > 0 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-500">
-            Page {page} of {totalPages} ({data.meta?.total || 0} total)
-          </p>
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-              Previous
-            </Button>
-            <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          onClearSelection={clearSelection}
+        >
+          <ExportActions onExport={handleExport} />
+        </BulkActionBar>
       )}
-    </PageShell>
+
+      <DataTable
+        columns={visibleColumns}
+        data={tableData}
+        keyField="id"
+        isLoading={isLoading}
+        variant="embedded"
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={toggle}
+        onSelectAll={() => togglePage(tableData)}
+        isAllSelected={isAllSelected}
+        isSomeSelected={isSomeSelected}
+        pagination={data?.meta ? {
+          page: data.meta.page,
+          limit: data.meta.limit,
+          total: data.meta.total || 0,
+          totalPages: data.meta.totalPages || 1,
+        } : undefined}
+        onPageChange={setPage}
+        onRowClick={handleRowClick}
+        emptyState={{
+          icon: <TransferEmptyIcon />,
+          title: 'No transfers found',
+          description: status ? 'No transfers match the selected filter' : 'Create your first inter-branch transfer',
+          action: !status && (
+            <Button onClick={() => setShowCreate(true)}>Create Transfer</Button>
+          ),
+        }}
+      />
+    </ListPageTemplate>
   );
 }
 
-// Stat icons
-function DraftIcon() {
+function PlusIcon() {
   return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function TruckIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-5.25a2.25 2.25 0 00-2.25-2.25H15M12 9.75V6.75m-3 3v-3m3 0h3.375c.621 0 1.125.504 1.125 1.125V12m-9-5.25h9" />
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
     </svg>
   );
 }
@@ -298,6 +323,38 @@ function TruckIcon() {
 function TransferIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+    </svg>
+  );
+}
+
+function DraftIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+    </svg>
+  );
+}
+
+function TruckIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H18.75m-7.5 0v-4.875c0-.621.504-1.125 1.125-1.125h3.026a1.125 1.125 0 01.795.33l2.599 2.598c.211.211.33.497.33.795V15.75m-7.5 0h7.5" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function TransferEmptyIcon() {
+  return (
+    <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
     </svg>
   );

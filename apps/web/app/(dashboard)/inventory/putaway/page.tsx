@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger'
 };
 
 export default function PutawayPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('');
@@ -272,6 +274,7 @@ export default function PutawayPage() {
             columns={columns}
             keyField="id"
             isLoading={isLoading}
+            onRowClick={(row) => router.push(`/inventory/putaway/${row.id}`)}
             emptyState={{
               title: 'No putaway tasks',
               description: statusFilter
