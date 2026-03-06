@@ -93,89 +93,94 @@ export default function DashboardPage() {
   ].filter(action => hasPermission(user, action.permission));
 
   return (
-    <div>
-      <Breadcrumbs />
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Pinned header + KPIs */}
+      <div className="shrink-0">
+        <Breadcrumbs />
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
-        <div>
-          <p className="text-sm text-slate-500">
-            Welcome back, {user?.displayName?.split(' ')[0] || 'User'}
-          </p>
-          <h1 className="text-2xl font-bold text-slate-900 mt-0.5">
-            Operations Overview
-          </h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+          <div>
+            <p className="text-sm text-slate-500">
+              Welcome back, {user?.displayName?.split(' ')[0] || 'User'}
+            </p>
+            <h1 className="text-2xl font-bold text-slate-900 mt-0.5">
+              Operations Overview
+            </h1>
+          </div>
+          {/* Quick action buttons inline */}
+          <div className="flex gap-2">
+            {quickActions.slice(0, 2).map((action) => (
+              <Link key={action.title} href={action.href}>
+                <Button variant={action.primary ? 'primary' : 'secondary'} size="sm">
+                  {action.icon}
+                  <span className="ml-1.5">{action.title}</span>
+                </Button>
+              </Link>
+            ))}
+          </div>
         </div>
-        {/* Quick action buttons inline */}
-        <div className="flex gap-2">
-          {quickActions.slice(0, 2).map((action) => (
-            <Link key={action.title} href={action.href}>
-              <Button variant={action.primary ? 'primary' : 'secondary'} size="sm">
-                {action.icon}
-                <span className="ml-1.5">{action.title}</span>
-              </Button>
-            </Link>
-          ))}
-        </div>
+
+        {/* Stat Cards */}
+        {statsLoading ? (
+          <div className="flex justify-center py-8">
+            <Spinner />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <StatCard
+              title="Pending Orders"
+              value={stats?.pendingOrders ?? 0}
+              subtitle={stats?.allocatedOrders ? `${stats.allocatedOrders} allocated` : undefined}
+              icon={<ClipboardIcon />}
+              iconColor="blue"
+              href="/sales"
+            />
+            <StatCard
+              title="Weekly Sales"
+              value={weeklySalesDisplay}
+              icon={<CurrencyIcon />}
+              iconColor="green"
+              subtitle="Last 7 days"
+              href="/sales"
+            />
+            <StatCard
+              title="Trips Active"
+              value={stats?.tripsInProgress ?? 0}
+              subtitle={stats?.tripsCompletedToday ? `${stats.tripsCompletedToday} done today` : undefined}
+              icon={<TruckIcon />}
+              iconColor="blue"
+              href="/dispatch"
+            />
+            <StatCard
+              title="Open Returns"
+              value={stats?.openReturns ?? 0}
+              subtitle={(stats?.openReturns ?? 0) > 0 ? 'Awaiting processing' : 'All clear'}
+              icon={<ReturnIcon />}
+              iconColor="yellow"
+              href="/returns"
+            />
+            <StatCard
+              title="Late Orders"
+              value={stats?.lateOrders ?? 0}
+              subtitle={(stats?.lateOrders ?? 0) > 0 ? 'Past ship date' : 'On track'}
+              icon={<ClockIcon />}
+              iconColor="red"
+              href="/sales?late=true"
+            />
+            <StatCard
+              title="Stock Alerts"
+              value={(stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)}
+              subtitle={stats?.lowStockItems ? `${stats.lowStockItems} low stock` : 'Healthy'}
+              icon={<WarningIcon />}
+              iconColor="purple"
+              href="/inventory/expiry-alerts"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Stat Cards */}
-      {statsLoading ? (
-        <div className="flex justify-center py-8">
-          <Spinner />
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-          <StatCard
-            title="Pending Orders"
-            value={stats?.pendingOrders ?? 0}
-            subtitle={stats?.allocatedOrders ? `${stats.allocatedOrders} allocated` : undefined}
-            icon={<ClipboardIcon />}
-            iconColor="blue"
-            href="/sales"
-          />
-          <StatCard
-            title="Weekly Sales"
-            value={weeklySalesDisplay}
-            icon={<CurrencyIcon />}
-            iconColor="green"
-            subtitle="Last 7 days"
-            href="/sales"
-          />
-          <StatCard
-            title="Trips Active"
-            value={stats?.tripsInProgress ?? 0}
-            subtitle={stats?.tripsCompletedToday ? `${stats.tripsCompletedToday} done today` : undefined}
-            icon={<TruckIcon />}
-            iconColor="blue"
-            href="/dispatch"
-          />
-          <StatCard
-            title="Open Returns"
-            value={stats?.openReturns ?? 0}
-            subtitle={(stats?.openReturns ?? 0) > 0 ? 'Awaiting processing' : 'All clear'}
-            icon={<ReturnIcon />}
-            iconColor="yellow"
-            href="/returns"
-          />
-          <StatCard
-            title="Late Orders"
-            value={stats?.lateOrders ?? 0}
-            subtitle={(stats?.lateOrders ?? 0) > 0 ? 'Past ship date' : 'On track'}
-            icon={<ClockIcon />}
-            iconColor="red"
-            href="/sales?late=true"
-          />
-          <StatCard
-            title="Stock Alerts"
-            value={(stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)}
-            subtitle={stats?.lowStockItems ? `${stats.lowStockItems} low stock` : 'Healthy'}
-            icon={<WarningIcon />}
-            iconColor="purple"
-            href="/inventory/expiry-alerts"
-          />
-        </div>
-      )}
-
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto min-h-0">
       {/* Charts Section - 2x2 grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         {/* Weekly Trend Line Chart */}
@@ -354,6 +359,7 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
