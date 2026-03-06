@@ -773,15 +773,17 @@ function SidebarFooter({
           <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Quick Stats</h4>
           <div className="space-y-1">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">Total Items</span>
-              <span className="text-slate-200 font-medium">{stats.lowStockItems + stats.expiringItems}</span>
+              <span className="text-slate-400">Pending Orders</span>
+              <span className="text-slate-200 font-medium">{stats.pendingOrders}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">In Transit</span>
-              <span className="text-slate-200 font-medium">{stats.tripsInProgress}</span>
+              <span className="text-slate-400">Low Stock</span>
+              <span className={cn('font-medium', stats.lowStockItems > 0 ? 'text-amber-400' : 'text-slate-200')}>
+                {stats.lowStockItems}
+              </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">Delayed</span>
+              <span className="text-slate-400">Late Orders</span>
               <span className={cn('font-medium', stats.lateOrders > 0 ? 'text-red-400' : 'text-slate-200')}>
                 {stats.lateOrders}
               </span>
