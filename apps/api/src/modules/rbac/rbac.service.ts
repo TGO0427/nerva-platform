@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { RbacRepository, Role, Permission } from './rbac.repository';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { RbacRepository, Role, Permission } from "./rbac.repository";
 
 @Injectable()
 export class RbacService {
@@ -38,7 +38,7 @@ export class RbacService {
   ): Promise<Role> {
     const role = await this.rbacRepository.updateRole(id, data);
     if (!role) {
-      throw new NotFoundException('Role not found');
+      throw new NotFoundException("Role not found");
     }
     return role;
   }
@@ -46,7 +46,7 @@ export class RbacService {
   async deleteRole(id: string): Promise<void> {
     const deleted = await this.rbacRepository.deleteRole(id);
     if (!deleted) {
-      throw new NotFoundException('Role not found');
+      throw new NotFoundException("Role not found");
     }
   }
 

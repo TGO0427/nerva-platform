@@ -5,6 +5,7 @@ import * as argon2 from "argon2";
 import { AuthService } from "./auth.service";
 import { UsersService } from "../users/users.service";
 import { DATABASE_POOL } from "../../common/db/database.module";
+import { EmailService } from "../../common/email/email.service";
 
 jest.mock("argon2");
 
@@ -53,6 +54,13 @@ describe("AuthService", () => {
           provide: DATABASE_POOL,
           useValue: {
             query: jest.fn(),
+          },
+        },
+        {
+          provide: EmailService,
+          useValue: {
+            sendPasswordResetEmail: jest.fn(),
+            sendEmail: jest.fn(),
           },
         },
       ],

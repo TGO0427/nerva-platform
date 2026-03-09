@@ -1,8 +1,8 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { Pool } from 'pg';
-import { DATABASE_POOL } from '../../common/db/database.module';
-import { SalesRepository } from './sales.repository';
-import { TenantProfileService } from '../../common/pdf/tenant-profile.service';
+import { Injectable, Inject, NotFoundException } from "@nestjs/common";
+import { Pool } from "pg";
+import { DATABASE_POOL } from "../../common/db/database.module";
+import { SalesRepository } from "./sales.repository";
+import { TenantProfileService } from "../../common/pdf/tenant-profile.service";
 import {
   createPdfDocument,
   pdfToBuffer,
@@ -17,7 +17,7 @@ import {
   renderSignatureBlock,
   formatCurrency,
   formatDate,
-} from '../../common/pdf/pdf-helpers';
+} from "../../common/pdf/pdf-helpers";
 
 @Injectable()
 export class SalesPdfService {
@@ -29,7 +29,7 @@ export class SalesPdfService {
 
   async generate(orderId: string, tenantId: string): Promise<Buffer> {
     const order = await this.repository.findOrderById(orderId);
-    if (!order) throw new NotFoundException('Sales order not found');
+    if (!order) throw new NotFoundException("Sales order not found");
 
     const lines = await this.repository.getOrderLines(orderId);
     const profile = await this.tenantProfile.getProfile(tenantId);
@@ -48,19 +48,22 @@ export class SalesPdfService {
     let y = renderCompanyHeader(doc, profile);
 
     // Document title
-    y = renderDocumentTitle(doc, 'SALES ORDER', y);
+    y = renderDocumentTitle(doc, "SALES ORDER", y);
 
     // Meta info
     y = renderDocumentMeta(
       doc,
       [
-        { label: 'Order No', value: order.orderNo },
-        { label: 'Date', value: formatDate(order.createdAt) },
-        { label: 'Requested Ship Date', value: formatDate(order.requestedShipDate) },
+        { label: "Order No", value: order.orderNo },
+        { label: "Date", value: formatDate(order.createdAt) },
+        {
+          label: "Requested Ship Date",
+          value: formatDate(order.requestedShipDate),
+        },
       ],
       [
-        { label: 'Priority', value: String(order.priority) },
-        { label: 'Status', value: order.status },
+        { label: "Priority", value: String(order.priority) },
+        { label: "Status", value: order.status },
       ],
       y,
     );
@@ -71,7 +74,7 @@ export class SalesPdfService {
     if (customer) {
       y = renderAddressBlock(
         doc,
-        'Bill To:',
+        "Bill To:",
         {
           name: customer.name,
           contactPerson: customer.contact_person || undefined,
@@ -90,14 +93,18 @@ export class SalesPdfService {
     }
 
     // Ship To address (from order or customer shipping address)
-    const shipToName = customer?.name || 'Customer';
-    const shipToLine1 = order.shippingAddressLine1 || customer?.shipping_address_line1 || undefined;
-    const shipToCity = order.shippingCity || customer?.shipping_city || undefined;
+    const shipToName = customer?.name || "Customer";
+    const shipToLine1 =
+      order.shippingAddressLine1 ||
+      customer?.shipping_address_line1 ||
+      undefined;
+    const shipToCity =
+      order.shippingCity || customer?.shipping_city || undefined;
 
     if (shipToLine1 || shipToCity) {
       y = renderAddressBlock(
         doc,
-        'Ship To:',
+        "Ship To:",
         {
           name: shipToName,
           addressLine1: shipToLine1,
@@ -114,12 +121,12 @@ export class SalesPdfService {
     // Line items table
     y = renderTable(doc, {
       columns: [
-        { key: 'lineNo', header: '#', width: 30, align: 'center' },
-        { key: 'sku', header: 'SKU', width: 80 },
-        { key: 'description', header: 'Description', width: 200 },
-        { key: 'qty', header: 'Qty', width: 50, align: 'right' },
-        { key: 'unitPrice', header: 'Unit Price', width: 75, align: 'right' },
-        { key: 'lineTotal', header: 'Line Total', width: 80, align: 'right' },
+        { key: "lineNo", header: "#", width: 30, align: "center" },
+        { key: "sku", header: "SKU", width: 80 },
+        { key: "description", header: "Description", width: 200 },
+        { key: "qty", header: "Qty", width: 50, align: "right" },
+        { key: "unitPrice", header: "Unit Price", width: 75, align: "right" },
+        { key: "lineTotal", header: "Line Total", width: 80, align: "right" },
       ],
       rows: lines.map((line, i) => {
         const item = items.get(line.itemId);
@@ -127,8 +134,8 @@ export class SalesPdfService {
         const lineTotal = unitPrice * line.qtyOrdered;
         return {
           lineNo: String(i + 1),
-          sku: item?.sku || '-',
-          description: (item?.description || '-').substring(0, 40),
+          sku: item?.sku || "-",
+          description: (item?.description || "-").substring(0, 40),
           qty: String(line.qtyOrdered),
           unitPrice: formatCurrency(unitPrice),
           lineTotal: formatCurrency(lineTotal),
@@ -145,11 +152,15 @@ export class SalesPdfService {
     const taxAmount = subtotal * 0.15;
     const totalAmount = subtotal + taxAmount;
 
-    y = renderTotals(doc, [
-      { label: 'Subtotal', value: formatCurrency(subtotal) },
-      { label: 'VAT (15%)', value: formatCurrency(taxAmount) },
-      { label: 'Total', value: formatCurrency(totalAmount), bold: true },
-    ], y);
+    y = renderTotals(
+      doc,
+      [
+        { label: "Subtotal", value: formatCurrency(subtotal) },
+        { label: "VAT (15%)", value: formatCurrency(taxAmount) },
+        { label: "Total", value: formatCurrency(totalAmount), bold: true },
+      ],
+      y,
+    );
 
     // Notes
     y = renderNotes(doc, order.notes, y);
@@ -158,13 +169,16 @@ export class SalesPdfService {
     y = renderBankDetails(doc, profile, y);
 
     // Signature
-    renderSignatureBlock(doc, y, 'Authorized Signatory', 'Date');
+    renderSignatureBlock(doc, y, "Authorized Signatory", "Date");
 
     doc.end();
     return bufferPromise;
   }
 
-  private async getCustomer(customerId: string, tenantId: string): Promise<Record<string, any> | null> {
+  private async getCustomer(
+    customerId: string,
+    tenantId: string,
+  ): Promise<Record<string, any> | null> {
     const result = await this.pool.query(
       `SELECT name, contact_person, phone, email, vat_no,
               billing_address_line1, billing_address_line2, billing_city,
@@ -176,9 +190,12 @@ export class SalesPdfService {
     return result.rows[0] || null;
   }
 
-  private async getItems(itemIds: string[], tenantId: string): Promise<Map<string, { sku: string; description: string }>> {
+  private async getItems(
+    itemIds: string[],
+    tenantId: string,
+  ): Promise<Map<string, { sku: string; description: string }>> {
     if (itemIds.length === 0) return new Map();
-    const placeholders = itemIds.map((_, i) => `$${i + 1}`).join(', ');
+    const placeholders = itemIds.map((_, i) => `$${i + 1}`).join(", ");
     const result = await this.pool.query(
       `SELECT id, sku, description FROM items WHERE id IN (${placeholders}) AND tenant_id = $${itemIds.length + 1}`,
       [...itemIds, tenantId],

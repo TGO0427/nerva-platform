@@ -10,24 +10,37 @@ import {
   BadRequestException,
   Res,
   StreamableFile,
-} from '@nestjs/common';
-import { Response } from 'express';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
-import { ReturnsService } from './returns.service';
-import { RmaPdfService } from './rma-pdf.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TenantGuard } from '../../common/guards/tenant.guard';
-import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
-import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
-import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
-import { CreateRmaDto, ReceiveRmaLineDto, SetDispositionDto, CancelRmaDto } from './dto/returns.dto';
+} from "@nestjs/common";
+import { Response } from "express";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiProduces,
+} from "@nestjs/swagger";
+import { ReturnsService } from "./returns.service";
+import { RmaPdfService } from "./rma-pdf.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { TenantGuard } from "../../common/guards/tenant.guard";
+import { PermissionsGuard } from "../../common/guards/permissions.guard";
+import { RequirePermissions } from "../../common/decorators/permissions.decorator";
+import { TenantId, SiteId } from "../../common/decorators/tenant.decorator";
+import {
+  CurrentUser,
+  CurrentUserData,
+} from "../../common/decorators/current-user.decorator";
+import { UuidValidationPipe } from "../../common/pipes/uuid-validation.pipe";
+import {
+  CreateRmaDto,
+  ReceiveRmaLineDto,
+  SetDispositionDto,
+  CancelRmaDto,
+} from "./dto/returns.dto";
 
-@ApiTags('returns')
+@ApiTags("returns")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('returns/rmas')
+@Controller("returns/rmas")
 export class ReturnsController {
   constructor(
     private readonly service: ReturnsService,
@@ -35,48 +48,54 @@ export class ReturnsController {
   ) {}
 
   @Get()
-    @RequirePermissions('rma.create')
-  @ApiOperation({ summary: 'List RMAs' })
+  @RequirePermissions("rma.create")
+  @ApiOperation({ summary: "List RMAs" })
   async list(
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
-    @Query('status') status?: string,
-    @Query('customerId') customerId?: string,
-    @Query('search') search?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query("status") status?: string,
+    @Query("customerId") customerId?: string,
+    @Query("search") search?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
   ) {
-    return this.service.listRmas(tenantId, siteId, { status, customerId, search }, page, limit);
+    return this.service.listRmas(
+      tenantId,
+      siteId,
+      { status, customerId, search },
+      page,
+      limit,
+    );
   }
 
-  @Get(':id')
-    @RequirePermissions('rma.create')
-  @ApiOperation({ summary: 'Get RMA with lines' })
-  async get(@Param('id', UuidValidationPipe) id: string) {
+  @Get(":id")
+  @RequirePermissions("rma.create")
+  @ApiOperation({ summary: "Get RMA with lines" })
+  async get(@Param("id", UuidValidationPipe) id: string) {
     return this.service.getRmaWithLines(id);
   }
 
-  @Get(':id/pdf')
-  @RequirePermissions('rma.create')
-  @ApiOperation({ summary: 'Download RMA PDF' })
-  @ApiProduces('application/pdf')
+  @Get(":id/pdf")
+  @RequirePermissions("rma.create")
+  @ApiOperation({ summary: "Download RMA PDF" })
+  @ApiProduces("application/pdf")
   async downloadPdf(
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @TenantId() tenantId: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const pdfBuffer = await this.rmaPdfService.generate(id, tenantId);
     res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="rma-${id}.pdf"`,
-      'Content-Length': pdfBuffer.length,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="rma-${id}.pdf"`,
+      "Content-Length": pdfBuffer.length,
     });
     return new StreamableFile(pdfBuffer);
   }
 
   @Post()
-  @RequirePermissions('rma.create')
-  @ApiOperation({ summary: 'Create RMA' })
+  @RequirePermissions("rma.create")
+  @ApiOperation({ summary: "Create RMA" })
   async create(
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
@@ -84,7 +103,9 @@ export class ReturnsController {
     @Body() data: CreateRmaDto,
   ) {
     if (!siteId) {
-      throw new BadRequestException('Please select a site before creating an RMA');
+      throw new BadRequestException(
+        "Please select a site before creating an RMA",
+      );
     }
     return this.service.createRma({
       tenantId,
@@ -94,11 +115,11 @@ export class ReturnsController {
     });
   }
 
-  @Post(':id/receive')
-  @RequirePermissions('rma.receive')
-  @ApiOperation({ summary: 'Receive RMA line' })
+  @Post(":id/receive")
+  @RequirePermissions("rma.receive")
+  @ApiOperation({ summary: "Receive RMA line" })
   async receiveLine(
-    @Param('id', UuidValidationPipe) rmaId: string,
+    @Param("id", UuidValidationPipe) rmaId: string,
     @CurrentUser() user: CurrentUserData,
     @Body() data: ReceiveRmaLineDto,
   ) {
@@ -111,19 +132,19 @@ export class ReturnsController {
     );
   }
 
-  @Delete(':id')
-  @RequirePermissions('rma.delete')
-  @ApiOperation({ summary: 'Delete RMA (OPEN only)' })
-  async deleteRma(@Param('id', UuidValidationPipe) id: string) {
+  @Delete(":id")
+  @RequirePermissions("rma.delete")
+  @ApiOperation({ summary: "Delete RMA (OPEN only)" })
+  async deleteRma(@Param("id", UuidValidationPipe) id: string) {
     await this.service.deleteRma(id);
     return { success: true };
   }
 
-  @Post(':id/disposition')
-  @RequirePermissions('rma.disposition')
-  @ApiOperation({ summary: 'Set disposition for RMA line' })
+  @Post(":id/disposition")
+  @RequirePermissions("rma.disposition")
+  @ApiOperation({ summary: "Set disposition for RMA line" })
   async setDisposition(
-    @Param('id', UuidValidationPipe) rmaId: string,
+    @Param("id", UuidValidationPipe) rmaId: string,
     @CurrentUser() user: CurrentUserData,
     @Body() data: SetDispositionDto,
   ) {
@@ -137,25 +158,25 @@ export class ReturnsController {
     );
   }
 
-  @Post(':id/complete-disposition')
-  @RequirePermissions('rma.disposition')
-  @ApiOperation({ summary: 'Complete all dispositions for RMA' })
-  async completeDisposition(@Param('id', UuidValidationPipe) rmaId: string) {
+  @Post(":id/complete-disposition")
+  @RequirePermissions("rma.disposition")
+  @ApiOperation({ summary: "Complete all dispositions for RMA" })
+  async completeDisposition(@Param("id", UuidValidationPipe) rmaId: string) {
     return this.service.completeDisposition(rmaId);
   }
 
-  @Post(':id/close')
-  @RequirePermissions('rma.create')
-  @ApiOperation({ summary: 'Close RMA' })
-  async close(@Param('id', UuidValidationPipe) rmaId: string) {
+  @Post(":id/close")
+  @RequirePermissions("rma.create")
+  @ApiOperation({ summary: "Close RMA" })
+  async close(@Param("id", UuidValidationPipe) rmaId: string) {
     return this.service.closeRma(rmaId);
   }
 
-  @Post(':id/cancel')
-  @RequirePermissions('rma.create')
-  @ApiOperation({ summary: 'Cancel RMA' })
+  @Post(":id/cancel")
+  @RequirePermissions("rma.create")
+  @ApiOperation({ summary: "Cancel RMA" })
   async cancel(
-    @Param('id', UuidValidationPipe) rmaId: string,
+    @Param("id", UuidValidationPipe) rmaId: string,
     @Body() data: CancelRmaDto,
   ) {
     return this.service.cancelRma(rmaId, data.reason);

@@ -1,7 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
-import { Pool } from 'pg';
-import { DATABASE_POOL } from '../../common/db/database.module';
-import { InvoicingRepository, Invoice, InvoiceLine, InvoicePayment } from './invoicing.repository';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+} from "@nestjs/common";
+import { Pool } from "pg";
+import { DATABASE_POOL } from "../../common/db/database.module";
+import {
+  InvoicingRepository,
+  Invoice,
+  InvoiceLine,
+  InvoicePayment,
+} from "./invoicing.repository";
 
 @Injectable()
 export class InvoicingService {
@@ -18,23 +28,23 @@ export class InvoicingService {
   ): Promise<Invoice> {
     // Fetch the sales order
     const soResult = await this.pool.query(
-      'SELECT * FROM sales_orders WHERE id = $1 AND tenant_id = $2',
+      "SELECT * FROM sales_orders WHERE id = $1 AND tenant_id = $2",
       [salesOrderId, tenantId],
     );
     const so = soResult.rows[0];
     if (!so) {
-      throw new NotFoundException('Sales order not found');
+      throw new NotFoundException("Sales order not found");
     }
 
-    if (!['SHIPPED', 'DELIVERED'].includes(so.status)) {
+    if (!["SHIPPED", "DELIVERED"].includes(so.status)) {
       throw new BadRequestException(
-        'Can only create invoices from shipped or delivered orders',
+        "Can only create invoices from shipped or delivered orders",
       );
     }
 
     // Fetch sales order lines
     const linesResult = await this.pool.query(
-      'SELECT * FROM sales_order_lines WHERE sales_order_id = $1 ORDER BY line_no',
+      "SELECT * FROM sales_order_lines WHERE sales_order_id = $1 ORDER BY line_no",
       [salesOrderId],
     );
     const soLines = linesResult.rows;
@@ -49,16 +59,17 @@ export class InvoicingService {
       salesOrderId,
       customerId: so.customer_id,
       invoiceNo,
-      status: 'DRAFT',
+      status: "DRAFT",
       invoiceDate: new Date(),
-      paymentTerms: 'NET30',
+      paymentTerms: "NET30",
       createdBy,
     });
 
     // Add invoice lines from SO lines
     let subtotal = 0;
     for (const soLine of soLines) {
-      const qty = parseFloat(soLine.qty_shipped) || parseFloat(soLine.qty_ordered);
+      const qty =
+        parseFloat(soLine.qty_shipped) || parseFloat(soLine.qty_ordered);
       const unitPrice = parseFloat(soLine.unit_price) || 0;
       const lineTotal = qty * unitPrice;
       subtotal += lineTotal;
@@ -82,7 +93,7 @@ export class InvoicingService {
     const totalAmount = subtotal + taxAmount;
 
     await this.pool.query(
-      'UPDATE invoices SET subtotal = $1, tax_amount = $2, total_amount = $3, updated_at = NOW() WHERE id = $4',
+      "UPDATE invoices SET subtotal = $1, tax_amount = $2, total_amount = $3, updated_at = NOW() WHERE id = $4",
       [subtotal, taxAmount, totalAmount, invoice.id],
     );
 
@@ -91,7 +102,7 @@ export class InvoicingService {
 
   async getInvoice(id: string): Promise<Invoice> {
     const invoice = await this.repository.findInvoiceById(id);
-    if (!invoice) throw new NotFoundException('Invoice not found');
+    if (!invoice) throw new NotFoundException("Invoice not found");
     return invoice;
   }
 
@@ -128,8 +139,8 @@ export class InvoicingService {
 
   async sendInvoice(id: string): Promise<Invoice> {
     const invoice = await this.getInvoice(id);
-    if (invoice.status !== 'DRAFT') {
-      throw new BadRequestException('Only draft invoices can be sent');
+    if (invoice.status !== "DRAFT") {
+      throw new BadRequestException("Only draft invoices can be sent");
     }
     await this.repository.markSentAt(id);
     return (await this.repository.findInvoiceById(id))!;
@@ -147,9 +158,9 @@ export class InvoicingService {
     },
   ): Promise<InvoicePayment> {
     const invoice = await this.getInvoice(invoiceId);
-    if (!['SENT', 'PARTIALLY_PAID'].includes(invoice.status)) {
+    if (!["SENT", "PARTIALLY_PAID"].includes(invoice.status)) {
       throw new BadRequestException(
-        'Payments can only be recorded for sent or partially paid invoices',
+        "Payments can only be recorded for sent or partially paid invoices",
       );
     }
 
@@ -172,9 +183,9 @@ export class InvoicingService {
     const updated = (await this.repository.findInvoiceById(invoiceId))!;
 
     if (updated.amountPaid >= updated.totalAmount) {
-      await this.repository.updateInvoiceStatus(invoiceId, 'PAID');
+      await this.repository.updateInvoiceStatus(invoiceId, "PAID");
     } else {
-      await this.repository.updateInvoiceStatus(invoiceId, 'PARTIALLY_PAID');
+      await this.repository.updateInvoiceStatus(invoiceId, "PARTIALLY_PAID");
     }
 
     return payment;
@@ -182,22 +193,22 @@ export class InvoicingService {
 
   async cancelInvoice(id: string): Promise<void> {
     const invoice = await this.getInvoice(id);
-    if (!['DRAFT', 'SENT'].includes(invoice.status)) {
+    if (!["DRAFT", "SENT"].includes(invoice.status)) {
       throw new BadRequestException(
-        'Only draft or sent invoices can be cancelled',
+        "Only draft or sent invoices can be cancelled",
       );
     }
-    await this.repository.updateInvoiceStatus(id, 'CANCELLED');
+    await this.repository.updateInvoiceStatus(id, "CANCELLED");
   }
 
   async voidInvoice(id: string): Promise<void> {
     const invoice = await this.getInvoice(id);
-    if (!['SENT', 'PARTIALLY_PAID'].includes(invoice.status)) {
+    if (!["SENT", "PARTIALLY_PAID"].includes(invoice.status)) {
       throw new BadRequestException(
-        'Only sent or partially paid invoices can be voided',
+        "Only sent or partially paid invoices can be voided",
       );
     }
-    await this.repository.updateInvoiceStatus(id, 'VOID');
+    await this.repository.updateInvoiceStatus(id, "VOID");
   }
 
   async getStats(tenantId: string) {

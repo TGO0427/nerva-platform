@@ -4,11 +4,11 @@ import {
   ExecutionContext,
   ForbiddenException,
   Inject,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { Pool } from 'pg';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { Pool } from "pg";
 
-export const SKIP_SITE_ACCESS_CHECK = 'skipSiteAccessCheck';
+export const SKIP_SITE_ACCESS_CHECK = "skipSiteAccessCheck";
 
 /**
  * Guard that validates user has access to the requested site.
@@ -20,16 +20,16 @@ export const SKIP_SITE_ACCESS_CHECK = 'skipSiteAccessCheck';
 @Injectable()
 export class SiteAccessGuard implements CanActivate {
   constructor(
-    @Inject('DATABASE_POOL') private readonly pool: Pool,
+    @Inject("DATABASE_POOL") private readonly pool: Pool,
     private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Check if this route should skip site access check
-    const skipCheck = this.reflector.getAllAndOverride<boolean>(SKIP_SITE_ACCESS_CHECK, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const skipCheck = this.reflector.getAllAndOverride<boolean>(
+      SKIP_SITE_ACCESS_CHECK,
+      [context.getHandler(), context.getClass()],
+    );
 
     if (skipCheck) {
       return true;
@@ -53,15 +53,18 @@ export class SiteAccessGuard implements CanActivate {
     const hasAccess = await this.checkUserSiteAccess(userId, siteId);
 
     if (!hasAccess) {
-      throw new ForbiddenException('You do not have access to this site');
+      throw new ForbiddenException("You do not have access to this site");
     }
 
     return true;
   }
 
-  private async checkUserSiteAccess(userId: string, siteId: string): Promise<boolean> {
+  private async checkUserSiteAccess(
+    userId: string,
+    siteId: string,
+  ): Promise<boolean> {
     const result = await this.pool.query(
-      'SELECT 1 FROM user_sites WHERE user_id = $1 AND site_id = $2',
+      "SELECT 1 FROM user_sites WHERE user_id = $1 AND site_id = $2",
       [userId, siteId],
     );
     return (result.rowCount ?? 0) > 0;

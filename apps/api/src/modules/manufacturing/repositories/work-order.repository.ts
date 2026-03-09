@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../../common/db/base.repository";
 
 export interface WorkOrder {
   id: string;
@@ -110,7 +110,14 @@ export class WorkOrderRepository extends BaseRepository {
     return this.mapWorkOrder(row!);
   }
 
-  async findById(id: string): Promise<(WorkOrder & { itemSku?: string; itemDescription?: string; warehouseName?: string }) | null> {
+  async findById(id: string): Promise<
+    | (WorkOrder & {
+        itemSku?: string;
+        itemDescription?: string;
+        warehouseName?: string;
+      })
+    | null
+  > {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT wo.*, i.sku as item_sku, i.description as item_description, w.name as warehouse_name
        FROM work_orders wo
@@ -130,10 +137,22 @@ export class WorkOrderRepository extends BaseRepository {
 
   async findByTenant(
     tenantId: string,
-    filters: { status?: string; itemId?: string; warehouseId?: string; search?: string },
+    filters: {
+      status?: string;
+      itemId?: string;
+      warehouseId?: string;
+      search?: string;
+    },
     limit = 50,
     offset = 0,
-  ): Promise<{ data: (WorkOrder & { itemSku?: string; itemDescription?: string; warehouseName?: string })[]; total: number }> {
+  ): Promise<{
+    data: (WorkOrder & {
+      itemSku?: string;
+      itemDescription?: string;
+      warehouseName?: string;
+    })[];
+    total: number;
+  }> {
     let sql = `
       SELECT wo.*, i.sku as item_sku, i.description as item_description, w.name as warehouse_name
       FROM work_orders wo
@@ -194,7 +213,7 @@ export class WorkOrderRepository extends BaseRepository {
         itemDescription: r.item_description as string,
         warehouseName: r.warehouse_name as string,
       })),
-      total: parseInt(countResult?.count || '0', 10),
+      total: parseInt(countResult?.count || "0", 10),
     };
   }
 
@@ -204,22 +223,23 @@ export class WorkOrderRepository extends BaseRepository {
        FROM work_orders WHERE tenant_id = $1 AND work_order_no ~ '^WO-[0-9]+$'`,
       [tenantId],
     );
-    const next = (parseInt(result?.max_no || '0', 10) || 0) + 1;
-    return `WO-${next.toString().padStart(6, '0')}`;
+    const next = (parseInt(result?.max_no || "0", 10) || 0) + 1;
+    return `WO-${next.toString().padStart(6, "0")}`;
   }
 
   async generateBatchNo(tenantId: string): Promise<string> {
     const today = new Date();
-    const dateStr = today.getFullYear().toString()
-      + (today.getMonth() + 1).toString().padStart(2, '0')
-      + today.getDate().toString().padStart(2, '0');
+    const dateStr =
+      today.getFullYear().toString() +
+      (today.getMonth() + 1).toString().padStart(2, "0") +
+      today.getDate().toString().padStart(2, "0");
     const prefix = `BATCH-${dateStr}-`;
     const result = await this.queryOne<{ count: string }>(
       `SELECT COUNT(*) as count FROM work_orders WHERE tenant_id = $1 AND batch_no LIKE $2`,
       [tenantId, `${prefix}%`],
     );
-    const seq = parseInt(result?.count || '0', 10) + 1;
-    return `${prefix}${seq.toString().padStart(3, '0')}`;
+    const seq = parseInt(result?.count || "0", 10) + 1;
+    return `${prefix}${seq.toString().padStart(3, "0")}`;
   }
 
   async update(
@@ -301,14 +321,16 @@ export class WorkOrderRepository extends BaseRepository {
 
     params.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE work_orders SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE work_orders SET ${updates.join(", ")} WHERE id = $${idx} RETURNING *`,
       params,
     );
     return row ? this.mapWorkOrder(row) : null;
   }
 
   async delete(id: string): Promise<boolean> {
-    const count = await this.execute('DELETE FROM work_orders WHERE id = $1', [id]);
+    const count = await this.execute("DELETE FROM work_orders WHERE id = $1", [
+      id,
+    ]);
     return count > 0;
   }
 
@@ -343,7 +365,13 @@ export class WorkOrderRepository extends BaseRepository {
     return this.mapOperation(row!);
   }
 
-  async getOperations(workOrderId: string): Promise<(WorkOrderOperation & { workstationCode?: string; workstationName?: string; assignedUserName?: string })[]> {
+  async getOperations(workOrderId: string): Promise<
+    (WorkOrderOperation & {
+      workstationCode?: string;
+      workstationName?: string;
+      assignedUserName?: string;
+    })[]
+  > {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT woo.*, w.code as workstation_code, w.name as workstation_name, u.display_name as assigned_user_name
        FROM work_order_operations woo
@@ -363,7 +391,7 @@ export class WorkOrderRepository extends BaseRepository {
 
   async findOperationById(id: string): Promise<WorkOrderOperation | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM work_order_operations WHERE id = $1',
+      "SELECT * FROM work_order_operations WHERE id = $1",
       [id],
     );
     return row ? this.mapOperation(row) : null;
@@ -443,7 +471,7 @@ export class WorkOrderRepository extends BaseRepository {
 
     params.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE work_order_operations SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE work_order_operations SET ${updates.join(", ")} WHERE id = $${idx} RETURNING *`,
       params,
     );
     return row ? this.mapOperation(row) : null;
@@ -473,7 +501,11 @@ export class WorkOrderRepository extends BaseRepository {
     return this.mapMaterial(row!);
   }
 
-  async getMaterials(workOrderId: string): Promise<(WorkOrderMaterial & { itemSku?: string; itemDescription?: string })[]> {
+  async getMaterials(
+    workOrderId: string,
+  ): Promise<
+    (WorkOrderMaterial & { itemSku?: string; itemDescription?: string })[]
+  > {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT wom.*, i.sku as item_sku, i.description as item_description
        FROM work_order_materials wom
@@ -491,7 +523,7 @@ export class WorkOrderRepository extends BaseRepository {
 
   async findMaterialById(id: string): Promise<WorkOrderMaterial | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM work_order_materials WHERE id = $1',
+      "SELECT * FROM work_order_materials WHERE id = $1",
       [id],
     );
     return row ? this.mapMaterial(row) : null;
@@ -531,7 +563,7 @@ export class WorkOrderRepository extends BaseRepository {
 
     params.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE work_order_materials SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE work_order_materials SET ${updates.join(", ")} WHERE id = $${idx} RETURNING *`,
       params,
     );
     return row ? this.mapMaterial(row) : null;
@@ -580,10 +612,14 @@ export class WorkOrderRepository extends BaseRepository {
       plannedEnd: row.planned_end as Date | null,
       actualStart: row.actual_start as Date | null,
       actualEnd: row.actual_end as Date | null,
-      qtyCompleted: parseFloat((row.qty_completed as string) || '0'),
-      qtyScrapped: parseFloat((row.qty_scrapped as string) || '0'),
-      setupTimeActual: row.setup_time_actual ? parseFloat(row.setup_time_actual as string) : null,
-      runTimeActual: row.run_time_actual ? parseFloat(row.run_time_actual as string) : null,
+      qtyCompleted: parseFloat((row.qty_completed as string) || "0"),
+      qtyScrapped: parseFloat((row.qty_scrapped as string) || "0"),
+      setupTimeActual: row.setup_time_actual
+        ? parseFloat(row.setup_time_actual as string)
+        : null,
+      runTimeActual: row.run_time_actual
+        ? parseFloat(row.run_time_actual as string)
+        : null,
       notes: row.notes as string | null,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,
@@ -598,8 +634,8 @@ export class WorkOrderRepository extends BaseRepository {
       bomLineId: row.bom_line_id as string | null,
       itemId: row.item_id as string,
       qtyRequired: parseFloat(row.qty_required as string),
-      qtyIssued: parseFloat((row.qty_issued as string) || '0'),
-      qtyReturned: parseFloat((row.qty_returned as string) || '0'),
+      qtyIssued: parseFloat((row.qty_issued as string) || "0"),
+      qtyReturned: parseFloat((row.qty_returned as string) || "0"),
       status: row.status as string,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,

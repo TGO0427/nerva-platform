@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from "@nestjs/common";
 import {
   MasterDataRepository,
   Item,
@@ -17,17 +22,24 @@ import {
   SupplierDashboardSummary,
   Warehouse,
   Bin,
-} from './masterdata.repository';
-import { buildPaginatedResult, normalizePagination, PaginationParams } from '../../common/utils/pagination';
-import type { ImportResult } from './dto/import.dto';
-import type { PurchaseOrderImportRowDto } from './dto/po-import.dto';
+} from "./masterdata.repository";
+import {
+  buildPaginatedResult,
+  normalizePagination,
+  PaginationParams,
+} from "../../common/utils/pagination";
+import type { ImportResult } from "./dto/import.dto";
+import type { PurchaseOrderImportRowDto } from "./dto/po-import.dto";
 
 @Injectable()
 export class MasterDataService {
   constructor(private readonly repository: MasterDataRepository) {}
 
   // Items
-  async listItems(tenantId: string, params: PaginationParams & { search?: string }) {
+  async listItems(
+    tenantId: string,
+    params: PaginationParams & { search?: string },
+  ) {
     const { page, limit, offset } = normalizePagination(params);
     const [items, total] = await Promise.all([
       this.repository.findItems(tenantId, limit, offset, params.search),
@@ -38,7 +50,7 @@ export class MasterDataService {
 
   async getItem(tenantId: string, id: string): Promise<Item> {
     const item = await this.repository.findItemById(tenantId, id);
-    if (!item) throw new NotFoundException('Item not found');
+    if (!item) throw new NotFoundException("Item not found");
     return item;
   }
 
@@ -49,32 +61,52 @@ export class MasterDataService {
     uom?: string;
     weightKg?: number;
   }): Promise<Item> {
-    const existing = await this.repository.findItemBySku(data.tenantId, data.sku);
-    if (existing) throw new ConflictException('SKU already exists');
+    const existing = await this.repository.findItemBySku(
+      data.tenantId,
+      data.sku,
+    );
+    if (existing) throw new ConflictException("SKU already exists");
     return this.repository.createItem(data);
   }
 
   async updateItem(
     tenantId: string,
     id: string,
-    data: Partial<{ sku: string; description: string; uom: string; weightKg: number; isActive: boolean }>,
+    data: Partial<{
+      sku: string;
+      description: string;
+      uom: string;
+      weightKg: number;
+      isActive: boolean;
+    }>,
   ): Promise<Item> {
     const item = await this.repository.updateItem(tenantId, id, data);
-    if (!item) throw new NotFoundException('Item not found');
+    if (!item) throw new NotFoundException("Item not found");
     return item;
   }
 
   async deleteItem(tenantId: string, id: string): Promise<void> {
     const item = await this.repository.findItemById(tenantId, id);
-    if (!item) throw new NotFoundException('Item not found');
+    if (!item) throw new NotFoundException("Item not found");
     const refs = await this.repository.countItemReferences(id);
-    if (refs > 0) throw new BadRequestException('Cannot delete item: referenced by existing orders');
+    if (refs > 0)
+      throw new BadRequestException(
+        "Cannot delete item: referenced by existing orders",
+      );
     await this.repository.deleteItem(tenantId, id);
   }
 
   async importItems(
     tenantId: string,
-    items: Array<{ sku: string; description: string; uom?: string; weightKg?: number; lengthCm?: number; widthCm?: number; heightCm?: number }>,
+    items: Array<{
+      sku: string;
+      description: string;
+      uom?: string;
+      weightKg?: number;
+      lengthCm?: number;
+      widthCm?: number;
+      heightCm?: number;
+    }>,
   ): Promise<ImportResult> {
     const result = await this.repository.bulkCreateItems(tenantId, items);
     return {
@@ -85,7 +117,10 @@ export class MasterDataService {
   }
 
   // Customers
-  async listCustomers(tenantId: string, params: PaginationParams & { search?: string }) {
+  async listCustomers(
+    tenantId: string,
+    params: PaginationParams & { search?: string },
+  ) {
     const { page, limit, offset } = normalizePagination(params);
     const [customers, total] = await Promise.all([
       this.repository.findCustomers(tenantId, limit, offset, params.search),
@@ -96,7 +131,7 @@ export class MasterDataService {
 
   async getCustomer(tenantId: string, id: string): Promise<Customer> {
     const customer = await this.repository.findCustomerById(tenantId, id);
-    if (!customer) throw new NotFoundException('Customer not found');
+    if (!customer) throw new NotFoundException("Customer not found");
     return customer;
   }
 
@@ -144,29 +179,47 @@ export class MasterDataService {
     }>,
   ): Promise<Customer> {
     const customer = await this.repository.updateCustomer(tenantId, id, data);
-    if (!customer) throw new NotFoundException('Customer not found');
+    if (!customer) throw new NotFoundException("Customer not found");
     return customer;
   }
 
   async deleteCustomer(tenantId: string, id: string): Promise<void> {
     const customer = await this.repository.findCustomerById(tenantId, id);
-    if (!customer) throw new NotFoundException('Customer not found');
+    if (!customer) throw new NotFoundException("Customer not found");
     const refs = await this.repository.countCustomerReferences(id);
-    if (refs > 0) throw new BadRequestException('Cannot delete customer: has existing sales orders');
+    if (refs > 0)
+      throw new BadRequestException(
+        "Cannot delete customer: has existing sales orders",
+      );
     await this.repository.deleteCustomer(tenantId, id);
   }
 
   async importCustomers(
     tenantId: string,
     customers: Array<{
-      code?: string; name: string; email?: string; phone?: string; vatNo?: string;
-      billingAddressLine1?: string; billingAddressLine2?: string; billingCity?: string;
-      billingState?: string; billingPostalCode?: string; billingCountry?: string;
-      shippingAddressLine1?: string; shippingAddressLine2?: string; shippingCity?: string;
-      shippingState?: string; shippingPostalCode?: string; shippingCountry?: string;
+      code?: string;
+      name: string;
+      email?: string;
+      phone?: string;
+      vatNo?: string;
+      billingAddressLine1?: string;
+      billingAddressLine2?: string;
+      billingCity?: string;
+      billingState?: string;
+      billingPostalCode?: string;
+      billingCountry?: string;
+      shippingAddressLine1?: string;
+      shippingAddressLine2?: string;
+      shippingCity?: string;
+      shippingState?: string;
+      shippingPostalCode?: string;
+      shippingCountry?: string;
     }>,
   ): Promise<ImportResult> {
-    const result = await this.repository.bulkCreateCustomers(tenantId, customers);
+    const result = await this.repository.bulkCreateCustomers(
+      tenantId,
+      customers,
+    );
     return {
       imported: result.created.length,
       skipped: result.skippedCodes.length,
@@ -175,7 +228,10 @@ export class MasterDataService {
   }
 
   // Suppliers
-  async listSuppliers(tenantId: string, params: PaginationParams & { search?: string }) {
+  async listSuppliers(
+    tenantId: string,
+    params: PaginationParams & { search?: string },
+  ) {
     const { page, limit, offset } = normalizePagination(params);
     const [suppliers, total] = await Promise.all([
       this.repository.findSuppliers(tenantId, limit, offset, params.search),
@@ -186,7 +242,7 @@ export class MasterDataService {
 
   async getSupplier(tenantId: string, id: string): Promise<Supplier> {
     const supplier = await this.repository.findSupplierById(tenantId, id);
-    if (!supplier) throw new NotFoundException('Supplier not found');
+    if (!supplier) throw new NotFoundException("Supplier not found");
     return supplier;
   }
 
@@ -238,29 +294,47 @@ export class MasterDataService {
     }>,
   ): Promise<Supplier> {
     const supplier = await this.repository.updateSupplier(tenantId, id, data);
-    if (!supplier) throw new NotFoundException('Supplier not found');
+    if (!supplier) throw new NotFoundException("Supplier not found");
     return supplier;
   }
 
   async deleteSupplier(tenantId: string, id: string): Promise<void> {
     const supplier = await this.repository.findSupplierById(tenantId, id);
-    if (!supplier) throw new NotFoundException('Supplier not found');
+    if (!supplier) throw new NotFoundException("Supplier not found");
     const refs = await this.repository.countSupplierReferences(id);
-    if (refs > 0) throw new BadRequestException('Cannot delete supplier: has existing purchase orders');
+    if (refs > 0)
+      throw new BadRequestException(
+        "Cannot delete supplier: has existing purchase orders",
+      );
     await this.repository.deleteSupplier(tenantId, id);
   }
 
   async importSuppliers(
     tenantId: string,
     suppliers: Array<{
-      code?: string; name: string; email?: string; phone?: string; vatNo?: string;
-      contactPerson?: string; registrationNo?: string;
-      addressLine1?: string; addressLine2?: string; city?: string; postalCode?: string; country?: string;
-      tradingAddressLine1?: string; tradingAddressLine2?: string; tradingCity?: string;
-      tradingPostalCode?: string; tradingCountry?: string;
+      code?: string;
+      name: string;
+      email?: string;
+      phone?: string;
+      vatNo?: string;
+      contactPerson?: string;
+      registrationNo?: string;
+      addressLine1?: string;
+      addressLine2?: string;
+      city?: string;
+      postalCode?: string;
+      country?: string;
+      tradingAddressLine1?: string;
+      tradingAddressLine2?: string;
+      tradingCity?: string;
+      tradingPostalCode?: string;
+      tradingCountry?: string;
     }>,
   ): Promise<ImportResult> {
-    const result = await this.repository.bulkCreateSuppliers(tenantId, suppliers);
+    const result = await this.repository.bulkCreateSuppliers(
+      tenantId,
+      suppliers,
+    );
     return {
       imported: result.created.length,
       skipped: result.skippedCodes.length,
@@ -269,7 +343,10 @@ export class MasterDataService {
   }
 
   // Batch resolution helpers for imports
-  async resolveCustomerCodes(tenantId: string, codes: string[]): Promise<Map<string, string>> {
+  async resolveCustomerCodes(
+    tenantId: string,
+    codes: string[],
+  ): Promise<Map<string, string>> {
     const rows = await this.repository.findCustomersByCodes(tenantId, codes);
     const map = new Map<string, string>();
     for (const row of rows) {
@@ -278,7 +355,10 @@ export class MasterDataService {
     return map;
   }
 
-  async resolveItemSkus(tenantId: string, skus: string[]): Promise<Map<string, string>> {
+  async resolveItemSkus(
+    tenantId: string,
+    skus: string[],
+  ): Promise<Map<string, string>> {
     const rows = await this.repository.findItemsBySkus(tenantId, skus);
     const map = new Map<string, string>();
     for (const row of rows) {
@@ -287,8 +367,16 @@ export class MasterDataService {
     return map;
   }
 
-  async resolveWarehouseNames(tenantId: string, siteId: string, names: string[]): Promise<Map<string, Warehouse>> {
-    const rows = await this.repository.findWarehousesByNames(tenantId, siteId, names);
+  async resolveWarehouseNames(
+    tenantId: string,
+    siteId: string,
+    names: string[],
+  ): Promise<Map<string, Warehouse>> {
+    const rows = await this.repository.findWarehousesByNames(
+      tenantId,
+      siteId,
+      names,
+    );
     const map = new Map<string, Warehouse>();
     for (const row of rows) {
       map.set(row.name.toLowerCase(), row);
@@ -296,8 +384,16 @@ export class MasterDataService {
     return map;
   }
 
-  async resolveBinCodes(tenantId: string, warehouseId: string, codes: string[]): Promise<Map<string, string>> {
-    const rows = await this.repository.findBinsByCodes(tenantId, warehouseId, codes);
+  async resolveBinCodes(
+    tenantId: string,
+    warehouseId: string,
+    codes: string[],
+  ): Promise<Map<string, string>> {
+    const rows = await this.repository.findBinsByCodes(
+      tenantId,
+      warehouseId,
+      codes,
+    );
     const map = new Map<string, string>();
     for (const row of rows) {
       map.set(row.code.toLowerCase(), row.id);
@@ -305,7 +401,10 @@ export class MasterDataService {
     return map;
   }
 
-  async resolveSupplierCodes(tenantId: string, codes: string[]): Promise<Map<string, string>> {
+  async resolveSupplierCodes(
+    tenantId: string,
+    codes: string[],
+  ): Promise<Map<string, string>> {
     const rows = await this.repository.findSuppliersByCodes(tenantId, codes);
     const map = new Map<string, string>();
     for (const row of rows) {
@@ -319,9 +418,12 @@ export class MasterDataService {
     return this.repository.findSupplierContacts(supplierId);
   }
 
-  async getSupplierContact(tenantId: string, id: string): Promise<SupplierContact> {
+  async getSupplierContact(
+    tenantId: string,
+    id: string,
+  ): Promise<SupplierContact> {
     const contact = await this.repository.findSupplierContactById(tenantId, id);
-    if (!contact) throw new NotFoundException('Contact not found');
+    if (!contact) throw new NotFoundException("Contact not found");
     return contact;
   }
 
@@ -349,14 +451,18 @@ export class MasterDataService {
       isActive: boolean;
     }>,
   ): Promise<SupplierContact> {
-    const contact = await this.repository.updateSupplierContact(tenantId, id, data);
-    if (!contact) throw new NotFoundException('Contact not found');
+    const contact = await this.repository.updateSupplierContact(
+      tenantId,
+      id,
+      data,
+    );
+    if (!contact) throw new NotFoundException("Contact not found");
     return contact;
   }
 
   async deleteSupplierContact(tenantId: string, id: string): Promise<void> {
     const deleted = await this.repository.deleteSupplierContact(tenantId, id);
-    if (!deleted) throw new NotFoundException('Contact not found');
+    if (!deleted) throw new NotFoundException("Contact not found");
   }
 
   // Supplier Notes
@@ -375,7 +481,7 @@ export class MasterDataService {
 
   async deleteSupplierNote(tenantId: string, id: string): Promise<void> {
     const deleted = await this.repository.deleteSupplierNote(tenantId, id);
-    if (!deleted) throw new NotFoundException('Note not found');
+    if (!deleted) throw new NotFoundException("Note not found");
   }
 
   // Supplier NCRs
@@ -385,7 +491,7 @@ export class MasterDataService {
 
   async getSupplierNcr(tenantId: string, id: string): Promise<SupplierNcr> {
     const ncr = await this.repository.findSupplierNcrById(tenantId, id);
-    if (!ncr) throw new NotFoundException('NCR not found');
+    if (!ncr) throw new NotFoundException("NCR not found");
     return ncr;
   }
 
@@ -406,29 +512,38 @@ export class MasterDataService {
     data: { resolution: string; resolvedBy: string },
   ): Promise<SupplierNcr> {
     const ncr = await this.repository.updateSupplierNcr(tenantId, id, {
-      status: 'RESOLVED',
+      status: "RESOLVED",
       resolution: data.resolution,
       resolvedBy: data.resolvedBy,
       resolvedAt: new Date(),
     });
-    if (!ncr) throw new NotFoundException('NCR not found');
+    if (!ncr) throw new NotFoundException("NCR not found");
     return ncr;
   }
 
-  async updateSupplierNcrStatus(tenantId: string, id: string, status: string): Promise<SupplierNcr> {
-    const ncr = await this.repository.updateSupplierNcr(tenantId, id, { status });
-    if (!ncr) throw new NotFoundException('NCR not found');
+  async updateSupplierNcrStatus(
+    tenantId: string,
+    id: string,
+    status: string,
+  ): Promise<SupplierNcr> {
+    const ncr = await this.repository.updateSupplierNcr(tenantId, id, {
+      status,
+    });
+    if (!ncr) throw new NotFoundException("NCR not found");
     return ncr;
   }
 
   // Warehouses
-  async listWarehouses(tenantId: string, siteId?: string): Promise<Warehouse[]> {
+  async listWarehouses(
+    tenantId: string,
+    siteId?: string,
+  ): Promise<Warehouse[]> {
     return this.repository.findWarehouses(tenantId, siteId);
   }
 
   async getWarehouse(tenantId: string, id: string): Promise<Warehouse> {
     const warehouse = await this.repository.findWarehouseById(tenantId, id);
-    if (!warehouse) throw new NotFoundException('Warehouse not found');
+    if (!warehouse) throw new NotFoundException("Warehouse not found");
     return warehouse;
   }
 
@@ -441,16 +556,23 @@ export class MasterDataService {
     return this.repository.createWarehouse(data);
   }
 
-  async updateWarehouse(tenantId: string, id: string, data: { name?: string; code?: string; isActive?: boolean }): Promise<Warehouse> {
+  async updateWarehouse(
+    tenantId: string,
+    id: string,
+    data: { name?: string; code?: string; isActive?: boolean },
+  ): Promise<Warehouse> {
     await this.getWarehouse(tenantId, id); // throws if not found
     return this.repository.updateWarehouse(tenantId, id, data);
   }
 
   async deleteWarehouse(tenantId: string, id: string): Promise<void> {
     const warehouse = await this.repository.findWarehouseById(tenantId, id);
-    if (!warehouse) throw new NotFoundException('Warehouse not found');
+    if (!warehouse) throw new NotFoundException("Warehouse not found");
     const refs = await this.repository.countWarehouseReferences(id);
-    if (refs > 0) throw new BadRequestException('Cannot delete warehouse: has existing work orders');
+    if (refs > 0)
+      throw new BadRequestException(
+        "Cannot delete warehouse: has existing work orders",
+      );
     await this.repository.deleteWarehouse(tenantId, id);
   }
 
@@ -461,7 +583,7 @@ export class MasterDataService {
 
   async getBin(tenantId: string, id: string): Promise<Bin> {
     const bin = await this.repository.findBinById(tenantId, id);
-    if (!bin) throw new NotFoundException('Bin not found');
+    if (!bin) throw new NotFoundException("Bin not found");
     return bin;
   }
 
@@ -477,7 +599,11 @@ export class MasterDataService {
     return this.repository.createBin(data);
   }
 
-  async updateBin(tenantId: string, id: string, data: { code?: string; binType?: string; isActive?: boolean }): Promise<Bin> {
+  async updateBin(
+    tenantId: string,
+    id: string,
+    data: { code?: string; binType?: string; isActive?: boolean },
+  ): Promise<Bin> {
     await this.getBin(tenantId, id); // throws if not found
     return this.repository.updateBin(tenantId, id, data);
   }
@@ -489,7 +615,7 @@ export class MasterDataService {
 
   async getSupplierItem(id: string): Promise<SupplierItem> {
     const item = await this.repository.findSupplierItemById(id);
-    if (!item) throw new NotFoundException('Supplier item not found');
+    if (!item) throw new NotFoundException("Supplier item not found");
     return item;
   }
 
@@ -518,13 +644,13 @@ export class MasterDataService {
     }>,
   ): Promise<SupplierItem> {
     const item = await this.repository.updateSupplierItem(id, data);
-    if (!item) throw new NotFoundException('Supplier item not found');
+    if (!item) throw new NotFoundException("Supplier item not found");
     return item;
   }
 
   async deleteSupplierItem(id: string): Promise<void> {
     const deleted = await this.repository.deleteSupplierItem(id);
-    if (!deleted) throw new NotFoundException('Supplier item not found');
+    if (!deleted) throw new NotFoundException("Supplier item not found");
   }
 
   // Supplier Contracts
@@ -534,7 +660,7 @@ export class MasterDataService {
 
   async getSupplierContract(id: string): Promise<SupplierContract> {
     const contract = await this.repository.findSupplierContractById(id);
-    if (!contract) throw new NotFoundException('Contract not found');
+    if (!contract) throw new NotFoundException("Contract not found");
     return contract;
   }
 
@@ -565,7 +691,7 @@ export class MasterDataService {
     }>,
   ): Promise<SupplierContract> {
     const contract = await this.repository.updateSupplierContract(id, data);
-    if (!contract) throw new NotFoundException('Contract not found');
+    if (!contract) throw new NotFoundException("Contract not found");
     return contract;
   }
 
@@ -574,9 +700,12 @@ export class MasterDataService {
     return this.repository.findCustomerContacts(customerId);
   }
 
-  async getCustomerContact(tenantId: string, id: string): Promise<CustomerContact> {
+  async getCustomerContact(
+    tenantId: string,
+    id: string,
+  ): Promise<CustomerContact> {
     const contact = await this.repository.findCustomerContactById(tenantId, id);
-    if (!contact) throw new NotFoundException('Contact not found');
+    if (!contact) throw new NotFoundException("Contact not found");
     return contact;
   }
 
@@ -604,14 +733,18 @@ export class MasterDataService {
       isActive: boolean;
     }>,
   ): Promise<CustomerContact> {
-    const contact = await this.repository.updateCustomerContact(tenantId, id, data);
-    if (!contact) throw new NotFoundException('Contact not found');
+    const contact = await this.repository.updateCustomerContact(
+      tenantId,
+      id,
+      data,
+    );
+    if (!contact) throw new NotFoundException("Contact not found");
     return contact;
   }
 
   async deleteCustomerContact(tenantId: string, id: string): Promise<void> {
     const deleted = await this.repository.deleteCustomerContact(tenantId, id);
-    if (!deleted) throw new NotFoundException('Contact not found');
+    if (!deleted) throw new NotFoundException("Contact not found");
   }
 
   // Customer Notes
@@ -630,7 +763,7 @@ export class MasterDataService {
 
   async deleteCustomerNote(tenantId: string, id: string): Promise<void> {
     const deleted = await this.repository.deleteCustomerNote(tenantId, id);
-    if (!deleted) throw new NotFoundException('Note not found');
+    if (!deleted) throw new NotFoundException("Note not found");
   }
 
   // Purchase Orders
@@ -641,10 +774,19 @@ export class MasterDataService {
   async listPurchaseOrders(
     tenantId: string,
     siteId: string | undefined,
-    params: PaginationParams & { status?: string; supplierId?: string; search?: string },
+    params: PaginationParams & {
+      status?: string;
+      supplierId?: string;
+      search?: string;
+    },
   ) {
     const { page, limit, offset } = normalizePagination(params);
-    const filters = { status: params.status, supplierId: params.supplierId, search: params.search, siteId };
+    const filters = {
+      status: params.status,
+      supplierId: params.supplierId,
+      search: params.search,
+      siteId,
+    };
     const [orders, total] = await Promise.all([
       this.repository.findPurchaseOrders(tenantId, limit, offset, filters),
       this.repository.countPurchaseOrders(tenantId, filters),
@@ -654,7 +796,7 @@ export class MasterDataService {
 
   async getPurchaseOrder(id: string): Promise<PurchaseOrder> {
     const order = await this.repository.findPurchaseOrderById(id);
-    if (!order) throw new NotFoundException('Purchase order not found');
+    if (!order) throw new NotFoundException("Purchase order not found");
     return order;
   }
 
@@ -685,12 +827,14 @@ export class MasterDataService {
     }>,
   ): Promise<PurchaseOrder> {
     const order = await this.repository.updatePurchaseOrder(id, data);
-    if (!order) throw new NotFoundException('Purchase order not found');
+    if (!order) throw new NotFoundException("Purchase order not found");
     return order;
   }
 
   // Purchase Order Lines
-  async listPurchaseOrderLines(purchaseOrderId: string): Promise<PurchaseOrderLine[]> {
+  async listPurchaseOrderLines(
+    purchaseOrderId: string,
+  ): Promise<PurchaseOrderLine[]> {
     return this.repository.findPurchaseOrderLines(purchaseOrderId);
   }
 
@@ -706,21 +850,30 @@ export class MasterDataService {
 
   async updatePurchaseOrderLine(
     id: string,
-    data: Partial<{ qtyOrdered: number; qtyReceived: number; unitCost: number }>,
+    data: Partial<{
+      qtyOrdered: number;
+      qtyReceived: number;
+      unitCost: number;
+    }>,
   ): Promise<PurchaseOrderLine> {
     const line = await this.repository.updatePurchaseOrderLine(id, data);
-    if (!line) throw new NotFoundException('Purchase order line not found');
+    if (!line) throw new NotFoundException("Purchase order line not found");
     return line;
   }
 
   async deletePurchaseOrderLine(id: string): Promise<void> {
     const deleted = await this.repository.deletePurchaseOrderLine(id);
-    if (!deleted) throw new NotFoundException('Purchase order line not found');
+    if (!deleted) throw new NotFoundException("Purchase order line not found");
   }
 
-  async recalculatePurchaseOrderTotals(purchaseOrderId: string): Promise<PurchaseOrder> {
+  async recalculatePurchaseOrderTotals(
+    purchaseOrderId: string,
+  ): Promise<PurchaseOrder> {
     const lines = await this.repository.findPurchaseOrderLines(purchaseOrderId);
-    const subtotal = lines.reduce((sum, line) => sum + (line.lineTotal || 0), 0);
+    const subtotal = lines.reduce(
+      (sum, line) => sum + (line.lineTotal || 0),
+      0,
+    );
     const taxAmount = subtotal * 0.15; // 15% VAT
     const totalAmount = subtotal + taxAmount;
 
@@ -729,27 +882,33 @@ export class MasterDataService {
       taxAmount,
       totalAmount,
     });
-    if (!order) throw new NotFoundException('Purchase order not found');
+    if (!order) throw new NotFoundException("Purchase order not found");
     return order;
   }
 
   async reopenPurchaseOrder(id: string): Promise<PurchaseOrder> {
     const order = await this.getPurchaseOrder(id);
-    if (!['CANCELLED', 'RECEIVED'].includes(order.status)) {
-      throw new BadRequestException('Only cancelled or received purchase orders can be reopened');
+    if (!["CANCELLED", "RECEIVED"].includes(order.status)) {
+      throw new BadRequestException(
+        "Only cancelled or received purchase orders can be reopened",
+      );
     }
 
-    const newStatus = order.status === 'CANCELLED' ? 'DRAFT' : 'CONFIRMED';
-    const updated = await this.repository.updatePurchaseOrder(id, { status: newStatus });
-    if (!updated) throw new NotFoundException('Purchase order not found');
+    const newStatus = order.status === "CANCELLED" ? "DRAFT" : "CONFIRMED";
+    const updated = await this.repository.updatePurchaseOrder(id, {
+      status: newStatus,
+    });
+    if (!updated) throw new NotFoundException("Purchase order not found");
     return updated;
   }
 
   async deletePurchaseOrder(id: string): Promise<void> {
     const order = await this.repository.findPurchaseOrderById(id);
-    if (!order) throw new NotFoundException('Purchase order not found');
-    if (order.status !== 'DRAFT') {
-      throw new BadRequestException('Only DRAFT purchase orders can be deleted');
+    if (!order) throw new NotFoundException("Purchase order not found");
+    if (order.status !== "DRAFT") {
+      throw new BadRequestException(
+        "Only DRAFT purchase orders can be deleted",
+      );
     }
     await this.repository.deletePurchaseOrder(id);
   }
@@ -764,16 +923,23 @@ export class MasterDataService {
     // 1. Resolve warehouse: get first warehouse for site
     const warehouses = await this.listWarehouses(tenantId, siteId);
     if (warehouses.length === 0) {
-      throw new BadRequestException('No warehouse found for the selected site');
+      throw new BadRequestException("No warehouse found for the selected site");
     }
     const warehouseId = warehouses[0].id;
 
     // 2. Resolve supplier codes
     const uniqueSupplierCodes = [...new Set(rows.map((r) => r.supplierCode))];
-    const supplierMap = await this.resolveSupplierCodes(tenantId, uniqueSupplierCodes);
-    const unknownSuppliers = uniqueSupplierCodes.filter((c) => !supplierMap.has(c.toLowerCase()));
+    const supplierMap = await this.resolveSupplierCodes(
+      tenantId,
+      uniqueSupplierCodes,
+    );
+    const unknownSuppliers = uniqueSupplierCodes.filter(
+      (c) => !supplierMap.has(c.toLowerCase()),
+    );
     if (unknownSuppliers.length > 0) {
-      throw new BadRequestException(`Unknown supplier codes: ${unknownSuppliers.join(', ')}`);
+      throw new BadRequestException(
+        `Unknown supplier codes: ${unknownSuppliers.join(", ")}`,
+      );
     }
 
     // 3. Resolve SKUs
@@ -781,7 +947,7 @@ export class MasterDataService {
     const itemMap = await this.resolveItemSkus(tenantId, uniqueSkus);
     const unknownSkus = uniqueSkus.filter((s) => !itemMap.has(s.toLowerCase()));
     if (unknownSkus.length > 0) {
-      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(', ')}`);
+      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(", ")}`);
     }
 
     // 4. Group rows by orderGroup
@@ -804,7 +970,9 @@ export class MasterDataService {
         tenantId,
         siteId,
         supplierId,
-        expectedDate: header.expectedDate ? new Date(header.expectedDate) : undefined,
+        expectedDate: header.expectedDate
+          ? new Date(header.expectedDate)
+          : undefined,
         shipToWarehouseId: warehouseId,
         notes: header.notes,
         createdBy,
@@ -832,13 +1000,20 @@ export class MasterDataService {
   }
 
   // Supplier Performance Analytics
-  async getSupplierDashboardSummary(tenantId: string): Promise<SupplierDashboardSummary> {
+  async getSupplierDashboardSummary(
+    tenantId: string,
+  ): Promise<SupplierDashboardSummary> {
     return this.repository.getSupplierDashboardSummary(tenantId);
   }
 
   async getSupplierPerformanceStats(
     tenantId: string,
-    options: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' }
+    options: {
+      page?: number;
+      limit?: number;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    },
   ) {
     return this.repository.getSupplierPerformanceStats(tenantId, options);
   }
@@ -858,7 +1033,12 @@ export class MasterDataService {
 
   async getCustomerPerformanceStats(
     tenantId: string,
-    options: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' }
+    options: {
+      page?: number;
+      limit?: number;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    },
   ) {
     return this.repository.getCustomerPerformanceStats(tenantId, options);
   }
@@ -913,7 +1093,7 @@ export class MasterDataService {
   async listNotifications(
     tenantId: string,
     userId: string,
-    options: { page?: number; limit?: number; unreadOnly?: boolean } = {}
+    options: { page?: number; limit?: number; unreadOnly?: boolean } = {},
   ) {
     return this.repository.listNotifications(tenantId, userId, options);
   }

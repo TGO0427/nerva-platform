@@ -7,9 +7,9 @@ import {
   ValidateNested,
   MaxLength,
   Min,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { Type } from "class-transformer";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateIbtDto {
   @ApiProperty()

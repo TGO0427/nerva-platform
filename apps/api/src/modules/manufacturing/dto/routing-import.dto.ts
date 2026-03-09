@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type } from "class-transformer";
 import {
   IsString,
   IsNotEmpty,
@@ -9,15 +9,15 @@ import {
   ArrayMinSize,
   ArrayMaxSize,
   IsBoolean,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class RoutingImportRowDto {
   @ApiProperty()
   @IsNumber()
   routingGroup: number;
 
-  @ApiProperty({ description: 'SKU of the finished product' })
+  @ApiProperty({ description: "SKU of the finished product" })
   @IsString()
   @IsNotEmpty()
   productSku: string;
@@ -27,7 +27,7 @@ export class RoutingImportRowDto {
   @IsString()
   notes?: string;
 
-  @ApiProperty({ description: 'Operation name' })
+  @ApiProperty({ description: "Operation name" })
   @IsString()
   @IsNotEmpty()
   operationName: string;

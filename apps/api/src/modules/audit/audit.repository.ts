@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface AuditEntry {
   id: string;
@@ -87,12 +87,15 @@ export class AuditRepository extends BaseRepository {
     limit = 50,
     offset = 0,
   ): Promise<AuditEntry[]> {
-    const { conditions, values, idx } = this.buildFilterConditions(tenantId, filters);
+    const { conditions, values, idx } = this.buildFilterConditions(
+      tenantId,
+      filters,
+    );
     values.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT * FROM audit_log
-       WHERE ${conditions.join(' AND ')}
+       WHERE ${conditions.join(" AND ")}
        ORDER BY created_at DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
       values,
@@ -106,14 +109,18 @@ export class AuditRepository extends BaseRepository {
     limit = 50,
     offset = 0,
   ): Promise<AuditEntryWithActor[]> {
-    const { conditions, values, idx } = this.buildFilterConditions(tenantId, filters, 'a');
+    const { conditions, values, idx } = this.buildFilterConditions(
+      tenantId,
+      filters,
+      "a",
+    );
     values.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT a.*, u.display_name AS actor_name
        FROM audit_log a
        LEFT JOIN users u ON u.id = a.actor_user_id
-       WHERE ${conditions.join(' AND ')}
+       WHERE ${conditions.join(" AND ")}
        ORDER BY a.created_at DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
       values,
@@ -128,11 +135,14 @@ export class AuditRepository extends BaseRepository {
     tenantId: string,
     filters: AuditSearchFilters,
   ): Promise<number> {
-    const { conditions, values } = this.buildFilterConditions(tenantId, filters);
+    const { conditions, values } = this.buildFilterConditions(
+      tenantId,
+      filters,
+    );
 
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT COUNT(*)::int AS total FROM audit_log
-       WHERE ${conditions.join(' AND ')}`,
+       WHERE ${conditions.join(" AND ")}`,
       values,
     );
     return (row?.total as number) || 0;
@@ -143,33 +153,33 @@ export class AuditRepository extends BaseRepository {
     filters: AuditSearchFilters,
     alias?: string,
   ): { conditions: string[]; values: unknown[]; idx: number } {
-    const col = (name: string) => alias ? `${alias}.${name}` : name;
-    const conditions = [`${col('tenant_id')} = $1`];
+    const col = (name: string) => (alias ? `${alias}.${name}` : name);
+    const conditions = [`${col("tenant_id")} = $1`];
     const values: unknown[] = [tenantId];
     let idx = 2;
 
     if (filters.entityType) {
-      conditions.push(`${col('entity_type')} = $${idx++}`);
+      conditions.push(`${col("entity_type")} = $${idx++}`);
       values.push(filters.entityType);
     }
     if (filters.entityId) {
-      conditions.push(`${col('entity_id')} = $${idx++}`);
+      conditions.push(`${col("entity_id")} = $${idx++}`);
       values.push(filters.entityId);
     }
     if (filters.action) {
-      conditions.push(`${col('action')} = $${idx++}`);
+      conditions.push(`${col("action")} = $${idx++}`);
       values.push(filters.action);
     }
     if (filters.actorUserId) {
-      conditions.push(`${col('actor_user_id')} = $${idx++}`);
+      conditions.push(`${col("actor_user_id")} = $${idx++}`);
       values.push(filters.actorUserId);
     }
     if (filters.fromDate) {
-      conditions.push(`${col('created_at')} >= $${idx++}`);
+      conditions.push(`${col("created_at")} >= $${idx++}`);
       values.push(filters.fromDate);
     }
     if (filters.toDate) {
-      conditions.push(`${col('created_at')} <= $${idx++}`);
+      conditions.push(`${col("created_at")} <= $${idx++}`);
       values.push(filters.toDate);
     }
 

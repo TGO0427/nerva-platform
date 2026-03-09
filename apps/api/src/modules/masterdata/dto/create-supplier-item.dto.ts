@@ -6,11 +6,11 @@ import {
   IsBoolean,
   IsInt,
   Min,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateSupplierItemDto {
-  @ApiProperty({ description: 'Item ID to link to supplier' })
+  @ApiProperty({ description: "Item ID to link to supplier" })
   @IsUUID()
   itemId: string;
 
@@ -19,25 +19,28 @@ export class CreateSupplierItemDto {
   @IsString()
   supplierSku?: string;
 
-  @ApiPropertyOptional({ description: 'Unit cost from supplier' })
+  @ApiPropertyOptional({ description: "Unit cost from supplier" })
   @IsOptional()
   @IsNumber()
   @Min(0)
   unitCost?: number;
 
-  @ApiPropertyOptional({ description: 'Lead time in days' })
+  @ApiPropertyOptional({ description: "Lead time in days" })
   @IsOptional()
   @IsInt()
   @Min(0)
   leadTimeDays?: number;
 
-  @ApiPropertyOptional({ description: 'Minimum order quantity', default: 1 })
+  @ApiPropertyOptional({ description: "Minimum order quantity", default: 1 })
   @IsOptional()
   @IsInt()
   @Min(1)
   minOrderQty?: number;
 
-  @ApiPropertyOptional({ description: 'Is this the preferred supplier for this item?', default: false })
+  @ApiPropertyOptional({
+    description: "Is this the preferred supplier for this item?",
+    default: false,
+  })
   @IsOptional()
   @IsBoolean()
   isPreferred?: boolean;

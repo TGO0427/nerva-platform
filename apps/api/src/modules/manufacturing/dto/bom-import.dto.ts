@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type } from "class-transformer";
 import {
   IsString,
   IsNotEmpty,
@@ -8,15 +8,15 @@ import {
   ValidateNested,
   ArrayMinSize,
   ArrayMaxSize,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class BomImportRowDto {
   @ApiProperty()
   @IsNumber()
   bomGroup: number;
 
-  @ApiProperty({ description: 'SKU of the finished product' })
+  @ApiProperty({ description: "SKU of the finished product" })
   @IsString()
   @IsNotEmpty()
   productSku: string;
@@ -37,7 +37,7 @@ export class BomImportRowDto {
   @IsString()
   notes?: string;
 
-  @ApiProperty({ description: 'SKU of the component/ingredient' })
+  @ApiProperty({ description: "SKU of the component/ingredient" })
   @IsString()
   @IsNotEmpty()
   componentSku: string;

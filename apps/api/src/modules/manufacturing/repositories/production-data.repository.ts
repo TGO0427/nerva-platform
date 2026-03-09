@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../../common/db/base.repository";
 
 export interface WorkOrderChecks {
   id: string;
@@ -87,9 +87,11 @@ export class ProductionDataRepository extends BaseRepository {
     return this.mapChecks(row!);
   }
 
-  async findChecksByWorkOrder(workOrderId: string): Promise<WorkOrderChecks | null> {
+  async findChecksByWorkOrder(
+    workOrderId: string,
+  ): Promise<WorkOrderChecks | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM work_order_checks WHERE work_order_id = $1',
+      "SELECT * FROM work_order_checks WHERE work_order_id = $1",
       [workOrderId],
     );
     return row ? this.mapChecks(row) : null;
@@ -149,9 +151,11 @@ export class ProductionDataRepository extends BaseRepository {
     return this.mapProcess(row!);
   }
 
-  async findProcessByWorkOrder(workOrderId: string): Promise<WorkOrderProcess | null> {
+  async findProcessByWorkOrder(
+    workOrderId: string,
+  ): Promise<WorkOrderProcess | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM work_order_process WHERE work_order_id = $1',
+      "SELECT * FROM work_order_process WHERE work_order_id = $1",
       [workOrderId],
     );
     return row ? this.mapProcess(row) : null;
@@ -164,14 +168,34 @@ export class ProductionDataRepository extends BaseRepository {
       tenantId: row.tenant_id as string,
       workOrderId: row.work_order_id as string,
       reworkProduct: row.rework_product as string | null,
-      reworkQtyKgs: row.rework_qty_kgs != null ? parseFloat(row.rework_qty_kgs as string) : null,
-      theoreticalBoxes: row.theoretical_boxes != null ? parseFloat(row.theoretical_boxes as string) : null,
-      actualBoxes: row.actual_boxes != null ? parseFloat(row.actual_boxes as string) : null,
-      actualOvers: row.actual_overs != null ? parseFloat(row.actual_overs as string) : null,
-      actualTotal: row.actual_total != null ? parseFloat(row.actual_total as string) : null,
-      diffToTheoretical: row.diff_to_theoretical != null ? parseFloat(row.diff_to_theoretical as string) : null,
+      reworkQtyKgs:
+        row.rework_qty_kgs != null
+          ? parseFloat(row.rework_qty_kgs as string)
+          : null,
+      theoreticalBoxes:
+        row.theoretical_boxes != null
+          ? parseFloat(row.theoretical_boxes as string)
+          : null,
+      actualBoxes:
+        row.actual_boxes != null
+          ? parseFloat(row.actual_boxes as string)
+          : null,
+      actualOvers:
+        row.actual_overs != null
+          ? parseFloat(row.actual_overs as string)
+          : null,
+      actualTotal:
+        row.actual_total != null
+          ? parseFloat(row.actual_total as string)
+          : null,
+      diffToTheoretical:
+        row.diff_to_theoretical != null
+          ? parseFloat(row.diff_to_theoretical as string)
+          : null,
       loaderSignature: row.loader_signature as string | null,
-      operationsManagerSignature: row.operations_manager_signature as string | null,
+      operationsManagerSignature: row.operations_manager_signature as
+        | string
+        | null,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,
     };

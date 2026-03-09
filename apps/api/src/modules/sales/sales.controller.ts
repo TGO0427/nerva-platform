@@ -11,26 +11,34 @@ import {
   BadRequestException,
   Res,
   StreamableFile,
-} from '@nestjs/common';
-import { Response } from 'express';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
-import { SalesService } from './sales.service';
-import { SalesPdfService } from './sales-pdf.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TenantGuard } from '../../common/guards/tenant.guard';
-import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
-import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
-import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
-import { CreateSalesOrderDto, UpdateSalesOrderDto } from './dto/sales.dto';
-import { ImportSalesOrdersDto } from './dto/sales-import.dto';
-import type { ImportResult } from '../masterdata/dto/import.dto';
+} from "@nestjs/common";
+import { Response } from "express";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiProduces,
+} from "@nestjs/swagger";
+import { SalesService } from "./sales.service";
+import { SalesPdfService } from "./sales-pdf.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { TenantGuard } from "../../common/guards/tenant.guard";
+import { PermissionsGuard } from "../../common/guards/permissions.guard";
+import { RequirePermissions } from "../../common/decorators/permissions.decorator";
+import { TenantId, SiteId } from "../../common/decorators/tenant.decorator";
+import {
+  CurrentUser,
+  CurrentUserData,
+} from "../../common/decorators/current-user.decorator";
+import { UuidValidationPipe } from "../../common/pipes/uuid-validation.pipe";
+import { CreateSalesOrderDto, UpdateSalesOrderDto } from "./dto/sales.dto";
+import { ImportSalesOrdersDto } from "./dto/sales-import.dto";
+import type { ImportResult } from "../masterdata/dto/import.dto";
 
-@ApiTags('sales')
+@ApiTags("sales")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('sales/orders')
+@Controller("sales/orders")
 export class SalesController {
   constructor(
     private readonly service: SalesService,
@@ -38,37 +46,42 @@ export class SalesController {
   ) {}
 
   @Get()
-    @RequirePermissions('sales_order.read')
-  @ApiOperation({ summary: 'List sales orders' })
+  @RequirePermissions("sales_order.read")
+  @ApiOperation({ summary: "List sales orders" })
   async list(
     @TenantId() tenantId: string,
-    @Query('status') status?: string,
-    @Query('customerId') customerId?: string,
-    @Query('search') search?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query("status") status?: string,
+    @Query("customerId") customerId?: string,
+    @Query("search") search?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
   ) {
-    return this.service.listOrders(tenantId, { status, customerId, search }, page, limit);
+    return this.service.listOrders(
+      tenantId,
+      { status, customerId, search },
+      page,
+      limit,
+    );
   }
 
-  @Get('stats')
-  @RequirePermissions('sales_order.read')
-  @ApiOperation({ summary: 'Get sales order status counts' })
+  @Get("stats")
+  @RequirePermissions("sales_order.read")
+  @ApiOperation({ summary: "Get sales order status counts" })
   async stats(@TenantId() tenantId: string) {
     return this.service.getOrderStats(tenantId);
   }
 
-  @Post('next-number')
-    @RequirePermissions('sales_order.create')
-  @ApiOperation({ summary: 'Generate next order number' })
+  @Post("next-number")
+  @RequirePermissions("sales_order.create")
+  @ApiOperation({ summary: "Generate next order number" })
   async getNextNumber(@TenantId() tenantId: string) {
     const orderNo = await this.service.getNextOrderNumber(tenantId);
     return { orderNo };
   }
 
-  @Post('import')
-  @RequirePermissions('sales_order.create')
-  @ApiOperation({ summary: 'Bulk import sales orders from spreadsheet' })
+  @Post("import")
+  @RequirePermissions("sales_order.create")
+  @ApiOperation({ summary: "Bulk import sales orders from spreadsheet" })
   async importOrders(
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
@@ -76,39 +89,41 @@ export class SalesController {
     @Body() data: ImportSalesOrdersDto,
   ): Promise<ImportResult> {
     if (!siteId) {
-      throw new BadRequestException('Please select a site before importing sales orders');
+      throw new BadRequestException(
+        "Please select a site before importing sales orders",
+      );
     }
     return this.service.importOrders(tenantId, siteId, user.id, data.rows);
   }
 
-  @Get(':id')
-    @RequirePermissions('sales_order.read')
-  @ApiOperation({ summary: 'Get sales order with lines' })
-  async get(@Param('id', UuidValidationPipe) id: string) {
+  @Get(":id")
+  @RequirePermissions("sales_order.read")
+  @ApiOperation({ summary: "Get sales order with lines" })
+  async get(@Param("id", UuidValidationPipe) id: string) {
     return this.service.getOrderWithLines(id);
   }
 
-  @Get(':id/pdf')
-  @RequirePermissions('sales_order.read')
-  @ApiOperation({ summary: 'Download sales order PDF' })
-  @ApiProduces('application/pdf')
+  @Get(":id/pdf")
+  @RequirePermissions("sales_order.read")
+  @ApiOperation({ summary: "Download sales order PDF" })
+  @ApiProduces("application/pdf")
   async downloadPdf(
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @TenantId() tenantId: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const pdfBuffer = await this.pdfService.generate(id, tenantId);
     res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="sales-order-${id}.pdf"`,
-      'Content-Length': pdfBuffer.length,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="sales-order-${id}.pdf"`,
+      "Content-Length": pdfBuffer.length,
     });
     return new StreamableFile(pdfBuffer);
   }
 
   @Post()
-  @RequirePermissions('sales_order.create')
-  @ApiOperation({ summary: 'Create sales order' })
+  @RequirePermissions("sales_order.create")
+  @ApiOperation({ summary: "Create sales order" })
   async create(
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
@@ -116,7 +131,9 @@ export class SalesController {
     @Body() data: CreateSalesOrderDto,
   ) {
     if (!siteId) {
-      throw new BadRequestException('Please select a site before creating a sales order');
+      throw new BadRequestException(
+        "Please select a site before creating a sales order",
+      );
     }
     return this.service.createOrder({
       tenantId,
@@ -126,48 +143,48 @@ export class SalesController {
     });
   }
 
-  @Patch(':id')
-  @RequirePermissions('sales_order.edit')
-  @ApiOperation({ summary: 'Update sales order (draft only)' })
+  @Patch(":id")
+  @RequirePermissions("sales_order.edit")
+  @ApiOperation({ summary: "Update sales order (draft only)" })
   async update(
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @Body() data: UpdateSalesOrderDto,
   ) {
     return this.service.updateOrder(id, data);
   }
 
-  @Post(':id/confirm')
-  @RequirePermissions('sales_order.edit')
-  @ApiOperation({ summary: 'Confirm sales order' })
-  async confirm(@Param('id', UuidValidationPipe) id: string) {
+  @Post(":id/confirm")
+  @RequirePermissions("sales_order.edit")
+  @ApiOperation({ summary: "Confirm sales order" })
+  async confirm(@Param("id", UuidValidationPipe) id: string) {
     return this.service.confirmOrder(id);
   }
 
-  @Post(':id/allocate')
-  @RequirePermissions('sales_order.allocate')
-  @ApiOperation({ summary: 'Allocate stock to order' })
-  async allocate(@Param('id', UuidValidationPipe) id: string) {
+  @Post(":id/allocate")
+  @RequirePermissions("sales_order.allocate")
+  @ApiOperation({ summary: "Allocate stock to order" })
+  async allocate(@Param("id", UuidValidationPipe) id: string) {
     return this.service.allocateOrder(id);
   }
 
-  @Post(':id/cancel')
-  @RequirePermissions('sales_order.cancel')
-  @ApiOperation({ summary: 'Cancel sales order' })
-  async cancel(@Param('id', UuidValidationPipe) id: string) {
+  @Post(":id/cancel")
+  @RequirePermissions("sales_order.cancel")
+  @ApiOperation({ summary: "Cancel sales order" })
+  async cancel(@Param("id", UuidValidationPipe) id: string) {
     return this.service.cancelOrder(id);
   }
 
-  @Post(':id/reopen')
-  @RequirePermissions('sales_order.edit')
-  @ApiOperation({ summary: 'Reopen cancelled or delivered order' })
-  async reopen(@Param('id', UuidValidationPipe) id: string) {
+  @Post(":id/reopen")
+  @RequirePermissions("sales_order.edit")
+  @ApiOperation({ summary: "Reopen cancelled or delivered order" })
+  async reopen(@Param("id", UuidValidationPipe) id: string) {
     return this.service.reopenOrder(id);
   }
 
-  @Delete(':id')
-  @RequirePermissions('sales_order.delete')
-  @ApiOperation({ summary: 'Delete sales order (draft only)' })
-  async deleteOrder(@Param('id', UuidValidationPipe) id: string) {
+  @Delete(":id")
+  @RequirePermissions("sales_order.delete")
+  @ApiOperation({ summary: "Delete sales order (draft only)" })
+  async deleteOrder(@Param("id", UuidValidationPipe) id: string) {
     await this.service.deleteOrder(id);
     return { success: true };
   }

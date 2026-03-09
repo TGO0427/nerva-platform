@@ -6,76 +6,84 @@ import {
   Body,
   Query,
   UseGuards,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { InventoryService } from './inventory.service';
-import { BatchRepository } from './batch.repository';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TenantGuard } from '../../common/guards/tenant.guard';
-import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
-import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
-import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
-import { TransferStockDto } from './dto/inventory.dto';
+} from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import { InventoryService } from "./inventory.service";
+import { BatchRepository } from "./batch.repository";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { TenantGuard } from "../../common/guards/tenant.guard";
+import { PermissionsGuard } from "../../common/guards/permissions.guard";
+import { RequirePermissions } from "../../common/decorators/permissions.decorator";
+import { TenantId, SiteId } from "../../common/decorators/tenant.decorator";
+import {
+  CurrentUser,
+  CurrentUserData,
+} from "../../common/decorators/current-user.decorator";
+import { UuidValidationPipe } from "../../common/pipes/uuid-validation.pipe";
+import { TransferStockDto } from "./dto/inventory.dto";
 
-@ApiTags('inventory')
+@ApiTags("inventory")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('inventory')
+@Controller("inventory")
 export class InventoryController {
   constructor(
     private readonly service: InventoryService,
     private readonly batchRepository: BatchRepository,
   ) {}
 
-  @Get('stock-snapshots')
-  @RequirePermissions('inventory.read')
-  @ApiOperation({ summary: 'Get paginated stock snapshots with search' })
+  @Get("stock-snapshots")
+  @RequirePermissions("inventory.read")
+  @ApiOperation({ summary: "Get paginated stock snapshots with search" })
   async getStockSnapshots(
     @TenantId() tenantId: string,
-    @Query('search') search?: string,
-    @Query('warehouseId') warehouseId?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query("search") search?: string,
+    @Query("warehouseId") warehouseId?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
   ) {
-    return this.service.getStockSnapshots(tenantId, { search, warehouseId, page, limit });
+    return this.service.getStockSnapshots(tenantId, {
+      search,
+      warehouseId,
+      page,
+      limit,
+    });
   }
 
-  @Get('stock-on-hand')
-  @RequirePermissions('inventory.read')
-  @ApiOperation({ summary: 'Get stock on hand for item' })
+  @Get("stock-on-hand")
+  @RequirePermissions("inventory.read")
+  @ApiOperation({ summary: "Get stock on hand for item" })
   async getStockOnHand(
     @TenantId() tenantId: string,
-    @Query('itemId', UuidValidationPipe) itemId: string,
+    @Query("itemId", UuidValidationPipe) itemId: string,
   ) {
     return this.service.getStockOnHand(tenantId, itemId);
   }
 
-  @Get('stock-in-bin')
-  @RequirePermissions('inventory.read')
-  @ApiOperation({ summary: 'Get stock in a bin' })
+  @Get("stock-in-bin")
+  @RequirePermissions("inventory.read")
+  @ApiOperation({ summary: "Get stock in a bin" })
   async getStockInBin(
     @TenantId() tenantId: string,
-    @Query('binId', UuidValidationPipe) binId: string,
+    @Query("binId", UuidValidationPipe) binId: string,
   ) {
     return this.service.getStockInBin(tenantId, binId);
   }
 
-  @Get('expiry-alerts')
-  @RequirePermissions('inventory.read')
-  @ApiOperation({ summary: 'Get expiry alerts summary (counts by status)' })
+  @Get("expiry-alerts")
+  @RequirePermissions("inventory.read")
+  @ApiOperation({ summary: "Get expiry alerts summary (counts by status)" })
   async getExpiryAlertsSummary(@TenantId() tenantId: string) {
     return this.batchRepository.getExpiryAlertsSummary(tenantId);
   }
 
-  @Get('expiring-stock')
-  @RequirePermissions('inventory.read')
-  @ApiOperation({ summary: 'Get stock expiring within specified days' })
+  @Get("expiring-stock")
+  @RequirePermissions("inventory.read")
+  @ApiOperation({ summary: "Get stock expiring within specified days" })
   async getExpiringStock(
     @TenantId() tenantId: string,
-    @Query('daysAhead') daysAhead?: number,
-    @Query('warehouseId') warehouseId?: string,
+    @Query("daysAhead") daysAhead?: number,
+    @Query("warehouseId") warehouseId?: string,
   ) {
     return this.batchRepository.getExpiringStock(
       tenantId,
@@ -84,31 +92,31 @@ export class InventoryController {
     );
   }
 
-  @Get('expired-stock')
-  @RequirePermissions('inventory.read')
-  @ApiOperation({ summary: 'Get already expired stock' })
+  @Get("expired-stock")
+  @RequirePermissions("inventory.read")
+  @ApiOperation({ summary: "Get already expired stock" })
   async getExpiredStock(
     @TenantId() tenantId: string,
-    @Query('warehouseId') warehouseId?: string,
+    @Query("warehouseId") warehouseId?: string,
   ) {
     return this.batchRepository.getExpiredStock(tenantId, warehouseId);
   }
 
-  @Get('ledger')
-  @RequirePermissions('inventory.read')
-  @ApiOperation({ summary: 'Get stock ledger history for item' })
+  @Get("ledger")
+  @RequirePermissions("inventory.read")
+  @ApiOperation({ summary: "Get stock ledger history for item" })
   async getLedgerHistory(
     @TenantId() tenantId: string,
-    @Query('itemId', UuidValidationPipe) itemId: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query("itemId", UuidValidationPipe) itemId: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
   ) {
     return this.service.getLedgerHistory(tenantId, itemId, page, limit);
   }
 
-  @Post('transfers')
-  @RequirePermissions('inventory.adjust')
-  @ApiOperation({ summary: 'Transfer stock between bins' })
+  @Post("transfers")
+  @RequirePermissions("inventory.adjust")
+  @ApiOperation({ summary: "Transfer stock between bins" })
   async transferStock(
     @TenantId() tenantId: string,
     @SiteId() siteId: string,

@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface DispatchTrip {
   id: string;
@@ -102,7 +102,7 @@ export class DispatchRepository extends BaseRepository {
 
   async findTripById(id: string): Promise<DispatchTrip | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM dispatch_trips WHERE id = $1',
+      "SELECT * FROM dispatch_trips WHERE id = $1",
       [id],
     );
     return row ? this.mapTrip(row) : null;
@@ -110,11 +110,16 @@ export class DispatchRepository extends BaseRepository {
 
   async findTripsByTenant(
     tenantId: string,
-    filters: { status?: string; driverId?: string; date?: Date; search?: string },
+    filters: {
+      status?: string;
+      driverId?: string;
+      date?: Date;
+      search?: string;
+    },
     limit = 50,
     offset = 0,
   ): Promise<DispatchTrip[]> {
-    let sql = 'SELECT * FROM dispatch_trips WHERE tenant_id = $1';
+    let sql = "SELECT * FROM dispatch_trips WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
     let idx = 2;
 
@@ -145,9 +150,15 @@ export class DispatchRepository extends BaseRepository {
 
   async countTripsByTenant(
     tenantId: string,
-    filters: { status?: string; driverId?: string; date?: Date; search?: string },
+    filters: {
+      status?: string;
+      driverId?: string;
+      date?: Date;
+      search?: string;
+    },
   ): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM dispatch_trips WHERE tenant_id = $1';
+    let sql =
+      "SELECT COUNT(*) as count FROM dispatch_trips WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
     let idx = 2;
 
@@ -170,49 +181,67 @@ export class DispatchRepository extends BaseRepository {
     }
 
     const result = await this.queryOne<{ count: string }>(sql, params);
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
-  async findDriverByUserId(userId: string): Promise<{ id: string; name: string; tenantId: string } | null> {
+  async findDriverByUserId(
+    userId: string,
+  ): Promise<{ id: string; name: string; tenantId: string } | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT id, name, tenant_id FROM drivers WHERE user_id = $1 AND is_active = true LIMIT 1',
+      "SELECT id, name, tenant_id FROM drivers WHERE user_id = $1 AND is_active = true LIMIT 1",
       [userId],
     );
-    return row ? { id: row.id as string, name: row.name as string, tenantId: row.tenant_id as string } : null;
+    return row
+      ? {
+          id: row.id as string,
+          name: row.name as string,
+          tenantId: row.tenant_id as string,
+        }
+      : null;
   }
 
-  async findDriverTrips(driverId: string, status?: string): Promise<DispatchTrip[]> {
-    let sql = 'SELECT * FROM dispatch_trips WHERE driver_id = $1';
+  async findDriverTrips(
+    driverId: string,
+    status?: string,
+  ): Promise<DispatchTrip[]> {
+    let sql = "SELECT * FROM dispatch_trips WHERE driver_id = $1";
     const params: unknown[] = [driverId];
 
     if (status) {
-      sql += ' AND status = $2';
+      sql += " AND status = $2";
       params.push(status);
     }
 
-    sql += ' ORDER BY planned_date, planned_start';
+    sql += " ORDER BY planned_date, planned_start";
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
     return rows.map(this.mapTrip);
   }
 
-  async updateTripStatus(id: string, status: string): Promise<DispatchTrip | null> {
-    let sql = 'UPDATE dispatch_trips SET status = $1';
+  async updateTripStatus(
+    id: string,
+    status: string,
+  ): Promise<DispatchTrip | null> {
+    let sql = "UPDATE dispatch_trips SET status = $1";
     const params: unknown[] = [status];
 
-    if (status === 'IN_PROGRESS') {
-      sql += ', actual_start = NOW()';
-    } else if (status === 'COMPLETE') {
-      sql += ', actual_end = NOW()';
+    if (status === "IN_PROGRESS") {
+      sql += ", actual_start = NOW()";
+    } else if (status === "COMPLETE") {
+      sql += ", actual_end = NOW()";
     }
 
-    sql += ' WHERE id = $2 RETURNING *';
+    sql += " WHERE id = $2 RETURNING *";
     params.push(id);
 
     const row = await this.queryOne<Record<string, unknown>>(sql, params);
     return row ? this.mapTrip(row) : null;
   }
 
-  async assignDriver(tripId: string, driverId: string, vehicleId?: string): Promise<DispatchTrip | null> {
+  async assignDriver(
+    tripId: string,
+    driverId: string,
+    vehicleId?: string,
+  ): Promise<DispatchTrip | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE dispatch_trips SET driver_id = $1, vehicle_id = $2, status = 'ASSIGNED'
        WHERE id = $3 RETURNING *`,
@@ -221,12 +250,15 @@ export class DispatchRepository extends BaseRepository {
     return row ? this.mapTrip(row) : null;
   }
 
-  async assignTripManual(tripId: string, data: {
-    vehicleId?: string;
-    driverId?: string;
-    vehiclePlate?: string;
-    driverName?: string;
-  }): Promise<DispatchTrip | null> {
+  async assignTripManual(
+    tripId: string,
+    data: {
+      vehicleId?: string;
+      driverId?: string;
+      vehiclePlate?: string;
+      driverName?: string;
+    },
+  ): Promise<DispatchTrip | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE dispatch_trips
        SET driver_id = $1, vehicle_id = $2, driver_name = $3, vehicle_plate = $4, status = 'ASSIGNED'
@@ -242,7 +274,10 @@ export class DispatchRepository extends BaseRepository {
     return row ? this.mapTrip(row) : null;
   }
 
-  async cancelTrip(tripId: string, reason: string): Promise<DispatchTrip | null> {
+  async cancelTrip(
+    tripId: string,
+    reason: string,
+  ): Promise<DispatchTrip | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE dispatch_trips SET status = 'CANCELLED', notes = COALESCE(notes || ' | ', '') || $1
        WHERE id = $2 RETURNING *`,
@@ -320,7 +355,7 @@ export class DispatchRepository extends BaseRepository {
 
   async findStopById(id: string): Promise<DispatchStop | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM dispatch_stops WHERE id = $1',
+      "SELECT * FROM dispatch_stops WHERE id = $1",
       [id],
     );
     return row ? this.mapStop(row) : null;
@@ -341,17 +376,20 @@ export class DispatchRepository extends BaseRepository {
     return rows.map(this.mapStop);
   }
 
-  async updateStopStatus(id: string, status: string): Promise<DispatchStop | null> {
-    let sql = 'UPDATE dispatch_stops SET status = $1';
+  async updateStopStatus(
+    id: string,
+    status: string,
+  ): Promise<DispatchStop | null> {
+    let sql = "UPDATE dispatch_stops SET status = $1";
     const params: unknown[] = [status];
 
-    if (status === 'ARRIVED') {
-      sql += ', arrived_at = NOW()';
-    } else if (['DELIVERED', 'FAILED', 'PARTIAL', 'SKIPPED'].includes(status)) {
-      sql += ', completed_at = NOW()';
+    if (status === "ARRIVED") {
+      sql += ", arrived_at = NOW()";
+    } else if (["DELIVERED", "FAILED", "PARTIAL", "SKIPPED"].includes(status)) {
+      sql += ", completed_at = NOW()";
     }
 
-    sql += ' WHERE id = $2 RETURNING *';
+    sql += " WHERE id = $2 RETURNING *";
     params.push(id);
 
     const row = await this.queryOne<Record<string, unknown>>(sql, params);
@@ -396,7 +434,7 @@ export class DispatchRepository extends BaseRepository {
 
   async findPodByStop(stopId: string): Promise<Pod | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM pods WHERE stop_id = $1 ORDER BY captured_at DESC LIMIT 1',
+      "SELECT * FROM pods WHERE stop_id = $1 ORDER BY captured_at DESC LIMIT 1",
       [stopId],
     );
     return row ? this.mapPod(row) : null;
@@ -404,24 +442,26 @@ export class DispatchRepository extends BaseRepository {
 
   async generateTripNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM dispatch_trips WHERE tenant_id = $1',
+      "SELECT COUNT(*) as count FROM dispatch_trips WHERE tenant_id = $1",
       [tenantId],
     );
-    const count = parseInt(result?.count || '0', 10) + 1;
-    return `TRIP-${new Date().getFullYear()}-${count.toString().padStart(4, '0')}`;
+    const count = parseInt(result?.count || "0", 10) + 1;
+    return `TRIP-${new Date().getFullYear()}-${count.toString().padStart(4, "0")}`;
   }
 
-  async getShipmentInfoForTrip(shipmentIds: string[]): Promise<{
-    id: string;
-    warehouseId: string;
-    customerId: string | null;
-    customerName?: string;
-    addressLine1?: string;
-    city?: string;
-  }[]> {
+  async getShipmentInfoForTrip(shipmentIds: string[]): Promise<
+    {
+      id: string;
+      warehouseId: string;
+      customerId: string | null;
+      customerName?: string;
+      addressLine1?: string;
+      city?: string;
+    }[]
+  > {
     if (shipmentIds.length === 0) return [];
 
-    const placeholders = shipmentIds.map((_, i) => `$${i + 1}`).join(', ');
+    const placeholders = shipmentIds.map((_, i) => `$${i + 1}`).join(", ");
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT s.id, s.warehouse_id, so.customer_id, c.name as customer_name,
               c.shipping_address_line1 as address_line1, c.shipping_city as city
@@ -479,14 +519,14 @@ export class DispatchRepository extends BaseRepository {
 
   async updateTripStopCount(tripId: string, count: number): Promise<void> {
     await this.query(
-      'UPDATE dispatch_trips SET total_stops = $1 WHERE id = $2',
+      "UPDATE dispatch_trips SET total_stops = $1 WHERE id = $2",
       [count, tripId],
     );
   }
 
   async updateTripCompletedStops(tripId: string, count: number): Promise<void> {
     await this.query(
-      'UPDATE dispatch_trips SET completed_stops = $1 WHERE id = $2',
+      "UPDATE dispatch_trips SET completed_stops = $1 WHERE id = $2",
       [count, tripId],
     );
   }
@@ -494,7 +534,7 @@ export class DispatchRepository extends BaseRepository {
   async updateStopWithFailure(
     stopId: string,
     reason: string,
-    status = 'FAILED',
+    status = "FAILED",
   ): Promise<DispatchStop | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE dispatch_stops

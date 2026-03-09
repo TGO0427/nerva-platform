@@ -1,6 +1,6 @@
-import { Inject } from '@nestjs/common';
-import { Pool, QueryResult, QueryResultRow } from 'pg';
-import { DATABASE_POOL } from './database.module';
+import { Inject } from "@nestjs/common";
+import { Pool, QueryResult, QueryResultRow } from "pg";
+import { DATABASE_POOL } from "./database.module";
 
 export abstract class BaseRepository {
   constructor(@Inject(DATABASE_POOL) protected readonly pool: Pool) {}
@@ -36,25 +36,20 @@ export abstract class BaseRepository {
     return result.rows;
   }
 
-  protected async execute(
-    text: string,
-    params?: unknown[],
-  ): Promise<number> {
+  protected async execute(text: string, params?: unknown[]): Promise<number> {
     const result = await this.query(text, params);
     return result.rowCount ?? 0;
   }
 
-  protected async transaction<T>(
-    fn: (client: Pool) => Promise<T>,
-  ): Promise<T> {
+  protected async transaction<T>(fn: (client: Pool) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
     try {
-      await client.query('BEGIN');
+      await client.query("BEGIN");
       const result = await fn(client as unknown as Pool);
-      await client.query('COMMIT');
+      await client.query("COMMIT");
       return result;
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       throw error;
     } finally {
       client.release();

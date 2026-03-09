@@ -2,7 +2,7 @@ export interface PaginationParams {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortOrder?: 'ASC' | 'DESC';
+  sortOrder?: "ASC" | "DESC";
 }
 
 export interface PaginatedResult<T> {
@@ -47,13 +47,13 @@ export function normalizePagination(params: PaginationParams): {
   limit: number;
   offset: number;
   sortBy: string;
-  sortOrder: 'ASC' | 'DESC';
+  sortOrder: "ASC" | "DESC";
 } {
   const page = Math.max(1, params.page || 1);
   const limit = Math.min(100, Math.max(1, params.limit || 20));
   const offset = getPaginationOffset(page, limit);
-  const sortBy = params.sortBy || 'created_at';
-  const sortOrder = params.sortOrder || 'DESC';
+  const sortBy = params.sortBy || "created_at";
+  const sortOrder = params.sortOrder || "DESC";
 
   return { page, limit, offset, sortBy, sortOrder };
 }

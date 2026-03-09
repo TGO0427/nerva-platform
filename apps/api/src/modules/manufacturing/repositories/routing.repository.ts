@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../../common/db/base.repository";
 
 export interface Routing {
   id: string;
@@ -65,7 +65,7 @@ export class RoutingRepository extends BaseRepository {
 
   async findById(id: string): Promise<Routing | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM routings WHERE id = $1',
+      "SELECT * FROM routings WHERE id = $1",
       [id],
     );
     return row ? this.mapRouting(row) : null;
@@ -76,7 +76,14 @@ export class RoutingRepository extends BaseRepository {
     filters: { itemId?: string; status?: string; search?: string },
     limit = 50,
     offset = 0,
-  ): Promise<{ data: (Routing & { itemSku?: string; itemDescription?: string; operationCount?: number })[]; total: number }> {
+  ): Promise<{
+    data: (Routing & {
+      itemSku?: string;
+      itemDescription?: string;
+      operationCount?: number;
+    })[];
+    total: number;
+  }> {
     let sql = `
       SELECT r.*, i.sku as item_sku, i.description as item_description,
              (SELECT COUNT(*) FROM routing_operations ro WHERE ro.routing_id = r.id) as operation_count
@@ -84,7 +91,8 @@ export class RoutingRepository extends BaseRepository {
       JOIN items i ON i.id = r.item_id
       WHERE r.tenant_id = $1
     `;
-    let countSql = 'SELECT COUNT(*) as count FROM routings r JOIN items i ON i.id = r.item_id WHERE r.tenant_id = $1';
+    let countSql =
+      "SELECT COUNT(*) as count FROM routings r JOIN items i ON i.id = r.item_id WHERE r.tenant_id = $1";
     const params: unknown[] = [tenantId];
     const countParams: unknown[] = [tenantId];
     let idx = 2;
@@ -126,11 +134,14 @@ export class RoutingRepository extends BaseRepository {
         itemDescription: r.item_description as string,
         operationCount: parseInt(r.operation_count as string, 10),
       })),
-      total: parseInt(countResult?.count || '0', 10),
+      total: parseInt(countResult?.count || "0", 10),
     };
   }
 
-  async findActiveForItem(tenantId: string, itemId: string): Promise<Routing | null> {
+  async findActiveForItem(
+    tenantId: string,
+    itemId: string,
+  ): Promise<Routing | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT * FROM routings
        WHERE tenant_id = $1 AND item_id = $2 AND status = 'APPROVED'
@@ -145,10 +156,10 @@ export class RoutingRepository extends BaseRepository {
 
   async getNextVersion(tenantId: string, itemId: string): Promise<number> {
     const result = await this.queryOne<{ max_version: string }>(
-      'SELECT COALESCE(MAX(version), 0) as max_version FROM routings WHERE tenant_id = $1 AND item_id = $2',
+      "SELECT COALESCE(MAX(version), 0) as max_version FROM routings WHERE tenant_id = $1 AND item_id = $2",
       [tenantId, itemId],
     );
-    return parseInt(result?.max_version || '0', 10) + 1;
+    return parseInt(result?.max_version || "0", 10) + 1;
   }
 
   async update(
@@ -195,14 +206,16 @@ export class RoutingRepository extends BaseRepository {
 
     params.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE routings SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE routings SET ${updates.join(", ")} WHERE id = $${idx} RETURNING *`,
       params,
     );
     return row ? this.mapRouting(row) : null;
   }
 
   async delete(id: string): Promise<boolean> {
-    const count = await this.execute('DELETE FROM routings WHERE id = $1', [id]);
+    const count = await this.execute("DELETE FROM routings WHERE id = $1", [
+      id,
+    ]);
     return count > 0;
   }
 
@@ -245,7 +258,12 @@ export class RoutingRepository extends BaseRepository {
     return this.mapOperation(row!);
   }
 
-  async getOperations(routingId: string): Promise<(RoutingOperation & { workstationCode?: string; workstationName?: string })[]> {
+  async getOperations(routingId: string): Promise<
+    (RoutingOperation & {
+      workstationCode?: string;
+      workstationName?: string;
+    })[]
+  > {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT ro.*, w.code as workstation_code, w.name as workstation_name
        FROM routing_operations ro
@@ -320,19 +338,25 @@ export class RoutingRepository extends BaseRepository {
 
     params.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE routing_operations SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE routing_operations SET ${updates.join(", ")} WHERE id = $${idx} RETURNING *`,
       params,
     );
     return row ? this.mapOperation(row) : null;
   }
 
   async deleteOperation(id: string): Promise<boolean> {
-    const count = await this.execute('DELETE FROM routing_operations WHERE id = $1', [id]);
+    const count = await this.execute(
+      "DELETE FROM routing_operations WHERE id = $1",
+      [id],
+    );
     return count > 0;
   }
 
   async deleteOperationsByRouting(routingId: string): Promise<number> {
-    return await this.execute('DELETE FROM routing_operations WHERE routing_id = $1', [routingId]);
+    return await this.execute(
+      "DELETE FROM routing_operations WHERE routing_id = $1",
+      [routingId],
+    );
   }
 
   private mapRouting(row: Record<string, unknown>): Routing {

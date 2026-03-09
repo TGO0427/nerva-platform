@@ -1,8 +1,8 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { Pool } from 'pg';
-import { DATABASE_POOL } from '../../common/db/database.module';
-import { InvoicingRepository } from './invoicing.repository';
-import { TenantProfileService } from '../../common/pdf/tenant-profile.service';
+import { Injectable, Inject, NotFoundException } from "@nestjs/common";
+import { Pool } from "pg";
+import { DATABASE_POOL } from "../../common/db/database.module";
+import { InvoicingRepository } from "./invoicing.repository";
+import { TenantProfileService } from "../../common/pdf/tenant-profile.service";
 import {
   createPdfDocument,
   pdfToBuffer,
@@ -17,7 +17,7 @@ import {
   renderSignatureBlock,
   formatCurrency,
   formatDate,
-} from '../../common/pdf/pdf-helpers';
+} from "../../common/pdf/pdf-helpers";
 
 @Injectable()
 export class InvoicePdfService {
@@ -29,7 +29,7 @@ export class InvoicePdfService {
 
   async generate(invoiceId: string, tenantId: string): Promise<Buffer> {
     const invoice = await this.repository.findInvoiceById(invoiceId);
-    if (!invoice) throw new NotFoundException('Invoice not found');
+    if (!invoice) throw new NotFoundException("Invoice not found");
 
     const lines = await this.repository.getInvoiceLines(invoiceId);
     const payments = await this.repository.getPayments(invoiceId);
@@ -49,21 +49,24 @@ export class InvoicePdfService {
     let y = renderCompanyHeader(doc, profile);
 
     // Document title
-    y = renderDocumentTitle(doc, 'TAX INVOICE', y);
+    y = renderDocumentTitle(doc, "TAX INVOICE", y);
 
     // Meta info
     const leftMeta = [
-      { label: 'Invoice No', value: invoice.invoiceNo },
-      { label: 'Invoice Date', value: formatDate(invoice.invoiceDate) },
-      { label: 'Due Date', value: formatDate(invoice.dueDate) },
-      { label: 'Payment Terms', value: invoice.paymentTerms || '-' },
+      { label: "Invoice No", value: invoice.invoiceNo },
+      { label: "Invoice Date", value: formatDate(invoice.invoiceDate) },
+      { label: "Due Date", value: formatDate(invoice.dueDate) },
+      { label: "Payment Terms", value: invoice.paymentTerms || "-" },
     ];
 
     const rightMeta: { label: string; value: string }[] = [
-      { label: 'Status', value: invoice.status },
+      { label: "Status", value: invoice.status },
     ];
     if (invoice.salesOrderId) {
-      rightMeta.push({ label: 'Order Ref', value: invoice.orderNo || invoice.salesOrderId });
+      rightMeta.push({
+        label: "Order Ref",
+        value: invoice.orderNo || invoice.salesOrderId,
+      });
     }
 
     y = renderDocumentMeta(doc, leftMeta, rightMeta, y);
@@ -74,7 +77,7 @@ export class InvoicePdfService {
     if (customer) {
       y = renderAddressBlock(
         doc,
-        'Bill To:',
+        "Bill To:",
         {
           name: customer.name,
           addressLine1: customer.billing_address_line1 || undefined,
@@ -99,7 +102,7 @@ export class InvoicePdfService {
       if (shipToLine1 || shipToCity) {
         y = renderAddressBlock(
           doc,
-          'Ship To:',
+          "Ship To:",
           {
             name: customer.name,
             addressLine1: shipToLine1,
@@ -117,23 +120,28 @@ export class InvoicePdfService {
     // Line items table
     y = renderTable(doc, {
       columns: [
-        { key: 'lineNo', header: '#', width: 30, align: 'center' },
-        { key: 'sku', header: 'SKU', width: 80 },
-        { key: 'description', header: 'Description', width: 180 },
-        { key: 'qty', header: 'Qty', width: 50, align: 'right' },
-        { key: 'unitPrice', header: 'Unit Price', width: 70, align: 'right' },
-        { key: 'discountPct', header: 'Disc %', width: 45, align: 'right' },
-        { key: 'lineTotal', header: 'Line Total', width: 80, align: 'right' },
+        { key: "lineNo", header: "#", width: 30, align: "center" },
+        { key: "sku", header: "SKU", width: 80 },
+        { key: "description", header: "Description", width: 180 },
+        { key: "qty", header: "Qty", width: 50, align: "right" },
+        { key: "unitPrice", header: "Unit Price", width: 70, align: "right" },
+        { key: "discountPct", header: "Disc %", width: 45, align: "right" },
+        { key: "lineTotal", header: "Line Total", width: 80, align: "right" },
       ],
       rows: lines.map((line, i) => {
         const item = items.get(line.itemId);
         return {
           lineNo: String(i + 1),
-          sku: item?.sku || line.sku || '-',
-          description: (item?.description || line.itemDescription || line.description || '-').substring(0, 40),
+          sku: item?.sku || line.sku || "-",
+          description: (
+            item?.description ||
+            line.itemDescription ||
+            line.description ||
+            "-"
+          ).substring(0, 40),
           qty: String(line.qty),
           unitPrice: formatCurrency(line.unitPrice),
-          discountPct: line.discountPct > 0 ? `${line.discountPct}%` : '-',
+          discountPct: line.discountPct > 0 ? `${line.discountPct}%` : "-",
           lineTotal: formatCurrency(line.lineTotal),
         };
       }),
@@ -144,13 +152,21 @@ export class InvoicePdfService {
     const amountPaid = payments.reduce((sum, p) => sum + p.amount, 0);
     const balanceDue = invoice.totalAmount - amountPaid;
 
-    y = renderTotals(doc, [
-      { label: 'Subtotal', value: formatCurrency(invoice.subtotal) },
-      { label: 'VAT (15%)', value: formatCurrency(invoice.taxAmount) },
-      { label: 'Total', value: formatCurrency(invoice.totalAmount), bold: true },
-      { label: 'Amount Paid', value: formatCurrency(amountPaid) },
-      { label: 'Balance Due', value: formatCurrency(balanceDue), bold: true },
-    ], y);
+    y = renderTotals(
+      doc,
+      [
+        { label: "Subtotal", value: formatCurrency(invoice.subtotal) },
+        { label: "VAT (15%)", value: formatCurrency(invoice.taxAmount) },
+        {
+          label: "Total",
+          value: formatCurrency(invoice.totalAmount),
+          bold: true,
+        },
+        { label: "Amount Paid", value: formatCurrency(amountPaid) },
+        { label: "Balance Due", value: formatCurrency(balanceDue), bold: true },
+      ],
+      y,
+    );
 
     // Notes
     y = renderNotes(doc, invoice.notes, y);
@@ -159,13 +175,16 @@ export class InvoicePdfService {
     y = renderBankDetails(doc, profile, y);
 
     // Signature
-    renderSignatureBlock(doc, y, 'Authorized Signatory', 'Date');
+    renderSignatureBlock(doc, y, "Authorized Signatory", "Date");
 
     doc.end();
     return bufferPromise;
   }
 
-  private async getCustomer(customerId: string, tenantId: string): Promise<Record<string, any> | null> {
+  private async getCustomer(
+    customerId: string,
+    tenantId: string,
+  ): Promise<Record<string, any> | null> {
     const result = await this.pool.query(
       `SELECT name, phone, email, vat_no,
               billing_address_line1, billing_address_line2, billing_city,
@@ -177,9 +196,12 @@ export class InvoicePdfService {
     return result.rows[0] || null;
   }
 
-  private async getItems(itemIds: string[], tenantId: string): Promise<Map<string, { sku: string; description: string }>> {
+  private async getItems(
+    itemIds: string[],
+    tenantId: string,
+  ): Promise<Map<string, { sku: string; description: string }>> {
     if (itemIds.length === 0) return new Map();
-    const placeholders = itemIds.map((_, i) => `$${i + 1}`).join(', ');
+    const placeholders = itemIds.map((_, i) => `$${i + 1}`).join(", ");
     const result = await this.pool.query(
       `SELECT id, sku, description FROM items WHERE id IN (${placeholders}) AND tenant_id = $${itemIds.length + 1}`,
       [...itemIds, tenantId],

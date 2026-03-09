@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../../common/db/base.repository";
 
 @Injectable()
 export class MrpRepository extends BaseRepository {
@@ -62,21 +62,21 @@ export class MrpRepository extends BaseRepository {
       itemId: row.item_id as string,
       itemSku: row.item_sku as string,
       itemDescription: row.item_description as string,
-      qtyRequired: parseFloat((row.qty_required as string) || '0'),
-      qtyIssued: parseFloat((row.qty_issued as string) || '0'),
-      qtyOutstanding: parseFloat((row.qty_outstanding as string) || '0'),
-      availableStock: parseFloat((row.available_stock as string) || '0'),
-      shortage: parseFloat((row.shortage as string) || '0'),
+      qtyRequired: parseFloat((row.qty_required as string) || "0"),
+      qtyIssued: parseFloat((row.qty_issued as string) || "0"),
+      qtyOutstanding: parseFloat((row.qty_outstanding as string) || "0"),
+      availableStock: parseFloat((row.available_stock as string) || "0"),
+      shortage: parseFloat((row.shortage as string) || "0"),
     }));
 
     const itemSummary = summaryRows.map((row) => ({
       itemId: row.item_id as string,
       itemSku: row.item_sku as string,
       itemDescription: row.item_description as string,
-      totalDemand: parseFloat((row.total_demand as string) || '0'),
-      totalOutstanding: parseFloat((row.total_outstanding as string) || '0'),
-      availableStock: parseFloat((row.available_stock as string) || '0'),
-      netShortage: parseFloat((row.net_shortage as string) || '0'),
+      totalDemand: parseFloat((row.total_demand as string) || "0"),
+      totalOutstanding: parseFloat((row.total_outstanding as string) || "0"),
+      availableStock: parseFloat((row.available_stock as string) || "0"),
+      netShortage: parseFloat((row.net_shortage as string) || "0"),
     }));
 
     return { workOrderDemand, itemSummary };

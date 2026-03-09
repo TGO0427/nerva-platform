@@ -1,8 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { IbtRepository, IbtDetail, IbtLineDetail, IbtFilters } from './ibt.repository';
-import { StockLedgerService } from './stock-ledger.service';
-import { MasterDataService } from '../masterdata/masterdata.service';
-import { buildPaginatedResult } from '../../common/utils/pagination';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import {
+  IbtRepository,
+  IbtDetail,
+  IbtLineDetail,
+  IbtFilters,
+} from "./ibt.repository";
+import { StockLedgerService } from "./stock-ledger.service";
+import { MasterDataService } from "../masterdata/masterdata.service";
+import { buildPaginatedResult } from "../../common/utils/pagination";
 
 @Injectable()
 export class IbtService {
@@ -20,12 +29,20 @@ export class IbtService {
     createdBy?: string;
   }): Promise<IbtDetail> {
     if (data.fromWarehouseId === data.toWarehouseId) {
-      throw new BadRequestException('Source and destination warehouses must be different');
+      throw new BadRequestException(
+        "Source and destination warehouses must be different",
+      );
     }
 
     // Validate warehouses exist
-    await this.masterDataService.getWarehouse(data.tenantId, data.fromWarehouseId);
-    await this.masterDataService.getWarehouse(data.tenantId, data.toWarehouseId);
+    await this.masterDataService.getWarehouse(
+      data.tenantId,
+      data.fromWarehouseId,
+    );
+    await this.masterDataService.getWarehouse(
+      data.tenantId,
+      data.toWarehouseId,
+    );
 
     const ibtNo = await this.ibtRepo.generateIbtNo(data.tenantId);
     const ibt = await this.ibtRepo.create({
@@ -42,23 +59,19 @@ export class IbtService {
 
   async deleteIbt(id: string): Promise<void> {
     const ibt = await this.ibtRepo.findById(id);
-    if (!ibt) throw new NotFoundException('IBT not found');
-    if (ibt.status !== 'DRAFT') throw new BadRequestException('Only DRAFT IBTs can be deleted');
+    if (!ibt) throw new NotFoundException("IBT not found");
+    if (ibt.status !== "DRAFT")
+      throw new BadRequestException("Only DRAFT IBTs can be deleted");
     await this.ibtRepo.deleteIbt(id);
   }
 
   async getIbt(id: string): Promise<IbtDetail> {
     const ibt = await this.ibtRepo.findById(id);
-    if (!ibt) throw new NotFoundException('IBT not found');
+    if (!ibt) throw new NotFoundException("IBT not found");
     return ibt;
   }
 
-  async listIbts(
-    tenantId: string,
-    filters: IbtFilters,
-    page = 1,
-    limit = 25,
-  ) {
+  async listIbts(tenantId: string, filters: IbtFilters, page = 1, limit = 25) {
     const offset = (page - 1) * limit;
     const [data, total] = await Promise.all([
       this.ibtRepo.findByTenant(tenantId, filters, limit, offset),
@@ -82,19 +95,24 @@ export class IbtService {
     },
   ): Promise<IbtLineDetail[]> {
     const ibt = await this.getIbt(ibtId);
-    if (ibt.status !== 'DRAFT') {
-      throw new BadRequestException('Can only add lines to DRAFT IBTs');
+    if (ibt.status !== "DRAFT") {
+      throw new BadRequestException("Can only add lines to DRAFT IBTs");
     }
 
     if (data.qtyRequested <= 0) {
-      throw new BadRequestException('Quantity must be positive');
+      throw new BadRequestException("Quantity must be positive");
     }
 
     // Validate bin belongs to source warehouse if provided
     if (data.fromBinId) {
-      const bin = await this.masterDataService.getBin(data.tenantId, data.fromBinId);
+      const bin = await this.masterDataService.getBin(
+        data.tenantId,
+        data.fromBinId,
+      );
       if (bin.warehouseId !== ibt.fromWarehouseId) {
-        throw new BadRequestException('Source bin must belong to the source warehouse');
+        throw new BadRequestException(
+          "Source bin must belong to the source warehouse",
+        );
       }
     }
 
@@ -112,34 +130,38 @@ export class IbtService {
 
   async removeLine(ibtId: string, lineId: string): Promise<void> {
     const ibt = await this.getIbt(ibtId);
-    if (ibt.status !== 'DRAFT') {
-      throw new BadRequestException('Can only remove lines from DRAFT IBTs');
+    if (ibt.status !== "DRAFT") {
+      throw new BadRequestException("Can only remove lines from DRAFT IBTs");
     }
     await this.ibtRepo.deleteLine(lineId);
   }
 
   async submitForApproval(id: string): Promise<IbtDetail> {
     const ibt = await this.getIbt(id);
-    if (ibt.status !== 'DRAFT') {
-      throw new BadRequestException('Only DRAFT IBTs can be submitted for approval');
+    if (ibt.status !== "DRAFT") {
+      throw new BadRequestException(
+        "Only DRAFT IBTs can be submitted for approval",
+      );
     }
 
     const lines = await this.ibtRepo.getLines(id);
     if (lines.length === 0) {
-      throw new BadRequestException('Cannot submit IBT with no lines');
+      throw new BadRequestException("Cannot submit IBT with no lines");
     }
 
-    await this.ibtRepo.updateStatus(id, 'PENDING_APPROVAL');
+    await this.ibtRepo.updateStatus(id, "PENDING_APPROVAL");
     return this.getIbt(id);
   }
 
   async approve(id: string, userId: string): Promise<IbtDetail> {
     const ibt = await this.getIbt(id);
-    if (ibt.status !== 'PENDING_APPROVAL') {
-      throw new BadRequestException('Only PENDING_APPROVAL IBTs can be approved');
+    if (ibt.status !== "PENDING_APPROVAL") {
+      throw new BadRequestException(
+        "Only PENDING_APPROVAL IBTs can be approved",
+      );
     }
 
-    await this.ibtRepo.updateStatus(id, 'APPROVED', {
+    await this.ibtRepo.updateStatus(id, "APPROVED", {
       approvedBy: userId,
       approvedAt: new Date(),
     });
@@ -148,11 +170,11 @@ export class IbtService {
 
   async startPicking(id: string): Promise<IbtDetail> {
     const ibt = await this.getIbt(id);
-    if (ibt.status !== 'APPROVED') {
-      throw new BadRequestException('Only APPROVED IBTs can start picking');
+    if (ibt.status !== "APPROVED") {
+      throw new BadRequestException("Only APPROVED IBTs can start picking");
     }
 
-    await this.ibtRepo.updateStatus(id, 'PICKING');
+    await this.ibtRepo.updateStatus(id, "PICKING");
     return this.getIbt(id);
   }
 
@@ -162,11 +184,14 @@ export class IbtService {
     userId: string,
   ): Promise<IbtDetail> {
     const ibt = await this.getIbt(id);
-    if (ibt.status !== 'PICKING') {
-      throw new BadRequestException('Only PICKING IBTs can be shipped');
+    if (ibt.status !== "PICKING") {
+      throw new BadRequestException("Only PICKING IBTs can be shipped");
     }
 
-    const fromWarehouse = await this.masterDataService.getWarehouse(ibt.tenantId, ibt.fromWarehouseId);
+    const fromWarehouse = await this.masterDataService.getWarehouse(
+      ibt.tenantId,
+      ibt.fromWarehouseId,
+    );
     const ibtLines = await this.ibtRepo.getLines(id);
     const lineMap = new Map(ibtLines.map((l) => [l.id, l]));
 
@@ -176,12 +201,16 @@ export class IbtService {
         throw new BadRequestException(`Line ${shipLine.lineId} not found`);
       }
       if (shipLine.qtyShipped > line.qtyRequested) {
-        throw new BadRequestException(`Cannot ship more than requested for item ${line.itemSku}`);
+        throw new BadRequestException(
+          `Cannot ship more than requested for item ${line.itemSku}`,
+        );
       }
       if (shipLine.qtyShipped <= 0) continue;
 
       if (!line.fromBinId) {
-        throw new BadRequestException(`Source bin not set for item ${line.itemSku}`);
+        throw new BadRequestException(
+          `Source bin not set for item ${line.itemSku}`,
+        );
       }
 
       // Record IBT_OUT stock movement
@@ -191,17 +220,22 @@ export class IbtService {
         itemId: line.itemId,
         fromBinId: line.fromBinId,
         qty: shipLine.qtyShipped,
-        reason: 'IBT_OUT',
-        refType: 'ibt',
+        reason: "IBT_OUT",
+        refType: "ibt",
         refId: ibt.id,
         batchNo: line.batchNo || undefined,
         createdBy: userId,
       });
 
-      await this.ibtRepo.updateLineShipped(shipLine.lineId, shipLine.qtyShipped);
+      await this.ibtRepo.updateLineShipped(
+        shipLine.lineId,
+        shipLine.qtyShipped,
+      );
     }
 
-    await this.ibtRepo.updateStatus(id, 'IN_TRANSIT', { shippedAt: new Date() });
+    await this.ibtRepo.updateStatus(id, "IN_TRANSIT", {
+      shippedAt: new Date(),
+    });
     return this.getIbt(id);
   }
 
@@ -211,11 +245,14 @@ export class IbtService {
     userId: string,
   ): Promise<IbtDetail> {
     const ibt = await this.getIbt(id);
-    if (ibt.status !== 'IN_TRANSIT') {
-      throw new BadRequestException('Only IN_TRANSIT IBTs can be received');
+    if (ibt.status !== "IN_TRANSIT") {
+      throw new BadRequestException("Only IN_TRANSIT IBTs can be received");
     }
 
-    const toWarehouse = await this.masterDataService.getWarehouse(ibt.tenantId, ibt.toWarehouseId);
+    const toWarehouse = await this.masterDataService.getWarehouse(
+      ibt.tenantId,
+      ibt.toWarehouseId,
+    );
     const ibtLines = await this.ibtRepo.getLines(id);
     const lineMap = new Map(ibtLines.map((l) => [l.id, l]));
 
@@ -225,14 +262,21 @@ export class IbtService {
         throw new BadRequestException(`Line ${rcvLine.lineId} not found`);
       }
       if (rcvLine.qtyReceived > line.qtyShipped) {
-        throw new BadRequestException(`Cannot receive more than shipped for item ${line.itemSku}`);
+        throw new BadRequestException(
+          `Cannot receive more than shipped for item ${line.itemSku}`,
+        );
       }
       if (rcvLine.qtyReceived <= 0) continue;
 
       // Validate destination bin belongs to target warehouse
-      const destBin = await this.masterDataService.getBin(ibt.tenantId, rcvLine.toBinId);
+      const destBin = await this.masterDataService.getBin(
+        ibt.tenantId,
+        rcvLine.toBinId,
+      );
       if (destBin.warehouseId !== ibt.toWarehouseId) {
-        throw new BadRequestException('Destination bin must belong to the target warehouse');
+        throw new BadRequestException(
+          "Destination bin must belong to the target warehouse",
+        );
       }
 
       // Record IBT_IN stock movement
@@ -242,22 +286,30 @@ export class IbtService {
         itemId: line.itemId,
         toBinId: rcvLine.toBinId,
         qty: rcvLine.qtyReceived,
-        reason: 'IBT_IN',
-        refType: 'ibt',
+        reason: "IBT_IN",
+        refType: "ibt",
         refId: ibt.id,
         batchNo: line.batchNo || undefined,
         createdBy: userId,
       });
 
-      await this.ibtRepo.updateLineReceived(rcvLine.lineId, rcvLine.qtyReceived, rcvLine.toBinId);
+      await this.ibtRepo.updateLineReceived(
+        rcvLine.lineId,
+        rcvLine.qtyReceived,
+        rcvLine.toBinId,
+      );
     }
 
     // Check if all lines are fully received
     const updatedLines = await this.ibtRepo.getLines(id);
-    const allReceived = updatedLines.every((l) => l.qtyReceived >= l.qtyShipped);
+    const allReceived = updatedLines.every(
+      (l) => l.qtyReceived >= l.qtyShipped,
+    );
 
     if (allReceived) {
-      await this.ibtRepo.updateStatus(id, 'RECEIVED', { receivedAt: new Date() });
+      await this.ibtRepo.updateStatus(id, "RECEIVED", {
+        receivedAt: new Date(),
+      });
     }
 
     return this.getIbt(id);
@@ -265,11 +317,13 @@ export class IbtService {
 
   async cancel(id: string): Promise<IbtDetail> {
     const ibt = await this.getIbt(id);
-    if (!['DRAFT', 'PENDING_APPROVAL'].includes(ibt.status)) {
-      throw new BadRequestException('Only DRAFT or PENDING_APPROVAL IBTs can be cancelled');
+    if (!["DRAFT", "PENDING_APPROVAL"].includes(ibt.status)) {
+      throw new BadRequestException(
+        "Only DRAFT or PENDING_APPROVAL IBTs can be cancelled",
+      );
     }
 
-    await this.ibtRepo.updateStatus(id, 'CANCELLED');
+    await this.ibtRepo.updateStatus(id, "CANCELLED");
     return this.getIbt(id);
   }
 }

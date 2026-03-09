@@ -6,9 +6,9 @@ import {
   ArrayMinSize,
   ArrayMaxSize,
   ValidateNested,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { Type } from "class-transformer";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class SalesOrderImportRowDto {
   @ApiProperty()
@@ -51,7 +51,10 @@ export class SalesOrderImportRowDto {
 }
 
 export class ImportSalesOrdersDto {
-  @ApiProperty({ type: [SalesOrderImportRowDto], description: 'Array of sales order rows to import (max 500)' })
+  @ApiProperty({
+    type: [SalesOrderImportRowDto],
+    description: "Array of sales order rows to import (max 500)",
+  })
   @ValidateNested({ each: true })
   @Type(() => SalesOrderImportRowDto)
   @ArrayMinSize(1)

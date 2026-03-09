@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface PutawayTask {
   id: string;
@@ -47,7 +47,14 @@ export class PutawayRepository extends BaseRepository {
       `INSERT INTO putaway_tasks (tenant_id, grn_line_id, item_id, from_bin_id, to_bin_id, qty)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [data.tenantId, data.grnLineId, data.itemId, data.fromBinId, data.toBinId || null, data.qty],
+      [
+        data.tenantId,
+        data.grnLineId,
+        data.itemId,
+        data.fromBinId,
+        data.toBinId || null,
+        data.qty,
+      ],
     );
     return this.mapTask(row!);
   }
@@ -85,7 +92,11 @@ export class PutawayRepository extends BaseRepository {
     limit = 25,
     offset = 0,
   ): Promise<PutawayTaskDetail[]> {
-    const { conditions, values, idx } = this.buildFilters(tenantId, filters, 'pt');
+    const { conditions, values, idx } = this.buildFilters(
+      tenantId,
+      filters,
+      "pt",
+    );
     values.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(
@@ -100,7 +111,7 @@ export class PutawayRepository extends BaseRepository {
        LEFT JOIN bins tb ON tb.id = pt.to_bin_id
        LEFT JOIN users u ON u.id = pt.assigned_to
        JOIN grn_lines gl ON gl.id = pt.grn_line_id
-       WHERE ${conditions.join(' AND ')}
+       WHERE ${conditions.join(" AND ")}
        ORDER BY pt.created_at DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
       values,
@@ -108,14 +119,17 @@ export class PutawayRepository extends BaseRepository {
     return rows.map(this.mapTaskDetail);
   }
 
-  async countByTenant(tenantId: string, filters: PutawayFilters): Promise<number> {
-    const { conditions, values } = this.buildFilters(tenantId, filters, 'pt');
+  async countByTenant(
+    tenantId: string,
+    filters: PutawayFilters,
+  ): Promise<number> {
+    const { conditions, values } = this.buildFilters(tenantId, filters, "pt");
 
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT COUNT(*)::int AS total
        FROM putaway_tasks pt
        JOIN bins fb ON fb.id = pt.from_bin_id
-       WHERE ${conditions.join(' AND ')}`,
+       WHERE ${conditions.join(" AND ")}`,
       values,
     );
     return (row?.total as number) || 0;

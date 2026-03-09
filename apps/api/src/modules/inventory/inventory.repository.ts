@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface Grn {
   id: string;
@@ -94,7 +94,7 @@ export class InventoryRepository extends BaseRepository {
 
   async findGrnById(id: string): Promise<Grn | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM grns WHERE id = $1',
+      "SELECT * FROM grns WHERE id = $1",
       [id],
     );
     return row ? this.mapGrn(row) : null;
@@ -106,11 +106,11 @@ export class InventoryRepository extends BaseRepository {
     limit = 50,
     offset = 0,
   ): Promise<Grn[]> {
-    let sql = 'SELECT * FROM grns WHERE tenant_id = $1';
+    let sql = "SELECT * FROM grns WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
 
     if (status) {
-      sql += ' AND status = $2';
+      sql += " AND status = $2";
       params.push(status);
     }
 
@@ -122,14 +122,14 @@ export class InventoryRepository extends BaseRepository {
   }
 
   async countGrnsByTenant(tenantId: string, status?: string): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM grns WHERE tenant_id = $1';
+    let sql = "SELECT COUNT(*) as count FROM grns WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
     if (status) {
-      sql += ' AND status = $2';
+      sql += " AND status = $2";
       params.push(status);
     }
     const result = await this.queryOne<{ count: string }>(sql, params);
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   async updateGrnStatus(id: string, status: string): Promise<Grn | null> {
@@ -175,7 +175,7 @@ export class InventoryRepository extends BaseRepository {
 
   async getGrnLines(grnId: string): Promise<GrnLine[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM grn_lines WHERE grn_id = $1 ORDER BY created_at',
+      "SELECT * FROM grn_lines WHERE grn_id = $1 ORDER BY created_at",
       [grnId],
     );
     return rows.map(this.mapGrnLine);
@@ -210,7 +210,7 @@ export class InventoryRepository extends BaseRepository {
 
   async findAdjustmentById(id: string): Promise<Adjustment | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM adjustments WHERE id = $1',
+      "SELECT * FROM adjustments WHERE id = $1",
       [id],
     );
     return row ? this.mapAdjustment(row) : null;
@@ -222,7 +222,7 @@ export class InventoryRepository extends BaseRepository {
     limit = 50,
     offset = 0,
   ): Promise<Adjustment[]> {
-    let sql = 'SELECT * FROM adjustments WHERE tenant_id = $1';
+    let sql = "SELECT * FROM adjustments WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
     let idx = 2;
 
@@ -243,8 +243,11 @@ export class InventoryRepository extends BaseRepository {
     return rows.map(this.mapAdjustment);
   }
 
-  async countAdjustmentsByTenant(tenantId: string, filters: { status?: string; search?: string }): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM adjustments WHERE tenant_id = $1';
+  async countAdjustmentsByTenant(
+    tenantId: string,
+    filters: { status?: string; search?: string },
+  ): Promise<number> {
+    let sql = "SELECT COUNT(*) as count FROM adjustments WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
     let idx = 2;
 
@@ -259,10 +262,13 @@ export class InventoryRepository extends BaseRepository {
     }
 
     const result = await this.queryOne<{ count: string }>(sql, params);
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
-  async approveAdjustment(id: string, approvedBy: string): Promise<Adjustment | null> {
+  async approveAdjustment(
+    id: string,
+    approvedBy: string,
+  ): Promise<Adjustment | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE adjustments SET status = 'APPROVED', approved_by = $1, approved_at = NOW()
        WHERE id = $2 AND status = 'SUBMITTED'
@@ -308,13 +314,13 @@ export class InventoryRepository extends BaseRepository {
   }
 
   async deleteAdjustmentLine(id: string): Promise<void> {
-    await this.queryOne(
-      'DELETE FROM adjustment_lines WHERE id = $1',
-      [id],
-    );
+    await this.queryOne("DELETE FROM adjustment_lines WHERE id = $1", [id]);
   }
 
-  async updateAdjustmentStatus(id: string, status: string): Promise<Adjustment | null> {
+  async updateAdjustmentStatus(
+    id: string,
+    status: string,
+  ): Promise<Adjustment | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE adjustments SET status = $1 WHERE id = $2 RETURNING *`,
       [status, id],
@@ -323,31 +329,33 @@ export class InventoryRepository extends BaseRepository {
   }
 
   async deleteGrn(id: string): Promise<boolean> {
-    const count = await this.execute('DELETE FROM grns WHERE id = $1', [id]);
+    const count = await this.execute("DELETE FROM grns WHERE id = $1", [id]);
     return count > 0;
   }
 
   async deleteAdjustment(id: string): Promise<boolean> {
-    const count = await this.execute('DELETE FROM adjustments WHERE id = $1', [id]);
+    const count = await this.execute("DELETE FROM adjustments WHERE id = $1", [
+      id,
+    ]);
     return count > 0;
   }
 
   async generateGrnNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM grns WHERE tenant_id = $1',
+      "SELECT COUNT(*) as count FROM grns WHERE tenant_id = $1",
       [tenantId],
     );
-    const count = parseInt(result?.count || '0', 10) + 1;
-    return `GRN-${count.toString().padStart(6, '0')}`;
+    const count = parseInt(result?.count || "0", 10) + 1;
+    return `GRN-${count.toString().padStart(6, "0")}`;
   }
 
   async generateAdjustmentNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM adjustments WHERE tenant_id = $1',
+      "SELECT COUNT(*) as count FROM adjustments WHERE tenant_id = $1",
       [tenantId],
     );
-    const count = parseInt(result?.count || '0', 10) + 1;
-    return `ADJ-${count.toString().padStart(6, '0')}`;
+    const count = parseInt(result?.count || "0", 10) + 1;
+    return `ADJ-${count.toString().padStart(6, "0")}`;
   }
 
   private mapGrn(row: Record<string, unknown>): Grn {

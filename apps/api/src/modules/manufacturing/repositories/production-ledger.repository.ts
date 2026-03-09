@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../../common/db/base.repository";
 
 export interface ProductionLedgerEntry {
   id: string;
@@ -104,7 +104,8 @@ export class ProductionLedgerRepository extends BaseRepository {
       LEFT JOIN users u ON u.id = pl.operator_id
       WHERE pl.tenant_id = $1
     `;
-    let countSql = 'SELECT COUNT(*) as count FROM production_ledger pl WHERE pl.tenant_id = $1';
+    let countSql =
+      "SELECT COUNT(*) as count FROM production_ledger pl WHERE pl.tenant_id = $1";
     const params: unknown[] = [tenantId];
     const countParams: unknown[] = [tenantId];
     let idx = 2;
@@ -163,13 +164,13 @@ export class ProductionLedgerRepository extends BaseRepository {
         warehouseName: r.warehouse_name as string,
         binCode: r.bin_code as string | undefined,
       })),
-      total: parseInt(countResult?.count || '0', 10),
+      total: parseInt(countResult?.count || "0", 10),
     };
   }
 
   async getByWorkOrder(workOrderId: string): Promise<ProductionLedgerEntry[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM production_ledger WHERE work_order_id = $1 ORDER BY created_at',
+      "SELECT * FROM production_ledger WHERE work_order_id = $1 ORDER BY created_at",
       [workOrderId],
     );
     return rows.map((r) => this.mapEntry(r));
@@ -206,9 +207,9 @@ export class ProductionLedgerRepository extends BaseRepository {
       workOrderId: r.work_order_id as string,
       workOrderNo: r.work_order_no as string,
       itemSku: r.item_sku as string,
-      totalIssued: parseFloat((r.total_issued as string) || '0'),
-      totalOutput: parseFloat((r.total_output as string) || '0'),
-      totalScrap: parseFloat((r.total_scrap as string) || '0'),
+      totalIssued: parseFloat((r.total_issued as string) || "0"),
+      totalOutput: parseFloat((r.total_output as string) || "0"),
+      totalScrap: parseFloat((r.total_scrap as string) || "0"),
     }));
   }
 
@@ -258,9 +259,9 @@ export class ProductionLedgerRepository extends BaseRepository {
       itemId: r.item_id as string,
       itemSku: r.item_sku as string,
       itemDescription: r.item_description as string,
-      totalConsumed: parseFloat((r.total_consumed as string) || '0'),
-      totalProduced: parseFloat((r.total_produced as string) || '0'),
-      totalScrapped: parseFloat((r.total_scrapped as string) || '0'),
+      totalConsumed: parseFloat((r.total_consumed as string) || "0"),
+      totalProduced: parseFloat((r.total_produced as string) || "0"),
+      totalScrapped: parseFloat((r.total_scrapped as string) || "0"),
     }));
   }
 
@@ -271,8 +272,21 @@ export class ProductionLedgerRepository extends BaseRepository {
     workstationUtilization: number;
     statusDistribution: Array<{ status: string; count: number }>;
     dailyOutput: Array<{ date: string; output: number; scrap: number }>;
-    topItems: Array<{ itemId: string; itemSku: string; itemDescription: string; totalOutput: number }>;
-    activeOrders: Array<{ id: string; workOrderNo: string; itemSku: string; status: string; qtyOrdered: number; qtyCompleted: number; plannedEnd: Date | null }>;
+    topItems: Array<{
+      itemId: string;
+      itemSku: string;
+      itemDescription: string;
+      totalOutput: number;
+    }>;
+    activeOrders: Array<{
+      id: string;
+      workOrderNo: string;
+      itemSku: string;
+      status: string;
+      qtyOrdered: number;
+      qtyCompleted: number;
+      plannedEnd: Date | null;
+    }>;
   }> {
     const [
       activeWoResult,
@@ -352,41 +366,49 @@ export class ProductionLedgerRepository extends BaseRepository {
       ),
     ]);
 
-    const output = parseFloat((yieldResult?.output as string) || '0');
-    const scrap = parseFloat((yieldResult?.scrap as string) || '0');
-    const yieldRate = output + scrap > 0 ? (output / (output + scrap)) * 100 : 0;
+    const output = parseFloat((yieldResult?.output as string) || "0");
+    const scrap = parseFloat((yieldResult?.scrap as string) || "0");
+    const yieldRate =
+      output + scrap > 0 ? (output / (output + scrap)) * 100 : 0;
 
-    const activeWs = parseFloat((utilizationActiveResult?.count as string) || '0');
-    const totalWs = parseFloat((utilizationTotalResult?.count as string) || '0');
+    const activeWs = parseFloat(
+      (utilizationActiveResult?.count as string) || "0",
+    );
+    const totalWs = parseFloat(
+      (utilizationTotalResult?.count as string) || "0",
+    );
     const workstationUtilization = totalWs > 0 ? (activeWs / totalWs) * 100 : 0;
 
     return {
-      activeWorkOrders: parseInt((activeWoResult?.count as string) || '0', 10),
-      todayOutput: parseFloat((todayOutputResult?.total as string) || '0'),
+      activeWorkOrders: parseInt((activeWoResult?.count as string) || "0", 10),
+      todayOutput: parseFloat((todayOutputResult?.total as string) || "0"),
       yieldRate,
       workstationUtilization,
       statusDistribution: statusRows.map((r) => ({
         status: r.status as string,
-        count: parseInt((r.count as string) || '0', 10),
+        count: parseInt((r.count as string) || "0", 10),
       })),
       dailyOutput: dailyRows.map((r) => ({
-        date: r.date instanceof Date ? r.date.toISOString().substring(0, 10) : String(r.date).substring(0, 10),
-        output: parseFloat((r.output as string) || '0'),
-        scrap: parseFloat((r.scrap as string) || '0'),
+        date:
+          r.date instanceof Date
+            ? r.date.toISOString().substring(0, 10)
+            : String(r.date).substring(0, 10),
+        output: parseFloat((r.output as string) || "0"),
+        scrap: parseFloat((r.scrap as string) || "0"),
       })),
       topItems: topItemRows.map((r) => ({
         itemId: r.item_id as string,
         itemSku: r.sku as string,
         itemDescription: r.description as string,
-        totalOutput: parseFloat((r.total_output as string) || '0'),
+        totalOutput: parseFloat((r.total_output as string) || "0"),
       })),
       activeOrders: activeOrderRows.map((r) => ({
         id: r.id as string,
         workOrderNo: r.work_order_no as string,
         itemSku: r.item_sku as string,
         status: r.status as string,
-        qtyOrdered: parseFloat((r.qty_ordered as string) || '0'),
-        qtyCompleted: parseFloat((r.qty_completed as string) || '0'),
+        qtyOrdered: parseFloat((r.qty_ordered as string) || "0"),
+        qtyCompleted: parseFloat((r.qty_completed as string) || "0"),
         plannedEnd: (r.planned_end as Date) || null,
       })),
     };
@@ -429,20 +451,25 @@ export class ProductionLedgerRepository extends BaseRepository {
       totalRunTime: number;
     }>;
   }> {
-    const [summaryResult, productionByDayRows, yieldByItemRows, materialRows, workstationRows] =
-      await Promise.all([
-        this.queryOne<Record<string, unknown>>(
-          `SELECT
+    const [
+      summaryResult,
+      productionByDayRows,
+      yieldByItemRows,
+      materialRows,
+      workstationRows,
+    ] = await Promise.all([
+      this.queryOne<Record<string, unknown>>(
+        `SELECT
              COALESCE(SUM(CASE WHEN entry_type = 'PRODUCTION_OUTPUT' THEN qty ELSE 0 END), 0) as total_output,
              COALESCE(SUM(CASE WHEN entry_type = 'SCRAP' THEN ABS(qty) ELSE 0 END), 0) as total_scrap,
              COALESCE(SUM(CASE WHEN entry_type = 'MATERIAL_ISSUE' THEN ABS(qty) ELSE 0 END), 0) as total_material_issued,
              COUNT(DISTINCT work_order_id) as unique_work_orders
            FROM production_ledger
            WHERE tenant_id = $1 AND created_at >= $2 AND created_at <= $3`,
-          [tenantId, startDate, endDate],
-        ),
-        this.queryMany<Record<string, unknown>>(
-          `SELECT
+        [tenantId, startDate, endDate],
+      ),
+      this.queryMany<Record<string, unknown>>(
+        `SELECT
              created_at::date as date,
              COALESCE(SUM(CASE WHEN entry_type = 'PRODUCTION_OUTPUT' THEN qty ELSE 0 END), 0) as output,
              COALESCE(SUM(CASE WHEN entry_type = 'SCRAP' THEN ABS(qty) ELSE 0 END), 0) as scrap
@@ -450,10 +477,10 @@ export class ProductionLedgerRepository extends BaseRepository {
            WHERE tenant_id = $1 AND created_at >= $2 AND created_at <= $3
            GROUP BY created_at::date
            ORDER BY date`,
-          [tenantId, startDate, endDate],
-        ),
-        this.queryMany<Record<string, unknown>>(
-          `SELECT
+        [tenantId, startDate, endDate],
+      ),
+      this.queryMany<Record<string, unknown>>(
+        `SELECT
              i.id as item_id, i.sku, i.description,
              COALESCE(SUM(CASE WHEN pl.entry_type = 'PRODUCTION_OUTPUT' THEN pl.qty ELSE 0 END), 0) as output,
              COALESCE(SUM(CASE WHEN pl.entry_type = 'SCRAP' THEN ABS(pl.qty) ELSE 0 END), 0) as scrap
@@ -463,10 +490,10 @@ export class ProductionLedgerRepository extends BaseRepository {
              AND pl.entry_type IN ('PRODUCTION_OUTPUT', 'SCRAP')
            GROUP BY i.id, i.sku, i.description
            ORDER BY i.sku`,
-          [tenantId, startDate, endDate],
-        ),
-        this.queryMany<Record<string, unknown>>(
-          `SELECT
+        [tenantId, startDate, endDate],
+      ),
+      this.queryMany<Record<string, unknown>>(
+        `SELECT
              i.id as item_id, i.sku, i.description,
              COALESCE(SUM(CASE WHEN pl.entry_type = 'MATERIAL_ISSUE' THEN ABS(pl.qty) ELSE 0 END), 0) as total_consumed,
              COALESCE(SUM(CASE WHEN pl.entry_type = 'MATERIAL_RETURN' THEN ABS(pl.qty) ELSE 0 END), 0) as total_returned
@@ -476,10 +503,10 @@ export class ProductionLedgerRepository extends BaseRepository {
              AND pl.entry_type IN ('MATERIAL_ISSUE', 'MATERIAL_RETURN')
            GROUP BY i.id, i.sku, i.description
            ORDER BY i.sku`,
-          [tenantId, startDate, endDate],
-        ),
-        this.queryMany<Record<string, unknown>>(
-          `SELECT
+        [tenantId, startDate, endDate],
+      ),
+      this.queryMany<Record<string, unknown>>(
+        `SELECT
              ws.id as workstation_id, ws.name,
              COUNT(*) as operations_completed,
              COALESCE(AVG(woo.run_time_actual), 0) as avg_run_time,
@@ -490,43 +517,60 @@ export class ProductionLedgerRepository extends BaseRepository {
              AND woo.actual_end >= $2 AND woo.actual_end <= $3
            GROUP BY ws.id, ws.name
            ORDER BY ws.name`,
-          [tenantId, startDate, endDate],
-        ),
-      ]);
+        [tenantId, startDate, endDate],
+      ),
+    ]);
 
-    const totalOutput = parseFloat((summaryResult?.total_output as string) || '0');
-    const totalScrap = parseFloat((summaryResult?.total_scrap as string) || '0');
+    const totalOutput = parseFloat(
+      (summaryResult?.total_output as string) || "0",
+    );
+    const totalScrap = parseFloat(
+      (summaryResult?.total_scrap as string) || "0",
+    );
     const summaryYieldRate =
-      totalOutput + totalScrap > 0 ? (totalOutput / (totalOutput + totalScrap)) * 100 : 0;
+      totalOutput + totalScrap > 0
+        ? (totalOutput / (totalOutput + totalScrap)) * 100
+        : 0;
 
     return {
       summary: {
         totalOutput,
         totalScrap,
-        totalMaterialIssued: parseFloat((summaryResult?.total_material_issued as string) || '0'),
+        totalMaterialIssued: parseFloat(
+          (summaryResult?.total_material_issued as string) || "0",
+        ),
         yieldRate: summaryYieldRate,
-        uniqueWorkOrders: parseInt((summaryResult?.unique_work_orders as string) || '0', 10),
+        uniqueWorkOrders: parseInt(
+          (summaryResult?.unique_work_orders as string) || "0",
+          10,
+        ),
       },
       productionByDay: productionByDayRows.map((r) => ({
-        date: r.date instanceof Date ? r.date.toISOString().substring(0, 10) : String(r.date).substring(0, 10),
-        output: parseFloat((r.output as string) || '0'),
-        scrap: parseFloat((r.scrap as string) || '0'),
+        date:
+          r.date instanceof Date
+            ? r.date.toISOString().substring(0, 10)
+            : String(r.date).substring(0, 10),
+        output: parseFloat((r.output as string) || "0"),
+        scrap: parseFloat((r.scrap as string) || "0"),
       })),
       yieldByItem: yieldByItemRows.map((r) => {
-        const itemOutput = parseFloat((r.output as string) || '0');
-        const itemScrap = parseFloat((r.scrap as string) || '0');
+        const itemOutput = parseFloat((r.output as string) || "0");
+        const itemScrap = parseFloat((r.scrap as string) || "0");
         return {
           itemId: r.item_id as string,
           itemSku: r.sku as string,
           itemDescription: r.description as string,
           output: itemOutput,
           scrap: itemScrap,
-          yieldRate: itemOutput + itemScrap > 0 ? (itemOutput / (itemOutput + itemScrap)) * 100 : 0,
+          yieldRate:
+            itemOutput + itemScrap > 0
+              ? (itemOutput / (itemOutput + itemScrap)) * 100
+              : 0,
         };
       }),
       materialConsumption: materialRows.map((r) => {
-        const totalConsumed = parseFloat((r.total_consumed as string) || '0');
-        const totalReturned = parseFloat((r.total_returned as string) || '0');
+        const totalConsumed = parseFloat((r.total_consumed as string) || "0");
+        const totalReturned = parseFloat((r.total_returned as string) || "0");
         return {
           itemId: r.item_id as string,
           itemSku: r.sku as string,
@@ -539,9 +583,12 @@ export class ProductionLedgerRepository extends BaseRepository {
       workstationEfficiency: workstationRows.map((r) => ({
         workstationId: r.workstation_id as string,
         workstationName: r.name as string,
-        operationsCompleted: parseInt((r.operations_completed as string) || '0', 10),
-        avgRunTime: parseFloat((r.avg_run_time as string) || '0'),
-        totalRunTime: parseFloat((r.total_run_time as string) || '0'),
+        operationsCompleted: parseInt(
+          (r.operations_completed as string) || "0",
+          10,
+        ),
+        avgRunTime: parseFloat((r.avg_run_time as string) || "0"),
+        totalRunTime: parseFloat((r.total_run_time as string) || "0"),
       })),
     };
   }
@@ -592,7 +639,12 @@ export class ProductionLedgerRepository extends BaseRepository {
     );
 
     if (!workOrderRow) {
-      return { workOrder: null, materialsUsed: [], outputProduced: [], scrapEntries: [] };
+      return {
+        workOrder: null,
+        materialsUsed: [],
+        outputProduced: [],
+        scrapEntries: [],
+      };
     }
 
     const workOrderId = workOrderRow.id as string;
@@ -634,26 +686,26 @@ export class ProductionLedgerRepository extends BaseRepository {
         itemSku: workOrderRow.item_sku as string,
         itemDescription: workOrderRow.item_description as string,
         status: workOrderRow.status as string,
-        qtyOrdered: parseFloat((workOrderRow.qty_ordered as string) || '0'),
-        qtyCompleted: parseFloat((workOrderRow.qty_completed as string) || '0'),
+        qtyOrdered: parseFloat((workOrderRow.qty_ordered as string) || "0"),
+        qtyCompleted: parseFloat((workOrderRow.qty_completed as string) || "0"),
       },
       materialsUsed: materialRows.map((r) => ({
         itemSku: r.item_sku as string,
         itemDescription: r.item_description as string,
         batchNo: (r.batch_no as string) || null,
-        qty: parseFloat((r.qty as string) || '0'),
+        qty: parseFloat((r.qty as string) || "0"),
         createdAt: r.created_at as Date,
       })),
       outputProduced: outputRows.map((r) => ({
         itemSku: r.item_sku as string,
         batchNo: (r.batch_no as string) || null,
-        qty: parseFloat((r.qty as string) || '0'),
+        qty: parseFloat((r.qty as string) || "0"),
         createdAt: r.created_at as Date,
       })),
       scrapEntries: scrapRows.map((r) => ({
         itemSku: r.item_sku as string,
         batchNo: (r.batch_no as string) || null,
-        qty: parseFloat((r.qty as string) || '0'),
+        qty: parseFloat((r.qty as string) || "0"),
         reasonCode: (r.reason_code as string) || null,
         createdAt: r.created_at as Date,
       })),
@@ -691,7 +743,7 @@ export class ProductionLedgerRepository extends BaseRepository {
         workOrderNo: r.work_order_no as string,
         itemSku: r.item_sku as string,
         finishedBatchNo: (r.finished_batch_no as string) || null,
-        qtyConsumed: parseFloat((r.qty_consumed as string) || '0'),
+        qtyConsumed: parseFloat((r.qty_consumed as string) || "0"),
       })),
     };
   }
@@ -718,7 +770,12 @@ export class ProductionLedgerRepository extends BaseRepository {
     );
 
     if (!workOrderRow) {
-      return { finishedBatchNo: batchNo, workOrderId: null, workOrderNo: null, materials: [] };
+      return {
+        finishedBatchNo: batchNo,
+        workOrderId: null,
+        workOrderNo: null,
+        materials: [],
+      };
     }
 
     const workOrderId = workOrderRow.id as string;
@@ -740,7 +797,7 @@ export class ProductionLedgerRepository extends BaseRepository {
         itemSku: r.item_sku as string,
         itemDescription: r.item_description as string,
         batchNo: (r.batch_no as string) || null,
-        qty: parseFloat((r.qty as string) || '0'),
+        qty: parseFloat((r.qty as string) || "0"),
       })),
     };
   }

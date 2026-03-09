@@ -1,11 +1,5 @@
-import {
-  IsOptional,
-  IsUUID,
-  IsNumber,
-  IsBoolean,
-  Min,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsUUID, IsNumber, IsBoolean, Min } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateCycleCountDto {
   @ApiProperty()

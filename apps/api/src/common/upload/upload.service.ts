@@ -1,8 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { randomUUID } from 'crypto';
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { randomUUID } from "crypto";
 
 @Injectable()
 export class UploadService {
@@ -10,15 +14,16 @@ export class UploadService {
   private readonly bucket: string;
 
   constructor(private readonly config: ConfigService) {
-    this.bucket = config.get<string>('S3_BUCKET', 'nerva-uploads');
+    this.bucket = config.get<string>("S3_BUCKET", "nerva-uploads");
     this.s3 = new S3Client({
-      region: config.get<string>('S3_REGION', 'us-east-1'),
-      endpoint: config.get<string>('S3_ENDPOINT'),
+      region: config.get<string>("S3_REGION", "us-east-1"),
+      endpoint: config.get<string>("S3_ENDPOINT"),
       credentials: {
-        accessKeyId: config.get<string>('S3_ACCESS_KEY', ''),
-        secretAccessKey: config.get<string>('S3_SECRET_KEY', ''),
+        accessKeyId: config.get<string>("S3_ACCESS_KEY", ""),
+        secretAccessKey: config.get<string>("S3_SECRET_KEY", ""),
       },
-      forcePathStyle: config.get<string>('S3_FORCE_PATH_STYLE', 'true') === 'true',
+      forcePathStyle:
+        config.get<string>("S3_FORCE_PATH_STYLE", "true") === "true",
     });
   }
 
@@ -28,7 +33,7 @@ export class UploadService {
     fileName: string,
     contentType: string,
   ): Promise<{ uploadUrl: string; s3Key: string }> {
-    const ext = fileName.split('.').pop() || '';
+    const ext = fileName.split(".").pop() || "";
     const s3Key = `${tenantId}/${entityType}/${randomUUID()}.${ext}`;
 
     const command = new PutObjectCommand({

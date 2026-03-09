@@ -3,10 +3,10 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
-import { CurrentUserData } from '../decorators/current-user.decorator';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
+import { CurrentUserData } from "../decorators/current-user.decorator";
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -26,11 +26,11 @@ export class PermissionsGuard implements CanActivate {
     const user: CurrentUserData = request.user;
 
     if (!user) {
-      throw new ForbiddenException('User not authenticated');
+      throw new ForbiddenException("User not authenticated");
     }
 
     // System admin bypasses all permission checks
-    if (user.permissions.includes('system.admin')) {
+    if (user.permissions.includes("system.admin")) {
       return true;
     }
 
@@ -40,7 +40,7 @@ export class PermissionsGuard implements CanActivate {
 
     if (!hasPermission) {
       throw new ForbiddenException(
-        `Missing required permission: ${requiredPermissions.join(' or ')}`,
+        `Missing required permission: ${requiredPermissions.join(" or ")}`,
       );
     }
 

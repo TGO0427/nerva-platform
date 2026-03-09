@@ -1,8 +1,8 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { Pool } from 'pg';
-import { DATABASE_POOL } from '../../common/db/database.module';
-import { ReturnsRepository } from './returns.repository';
-import { TenantProfileService } from '../../common/pdf/tenant-profile.service';
+import { Injectable, Inject, NotFoundException } from "@nestjs/common";
+import { Pool } from "pg";
+import { DATABASE_POOL } from "../../common/db/database.module";
+import { ReturnsRepository } from "./returns.repository";
+import { TenantProfileService } from "../../common/pdf/tenant-profile.service";
 import {
   createPdfDocument,
   pdfToBuffer,
@@ -16,7 +16,7 @@ import {
   renderSignatureBlock,
   formatCurrency,
   formatDate,
-} from '../../common/pdf/pdf-helpers';
+} from "../../common/pdf/pdf-helpers";
 
 @Injectable()
 export class CreditNotePdfService {
@@ -28,16 +28,18 @@ export class CreditNotePdfService {
 
   async generate(creditNoteId: string, tenantId: string): Promise<Buffer> {
     const creditNote = await this.repository.findCreditNoteById(creditNoteId);
-    if (!creditNote) throw new NotFoundException('Credit note not found');
+    if (!creditNote) throw new NotFoundException("Credit note not found");
 
     const profile = await this.tenantProfile.getProfile(tenantId);
 
     // Fetch RMA to get customer ID and RMA number
     const rma = await this.repository.findRmaById(creditNote.rmaId);
-    const rmaNo = rma?.rmaNo || '-';
+    const rmaNo = rma?.rmaNo || "-";
 
     // Fetch customer details through RMA
-    const customer = rma ? await this.getCustomer(rma.customerId, tenantId) : null;
+    const customer = rma
+      ? await this.getCustomer(rma.customerId, tenantId)
+      : null;
 
     const doc = createPdfDocument();
     const bufferPromise = pdfToBuffer(doc);
@@ -46,18 +48,18 @@ export class CreditNotePdfService {
     let y = renderCompanyHeader(doc, profile);
 
     // Document title
-    y = renderDocumentTitle(doc, 'CREDIT NOTE', y);
+    y = renderDocumentTitle(doc, "CREDIT NOTE", y);
 
     // Meta info
     y = renderDocumentMeta(
       doc,
       [
-        { label: 'Credit Note No', value: creditNote.creditNo || '-' },
-        { label: 'Date', value: formatDate(creditNote.createdAt) },
+        { label: "Credit Note No", value: creditNote.creditNo || "-" },
+        { label: "Date", value: formatDate(creditNote.createdAt) },
       ],
       [
-        { label: 'RMA Reference', value: rmaNo },
-        { label: 'Status', value: creditNote.status },
+        { label: "RMA Reference", value: rmaNo },
+        { label: "Status", value: creditNote.status },
       ],
       y,
     );
@@ -68,7 +70,7 @@ export class CreditNotePdfService {
     if (customer) {
       y = renderAddressBlock(
         doc,
-        'Customer:',
+        "Customer:",
         {
           name: customer.name,
           contactPerson: customer.contact_person || undefined,
@@ -94,23 +96,34 @@ export class CreditNotePdfService {
     }
 
     // Amount totals
-    y = renderTotals(doc, [
-      { label: 'Subtotal', value: formatCurrency(creditNote.subtotal) },
-      { label: 'VAT (15%)', value: formatCurrency(creditNote.taxAmount) },
-      { label: 'Total Credit', value: formatCurrency(creditNote.totalAmount), bold: true },
-    ], y);
+    y = renderTotals(
+      doc,
+      [
+        { label: "Subtotal", value: formatCurrency(creditNote.subtotal) },
+        { label: "VAT (15%)", value: formatCurrency(creditNote.taxAmount) },
+        {
+          label: "Total Credit",
+          value: formatCurrency(creditNote.totalAmount),
+          bold: true,
+        },
+      ],
+      y,
+    );
 
     // Bank details
     y = renderBankDetails(doc, profile, y);
 
     // Signature
-    renderSignatureBlock(doc, y, 'Authorized Signatory', 'Date');
+    renderSignatureBlock(doc, y, "Authorized Signatory", "Date");
 
     doc.end();
     return bufferPromise;
   }
 
-  private async getCustomer(customerId: string, tenantId: string): Promise<Record<string, any> | null> {
+  private async getCustomer(
+    customerId: string,
+    tenantId: string,
+  ): Promise<Record<string, any> | null> {
     const result = await this.pool.query(
       `SELECT name, contact_person, phone, email, vat_no,
               billing_address_line1, billing_address_line2, billing_city,

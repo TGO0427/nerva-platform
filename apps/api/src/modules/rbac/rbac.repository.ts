@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface Role {
   id: string;
@@ -20,7 +20,7 @@ export interface Permission {
 export class RbacRepository extends BaseRepository {
   async findRolesByTenant(tenantId: string): Promise<Role[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM roles WHERE tenant_id = $1 ORDER BY name',
+      "SELECT * FROM roles WHERE tenant_id = $1 ORDER BY name",
       [tenantId],
     );
     return rows.map(this.mapRole);
@@ -28,7 +28,7 @@ export class RbacRepository extends BaseRepository {
 
   async findRoleById(id: string): Promise<Role | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM roles WHERE id = $1',
+      "SELECT * FROM roles WHERE id = $1",
       [id],
     );
     return row ? this.mapRole(row) : null;
@@ -69,20 +69,20 @@ export class RbacRepository extends BaseRepository {
 
     values.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE roles SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE roles SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,
       values,
     );
     return row ? this.mapRole(row) : null;
   }
 
   async deleteRole(id: string): Promise<boolean> {
-    const count = await this.execute('DELETE FROM roles WHERE id = $1', [id]);
+    const count = await this.execute("DELETE FROM roles WHERE id = $1", [id]);
     return count > 0;
   }
 
   async listPermissions(): Promise<Permission[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM permissions ORDER BY code',
+      "SELECT * FROM permissions ORDER BY code",
     );
     return rows.map(this.mapPermission);
   }
@@ -102,14 +102,12 @@ export class RbacRepository extends BaseRepository {
     roleId: string,
     permissionIds: string[],
   ): Promise<void> {
-    await this.execute('DELETE FROM role_permissions WHERE role_id = $1', [
+    await this.execute("DELETE FROM role_permissions WHERE role_id = $1", [
       roleId,
     ]);
 
     if (permissionIds.length > 0) {
-      const values = permissionIds
-        .map((_, i) => `($1, $${i + 2})`)
-        .join(', ');
+      const values = permissionIds.map((_, i) => `($1, $${i + 2})`).join(", ");
       await this.execute(
         `INSERT INTO role_permissions (role_id, permission_id) VALUES ${values}`,
         [roleId, ...permissionIds],
@@ -134,7 +132,7 @@ export class RbacRepository extends BaseRepository {
     permissionId: string,
   ): Promise<void> {
     await this.execute(
-      'DELETE FROM role_permissions WHERE role_id = $1 AND permission_id = $2',
+      "DELETE FROM role_permissions WHERE role_id = $1 AND permission_id = $2",
       [roleId, permissionId],
     );
   }

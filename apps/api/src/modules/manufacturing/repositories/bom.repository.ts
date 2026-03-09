@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../../common/db/base.repository";
 
 export interface BomHeader {
   id: string;
@@ -59,9 +59,9 @@ export class BomRepository extends BaseRepository {
         data.tenantId,
         data.itemId,
         data.version || 1,
-        data.revision || 'A',
+        data.revision || "A",
         data.baseQty || 1,
-        data.uom || 'EA',
+        data.uom || "EA",
         data.effectiveFrom || null,
         data.effectiveTo || null,
         data.notes || null,
@@ -73,7 +73,7 @@ export class BomRepository extends BaseRepository {
 
   async findHeaderById(id: string): Promise<BomHeader | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM bom_headers WHERE id = $1',
+      "SELECT * FROM bom_headers WHERE id = $1",
       [id],
     );
     return row ? this.mapHeader(row) : null;
@@ -84,7 +84,14 @@ export class BomRepository extends BaseRepository {
     filters: { itemId?: string; status?: string; search?: string },
     limit = 50,
     offset = 0,
-  ): Promise<{ data: (BomHeader & { itemSku?: string; itemDescription?: string; lineCount?: number })[]; total: number }> {
+  ): Promise<{
+    data: (BomHeader & {
+      itemSku?: string;
+      itemDescription?: string;
+      lineCount?: number;
+    })[];
+    total: number;
+  }> {
     let sql = `
       SELECT bh.*, i.sku as item_sku, i.description as item_description,
              (SELECT COUNT(*) FROM bom_lines bl WHERE bl.bom_header_id = bh.id) as line_count
@@ -92,7 +99,8 @@ export class BomRepository extends BaseRepository {
       JOIN items i ON i.id = bh.item_id
       WHERE bh.tenant_id = $1
     `;
-    let countSql = 'SELECT COUNT(*) as count FROM bom_headers bh JOIN items i ON i.id = bh.item_id WHERE bh.tenant_id = $1';
+    let countSql =
+      "SELECT COUNT(*) as count FROM bom_headers bh JOIN items i ON i.id = bh.item_id WHERE bh.tenant_id = $1";
     const params: unknown[] = [tenantId];
     const countParams: unknown[] = [tenantId];
     let idx = 2;
@@ -134,11 +142,14 @@ export class BomRepository extends BaseRepository {
         itemDescription: r.item_description as string,
         lineCount: parseInt(r.line_count as string, 10),
       })),
-      total: parseInt(countResult?.count || '0', 10),
+      total: parseInt(countResult?.count || "0", 10),
     };
   }
 
-  async findActiveForItem(tenantId: string, itemId: string): Promise<BomHeader | null> {
+  async findActiveForItem(
+    tenantId: string,
+    itemId: string,
+  ): Promise<BomHeader | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT * FROM bom_headers
        WHERE tenant_id = $1 AND item_id = $2 AND status = 'APPROVED'
@@ -153,10 +164,10 @@ export class BomRepository extends BaseRepository {
 
   async getNextVersion(tenantId: string, itemId: string): Promise<number> {
     const result = await this.queryOne<{ max_version: string }>(
-      'SELECT COALESCE(MAX(version), 0) as max_version FROM bom_headers WHERE tenant_id = $1 AND item_id = $2',
+      "SELECT COALESCE(MAX(version), 0) as max_version FROM bom_headers WHERE tenant_id = $1 AND item_id = $2",
       [tenantId, itemId],
     );
-    return parseInt(result?.max_version || '0', 10) + 1;
+    return parseInt(result?.max_version || "0", 10) + 1;
   }
 
   async updateHeader(
@@ -218,14 +229,16 @@ export class BomRepository extends BaseRepository {
 
     params.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE bom_headers SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE bom_headers SET ${updates.join(", ")} WHERE id = $${idx} RETURNING *`,
       params,
     );
     return row ? this.mapHeader(row) : null;
   }
 
   async deleteHeader(id: string): Promise<boolean> {
-    const count = await this.execute('DELETE FROM bom_headers WHERE id = $1', [id]);
+    const count = await this.execute("DELETE FROM bom_headers WHERE id = $1", [
+      id,
+    ]);
     return count > 0;
   }
 
@@ -253,17 +266,19 @@ export class BomRepository extends BaseRepository {
         data.lineNo,
         data.itemId,
         data.qtyPer,
-        data.uom || 'EA',
+        data.uom || "EA",
         data.scrapPct || 0,
         data.isCritical || false,
-        data.category || 'INGREDIENT',
+        data.category || "INGREDIENT",
         data.notes || null,
       ],
     );
     return this.mapLine(row!);
   }
 
-  async getLines(bomHeaderId: string): Promise<(BomLine & { itemSku?: string; itemDescription?: string })[]> {
+  async getLines(
+    bomHeaderId: string,
+  ): Promise<(BomLine & { itemSku?: string; itemDescription?: string })[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT bl.*, i.sku as item_sku, i.description as item_description
        FROM bom_lines bl
@@ -323,19 +338,24 @@ export class BomRepository extends BaseRepository {
 
     params.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE bom_lines SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE bom_lines SET ${updates.join(", ")} WHERE id = $${idx} RETURNING *`,
       params,
     );
     return row ? this.mapLine(row) : null;
   }
 
   async deleteLine(id: string): Promise<boolean> {
-    const count = await this.execute('DELETE FROM bom_lines WHERE id = $1', [id]);
+    const count = await this.execute("DELETE FROM bom_lines WHERE id = $1", [
+      id,
+    ]);
     return count > 0;
   }
 
   async deleteLinesByHeader(bomHeaderId: string): Promise<number> {
-    return await this.execute('DELETE FROM bom_lines WHERE bom_header_id = $1', [bomHeaderId]);
+    return await this.execute(
+      "DELETE FROM bom_lines WHERE bom_header_id = $1",
+      [bomHeaderId],
+    );
   }
 
   private mapHeader(row: Record<string, unknown>): BomHeader {
@@ -370,7 +390,7 @@ export class BomRepository extends BaseRepository {
       uom: row.uom as string,
       scrapPct: parseFloat(row.scrap_pct as string),
       isCritical: row.is_critical as boolean,
-      category: (row.category as string) || 'INGREDIENT',
+      category: (row.category as string) || "INGREDIENT",
       notes: row.notes as string | null,
       createdAt: row.created_at as Date,
     };

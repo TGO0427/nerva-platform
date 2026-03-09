@@ -10,18 +10,27 @@ import {
   DefaultValuePipe,
   Res,
   StreamableFile,
-} from '@nestjs/common';
-import { Response } from 'express';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiProduces } from '@nestjs/swagger';
-import { FulfilmentService } from './fulfilment.service';
-import { PdfService } from './pdf.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TenantGuard } from '../../common/guards/tenant.guard';
-import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { TenantId } from '../../common/decorators/tenant.decorator';
-import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
-import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+} from "@nestjs/common";
+import { Response } from "express";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+  ApiProduces,
+} from "@nestjs/swagger";
+import { FulfilmentService } from "./fulfilment.service";
+import { PdfService } from "./pdf.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { TenantGuard } from "../../common/guards/tenant.guard";
+import { PermissionsGuard } from "../../common/guards/permissions.guard";
+import { RequirePermissions } from "../../common/decorators/permissions.decorator";
+import { TenantId } from "../../common/decorators/tenant.decorator";
+import {
+  CurrentUser,
+  CurrentUserData,
+} from "../../common/decorators/current-user.decorator";
+import { UuidValidationPipe } from "../../common/pipes/uuid-validation.pipe";
 import {
   CreatePickWaveDto,
   CancelPickWaveDto,
@@ -29,12 +38,12 @@ import {
   CancelPickTaskDto,
   CreateShipmentDto,
   ShipShipmentDto,
-} from './dto/fulfilment.dto';
+} from "./dto/fulfilment.dto";
 
-@ApiTags('fulfilment')
+@ApiTags("fulfilment")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('fulfilment')
+@Controller("fulfilment")
 export class FulfilmentController {
   constructor(
     private readonly service: FulfilmentService,
@@ -42,32 +51,32 @@ export class FulfilmentController {
   ) {}
 
   // Allocated orders ready for picking
-  @Get('allocated-orders')
-  @RequirePermissions('pick_wave.create')
-  @ApiOperation({ summary: 'Get allocated orders ready for picking' })
+  @Get("allocated-orders")
+  @RequirePermissions("pick_wave.create")
+  @ApiOperation({ summary: "Get allocated orders ready for picking" })
   async getAllocatedOrders(@TenantId() tenantId: string) {
     return this.service.getAllocatedOrders(tenantId);
   }
 
   // Pick Waves
-  @Get('pick-waves')
-  @RequirePermissions('pick_wave.create')
-  @ApiOperation({ summary: 'List pick waves' })
-  @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
+  @Get("pick-waves")
+  @RequirePermissions("pick_wave.create")
+  @ApiOperation({ summary: "List pick waves" })
+  @ApiQuery({ name: "status", required: false })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "limit", required: false })
   async listPickWaves(
     @TenantId() tenantId: string,
-    @Query('status') status?: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
-    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit?: number,
+    @Query("status") status?: string,
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page?: number,
+    @Query("limit", new DefaultValuePipe(50), ParseIntPipe) limit?: number,
   ) {
     return this.service.listPickWaves(tenantId, status, page, limit);
   }
 
-  @Post('pick-waves')
-  @RequirePermissions('pick_wave.create')
-  @ApiOperation({ summary: 'Create pick wave for orders' })
+  @Post("pick-waves")
+  @RequirePermissions("pick_wave.create")
+  @ApiOperation({ summary: "Create pick wave for orders" })
   async createPickWave(
     @TenantId() tenantId: string,
     @CurrentUser() user: CurrentUserData,
@@ -80,94 +89,94 @@ export class FulfilmentController {
     });
   }
 
-  @Get('pick-waves/:id')
-  @RequirePermissions('pick_wave.create')
-  @ApiOperation({ summary: 'Get pick wave' })
-  async getPickWave(@Param('id', UuidValidationPipe) id: string) {
+  @Get("pick-waves/:id")
+  @RequirePermissions("pick_wave.create")
+  @ApiOperation({ summary: "Get pick wave" })
+  async getPickWave(@Param("id", UuidValidationPipe) id: string) {
     return this.service.getPickWave(id);
   }
 
-  @Get('pick-waves/:id/tasks')
-  @RequirePermissions('pick_task.execute')
-  @ApiOperation({ summary: 'Get pick tasks for wave' })
-  async getPickTasks(@Param('id', UuidValidationPipe) waveId: string) {
+  @Get("pick-waves/:id/tasks")
+  @RequirePermissions("pick_task.execute")
+  @ApiOperation({ summary: "Get pick tasks for wave" })
+  async getPickTasks(@Param("id", UuidValidationPipe) waveId: string) {
     return this.service.getPickTasks(waveId);
   }
 
-  @Post('pick-waves/:id/release')
-  @RequirePermissions('pick_wave.create')
-  @ApiOperation({ summary: 'Release pick wave for execution' })
-  async releasePickWave(@Param('id', UuidValidationPipe) id: string) {
+  @Post("pick-waves/:id/release")
+  @RequirePermissions("pick_wave.create")
+  @ApiOperation({ summary: "Release pick wave for execution" })
+  async releasePickWave(@Param("id", UuidValidationPipe) id: string) {
     return this.service.releasePickWave(id);
   }
 
-  @Post('pick-waves/:id/complete')
-  @RequirePermissions('pick_wave.create')
-  @ApiOperation({ summary: 'Complete pick wave' })
-  async completePickWave(@Param('id', UuidValidationPipe) id: string) {
+  @Post("pick-waves/:id/complete")
+  @RequirePermissions("pick_wave.create")
+  @ApiOperation({ summary: "Complete pick wave" })
+  async completePickWave(@Param("id", UuidValidationPipe) id: string) {
     return this.service.completePickWave(id);
   }
 
-  @Post('pick-waves/:id/reopen')
-  @RequirePermissions('pick_wave.create')
-  @ApiOperation({ summary: 'Reopen completed or cancelled pick wave' })
-  async reopenPickWave(@Param('id', UuidValidationPipe) id: string) {
+  @Post("pick-waves/:id/reopen")
+  @RequirePermissions("pick_wave.create")
+  @ApiOperation({ summary: "Reopen completed or cancelled pick wave" })
+  async reopenPickWave(@Param("id", UuidValidationPipe) id: string) {
     return this.service.reopenPickWave(id);
   }
 
-  @Post('pick-waves/:id/cancel')
-  @RequirePermissions('pick_wave.create')
-  @ApiOperation({ summary: 'Cancel pick wave' })
+  @Post("pick-waves/:id/cancel")
+  @RequirePermissions("pick_wave.create")
+  @ApiOperation({ summary: "Cancel pick wave" })
   async cancelPickWave(
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @Body() data: CancelPickWaveDto,
   ) {
     return this.service.cancelPickWave(id, data.reason);
   }
 
-  @Get('pick-waves/:id/pick-slip')
-  @RequirePermissions('pick_wave.create')
-  @ApiOperation({ summary: 'Download pick slip PDF' })
-  @ApiProduces('application/pdf')
+  @Get("pick-waves/:id/pick-slip")
+  @RequirePermissions("pick_wave.create")
+  @ApiOperation({ summary: "Download pick slip PDF" })
+  @ApiProduces("application/pdf")
   async downloadPickSlip(
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const pdfBuffer = await this.pdfService.generatePickSlip(id);
     res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="pick-slip-${id}.pdf"`,
-      'Content-Length': pdfBuffer.length,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="pick-slip-${id}.pdf"`,
+      "Content-Length": pdfBuffer.length,
     });
     return new StreamableFile(pdfBuffer);
   }
 
   // Pick Tasks
-  @Get('pick-tasks')
-  @RequirePermissions('pick_task.execute')
-  @ApiOperation({ summary: 'Get my assigned pick tasks' })
+  @Get("pick-tasks")
+  @RequirePermissions("pick_task.execute")
+  @ApiOperation({ summary: "Get my assigned pick tasks" })
   async getMyTasks(
     @CurrentUser() user: CurrentUserData,
-    @Query('status') status?: string,
+    @Query("status") status?: string,
   ) {
     return this.service.getMyPickTasks(user.id, status);
   }
 
-  @Post('pick-tasks/:id/assign')
-  @RequirePermissions('pick_task.execute')
-  @ApiOperation({ summary: 'Assign pick task to self' })
+  @Post("pick-tasks/:id/assign")
+  @RequirePermissions("pick_task.execute")
+  @ApiOperation({ summary: "Assign pick task to self" })
   async assignTask(
-    @Param('id', UuidValidationPipe) taskId: string,
+    @Param("id", UuidValidationPipe) taskId: string,
     @CurrentUser() user: CurrentUserData,
   ) {
     return this.service.assignPickTask(taskId, user.id);
   }
 
-  @Post('pick-tasks/:id/confirm')
-  @RequirePermissions('pick_task.execute')
-  @ApiOperation({ summary: 'Confirm pick task completion' })
+  @Post("pick-tasks/:id/confirm")
+  @RequirePermissions("pick_task.execute")
+  @ApiOperation({ summary: "Confirm pick task completion" })
   async confirmTask(
-    @Param('id', UuidValidationPipe) taskId: string,
+    @Param("id", UuidValidationPipe) taskId: string,
     @CurrentUser() user: CurrentUserData,
     @Body() data: ConfirmPickTaskDto,
   ) {
@@ -177,42 +186,42 @@ export class FulfilmentController {
     });
   }
 
-  @Post('pick-tasks/:id/cancel')
-  @RequirePermissions('pick_task.execute')
-  @ApiOperation({ summary: 'Cancel pick task' })
+  @Post("pick-tasks/:id/cancel")
+  @RequirePermissions("pick_task.execute")
+  @ApiOperation({ summary: "Cancel pick task" })
   async cancelTask(
-    @Param('id', UuidValidationPipe) taskId: string,
+    @Param("id", UuidValidationPipe) taskId: string,
     @Body() data: CancelPickTaskDto,
   ) {
     return this.service.cancelPickTask(taskId, data.reason);
   }
 
   // Shipments
-  @Get('shipments')
-  @RequirePermissions('shipment.read')
-  @ApiOperation({ summary: 'List shipments' })
-  @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
+  @Get("shipments")
+  @RequirePermissions("shipment.read")
+  @ApiOperation({ summary: "List shipments" })
+  @ApiQuery({ name: "status", required: false })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "limit", required: false })
   async listShipments(
     @TenantId() tenantId: string,
-    @Query('status') status?: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
-    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit?: number,
+    @Query("status") status?: string,
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page?: number,
+    @Query("limit", new DefaultValuePipe(50), ParseIntPipe) limit?: number,
   ) {
     return this.service.listShipments(tenantId, status, page, limit);
   }
 
-  @Get('shippable-orders')
-  @RequirePermissions('shipment.create')
-  @ApiOperation({ summary: 'Get orders ready for shipping' })
+  @Get("shippable-orders")
+  @RequirePermissions("shipment.create")
+  @ApiOperation({ summary: "Get orders ready for shipping" })
   async getShippableOrders(@TenantId() tenantId: string) {
     return this.service.getShippableOrders(tenantId);
   }
 
-  @Post('shipments')
-  @RequirePermissions('shipment.create')
-  @ApiOperation({ summary: 'Create shipment for order' })
+  @Post("shipments")
+  @RequirePermissions("shipment.create")
+  @ApiOperation({ summary: "Create shipment for order" })
   async createShipment(
     @TenantId() tenantId: string,
     @CurrentUser() user: CurrentUserData,
@@ -225,98 +234,98 @@ export class FulfilmentController {
     });
   }
 
-  @Get('shipments/:id')
-  @RequirePermissions('shipment.read')
-  @ApiOperation({ summary: 'Get shipment' })
-  async getShipment(@Param('id', UuidValidationPipe) id: string) {
+  @Get("shipments/:id")
+  @RequirePermissions("shipment.read")
+  @ApiOperation({ summary: "Get shipment" })
+  async getShipment(@Param("id", UuidValidationPipe) id: string) {
     return this.service.getShipment(id);
   }
 
-  @Get('shipments/:id/lines')
-  @RequirePermissions('shipment.read')
-  @ApiOperation({ summary: 'Get shipment lines' })
-  async getShipmentLines(@Param('id', UuidValidationPipe) id: string) {
+  @Get("shipments/:id/lines")
+  @RequirePermissions("shipment.read")
+  @ApiOperation({ summary: "Get shipment lines" })
+  async getShipmentLines(@Param("id", UuidValidationPipe) id: string) {
     return this.service.getShipmentLines(id);
   }
 
-  @Get('shipments/:id/packing-slip')
-  @RequirePermissions('shipment.read')
-  @ApiOperation({ summary: 'Download packing slip PDF' })
-  @ApiProduces('application/pdf')
+  @Get("shipments/:id/packing-slip")
+  @RequirePermissions("shipment.read")
+  @ApiOperation({ summary: "Download packing slip PDF" })
+  @ApiProduces("application/pdf")
   async downloadPackingSlip(
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const pdfBuffer = await this.pdfService.generatePackingSlip(id);
     res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="packing-slip-${id}.pdf"`,
-      'Content-Length': pdfBuffer.length,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="packing-slip-${id}.pdf"`,
+      "Content-Length": pdfBuffer.length,
     });
     return new StreamableFile(pdfBuffer);
   }
 
-  @Get('shipments/:id/delivery-note')
-  @RequirePermissions('shipment.read')
-  @ApiOperation({ summary: 'Download delivery note PDF' })
-  @ApiProduces('application/pdf')
+  @Get("shipments/:id/delivery-note")
+  @RequirePermissions("shipment.read")
+  @ApiOperation({ summary: "Download delivery note PDF" })
+  @ApiProduces("application/pdf")
   async downloadDeliveryNote(
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @TenantId() tenantId: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const pdfBuffer = await this.pdfService.generateDeliveryNote(id, tenantId);
     res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="delivery-note-${id}.pdf"`,
-      'Content-Length': pdfBuffer.length,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="delivery-note-${id}.pdf"`,
+      "Content-Length": pdfBuffer.length,
     });
     return new StreamableFile(pdfBuffer);
   }
 
-  @Post('shipments/:id/pack')
-  @RequirePermissions('shipment.update')
-  @ApiOperation({ summary: 'Mark shipment as packed' })
-  async packShipment(@Param('id', UuidValidationPipe) id: string) {
+  @Post("shipments/:id/pack")
+  @RequirePermissions("shipment.update")
+  @ApiOperation({ summary: "Mark shipment as packed" })
+  async packShipment(@Param("id", UuidValidationPipe) id: string) {
     return this.service.packShipment(id);
   }
 
-  @Post('shipments/:id/ready')
-  @RequirePermissions('shipment.update')
-  @ApiOperation({ summary: 'Mark shipment ready for dispatch' })
-  async markShipmentReady(@Param('id', UuidValidationPipe) id: string) {
+  @Post("shipments/:id/ready")
+  @RequirePermissions("shipment.update")
+  @ApiOperation({ summary: "Mark shipment ready for dispatch" })
+  async markShipmentReady(@Param("id", UuidValidationPipe) id: string) {
     return this.service.markShipmentReady(id);
   }
 
-  @Post('shipments/:id/ship')
-  @RequirePermissions('shipment.update')
-  @ApiOperation({ summary: 'Ship shipment with carrier info' })
+  @Post("shipments/:id/ship")
+  @RequirePermissions("shipment.update")
+  @ApiOperation({ summary: "Ship shipment with carrier info" })
   async shipShipment(
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @Body() data: ShipShipmentDto,
   ) {
     return this.service.shipShipment(id, data);
   }
 
-  @Post('shipments/:id/deliver')
-  @RequirePermissions('shipment.update')
-  @ApiOperation({ summary: 'Mark shipment as delivered' })
-  async deliverShipment(@Param('id', UuidValidationPipe) id: string) {
+  @Post("shipments/:id/deliver")
+  @RequirePermissions("shipment.update")
+  @ApiOperation({ summary: "Mark shipment as delivered" })
+  async deliverShipment(@Param("id", UuidValidationPipe) id: string) {
     return this.service.deliverShipment(id);
   }
 
-  @Post('shipments/:id/reopen')
-  @RequirePermissions('shipment.update')
-  @ApiOperation({ summary: 'Reopen delivered shipment' })
-  async reopenShipment(@Param('id', UuidValidationPipe) id: string) {
+  @Post("shipments/:id/reopen")
+  @RequirePermissions("shipment.update")
+  @ApiOperation({ summary: "Reopen delivered shipment" })
+  async reopenShipment(@Param("id", UuidValidationPipe) id: string) {
     return this.service.reopenShipment(id);
   }
 
-  @Get('orders/:orderId/shipments')
-  @RequirePermissions('shipment.read')
-  @ApiOperation({ summary: 'Get shipments for order' })
+  @Get("orders/:orderId/shipments")
+  @RequirePermissions("shipment.read")
+  @ApiOperation({ summary: "Get shipments for order" })
   async getShipmentsByOrder(
-    @Param('orderId', UuidValidationPipe) orderId: string,
+    @Param("orderId", UuidValidationPipe) orderId: string,
   ) {
     return this.service.getShipmentsByOrder(orderId);
   }

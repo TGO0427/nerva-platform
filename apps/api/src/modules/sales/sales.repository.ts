@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface SalesOrder {
   id: string;
@@ -146,12 +146,15 @@ export class SalesRepository extends BaseRepository {
     }
 
     const result = await this.queryOne<{ count: string }>(sql, params);
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
-  async updateOrderStatus(id: string, status: string): Promise<SalesOrder | null> {
+  async updateOrderStatus(
+    id: string,
+    status: string,
+  ): Promise<SalesOrder | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'UPDATE sales_orders SET status = $1 WHERE id = $2 RETURNING *',
+      "UPDATE sales_orders SET status = $1 WHERE id = $2 RETURNING *",
       [status, id],
     );
     return row ? this.mapOrder(row) : null;
@@ -183,7 +186,7 @@ export class SalesRepository extends BaseRepository {
 
   async getOrderLines(salesOrderId: string): Promise<SalesOrderLine[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM sales_order_lines WHERE sales_order_id = $1 ORDER BY line_no',
+      "SELECT * FROM sales_order_lines WHERE sales_order_id = $1 ORDER BY line_no",
       [salesOrderId],
     );
     return rows.map(this.mapOrderLine);
@@ -191,7 +194,7 @@ export class SalesRepository extends BaseRepository {
 
   async updateOrderLineQty(
     lineId: string,
-    field: 'qty_allocated' | 'qty_picked' | 'qty_packed' | 'qty_shipped',
+    field: "qty_allocated" | "qty_picked" | "qty_packed" | "qty_shipped",
     qty: number,
   ): Promise<void> {
     await this.execute(
@@ -241,7 +244,7 @@ export class SalesRepository extends BaseRepository {
     params.push(id);
 
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE sales_orders SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE sales_orders SET ${sets.join(", ")} WHERE id = $${idx} RETURNING *`,
       params,
     );
     return row ? this.mapOrder(row) : null;
@@ -249,13 +252,15 @@ export class SalesRepository extends BaseRepository {
 
   async deleteOrderLines(salesOrderId: string): Promise<void> {
     await this.execute(
-      'DELETE FROM sales_order_lines WHERE sales_order_id = $1',
+      "DELETE FROM sales_order_lines WHERE sales_order_id = $1",
       [salesOrderId],
     );
   }
 
   async deleteOrder(id: string): Promise<boolean> {
-    const count = await this.execute('DELETE FROM sales_orders WHERE id = $1', [id]);
+    const count = await this.execute("DELETE FROM sales_orders WHERE id = $1", [
+      id,
+    ]);
     return count > 0;
   }
 
@@ -275,10 +280,10 @@ export class SalesRepository extends BaseRepository {
       [tenantId],
     );
     return {
-      total: parseInt(result?.total || '0', 10),
-      open: parseInt(result?.open || '0', 10),
-      inFulfilment: parseInt(result?.in_fulfilment || '0', 10),
-      shipped: parseInt(result?.shipped || '0', 10),
+      total: parseInt(result?.total || "0", 10),
+      open: parseInt(result?.open || "0", 10),
+      inFulfilment: parseInt(result?.in_fulfilment || "0", 10),
+      shipped: parseInt(result?.shipped || "0", 10),
     };
   }
 
@@ -296,8 +301,11 @@ export class SalesRepository extends BaseRepository {
       params.push(ref.externalRef, ref.customerId);
       idx += 2;
     }
-    const rows = await this.queryMany<{ external_ref: string; customer_id: string }>(
-      `SELECT external_ref, customer_id FROM sales_orders WHERE tenant_id = $1 AND (${conditions.join(' OR ')})`,
+    const rows = await this.queryMany<{
+      external_ref: string;
+      customer_id: string;
+    }>(
+      `SELECT external_ref, customer_id FROM sales_orders WHERE tenant_id = $1 AND (${conditions.join(" OR ")})`,
       params,
     );
     const set = new Set<string>();
@@ -309,11 +317,11 @@ export class SalesRepository extends BaseRepository {
 
   async generateOrderNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM sales_orders WHERE tenant_id = $1',
+      "SELECT COUNT(*) as count FROM sales_orders WHERE tenant_id = $1",
       [tenantId],
     );
-    const count = parseInt(result?.count || '0', 10) + 1;
-    return `SO-${count.toString().padStart(6, '0')}`;
+    const count = parseInt(result?.count || "0", 10) + 1;
+    return `SO-${count.toString().padStart(6, "0")}`;
   }
 
   private mapOrder(row: Record<string, unknown>): SalesOrder {

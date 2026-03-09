@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
-import { IntegrationsController } from './integrations.controller';
-import { IntegrationsService } from './integrations.service';
-import { IntegrationsRepository } from './integrations.repository';
-import { PostingQueueService } from './posting-queue.service';
+import { Module } from "@nestjs/common";
+import { IntegrationsController } from "./integrations.controller";
+import { IntegrationsService } from "./integrations.service";
+import { IntegrationsRepository } from "./integrations.repository";
+import { PostingQueueService } from "./posting-queue.service";
 
 @Module({
   controllers: [IntegrationsController],

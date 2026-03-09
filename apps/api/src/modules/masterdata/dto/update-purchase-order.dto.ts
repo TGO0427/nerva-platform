@@ -5,27 +5,27 @@ import {
   IsDateString,
   IsIn,
   MaxLength,
-} from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 
 export class UpdatePurchaseOrderDto {
-  @ApiPropertyOptional({ description: 'Status' })
+  @ApiPropertyOptional({ description: "Status" })
   @IsOptional()
   @IsString()
-  @IsIn(['DRAFT', 'SENT', 'CONFIRMED', 'PARTIAL', 'RECEIVED', 'CANCELLED'])
+  @IsIn(["DRAFT", "SENT", "CONFIRMED", "PARTIAL", "RECEIVED", "CANCELLED"])
   status?: string;
 
-  @ApiPropertyOptional({ description: 'Expected delivery date' })
+  @ApiPropertyOptional({ description: "Expected delivery date" })
   @IsOptional()
   @IsDateString()
   expectedDate?: string;
 
-  @ApiPropertyOptional({ description: 'Ship to warehouse ID' })
+  @ApiPropertyOptional({ description: "Ship to warehouse ID" })
   @IsOptional()
   @IsUUID()
   shipToWarehouseId?: string;
 
-  @ApiPropertyOptional({ description: 'Notes' })
+  @ApiPropertyOptional({ description: "Notes" })
   @IsOptional()
   @IsString()
   @MaxLength(2000)

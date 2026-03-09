@@ -2,11 +2,11 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-} from '@nestjs/common';
-import { UsersRepository, User } from './users.repository';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import * as argon2 from 'argon2';
+} from "@nestjs/common";
+import { UsersRepository, User } from "./users.repository";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import * as argon2 from "argon2";
 
 @Injectable()
 export class UsersService {
@@ -39,9 +39,12 @@ export class UsersService {
   }
 
   async create(tenantId: string, dto: CreateUserDto): Promise<User> {
-    const existing = await this.usersRepository.findByEmail(tenantId, dto.email);
+    const existing = await this.usersRepository.findByEmail(
+      tenantId,
+      dto.email,
+    );
     if (existing) {
-      throw new ConflictException('Email already in use');
+      throw new ConflictException("Email already in use");
     }
 
     const passwordHash = await argon2.hash(dto.password);
@@ -66,10 +69,10 @@ export class UsersService {
   async update(id: string, dto: UpdateUserDto): Promise<User> {
     const user = await this.usersRepository.findById(id);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
-    const updateData: Parameters<UsersRepository['update']>[1] = {};
+    const updateData: Parameters<UsersRepository["update"]>[1] = {};
 
     if (dto.email) updateData.email = dto.email;
     if (dto.displayName) updateData.displayName = dto.displayName;

@@ -8,18 +8,26 @@ import {
   Res,
   StreamableFile,
   UseGuards,
-} from '@nestjs/common';
-import { Response } from 'express';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
-import { DispatchService } from './dispatch.service';
-import { DispatchPdfService } from './dispatch-pdf.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TenantGuard } from '../../common/guards/tenant.guard';
-import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
-import { CurrentUser, CurrentUserData } from '../../common/decorators/current-user.decorator';
-import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+} from "@nestjs/common";
+import { Response } from "express";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiProduces,
+} from "@nestjs/swagger";
+import { DispatchService } from "./dispatch.service";
+import { DispatchPdfService } from "./dispatch-pdf.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { TenantGuard } from "../../common/guards/tenant.guard";
+import { PermissionsGuard } from "../../common/guards/permissions.guard";
+import { RequirePermissions } from "../../common/decorators/permissions.decorator";
+import { TenantId, SiteId } from "../../common/decorators/tenant.decorator";
+import {
+  CurrentUser,
+  CurrentUserData,
+} from "../../common/decorators/current-user.decorator";
+import { UuidValidationPipe } from "../../common/pipes/uuid-validation.pipe";
 import {
   CreateTripDto,
   AddStopDto,
@@ -30,29 +38,29 @@ import {
   CompleteStopDto,
   FailStopDto,
   SkipStopDto,
-} from './dto/dispatch.dto';
+} from "./dto/dispatch.dto";
 
-@ApiTags('dispatch')
+@ApiTags("dispatch")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('dispatch')
+@Controller("dispatch")
 export class DispatchController {
   constructor(
     private readonly service: DispatchService,
     private readonly pdfService: DispatchPdfService,
   ) {}
 
-  @Get('trips')
-  @RequirePermissions('dispatch.plan')
-  @ApiOperation({ summary: 'List dispatch trips' })
+  @Get("trips")
+  @RequirePermissions("dispatch.plan")
+  @ApiOperation({ summary: "List dispatch trips" })
   async listTrips(
     @TenantId() tenantId: string,
-    @Query('status') status?: string,
-    @Query('driverId') driverId?: string,
-    @Query('date') date?: string,
-    @Query('search') search?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query("status") status?: string,
+    @Query("driverId") driverId?: string,
+    @Query("date") date?: string,
+    @Query("search") search?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
   ) {
     return this.service.listTrips(
       tenantId,
@@ -62,9 +70,9 @@ export class DispatchController {
     );
   }
 
-  @Post('trips')
-  @RequirePermissions('dispatch.plan')
-  @ApiOperation({ summary: 'Create dispatch trip' })
+  @Post("trips")
+  @RequirePermissions("dispatch.plan")
+  @ApiOperation({ summary: "Create dispatch trip" })
   async createTrip(
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
@@ -72,7 +80,9 @@ export class DispatchController {
     @Body() data: CreateTripDto,
   ) {
     // Log incoming request for debugging
-    console.log(`Creating trip for tenant ${tenantId} with ${data.shipmentIds?.length || 0} shipments`);
+    console.log(
+      `Creating trip for tenant ${tenantId} with ${data.shipmentIds?.length || 0} shipments`,
+    );
 
     const result = await this.service.createTripFromShipments({
       tenantId,
@@ -87,59 +97,61 @@ export class DispatchController {
       createdBy: user.id,
     });
 
-    console.log(`Trip ${result.tripNo} created successfully with ID ${result.id}`);
+    console.log(
+      `Trip ${result.tripNo} created successfully with ID ${result.id}`,
+    );
     return result;
   }
 
-  @Get('trips/:id')
-  @RequirePermissions('dispatch.plan')
-  @ApiOperation({ summary: 'Get trip by ID' })
-  async getTrip(@Param('id', UuidValidationPipe) id: string) {
+  @Get("trips/:id")
+  @RequirePermissions("dispatch.plan")
+  @ApiOperation({ summary: "Get trip by ID" })
+  async getTrip(@Param("id", UuidValidationPipe) id: string) {
     return this.service.getTrip(id);
   }
 
-  @Get('trips/:id/pdf')
-  @RequirePermissions('dispatch.plan')
-  @ApiOperation({ summary: 'Download dispatch manifest PDF' })
-  @ApiProduces('application/pdf')
+  @Get("trips/:id/pdf")
+  @RequirePermissions("dispatch.plan")
+  @ApiOperation({ summary: "Download dispatch manifest PDF" })
+  @ApiProduces("application/pdf")
   async downloadManifestPdf(
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @TenantId() tenantId: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const pdfBuffer = await this.pdfService.generate(id, tenantId);
     res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="dispatch-manifest-${id}.pdf"`,
-      'Content-Length': pdfBuffer.length,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="dispatch-manifest-${id}.pdf"`,
+      "Content-Length": pdfBuffer.length,
     });
     return new StreamableFile(pdfBuffer);
   }
 
-  @Get('trips/:id/stops')
-  @RequirePermissions('dispatch.plan')
-  @ApiOperation({ summary: 'Get trip stops' })
-  async getTripStops(@Param('id', UuidValidationPipe) id: string) {
+  @Get("trips/:id/stops")
+  @RequirePermissions("dispatch.plan")
+  @ApiOperation({ summary: "Get trip stops" })
+  async getTripStops(@Param("id", UuidValidationPipe) id: string) {
     const { stops } = await this.service.getTripWithStops(id);
     return stops;
   }
 
-  @Post('trips/:id/add-shipment')
-  @RequirePermissions('dispatch.plan')
-  @ApiOperation({ summary: 'Add stop to trip' })
+  @Post("trips/:id/add-shipment")
+  @RequirePermissions("dispatch.plan")
+  @ApiOperation({ summary: "Add stop to trip" })
   async addStop(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) tripId: string,
+    @Param("id", UuidValidationPipe) tripId: string,
     @Body() data: AddStopDto,
   ) {
     return this.service.addStop({ tenantId, tripId, ...data });
   }
 
-  @Post('trips/:id/assign')
-  @RequirePermissions('dispatch.assign')
-  @ApiOperation({ summary: 'Assign vehicle and driver to trip' })
+  @Post("trips/:id/assign")
+  @RequirePermissions("dispatch.assign")
+  @ApiOperation({ summary: "Assign vehicle and driver to trip" })
   async assignTrip(
-    @Param('id', UuidValidationPipe) tripId: string,
+    @Param("id", UuidValidationPipe) tripId: string,
     @Body() data: AssignTripDto,
   ) {
     return this.service.assignTrip(tripId, {
@@ -150,98 +162,98 @@ export class DispatchController {
     });
   }
 
-  @Post('trips/:id/start')
-  @RequirePermissions('dispatch.execute')
-  @ApiOperation({ summary: 'Start trip' })
-  async startTrip(@Param('id', UuidValidationPipe) tripId: string) {
+  @Post("trips/:id/start")
+  @RequirePermissions("dispatch.execute")
+  @ApiOperation({ summary: "Start trip" })
+  async startTrip(@Param("id", UuidValidationPipe) tripId: string) {
     return this.service.startTrip(tripId);
   }
 
-  @Post('trips/:id/complete')
-  @RequirePermissions('dispatch.execute')
-  @ApiOperation({ summary: 'Complete trip' })
+  @Post("trips/:id/complete")
+  @RequirePermissions("dispatch.execute")
+  @ApiOperation({ summary: "Complete trip" })
   async completeTrip(
-    @Param('id', UuidValidationPipe) tripId: string,
+    @Param("id", UuidValidationPipe) tripId: string,
     @Body() data: CompleteTripDto,
   ) {
     return this.service.completeTrip(tripId, data?.forceComplete);
   }
 
-  @Post('trips/:id/cancel')
-  @RequirePermissions('dispatch.plan')
-  @ApiOperation({ summary: 'Cancel trip' })
+  @Post("trips/:id/cancel")
+  @RequirePermissions("dispatch.plan")
+  @ApiOperation({ summary: "Cancel trip" })
   async cancelTrip(
-    @Param('id', UuidValidationPipe) tripId: string,
+    @Param("id", UuidValidationPipe) tripId: string,
     @Body() data: CancelTripDto,
   ) {
     return this.service.cancelTrip(tripId, data.reason);
   }
 
-  @Post('trips/:id/resequence-stops')
-  @RequirePermissions('dispatch.plan')
-  @ApiOperation({ summary: 'Resequence stops' })
+  @Post("trips/:id/resequence-stops")
+  @RequirePermissions("dispatch.plan")
+  @ApiOperation({ summary: "Resequence stops" })
   async resequenceStops(
-    @Param('id', UuidValidationPipe) tripId: string,
+    @Param("id", UuidValidationPipe) tripId: string,
     @Body() data: ResequenceStopsDto,
   ) {
     return this.service.resequenceStops(tripId, data.stopIds);
   }
 
   // Stop action endpoints
-  @Post('trips/:tripId/stops/:stopId/arrive')
-  @RequirePermissions('dispatch.execute')
-  @ApiOperation({ summary: 'Mark stop as arrived' })
+  @Post("trips/:tripId/stops/:stopId/arrive")
+  @RequirePermissions("dispatch.execute")
+  @ApiOperation({ summary: "Mark stop as arrived" })
   async arriveAtStop(
-    @Param('tripId', UuidValidationPipe) tripId: string,
-    @Param('stopId', UuidValidationPipe) stopId: string,
+    @Param("tripId", UuidValidationPipe) tripId: string,
+    @Param("stopId", UuidValidationPipe) stopId: string,
   ) {
     return this.service.arriveAtStop(tripId, stopId);
   }
 
-  @Post('trips/:tripId/stops/:stopId/complete')
-  @RequirePermissions('dispatch.execute')
-  @ApiOperation({ summary: 'Complete stop with POD' })
+  @Post("trips/:tripId/stops/:stopId/complete")
+  @RequirePermissions("dispatch.execute")
+  @ApiOperation({ summary: "Complete stop with POD" })
   async completeStop(
     @TenantId() tenantId: string,
-    @Param('tripId', UuidValidationPipe) tripId: string,
-    @Param('stopId', UuidValidationPipe) stopId: string,
+    @Param("tripId", UuidValidationPipe) tripId: string,
+    @Param("stopId", UuidValidationPipe) stopId: string,
     @Body() data: CompleteStopDto,
   ) {
     return this.service.completeStopWithPod(tripId, stopId, tenantId, data);
   }
 
-  @Post('trips/:tripId/stops/:stopId/fail')
-  @RequirePermissions('dispatch.execute')
-  @ApiOperation({ summary: 'Mark stop as failed' })
+  @Post("trips/:tripId/stops/:stopId/fail")
+  @RequirePermissions("dispatch.execute")
+  @ApiOperation({ summary: "Mark stop as failed" })
   async failStop(
-    @Param('tripId', UuidValidationPipe) tripId: string,
-    @Param('stopId', UuidValidationPipe) stopId: string,
+    @Param("tripId", UuidValidationPipe) tripId: string,
+    @Param("stopId", UuidValidationPipe) stopId: string,
     @Body() data: FailStopDto,
   ) {
     return this.service.failStop(tripId, stopId, data.reason);
   }
 
-  @Post('trips/:tripId/stops/:stopId/skip')
-  @RequirePermissions('dispatch.execute')
-  @ApiOperation({ summary: 'Skip stop' })
+  @Post("trips/:tripId/stops/:stopId/skip")
+  @RequirePermissions("dispatch.execute")
+  @ApiOperation({ summary: "Skip stop" })
   async skipStop(
-    @Param('tripId', UuidValidationPipe) tripId: string,
-    @Param('stopId', UuidValidationPipe) stopId: string,
+    @Param("tripId", UuidValidationPipe) tripId: string,
+    @Param("stopId", UuidValidationPipe) stopId: string,
     @Body() data: SkipStopDto,
   ) {
     return this.service.skipStop(tripId, stopId, data.reason);
   }
 
-  @Get('vehicles')
-  @RequirePermissions('dispatch.plan')
-  @ApiOperation({ summary: 'List vehicles' })
+  @Get("vehicles")
+  @RequirePermissions("dispatch.plan")
+  @ApiOperation({ summary: "List vehicles" })
   async listVehicles(@TenantId() tenantId: string) {
     return this.service.listVehicles(tenantId);
   }
 
-  @Get('drivers')
-  @RequirePermissions('dispatch.plan')
-  @ApiOperation({ summary: 'List drivers' })
+  @Get("drivers")
+  @RequirePermissions("dispatch.plan")
+  @ApiOperation({ summary: "List drivers" })
   async listDrivers(@TenantId() tenantId: string) {
     return this.service.listDrivers(tenantId);
   }

@@ -1,19 +1,42 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { WorkstationRepository, Workstation } from './repositories/workstation.repository';
-import { BomRepository, BomHeader, BomLine } from './repositories/bom.repository';
-import { RoutingRepository, Routing, RoutingOperation } from './repositories/routing.repository';
-import { WorkOrderRepository, WorkOrder, WorkOrderOperation, WorkOrderMaterial } from './repositories/work-order.repository';
-import { ProductionLedgerRepository, ProductionLedgerEntry } from './repositories/production-ledger.repository';
-import { ProductionDataRepository } from './repositories/production-data.repository';
-import { MrpRepository } from './repositories/mrp.repository';
-import { NonConformanceRepository } from './repositories/non-conformance.repository';
-import { StockLedgerService } from '../inventory/stock-ledger.service';
-import { MasterDataService } from '../masterdata/masterdata.service';
-import type { ImportResult } from '../masterdata/dto/import.dto';
-import type { WorkOrderImportRowDto } from './dto/wo-import.dto';
-import type { WorkstationImportRowDto } from './dto/workstation-import.dto';
-import type { BomImportRowDto } from './dto/bom-import.dto';
-import type { RoutingImportRowDto } from './dto/routing-import.dto';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from "@nestjs/common";
+import {
+  WorkstationRepository,
+  Workstation,
+} from "./repositories/workstation.repository";
+import {
+  BomRepository,
+  BomHeader,
+  BomLine,
+} from "./repositories/bom.repository";
+import {
+  RoutingRepository,
+  Routing,
+  RoutingOperation,
+} from "./repositories/routing.repository";
+import {
+  WorkOrderRepository,
+  WorkOrder,
+  WorkOrderOperation,
+  WorkOrderMaterial,
+} from "./repositories/work-order.repository";
+import {
+  ProductionLedgerRepository,
+  ProductionLedgerEntry,
+} from "./repositories/production-ledger.repository";
+import { ProductionDataRepository } from "./repositories/production-data.repository";
+import { MrpRepository } from "./repositories/mrp.repository";
+import { NonConformanceRepository } from "./repositories/non-conformance.repository";
+import { StockLedgerService } from "../inventory/stock-ledger.service";
+import { MasterDataService } from "../masterdata/masterdata.service";
+import type { ImportResult } from "../masterdata/dto/import.dto";
+import type { WorkOrderImportRowDto } from "./dto/wo-import.dto";
+import type { WorkstationImportRowDto } from "./dto/workstation-import.dto";
+import type { BomImportRowDto } from "./dto/bom-import.dto";
+import type { RoutingImportRowDto } from "./dto/routing-import.dto";
 
 @Injectable()
 export class ManufacturingService {
@@ -38,7 +61,12 @@ export class ManufacturingService {
     limit = 50,
   ) {
     const offset = (page - 1) * limit;
-    const { data, total } = await this.workstationRepo.findByTenant(tenantId, filters, limit, offset);
+    const { data, total } = await this.workstationRepo.findByTenant(
+      tenantId,
+      filters,
+      limit,
+      offset,
+    );
     return {
       data,
       meta: {
@@ -52,23 +80,28 @@ export class ManufacturingService {
 
   async getWorkstation(id: string): Promise<Workstation> {
     const workstation = await this.workstationRepo.findById(id);
-    if (!workstation) throw new NotFoundException('Workstation not found');
+    if (!workstation) throw new NotFoundException("Workstation not found");
     return workstation;
   }
 
-  async createWorkstation(data: Parameters<WorkstationRepository['create']>[0]): Promise<Workstation> {
+  async createWorkstation(
+    data: Parameters<WorkstationRepository["create"]>[0],
+  ): Promise<Workstation> {
     return this.workstationRepo.create(data);
   }
 
-  async updateWorkstation(id: string, data: Parameters<WorkstationRepository['update']>[1]): Promise<Workstation> {
+  async updateWorkstation(
+    id: string,
+    data: Parameters<WorkstationRepository["update"]>[1],
+  ): Promise<Workstation> {
     const updated = await this.workstationRepo.update(id, data);
-    if (!updated) throw new NotFoundException('Workstation not found');
+    if (!updated) throw new NotFoundException("Workstation not found");
     return updated;
   }
 
   async deleteWorkstation(id: string): Promise<void> {
     const deleted = await this.workstationRepo.delete(id);
-    if (!deleted) throw new NotFoundException('Workstation not found');
+    if (!deleted) throw new NotFoundException("Workstation not found");
   }
 
   // ============ BOMs ============
@@ -79,7 +112,12 @@ export class ManufacturingService {
     limit = 50,
   ) {
     const offset = (page - 1) * limit;
-    const { data, total } = await this.bomRepo.findHeadersByTenant(tenantId, filters, limit, offset);
+    const { data, total } = await this.bomRepo.findHeadersByTenant(
+      tenantId,
+      filters,
+      limit,
+      offset,
+    );
     return {
       data,
       meta: {
@@ -93,32 +131,33 @@ export class ManufacturingService {
 
   async getBom(id: string) {
     const header = await this.bomRepo.findHeaderById(id);
-    if (!header) throw new NotFoundException('BOM not found');
+    if (!header) throw new NotFoundException("BOM not found");
     const lines = await this.bomRepo.getLines(id);
     return { ...header, lines };
   }
 
-  async createBom(
-    data: {
-      tenantId: string;
+  async createBom(data: {
+    tenantId: string;
+    itemId: string;
+    baseQty?: number;
+    uom?: string;
+    effectiveFrom?: Date;
+    effectiveTo?: Date;
+    notes?: string;
+    createdBy: string;
+    lines: Array<{
       itemId: string;
-      baseQty?: number;
+      qtyPer: number;
       uom?: string;
-      effectiveFrom?: Date;
-      effectiveTo?: Date;
+      scrapPct?: number;
+      isCritical?: boolean;
       notes?: string;
-      createdBy: string;
-      lines: Array<{
-        itemId: string;
-        qtyPer: number;
-        uom?: string;
-        scrapPct?: number;
-        isCritical?: boolean;
-        notes?: string;
-      }>;
-    },
-  ) {
-    const version = await this.bomRepo.getNextVersion(data.tenantId, data.itemId);
+    }>;
+  }) {
+    const version = await this.bomRepo.getNextVersion(
+      data.tenantId,
+      data.itemId,
+    );
     const header = await this.bomRepo.createHeader({
       ...data,
       version,
@@ -138,20 +177,23 @@ export class ManufacturingService {
     return { ...header, lines };
   }
 
-  async updateBom(id: string, data: Parameters<BomRepository['updateHeader']>[1]) {
+  async updateBom(
+    id: string,
+    data: Parameters<BomRepository["updateHeader"]>[1],
+  ) {
     const header = await this.bomRepo.findHeaderById(id);
-    if (!header) throw new NotFoundException('BOM not found');
-    if (header.status !== 'DRAFT') {
-      throw new BadRequestException('Can only update DRAFT BOMs');
+    if (!header) throw new NotFoundException("BOM not found");
+    if (header.status !== "DRAFT") {
+      throw new BadRequestException("Can only update DRAFT BOMs");
     }
     return this.bomRepo.updateHeader(id, data);
   }
 
   async deleteBom(id: string) {
     const header = await this.bomRepo.findHeaderById(id);
-    if (!header) throw new NotFoundException('BOM not found');
-    if (header.status !== 'DRAFT') {
-      throw new BadRequestException('Can only delete DRAFT BOMs');
+    if (!header) throw new NotFoundException("BOM not found");
+    if (header.status !== "DRAFT") {
+      throw new BadRequestException("Can only delete DRAFT BOMs");
     }
     await this.bomRepo.deleteLinesByHeader(id);
     await this.bomRepo.deleteHeader(id);
@@ -159,14 +201,17 @@ export class ManufacturingService {
 
   async createNewBomVersion(id: string, createdBy: string) {
     const existing = await this.getBom(id);
-    if (!existing) throw new NotFoundException('BOM not found');
+    if (!existing) throw new NotFoundException("BOM not found");
 
-    const version = await this.bomRepo.getNextVersion(existing.tenantId, existing.itemId);
+    const version = await this.bomRepo.getNextVersion(
+      existing.tenantId,
+      existing.itemId,
+    );
     const header = await this.bomRepo.createHeader({
       tenantId: existing.tenantId,
       itemId: existing.itemId,
       version,
-      revision: 'A',
+      revision: "A",
       baseQty: existing.baseQty,
       uom: existing.uom,
       notes: existing.notes || undefined,
@@ -195,21 +240,21 @@ export class ManufacturingService {
 
   async submitBomForApproval(id: string) {
     const header = await this.bomRepo.findHeaderById(id);
-    if (!header) throw new NotFoundException('BOM not found');
-    if (header.status !== 'DRAFT') {
-      throw new BadRequestException('Can only submit DRAFT BOMs');
+    if (!header) throw new NotFoundException("BOM not found");
+    if (header.status !== "DRAFT") {
+      throw new BadRequestException("Can only submit DRAFT BOMs");
     }
-    return this.bomRepo.updateHeader(id, { status: 'PENDING_APPROVAL' });
+    return this.bomRepo.updateHeader(id, { status: "PENDING_APPROVAL" });
   }
 
   async approveBom(id: string, approvedBy: string) {
     const header = await this.bomRepo.findHeaderById(id);
-    if (!header) throw new NotFoundException('BOM not found');
-    if (header.status !== 'PENDING_APPROVAL') {
-      throw new BadRequestException('BOM must be PENDING_APPROVAL to approve');
+    if (!header) throw new NotFoundException("BOM not found");
+    if (header.status !== "PENDING_APPROVAL") {
+      throw new BadRequestException("BOM must be PENDING_APPROVAL to approve");
     }
     return this.bomRepo.updateHeader(id, {
-      status: 'APPROVED',
+      status: "APPROVED",
       approvedBy,
       approvedAt: new Date(),
     });
@@ -217,11 +262,11 @@ export class ManufacturingService {
 
   async obsoleteBom(id: string) {
     const header = await this.bomRepo.findHeaderById(id);
-    if (!header) throw new NotFoundException('BOM not found');
-    if (header.status === 'OBSOLETE') {
-      throw new BadRequestException('BOM is already obsolete');
+    if (!header) throw new NotFoundException("BOM not found");
+    if (header.status === "OBSOLETE") {
+      throw new BadRequestException("BOM is already obsolete");
     }
-    return this.bomRepo.updateHeader(id, { status: 'OBSOLETE' });
+    return this.bomRepo.updateHeader(id, { status: "OBSOLETE" });
   }
 
   async compareBoms(id1: string, id2: string) {
@@ -230,12 +275,16 @@ export class ManufacturingService {
       this.getBom(id2),
     ]);
 
-    const leftLines = new Map(bom1.lines.map(l => [l.itemId, l]));
-    const rightLines = new Map(bom2.lines.map(l => [l.itemId, l]));
+    const leftLines = new Map(bom1.lines.map((l) => [l.itemId, l]));
+    const rightLines = new Map(bom2.lines.map((l) => [l.itemId, l]));
 
     const added: BomLine[] = [];
     const removed: BomLine[] = [];
-    const changed: Array<{ left: BomLine; right: BomLine; changedFields: string[] }> = [];
+    const changed: Array<{
+      left: BomLine;
+      right: BomLine;
+      changedFields: string[];
+    }> = [];
 
     // Find removed and changed
     for (const [itemId, leftLine] of leftLines) {
@@ -244,10 +293,12 @@ export class ManufacturingService {
         removed.push(leftLine);
       } else {
         const changedFields: string[] = [];
-        if (leftLine.qtyPer !== rightLine.qtyPer) changedFields.push('qtyPer');
-        if (leftLine.scrapPct !== rightLine.scrapPct) changedFields.push('scrapPct');
-        if (leftLine.isCritical !== rightLine.isCritical) changedFields.push('isCritical');
-        if (leftLine.uom !== rightLine.uom) changedFields.push('uom');
+        if (leftLine.qtyPer !== rightLine.qtyPer) changedFields.push("qtyPer");
+        if (leftLine.scrapPct !== rightLine.scrapPct)
+          changedFields.push("scrapPct");
+        if (leftLine.isCritical !== rightLine.isCritical)
+          changedFields.push("isCritical");
+        if (leftLine.uom !== rightLine.uom) changedFields.push("uom");
 
         if (changedFields.length > 0) {
           changed.push({ left: leftLine, right: rightLine, changedFields });
@@ -272,13 +323,15 @@ export class ManufacturingService {
   // BOM Explosion (Calculator)
   async explodeBom(bomId: string, requiredKg: number) {
     const header = await this.bomRepo.findHeaderById(bomId);
-    if (!header) throw new NotFoundException('BOM not found');
+    if (!header) throw new NotFoundException("BOM not found");
     const allLines = await this.bomRepo.getLines(bomId);
 
     const scaleFactor = requiredKg / (header.baseQty || 1);
 
-    const ingredients = allLines.filter(l => l.category === 'INGREDIENT' || !l.category);
-    const packaging = allLines.filter(l => l.category === 'PACKAGING');
+    const ingredients = allLines.filter(
+      (l) => l.category === "INGREDIENT" || !l.category,
+    );
+    const packaging = allLines.filter((l) => l.category === "PACKAGING");
 
     const ingredientTotal = ingredients.reduce((sum, l) => sum + l.qtyPer, 0);
     const packagingTotal = packaging.reduce((sum, l) => sum + l.qtyPer, 0);
@@ -292,8 +345,12 @@ export class ManufacturingService {
       return { ...line, rawQty, scaledQty, bomPct };
     };
 
-    const explodedIngredients = ingredients.map(l => mapLine(l, ingredientTotal, false));
-    const explodedPackaging = packaging.map(l => mapLine(l, packagingTotal, true));
+    const explodedIngredients = ingredients.map((l) =>
+      mapLine(l, ingredientTotal, false),
+    );
+    const explodedPackaging = packaging.map((l) =>
+      mapLine(l, packagingTotal, true),
+    );
 
     return {
       bomHeader: header,
@@ -302,18 +359,30 @@ export class ManufacturingService {
       ingredients: explodedIngredients,
       packaging: explodedPackaging,
       totals: {
-        ingredientQty: explodedIngredients.reduce((sum, l) => sum + l.scaledQty, 0),
-        packagingQty: explodedPackaging.reduce((sum, l) => sum + l.scaledQty, 0),
+        ingredientQty: explodedIngredients.reduce(
+          (sum, l) => sum + l.scaledQty,
+          0,
+        ),
+        packagingQty: explodedPackaging.reduce(
+          (sum, l) => sum + l.scaledQty,
+          0,
+        ),
       },
     };
   }
 
   // BOM Lines
-  async addBomLine(bomHeaderId: string, data: Omit<Parameters<BomRepository['addLine']>[0], 'tenantId' | 'bomHeaderId' | 'lineNo'>) {
+  async addBomLine(
+    bomHeaderId: string,
+    data: Omit<
+      Parameters<BomRepository["addLine"]>[0],
+      "tenantId" | "bomHeaderId" | "lineNo"
+    >,
+  ) {
     const header = await this.bomRepo.findHeaderById(bomHeaderId);
-    if (!header) throw new NotFoundException('BOM not found');
-    if (header.status !== 'DRAFT') {
-      throw new BadRequestException('Can only add lines to DRAFT BOMs');
+    if (!header) throw new NotFoundException("BOM not found");
+    if (header.status !== "DRAFT") {
+      throw new BadRequestException("Can only add lines to DRAFT BOMs");
     }
 
     const lines = await this.bomRepo.getLines(bomHeaderId);
@@ -327,15 +396,18 @@ export class ManufacturingService {
     });
   }
 
-  async updateBomLine(lineId: string, data: Parameters<BomRepository['updateLine']>[1]) {
+  async updateBomLine(
+    lineId: string,
+    data: Parameters<BomRepository["updateLine"]>[1],
+  ) {
     const updated = await this.bomRepo.updateLine(lineId, data);
-    if (!updated) throw new NotFoundException('BOM line not found');
+    if (!updated) throw new NotFoundException("BOM line not found");
     return updated;
   }
 
   async deleteBomLine(lineId: string) {
     const deleted = await this.bomRepo.deleteLine(lineId);
-    if (!deleted) throw new NotFoundException('BOM line not found');
+    if (!deleted) throw new NotFoundException("BOM line not found");
   }
 
   // ============ Routings ============
@@ -346,7 +418,12 @@ export class ManufacturingService {
     limit = 50,
   ) {
     const offset = (page - 1) * limit;
-    const { data, total } = await this.routingRepo.findByTenant(tenantId, filters, limit, offset);
+    const { data, total } = await this.routingRepo.findByTenant(
+      tenantId,
+      filters,
+      limit,
+      offset,
+    );
     return {
       data,
       meta: {
@@ -360,33 +437,34 @@ export class ManufacturingService {
 
   async getRouting(id: string) {
     const routing = await this.routingRepo.findById(id);
-    if (!routing) throw new NotFoundException('Routing not found');
+    if (!routing) throw new NotFoundException("Routing not found");
     const operations = await this.routingRepo.getOperations(id);
     return { ...routing, operations };
   }
 
-  async createRouting(
-    data: {
-      tenantId: string;
-      itemId: string;
-      effectiveFrom?: Date;
-      effectiveTo?: Date;
-      notes?: string;
-      createdBy: string;
-      operations: Array<{
-        name: string;
-        description?: string;
-        workstationId?: string;
-        setupTimeMins?: number;
-        runTimeMins: number;
-        queueTimeMins?: number;
-        overlapPct?: number;
-        isSubcontracted?: boolean;
-        instructions?: string;
-      }>;
-    },
-  ) {
-    const version = await this.routingRepo.getNextVersion(data.tenantId, data.itemId);
+  async createRouting(data: {
+    tenantId: string;
+    itemId: string;
+    effectiveFrom?: Date;
+    effectiveTo?: Date;
+    notes?: string;
+    createdBy: string;
+    operations: Array<{
+      name: string;
+      description?: string;
+      workstationId?: string;
+      setupTimeMins?: number;
+      runTimeMins: number;
+      queueTimeMins?: number;
+      overlapPct?: number;
+      isSubcontracted?: boolean;
+      instructions?: string;
+    }>;
+  }) {
+    const version = await this.routingRepo.getNextVersion(
+      data.tenantId,
+      data.itemId,
+    );
     const routing = await this.routingRepo.create({
       ...data,
       version,
@@ -406,20 +484,23 @@ export class ManufacturingService {
     return { ...routing, operations };
   }
 
-  async updateRouting(id: string, data: Parameters<RoutingRepository['update']>[1]) {
+  async updateRouting(
+    id: string,
+    data: Parameters<RoutingRepository["update"]>[1],
+  ) {
     const routing = await this.routingRepo.findById(id);
-    if (!routing) throw new NotFoundException('Routing not found');
-    if (routing.status !== 'DRAFT') {
-      throw new BadRequestException('Can only update DRAFT routings');
+    if (!routing) throw new NotFoundException("Routing not found");
+    if (routing.status !== "DRAFT") {
+      throw new BadRequestException("Can only update DRAFT routings");
     }
     return this.routingRepo.update(id, data);
   }
 
   async deleteRouting(id: string) {
     const routing = await this.routingRepo.findById(id);
-    if (!routing) throw new NotFoundException('Routing not found');
-    if (routing.status !== 'DRAFT') {
-      throw new BadRequestException('Can only delete DRAFT routings');
+    if (!routing) throw new NotFoundException("Routing not found");
+    if (routing.status !== "DRAFT") {
+      throw new BadRequestException("Can only delete DRAFT routings");
     }
     await this.routingRepo.deleteOperationsByRouting(id);
     await this.routingRepo.delete(id);
@@ -427,12 +508,12 @@ export class ManufacturingService {
 
   async approveRouting(id: string, approvedBy: string) {
     const routing = await this.routingRepo.findById(id);
-    if (!routing) throw new NotFoundException('Routing not found');
-    if (routing.status !== 'DRAFT') {
-      throw new BadRequestException('Can only approve DRAFT routings');
+    if (!routing) throw new NotFoundException("Routing not found");
+    if (routing.status !== "DRAFT") {
+      throw new BadRequestException("Can only approve DRAFT routings");
     }
     return this.routingRepo.update(id, {
-      status: 'APPROVED',
+      status: "APPROVED",
       approvedBy,
       approvedAt: new Date(),
     });
@@ -440,22 +521,32 @@ export class ManufacturingService {
 
   async obsoleteRouting(id: string) {
     const routing = await this.routingRepo.findById(id);
-    if (!routing) throw new NotFoundException('Routing not found');
-    if (routing.status === 'OBSOLETE') {
-      throw new BadRequestException('Routing is already obsolete');
+    if (!routing) throw new NotFoundException("Routing not found");
+    if (routing.status === "OBSOLETE") {
+      throw new BadRequestException("Routing is already obsolete");
     }
-    return this.routingRepo.update(id, { status: 'OBSOLETE' });
+    return this.routingRepo.update(id, { status: "OBSOLETE" });
   }
 
   // ============ Work Orders ============
   async listWorkOrders(
     tenantId: string,
-    filters: { status?: string; itemId?: string; warehouseId?: string; search?: string },
+    filters: {
+      status?: string;
+      itemId?: string;
+      warehouseId?: string;
+      search?: string;
+    },
     page = 1,
     limit = 50,
   ) {
     const offset = (page - 1) * limit;
-    const { data, total } = await this.workOrderRepo.findByTenant(tenantId, filters, limit, offset);
+    const { data, total } = await this.workOrderRepo.findByTenant(
+      tenantId,
+      filters,
+      limit,
+      offset,
+    );
     return {
       data,
       meta: {
@@ -469,7 +560,7 @@ export class ManufacturingService {
 
   async getWorkOrder(id: string) {
     const workOrder = await this.workOrderRepo.findById(id);
-    if (!workOrder) throw new NotFoundException('Work order not found');
+    if (!workOrder) throw new NotFoundException("Work order not found");
     const [operations, materials, checks, process] = await Promise.all([
       this.workOrderRepo.getOperations(id),
       this.workOrderRepo.getMaterials(id),
@@ -483,25 +574,25 @@ export class ManufacturingService {
     return this.workOrderRepo.generateWorkOrderNo(tenantId);
   }
 
-  async createWorkOrder(
-    data: {
-      tenantId: string;
-      siteId: string;
-      warehouseId: string;
-      workOrderNo?: string;
-      itemId: string;
-      bomHeaderId?: string;
-      routingId?: string;
-      priority?: number;
-      qtyOrdered: number;
-      plannedStart?: Date;
-      plannedEnd?: Date;
-      salesOrderId?: string;
-      notes?: string;
-      createdBy: string;
-    },
-  ) {
-    const workOrderNo = data.workOrderNo || await this.workOrderRepo.generateWorkOrderNo(data.tenantId);
+  async createWorkOrder(data: {
+    tenantId: string;
+    siteId: string;
+    warehouseId: string;
+    workOrderNo?: string;
+    itemId: string;
+    bomHeaderId?: string;
+    routingId?: string;
+    priority?: number;
+    qtyOrdered: number;
+    plannedStart?: Date;
+    plannedEnd?: Date;
+    salesOrderId?: string;
+    notes?: string;
+    createdBy: string;
+  }) {
+    const workOrderNo =
+      data.workOrderNo ||
+      (await this.workOrderRepo.generateWorkOrderNo(data.tenantId));
 
     const workOrder = await this.workOrderRepo.create({
       ...data,
@@ -514,7 +605,10 @@ export class ManufacturingService {
       const bom = await this.bomRepo.findHeaderById(data.bomHeaderId);
 
       for (const line of bomLines) {
-        const qtyRequired = (line.qtyPer / (bom?.baseQty || 1)) * data.qtyOrdered * (1 + line.scrapPct / 100);
+        const qtyRequired =
+          (line.qtyPer / (bom?.baseQty || 1)) *
+          data.qtyOrdered *
+          (1 + line.scrapPct / 100);
         await this.workOrderRepo.addMaterial({
           tenantId: data.tenantId,
           workOrderId: workOrder.id,
@@ -543,20 +637,23 @@ export class ManufacturingService {
     return this.getWorkOrder(workOrder.id);
   }
 
-  async updateWorkOrder(id: string, data: Parameters<WorkOrderRepository['update']>[1]) {
+  async updateWorkOrder(
+    id: string,
+    data: Parameters<WorkOrderRepository["update"]>[1],
+  ) {
     const workOrder = await this.workOrderRepo.findById(id);
-    if (!workOrder) throw new NotFoundException('Work order not found');
-    if (workOrder.status !== 'DRAFT') {
-      throw new BadRequestException('Can only update DRAFT work orders');
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    if (workOrder.status !== "DRAFT") {
+      throw new BadRequestException("Can only update DRAFT work orders");
     }
     return this.workOrderRepo.update(id, data);
   }
 
   async deleteWorkOrder(id: string) {
     const workOrder = await this.workOrderRepo.findById(id);
-    if (!workOrder) throw new NotFoundException('Work order not found');
-    if (workOrder.status !== 'DRAFT') {
-      throw new BadRequestException('Can only delete DRAFT work orders');
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    if (workOrder.status !== "DRAFT") {
+      throw new BadRequestException("Can only delete DRAFT work orders");
     }
     await this.workOrderRepo.delete(id);
   }
@@ -573,9 +670,11 @@ export class ManufacturingService {
     // Check for duplicate codes within the import
     const existingCodes = await this.workstationRepo.findByCodes(
       tenantId,
-      rows.map(r => r.code),
+      rows.map((r) => r.code),
     );
-    const existingCodeSet = new Set(existingCodes.map(w => w.code.toLowerCase()));
+    const existingCodeSet = new Set(
+      existingCodes.map((w) => w.code.toLowerCase()),
+    );
 
     for (const row of rows) {
       if (existingCodeSet.has(row.code.toLowerCase())) {
@@ -608,14 +707,19 @@ export class ManufacturingService {
     rows: BomImportRowDto[],
   ): Promise<ImportResult> {
     // 1. Resolve all unique SKUs (products + components)
-    const allSkus = [...new Set([
-      ...rows.map(r => r.productSku),
-      ...rows.map(r => r.componentSku),
-    ])];
-    const itemMap = await this.masterDataService.resolveItemSkus(tenantId, allSkus);
-    const unknownSkus = allSkus.filter(s => !itemMap.has(s.toLowerCase()));
+    const allSkus = [
+      ...new Set([
+        ...rows.map((r) => r.productSku),
+        ...rows.map((r) => r.componentSku),
+      ]),
+    ];
+    const itemMap = await this.masterDataService.resolveItemSkus(
+      tenantId,
+      allSkus,
+    );
+    const unknownSkus = allSkus.filter((s) => !itemMap.has(s.toLowerCase()));
     if (unknownSkus.length > 0) {
-      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(', ')}`);
+      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(", ")}`);
     }
 
     // 2. Group by bomGroup
@@ -641,7 +745,7 @@ export class ManufacturingService {
         uom: firstRow.uom,
         notes: firstRow.notes,
         createdBy,
-        lines: groupRows.map(r => ({
+        lines: groupRows.map((r) => ({
           itemId: itemMap.get(r.componentSku.toLowerCase())!,
           qtyPer: r.qtyPer,
           scrapPct: r.scrapPct,
@@ -662,24 +766,36 @@ export class ManufacturingService {
     rows: RoutingImportRowDto[],
   ): Promise<ImportResult> {
     // 1. Resolve product SKUs
-    const uniqueSkus = [...new Set(rows.map(r => r.productSku))];
-    const itemMap = await this.masterDataService.resolveItemSkus(tenantId, uniqueSkus);
-    const unknownSkus = uniqueSkus.filter(s => !itemMap.has(s.toLowerCase()));
+    const uniqueSkus = [...new Set(rows.map((r) => r.productSku))];
+    const itemMap = await this.masterDataService.resolveItemSkus(
+      tenantId,
+      uniqueSkus,
+    );
+    const unknownSkus = uniqueSkus.filter((s) => !itemMap.has(s.toLowerCase()));
     if (unknownSkus.length > 0) {
-      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(', ')}`);
+      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(", ")}`);
     }
 
     // 2. Resolve workstation codes (if any)
-    const wsCodes = [...new Set(rows.filter(r => r.workstationCode).map(r => r.workstationCode!))];
+    const wsCodes = [
+      ...new Set(
+        rows.filter((r) => r.workstationCode).map((r) => r.workstationCode!),
+      ),
+    ];
     const wsMap = new Map<string, string>();
     if (wsCodes.length > 0) {
-      const workstations = await this.workstationRepo.findByCodes(tenantId, wsCodes);
+      const workstations = await this.workstationRepo.findByCodes(
+        tenantId,
+        wsCodes,
+      );
       for (const ws of workstations) {
         wsMap.set(ws.code.toLowerCase(), ws.id);
       }
-      const unknownWs = wsCodes.filter(c => !wsMap.has(c.toLowerCase()));
+      const unknownWs = wsCodes.filter((c) => !wsMap.has(c.toLowerCase()));
       if (unknownWs.length > 0) {
-        throw new BadRequestException(`Unknown workstation codes: ${unknownWs.join(', ')}`);
+        throw new BadRequestException(
+          `Unknown workstation codes: ${unknownWs.join(", ")}`,
+        );
       }
     }
 
@@ -704,9 +820,11 @@ export class ManufacturingService {
         itemId: productId,
         notes: firstRow.notes,
         createdBy,
-        operations: groupRows.map(r => ({
+        operations: groupRows.map((r) => ({
           name: r.operationName,
-          workstationId: r.workstationCode ? wsMap.get(r.workstationCode.toLowerCase()) : undefined,
+          workstationId: r.workstationCode
+            ? wsMap.get(r.workstationCode.toLowerCase())
+            : undefined,
           setupTimeMins: r.setupTimeMins,
           runTimeMins: r.runTimeMins,
           queueTimeMins: r.queueTimeMins,
@@ -727,18 +845,24 @@ export class ManufacturingService {
     rows: WorkOrderImportRowDto[],
   ): Promise<ImportResult> {
     // 1. Resolve warehouse: get first warehouse for site
-    const warehouses = await this.masterDataService.listWarehouses(tenantId, siteId);
+    const warehouses = await this.masterDataService.listWarehouses(
+      tenantId,
+      siteId,
+    );
     if (warehouses.length === 0) {
-      throw new BadRequestException('No warehouse found for the selected site');
+      throw new BadRequestException("No warehouse found for the selected site");
     }
     const warehouseId = warehouses[0].id;
 
     // 2. Resolve SKUs
     const uniqueSkus = [...new Set(rows.map((r) => r.sku))];
-    const itemMap = await this.masterDataService.resolveItemSkus(tenantId, uniqueSkus);
+    const itemMap = await this.masterDataService.resolveItemSkus(
+      tenantId,
+      uniqueSkus,
+    );
     const unknownSkus = uniqueSkus.filter((s) => !itemMap.has(s.toLowerCase()));
     if (unknownSkus.length > 0) {
-      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(', ')}`);
+      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(", ")}`);
     }
 
     // 3. Pre-fetch active BOMs and routings for each unique item
@@ -748,7 +872,10 @@ export class ManufacturingService {
       const itemId = itemMap.get(sku.toLowerCase())!;
       const activeBom = await this.bomRepo.findActiveForItem(tenantId, itemId);
       if (activeBom) bomMap.set(itemId, activeBom.id);
-      const activeRouting = await this.routingRepo.findActiveForItem(tenantId, itemId);
+      const activeRouting = await this.routingRepo.findActiveForItem(
+        tenantId,
+        itemId,
+      );
       if (activeRouting) routingMap.set(itemId, activeRouting.id);
     }
 
@@ -786,68 +913,78 @@ export class ManufacturingService {
 
   async releaseWorkOrder(id: string) {
     const workOrder = await this.workOrderRepo.findById(id);
-    if (!workOrder) throw new NotFoundException('Work order not found');
-    if (workOrder.status !== 'DRAFT') {
-      throw new BadRequestException('Can only release DRAFT work orders');
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    if (workOrder.status !== "DRAFT") {
+      throw new BadRequestException("Can only release DRAFT work orders");
     }
 
-    const batchNo = await this.workOrderRepo.generateBatchNo(workOrder.tenantId);
+    const batchNo = await this.workOrderRepo.generateBatchNo(
+      workOrder.tenantId,
+    );
 
     // Update first operation to READY
     const operations = await this.workOrderRepo.getOperations(id);
     if (operations.length > 0) {
-      await this.workOrderRepo.updateOperation(operations[0].id, { status: 'READY' });
+      await this.workOrderRepo.updateOperation(operations[0].id, {
+        status: "READY",
+      });
     }
 
-    return this.workOrderRepo.update(id, { status: 'RELEASED', batchNo });
+    return this.workOrderRepo.update(id, { status: "RELEASED", batchNo });
   }
 
   async startWorkOrder(id: string) {
     const workOrder = await this.workOrderRepo.findById(id);
-    if (!workOrder) throw new NotFoundException('Work order not found');
-    if (workOrder.status !== 'RELEASED') {
-      throw new BadRequestException('Can only start RELEASED work orders');
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    if (workOrder.status !== "RELEASED") {
+      throw new BadRequestException("Can only start RELEASED work orders");
     }
     return this.workOrderRepo.update(id, {
-      status: 'IN_PROGRESS',
+      status: "IN_PROGRESS",
       actualStart: new Date(),
     });
   }
 
   async completeWorkOrder(id: string) {
     const workOrder = await this.workOrderRepo.findById(id);
-    if (!workOrder) throw new NotFoundException('Work order not found');
-    if (workOrder.status !== 'IN_PROGRESS') {
-      throw new BadRequestException('Can only complete IN_PROGRESS work orders');
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    if (workOrder.status !== "IN_PROGRESS") {
+      throw new BadRequestException(
+        "Can only complete IN_PROGRESS work orders",
+      );
     }
     return this.workOrderRepo.update(id, {
-      status: 'COMPLETED',
+      status: "COMPLETED",
       actualEnd: new Date(),
     });
   }
 
   async cancelWorkOrder(id: string) {
     const workOrder = await this.workOrderRepo.findById(id);
-    if (!workOrder) throw new NotFoundException('Work order not found');
-    if (['COMPLETED', 'CANCELLED'].includes(workOrder.status)) {
-      throw new BadRequestException('Cannot cancel COMPLETED or CANCELLED work orders');
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    if (["COMPLETED", "CANCELLED"].includes(workOrder.status)) {
+      throw new BadRequestException(
+        "Cannot cancel COMPLETED or CANCELLED work orders",
+      );
     }
-    return this.workOrderRepo.update(id, { status: 'CANCELLED' });
+    return this.workOrderRepo.update(id, { status: "CANCELLED" });
   }
 
   async reopenWorkOrder(id: string) {
     const workOrder = await this.workOrderRepo.findById(id);
-    if (!workOrder) throw new NotFoundException('Work order not found');
-    if (!['COMPLETED', 'CANCELLED'].includes(workOrder.status)) {
-      throw new BadRequestException('Can only reopen COMPLETED or CANCELLED work orders');
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    if (!["COMPLETED", "CANCELLED"].includes(workOrder.status)) {
+      throw new BadRequestException(
+        "Can only reopen COMPLETED or CANCELLED work orders",
+      );
     }
 
-    if (workOrder.status === 'CANCELLED') {
-      return this.workOrderRepo.update(id, { status: 'DRAFT' });
+    if (workOrder.status === "CANCELLED") {
+      return this.workOrderRepo.update(id, { status: "DRAFT" });
     }
 
     return this.workOrderRepo.update(id, {
-      status: 'IN_PROGRESS',
+      status: "IN_PROGRESS",
       actualEnd: null,
     });
   }
@@ -855,37 +992,49 @@ export class ManufacturingService {
   // Work Order Operations
   async startOperation(operationId: string) {
     const op = await this.workOrderRepo.findOperationById(operationId);
-    if (!op) throw new NotFoundException('Operation not found');
-    if (!['PENDING', 'READY'].includes(op.status)) {
-      throw new BadRequestException('Operation must be PENDING or READY to start');
+    if (!op) throw new NotFoundException("Operation not found");
+    if (!["PENDING", "READY"].includes(op.status)) {
+      throw new BadRequestException(
+        "Operation must be PENDING or READY to start",
+      );
     }
     return this.workOrderRepo.updateOperation(operationId, {
-      status: 'IN_PROGRESS',
+      status: "IN_PROGRESS",
       actualStart: new Date(),
     });
   }
 
   async completeOperation(
     operationId: string,
-    data: { qtyCompleted: number; qtyScrapped?: number; setupTimeActual?: number; runTimeActual?: number; notes?: string },
+    data: {
+      qtyCompleted: number;
+      qtyScrapped?: number;
+      setupTimeActual?: number;
+      runTimeActual?: number;
+      notes?: string;
+    },
   ) {
     const op = await this.workOrderRepo.findOperationById(operationId);
-    if (!op) throw new NotFoundException('Operation not found');
-    if (op.status !== 'IN_PROGRESS') {
-      throw new BadRequestException('Operation must be IN_PROGRESS to complete');
+    if (!op) throw new NotFoundException("Operation not found");
+    if (op.status !== "IN_PROGRESS") {
+      throw new BadRequestException(
+        "Operation must be IN_PROGRESS to complete",
+      );
     }
 
     await this.workOrderRepo.updateOperation(operationId, {
-      status: 'COMPLETED',
+      status: "COMPLETED",
       actualEnd: new Date(),
       ...data,
     });
 
     // Make next operation READY
     const ops = await this.workOrderRepo.getOperations(op.workOrderId);
-    const currentIdx = ops.findIndex(o => o.id === operationId);
+    const currentIdx = ops.findIndex((o) => o.id === operationId);
     if (currentIdx >= 0 && currentIdx < ops.length - 1) {
-      await this.workOrderRepo.updateOperation(ops[currentIdx + 1].id, { status: 'READY' });
+      await this.workOrderRepo.updateOperation(ops[currentIdx + 1].id, {
+        status: "READY",
+      });
     }
 
     return this.workOrderRepo.findOperationById(operationId);
@@ -904,25 +1053,27 @@ export class ManufacturingService {
     },
   ) {
     const workOrder = await this.workOrderRepo.findById(workOrderId);
-    if (!workOrder) throw new NotFoundException('Work order not found');
-    if (!['RELEASED', 'IN_PROGRESS'].includes(workOrder.status)) {
-      throw new BadRequestException('Work order must be RELEASED or IN_PROGRESS to issue material');
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    if (!["RELEASED", "IN_PROGRESS"].includes(workOrder.status)) {
+      throw new BadRequestException(
+        "Work order must be RELEASED or IN_PROGRESS to issue material",
+      );
     }
 
     const material = await this.workOrderRepo.findMaterialById(data.materialId);
-    if (!material) throw new NotFoundException('Material not found');
+    if (!material) throw new NotFoundException("Material not found");
 
     // Create production ledger entry
     await this.productionLedgerRepo.create({
       tenantId: workOrder.tenantId,
       workOrderId,
-      entryType: 'MATERIAL_ISSUE',
+      entryType: "MATERIAL_ISSUE",
       itemId: material.itemId,
       warehouseId: workOrder.warehouseId,
       binId: data.binId,
       batchNo: data.batchNo,
       qty: -data.qty, // Negative for issues
-      uom: 'EA',
+      uom: "EA",
       operatorId: data.operatorId,
       createdBy: data.createdBy,
     });
@@ -934,8 +1085,8 @@ export class ManufacturingService {
       itemId: material.itemId,
       fromBinId: data.binId,
       qty: -data.qty,
-      reason: 'WO_CONSUME',
-      refType: 'work_order',
+      reason: "WO_CONSUME",
+      refType: "work_order",
       refId: workOrderId,
       batchNo: data.batchNo,
       createdBy: data.createdBy,
@@ -943,7 +1094,8 @@ export class ManufacturingService {
 
     // Update material qty issued
     const newQtyIssued = material.qtyIssued + data.qty;
-    const newStatus = newQtyIssued >= material.qtyRequired ? 'ISSUED' : 'PARTIAL';
+    const newStatus =
+      newQtyIssued >= material.qtyRequired ? "ISSUED" : "PARTIAL";
     await this.workOrderRepo.updateMaterial(data.materialId, {
       qtyIssued: newQtyIssued,
       status: newStatus,
@@ -965,22 +1117,22 @@ export class ManufacturingService {
     },
   ) {
     const workOrder = await this.workOrderRepo.findById(workOrderId);
-    if (!workOrder) throw new NotFoundException('Work order not found');
+    if (!workOrder) throw new NotFoundException("Work order not found");
 
     const material = await this.workOrderRepo.findMaterialById(data.materialId);
-    if (!material) throw new NotFoundException('Material not found');
+    if (!material) throw new NotFoundException("Material not found");
 
     // Create production ledger entry
     await this.productionLedgerRepo.create({
       tenantId: workOrder.tenantId,
       workOrderId,
-      entryType: 'MATERIAL_RETURN',
+      entryType: "MATERIAL_RETURN",
       itemId: material.itemId,
       warehouseId: workOrder.warehouseId,
       binId: data.binId,
       batchNo: data.batchNo,
       qty: data.qty, // Positive for returns
-      uom: 'EA',
+      uom: "EA",
       operatorId: data.operatorId,
       reasonCode: data.reasonCode,
       createdBy: data.createdBy,
@@ -993,8 +1145,8 @@ export class ManufacturingService {
       itemId: material.itemId,
       toBinId: data.binId,
       qty: data.qty,
-      reason: 'WO_PRODUCE', // Using WO_PRODUCE for material returns
-      refType: 'work_order',
+      reason: "WO_PRODUCE", // Using WO_PRODUCE for material returns
+      refType: "work_order",
       refId: workOrderId,
       batchNo: data.batchNo,
       createdBy: data.createdBy,
@@ -1023,9 +1175,11 @@ export class ManufacturingService {
     },
   ) {
     const workOrder = await this.workOrderRepo.findById(workOrderId);
-    if (!workOrder) throw new NotFoundException('Work order not found');
-    if (workOrder.status !== 'IN_PROGRESS') {
-      throw new BadRequestException('Work order must be IN_PROGRESS to record output');
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    if (workOrder.status !== "IN_PROGRESS") {
+      throw new BadRequestException(
+        "Work order must be IN_PROGRESS to record output",
+      );
     }
 
     // Create production ledger entry
@@ -1033,13 +1187,13 @@ export class ManufacturingService {
       tenantId: workOrder.tenantId,
       workOrderId,
       workOrderOperationId: data.operationId,
-      entryType: 'PRODUCTION_OUTPUT',
+      entryType: "PRODUCTION_OUTPUT",
       itemId: workOrder.itemId,
       warehouseId: workOrder.warehouseId,
       binId: data.binId,
       batchNo: data.batchNo,
       qty: data.qty,
-      uom: 'EA',
+      uom: "EA",
       workstationId: data.workstationId,
       operatorId: data.operatorId,
       notes: data.notes,
@@ -1053,8 +1207,8 @@ export class ManufacturingService {
       itemId: workOrder.itemId,
       toBinId: data.binId,
       qty: data.qty,
-      reason: 'WO_PRODUCE',
-      refType: 'work_order',
+      reason: "WO_PRODUCE",
+      refType: "work_order",
       refId: workOrderId,
       batchNo: data.batchNo,
       createdBy: data.createdBy,
@@ -1082,20 +1236,20 @@ export class ManufacturingService {
     },
   ) {
     const workOrder = await this.workOrderRepo.findById(workOrderId);
-    if (!workOrder) throw new NotFoundException('Work order not found');
+    if (!workOrder) throw new NotFoundException("Work order not found");
 
     // Create production ledger entry
     await this.productionLedgerRepo.create({
       tenantId: workOrder.tenantId,
       workOrderId,
       workOrderOperationId: data.operationId,
-      entryType: 'SCRAP',
+      entryType: "SCRAP",
       itemId: data.itemId,
       warehouseId: workOrder.warehouseId,
       binId: data.binId,
       batchNo: data.batchNo,
       qty: -data.qty, // Negative for scrap
-      uom: 'EA',
+      uom: "EA",
       reasonCode: data.reasonCode,
       notes: data.notes,
       createdBy: data.createdBy,
@@ -1125,7 +1279,12 @@ export class ManufacturingService {
     limit = 100,
   ) {
     const offset = (page - 1) * limit;
-    const { data, total } = await this.productionLedgerRepo.findByTenant(tenantId, filters, limit, offset);
+    const { data, total } = await this.productionLedgerRepo.findByTenant(
+      tenantId,
+      filters,
+      limit,
+      offset,
+    );
     return {
       data,
       meta: {
@@ -1141,8 +1300,16 @@ export class ManufacturingService {
     return this.productionLedgerRepo.getSummaryByWorkOrder(tenantId);
   }
 
-  async getProductionSummaryByItem(tenantId: string, startDate?: Date, endDate?: Date) {
-    return this.productionLedgerRepo.getSummaryByItem(tenantId, startDate, endDate);
+  async getProductionSummaryByItem(
+    tenantId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ) {
+    return this.productionLedgerRepo.getSummaryByItem(
+      tenantId,
+      startDate,
+      endDate,
+    );
   }
 
   // ============ Work Order Checks ============
@@ -1166,8 +1333,12 @@ export class ManufacturingService {
     },
   ) {
     const workOrder = await this.workOrderRepo.findById(workOrderId);
-    if (!workOrder) throw new NotFoundException('Work order not found');
-    return this.productionDataRepo.upsertChecks({ tenantId, workOrderId, ...data });
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    return this.productionDataRepo.upsertChecks({
+      tenantId,
+      workOrderId,
+      ...data,
+    });
   }
 
   // ============ Work Order Process ============
@@ -1193,8 +1364,12 @@ export class ManufacturingService {
     },
   ) {
     const workOrder = await this.workOrderRepo.findById(workOrderId);
-    if (!workOrder) throw new NotFoundException('Work order not found');
-    return this.productionDataRepo.upsertProcess({ tenantId, workOrderId, ...data });
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    return this.productionDataRepo.upsertProcess({
+      tenantId,
+      workOrderId,
+      ...data,
+    });
   }
 
   // ============ Dashboard ============
@@ -1203,8 +1378,16 @@ export class ManufacturingService {
   }
 
   // ============ Reports ============
-  async getManufacturingReport(tenantId: string, startDate: Date, endDate: Date) {
-    return this.productionLedgerRepo.getManufacturingReport(tenantId, startDate, endDate);
+  async getManufacturingReport(
+    tenantId: string,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    return this.productionLedgerRepo.getManufacturingReport(
+      tenantId,
+      startDate,
+      endDate,
+    );
   }
 
   // ============ Traceability ============
@@ -1230,11 +1413,16 @@ export class ManufacturingService {
   }
 
   // ============ Scheduling ============
-  async rescheduleWorkOrder(id: string, data: { plannedStart?: Date; plannedEnd?: Date }) {
+  async rescheduleWorkOrder(
+    id: string,
+    data: { plannedStart?: Date; plannedEnd?: Date },
+  ) {
     const workOrder = await this.workOrderRepo.findById(id);
-    if (!workOrder) throw new NotFoundException('Work order not found');
-    if (['COMPLETED', 'CANCELLED'].includes(workOrder.status)) {
-      throw new BadRequestException('Cannot reschedule COMPLETED or CANCELLED work orders');
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    if (["COMPLETED", "CANCELLED"].includes(workOrder.status)) {
+      throw new BadRequestException(
+        "Cannot reschedule COMPLETED or CANCELLED work orders",
+      );
     }
     return this.workOrderRepo.update(id, {
       plannedStart: data.plannedStart,
@@ -1245,12 +1433,22 @@ export class ManufacturingService {
   // ============ Non-Conformances ============
   async listNonConformances(
     tenantId: string,
-    filters: { status?: string; severity?: string; workOrderId?: string; search?: string },
+    filters: {
+      status?: string;
+      severity?: string;
+      workOrderId?: string;
+      search?: string;
+    },
     page = 1,
     limit = 50,
   ) {
     const offset = (page - 1) * limit;
-    const { data, total } = await this.ncRepo.findByTenant(tenantId, filters, limit, offset);
+    const { data, total } = await this.ncRepo.findByTenant(
+      tenantId,
+      filters,
+      limit,
+      offset,
+    );
     return {
       data,
       meta: {
@@ -1264,7 +1462,7 @@ export class ManufacturingService {
 
   async getNonConformance(id: string) {
     const nc = await this.ncRepo.findById(id);
-    if (!nc) throw new NotFoundException('Non-conformance not found');
+    if (!nc) throw new NotFoundException("Non-conformance not found");
     return nc;
   }
 
@@ -1282,45 +1480,53 @@ export class ManufacturingService {
     return this.ncRepo.create({ ...data, ncNo });
   }
 
-  async updateNonConformance(id: string, data: {
-    defectType?: string;
-    severity?: string;
-    description?: string;
-    qtyAffected?: number;
-    disposition?: string;
-    correctiveAction?: string;
-  }) {
+  async updateNonConformance(
+    id: string,
+    data: {
+      defectType?: string;
+      severity?: string;
+      description?: string;
+      qtyAffected?: number;
+      disposition?: string;
+      correctiveAction?: string;
+    },
+  ) {
     const nc = await this.ncRepo.findById(id);
-    if (!nc) throw new NotFoundException('Non-conformance not found');
-    if (nc.status === 'CLOSED') {
-      throw new BadRequestException('Cannot update a CLOSED non-conformance');
+    if (!nc) throw new NotFoundException("Non-conformance not found");
+    if (nc.status === "CLOSED") {
+      throw new BadRequestException("Cannot update a CLOSED non-conformance");
     }
     return this.ncRepo.update(id, data);
   }
 
-  async resolveNonConformance(id: string, data: {
-    disposition: string;
-    correctiveAction: string;
-    resolvedBy: string;
-  }) {
+  async resolveNonConformance(
+    id: string,
+    data: {
+      disposition: string;
+      correctiveAction: string;
+      resolvedBy: string;
+    },
+  ) {
     const nc = await this.ncRepo.findById(id);
-    if (!nc) throw new NotFoundException('Non-conformance not found');
-    if (nc.status === 'CLOSED') {
-      throw new BadRequestException('Cannot resolve a CLOSED non-conformance');
+    if (!nc) throw new NotFoundException("Non-conformance not found");
+    if (nc.status === "CLOSED") {
+      throw new BadRequestException("Cannot resolve a CLOSED non-conformance");
     }
     return this.ncRepo.update(id, {
       ...data,
-      status: 'RESOLVED',
+      status: "RESOLVED",
       resolvedAt: new Date(),
     });
   }
 
   async closeNonConformance(id: string) {
     const nc = await this.ncRepo.findById(id);
-    if (!nc) throw new NotFoundException('Non-conformance not found');
-    if (nc.status !== 'RESOLVED') {
-      throw new BadRequestException('Only RESOLVED non-conformances can be closed');
+    if (!nc) throw new NotFoundException("Non-conformance not found");
+    if (nc.status !== "RESOLVED") {
+      throw new BadRequestException(
+        "Only RESOLVED non-conformances can be closed",
+      );
     }
-    return this.ncRepo.update(id, { status: 'CLOSED' });
+    return this.ncRepo.update(id, { status: "CLOSED" });
   }
 }

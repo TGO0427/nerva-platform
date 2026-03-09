@@ -8,17 +8,17 @@ import {
   Body,
   Query,
   UseGuards,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { MasterDataService } from './masterdata.service';
-import { AuditService } from '../audit/audit.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TenantGuard } from '../../common/guards/tenant.guard';
-import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { TenantId } from '../../common/decorators/tenant.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+} from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import { MasterDataService } from "./masterdata.service";
+import { AuditService } from "../audit/audit.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { TenantGuard } from "../../common/guards/tenant.guard";
+import { PermissionsGuard } from "../../common/guards/permissions.guard";
+import { RequirePermissions } from "../../common/decorators/permissions.decorator";
+import { TenantId } from "../../common/decorators/tenant.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { UuidValidationPipe } from "../../common/pipes/uuid-validation.pipe";
 import {
   CreateCustomerDto,
   UpdateCustomerDto,
@@ -26,13 +26,13 @@ import {
   UpdateCustomerContactDto,
   CreateCustomerNoteDto,
   ImportCustomersDto,
-} from './dto';
-import type { ImportResult } from './dto';
+} from "./dto";
+import type { ImportResult } from "./dto";
 
-@ApiTags('master-data')
+@ApiTags("master-data")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('masterdata/customers')
+@Controller("masterdata/customers")
 export class CustomersController {
   constructor(
     private readonly service: MasterDataService,
@@ -40,20 +40,20 @@ export class CustomersController {
   ) {}
 
   @Get()
-  @RequirePermissions('customer.read')
-  @ApiOperation({ summary: 'List customers' })
+  @RequirePermissions("customer.read")
+  @ApiOperation({ summary: "List customers" })
   async list(
     @TenantId() tenantId: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-    @Query('search') search?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+    @Query("search") search?: string,
   ) {
     return this.service.listCustomers(tenantId, { page, limit, search });
   }
 
-  @Post('import')
-  @RequirePermissions('customer.write')
-  @ApiOperation({ summary: 'Bulk import customers from CSV' })
+  @Post("import")
+  @RequirePermissions("customer.write")
+  @ApiOperation({ summary: "Bulk import customers from CSV" })
   async import(
     @TenantId() tenantId: string,
     @Body() data: ImportCustomersDto,
@@ -61,115 +61,122 @@ export class CustomersController {
     return this.service.importCustomers(tenantId, data.customers);
   }
 
-  @Get(':id')
-  @RequirePermissions('customer.read')
-  @ApiOperation({ summary: 'Get customer by ID' })
+  @Get(":id")
+  @RequirePermissions("customer.read")
+  @ApiOperation({ summary: "Get customer by ID" })
   async get(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
   ) {
     return this.service.getCustomer(tenantId, id);
   }
 
   @Post()
-  @RequirePermissions('customer.write')
-  @ApiOperation({ summary: 'Create customer' })
-  async create(
-    @TenantId() tenantId: string,
-    @Body() data: CreateCustomerDto,
-  ) {
+  @RequirePermissions("customer.write")
+  @ApiOperation({ summary: "Create customer" })
+  async create(@TenantId() tenantId: string, @Body() data: CreateCustomerDto) {
     return this.service.createCustomer({ tenantId, ...data });
   }
 
-  @Patch(':id')
-  @RequirePermissions('customer.write')
-  @ApiOperation({ summary: 'Update customer' })
+  @Patch(":id")
+  @RequirePermissions("customer.write")
+  @ApiOperation({ summary: "Update customer" })
   async update(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @Body() data: UpdateCustomerDto,
   ) {
     return this.service.updateCustomer(tenantId, id, data);
   }
 
-  @Delete(':id')
-  @RequirePermissions('customer.delete')
-  @ApiOperation({ summary: 'Delete customer (no references)' })
+  @Delete(":id")
+  @RequirePermissions("customer.delete")
+  @ApiOperation({ summary: "Delete customer (no references)" })
   async delete(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
   ) {
     await this.service.deleteCustomer(tenantId, id);
     return { success: true };
   }
 
   // Activity Log
-  @Get(':id/activity')
-  @RequirePermissions('customer.read')
-  @ApiOperation({ summary: 'Get customer activity log' })
+  @Get(":id/activity")
+  @RequirePermissions("customer.read")
+  @ApiOperation({ summary: "Get customer activity log" })
   async getActivity(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) id: string,
-    @Query('limit') limit?: number,
+    @Param("id", UuidValidationPipe) id: string,
+    @Query("limit") limit?: number,
   ) {
-    return this.auditService.getEntityHistory(tenantId, 'customer', id, limit || 50, 0);
+    return this.auditService.getEntityHistory(
+      tenantId,
+      "customer",
+      id,
+      limit || 50,
+      0,
+    );
   }
 
   // Contacts
-  @Get(':id/contacts')
-  @RequirePermissions('customer.read')
-  @ApiOperation({ summary: 'List customer contacts' })
-  async listContacts(@Param('id', UuidValidationPipe) customerId: string) {
+  @Get(":id/contacts")
+  @RequirePermissions("customer.read")
+  @ApiOperation({ summary: "List customer contacts" })
+  async listContacts(@Param("id", UuidValidationPipe) customerId: string) {
     return this.service.listCustomerContacts(customerId);
   }
 
-  @Post(':id/contacts')
-  @RequirePermissions('customer.write')
-  @ApiOperation({ summary: 'Create customer contact' })
+  @Post(":id/contacts")
+  @RequirePermissions("customer.write")
+  @ApiOperation({ summary: "Create customer contact" })
   async createContact(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) customerId: string,
+    @Param("id", UuidValidationPipe) customerId: string,
     @Body() data: CreateCustomerContactDto,
   ) {
-    return this.service.createCustomerContact({ tenantId, customerId, ...data });
+    return this.service.createCustomerContact({
+      tenantId,
+      customerId,
+      ...data,
+    });
   }
 
-  @Patch('contacts/:contactId')
-  @RequirePermissions('customer.write')
-  @ApiOperation({ summary: 'Update customer contact' })
+  @Patch("contacts/:contactId")
+  @RequirePermissions("customer.write")
+  @ApiOperation({ summary: "Update customer contact" })
   async updateContact(
     @TenantId() tenantId: string,
-    @Param('contactId', UuidValidationPipe) contactId: string,
+    @Param("contactId", UuidValidationPipe) contactId: string,
     @Body() data: UpdateCustomerContactDto,
   ) {
     return this.service.updateCustomerContact(tenantId, contactId, data);
   }
 
-  @Delete('contacts/:contactId')
-  @RequirePermissions('customer.write')
-  @ApiOperation({ summary: 'Delete customer contact' })
+  @Delete("contacts/:contactId")
+  @RequirePermissions("customer.write")
+  @ApiOperation({ summary: "Delete customer contact" })
   async deleteContact(
     @TenantId() tenantId: string,
-    @Param('contactId', UuidValidationPipe) contactId: string,
+    @Param("contactId", UuidValidationPipe) contactId: string,
   ) {
     await this.service.deleteCustomerContact(tenantId, contactId);
     return { success: true };
   }
 
   // Notes
-  @Get(':id/notes')
-  @RequirePermissions('customer.read')
-  @ApiOperation({ summary: 'List customer notes' })
-  async listNotes(@Param('id', UuidValidationPipe) customerId: string) {
+  @Get(":id/notes")
+  @RequirePermissions("customer.read")
+  @ApiOperation({ summary: "List customer notes" })
+  async listNotes(@Param("id", UuidValidationPipe) customerId: string) {
     return this.service.listCustomerNotes(customerId);
   }
 
-  @Post(':id/notes')
-  @RequirePermissions('customer.write')
-  @ApiOperation({ summary: 'Create customer note' })
+  @Post(":id/notes")
+  @RequirePermissions("customer.write")
+  @ApiOperation({ summary: "Create customer note" })
   async createNote(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) customerId: string,
+    @Param("id", UuidValidationPipe) customerId: string,
     @Body() data: CreateCustomerNoteDto,
     @CurrentUser() user: { id: string },
   ) {
@@ -181,49 +188,49 @@ export class CustomersController {
     });
   }
 
-  @Delete('notes/:noteId')
-  @RequirePermissions('customer.write')
-  @ApiOperation({ summary: 'Delete customer note' })
+  @Delete("notes/:noteId")
+  @RequirePermissions("customer.write")
+  @ApiOperation({ summary: "Delete customer note" })
   async deleteNote(
     @TenantId() tenantId: string,
-    @Param('noteId', UuidValidationPipe) noteId: string,
+    @Param("noteId", UuidValidationPipe) noteId: string,
   ) {
     await this.service.deleteCustomerNote(tenantId, noteId);
     return { success: true };
   }
 
   // Analytics
-  @Get('analytics/summary')
-  @RequirePermissions('customer.read')
-  @ApiOperation({ summary: 'Get customer dashboard summary' })
+  @Get("analytics/summary")
+  @RequirePermissions("customer.read")
+  @ApiOperation({ summary: "Get customer dashboard summary" })
   async getAnalyticsSummary(@TenantId() tenantId: string) {
     return this.service.getCustomerDashboardSummary(tenantId);
   }
 
-  @Get('analytics/performance')
-  @RequirePermissions('customer.read')
-  @ApiOperation({ summary: 'Get customer performance statistics' })
+  @Get("analytics/performance")
+  @RequirePermissions("customer.read")
+  @ApiOperation({ summary: "Get customer performance statistics" })
   async getAnalyticsPerformance(
     @TenantId() tenantId: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-    @Query('sortBy') sortBy?: string,
-    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortOrder") sortOrder?: "asc" | "desc",
   ) {
     return this.service.getCustomerPerformanceStats(tenantId, {
       page: page || 1,
       limit: limit || 10,
-      sortBy: sortBy || 'totalOrderValue',
-      sortOrder: sortOrder || 'desc',
+      sortBy: sortBy || "totalOrderValue",
+      sortOrder: sortOrder || "desc",
     });
   }
 
-  @Get('analytics/sales-trends')
-  @RequirePermissions('customer.read')
-  @ApiOperation({ summary: 'Get sales order trends by month' })
+  @Get("analytics/sales-trends")
+  @RequirePermissions("customer.read")
+  @ApiOperation({ summary: "Get sales order trends by month" })
   async getSalesTrends(
     @TenantId() tenantId: string,
-    @Query('months') months?: number,
+    @Query("months") months?: number,
   ) {
     return this.service.getSalesOrderTrendsByMonth(tenantId, months || 12);
   }

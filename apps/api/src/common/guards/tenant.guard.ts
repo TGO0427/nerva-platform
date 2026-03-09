@@ -3,7 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   BadRequestException,
-} from '@nestjs/common';
+} from "@nestjs/common";
 
 @Injectable()
 export class TenantGuard implements CanActivate {
@@ -17,15 +17,15 @@ export class TenantGuard implements CanActivate {
     }
 
     // Allow header override for admin operations
-    const headerTenantId = request.headers['x-tenant-id'];
-    const headerSiteId = request.headers['x-site-id'];
+    const headerTenantId = request.headers["x-tenant-id"];
+    const headerSiteId = request.headers["x-site-id"];
 
     if (headerTenantId) {
       // Validate UUID format
       const uuidRegex =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(headerTenantId)) {
-        throw new BadRequestException('Invalid tenant ID format');
+        throw new BadRequestException("Invalid tenant ID format");
       }
       request.tenantId = headerTenantId;
     }
@@ -34,13 +34,13 @@ export class TenantGuard implements CanActivate {
       const uuidRegex =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(headerSiteId)) {
-        throw new BadRequestException('Invalid site ID format');
+        throw new BadRequestException("Invalid site ID format");
       }
       request.siteId = headerSiteId;
     }
 
     if (!request.tenantId) {
-      throw new BadRequestException('Tenant ID is required');
+      throw new BadRequestException("Tenant ID is required");
     }
 
     return true;

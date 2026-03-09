@@ -1,6 +1,6 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { Pool, PoolClient } from 'pg';
-import { DATABASE_POOL } from '../../common/db/database.module';
+import { Injectable, Inject } from "@nestjs/common";
+import { Pool, PoolClient } from "pg";
+import { DATABASE_POOL } from "../../common/db/database.module";
 
 export interface StockMovement {
   tenantId: string;
@@ -44,7 +44,7 @@ export class StockLedgerService {
   async recordMovement(movement: StockMovement): Promise<string> {
     const client = await this.pool.connect();
     try {
-      await client.query('BEGIN');
+      await client.query("BEGIN");
 
       // Insert ledger entry
       const ledgerResult = await client.query(
@@ -60,7 +60,7 @@ export class StockLedgerService {
           movement.fromBinId || null,
           movement.toBinId || null,
           movement.qty,
-          movement.uom || 'EA',
+          movement.uom || "EA",
           movement.reason,
           movement.refType || null,
           movement.refId || null,
@@ -99,10 +99,10 @@ export class StockLedgerService {
         );
       }
 
-      await client.query('COMMIT');
+      await client.query("COMMIT");
       return movementId;
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       throw error;
     } finally {
       client.release();
@@ -154,7 +154,10 @@ export class StockLedgerService {
   /**
    * Get stock on hand for an item across all bins (FEFO ordered)
    */
-  async getStockOnHand(tenantId: string, itemId: string): Promise<StockOnHand[]> {
+  async getStockOnHand(
+    tenantId: string,
+    itemId: string,
+  ): Promise<StockOnHand[]> {
     const result = await this.pool.query<{
       item_id: string;
       item_sku: string;
@@ -210,7 +213,10 @@ export class StockLedgerService {
   /**
    * Get available stock for allocation (FEFO ordered, only available qty)
    */
-  async getAvailableStockFEFO(tenantId: string, itemId: string): Promise<StockOnHand[]> {
+  async getAvailableStockFEFO(
+    tenantId: string,
+    itemId: string,
+  ): Promise<StockOnHand[]> {
     const result = await this.pool.query<{
       item_id: string;
       bin_id: string;
@@ -272,7 +278,10 @@ export class StockLedgerService {
   /**
    * Get stock in a specific warehouse (all bins)
    */
-  async getStockInWarehouse(tenantId: string, warehouseId: string): Promise<StockOnHand[]> {
+  async getStockInWarehouse(
+    tenantId: string,
+    warehouseId: string,
+  ): Promise<StockOnHand[]> {
     const result = await this.pool.query<{
       item_id: string;
       bin_id: string;
@@ -311,7 +320,7 @@ export class StockLedgerService {
        WHERE tenant_id = $1 AND item_id = $2`,
       [tenantId, itemId],
     );
-    return parseFloat(result.rows[0]?.total || '0');
+    return parseFloat(result.rows[0]?.total || "0");
   }
 
   /**
@@ -342,10 +351,10 @@ export class StockLedgerService {
 
   async countLedgerHistory(tenantId: string, itemId: string): Promise<number> {
     const result = await this.pool.query<{ count: string }>(
-      'SELECT COUNT(*) as count FROM stock_ledger WHERE tenant_id = $1 AND item_id = $2',
+      "SELECT COUNT(*) as count FROM stock_ledger WHERE tenant_id = $1 AND item_id = $2",
       [tenantId, itemId],
     );
-    return parseInt(result.rows[0]?.count || '0', 10);
+    return parseInt(result.rows[0]?.count || "0", 10);
   }
 
   /**
@@ -364,7 +373,7 @@ export class StockLedgerService {
     const { search, warehouseId, page = 1, limit = 50 } = options;
     const offset = (page - 1) * limit;
 
-    let whereClause = 'ss.tenant_id = $1 AND ss.qty_on_hand != 0';
+    let whereClause = "ss.tenant_id = $1 AND ss.qty_on_hand != 0";
     const params: (string | number)[] = [tenantId];
     let paramIndex = 2;
 
@@ -397,7 +406,7 @@ export class StockLedgerService {
        WHERE ${whereClause}`,
       params,
     );
-    const total = parseInt(countResult.rows[0]?.count || '0', 10);
+    const total = parseInt(countResult.rows[0]?.count || "0", 10);
 
     // Get paginated data
     const dataParams = [...params, limit, offset];
@@ -475,7 +484,15 @@ export class StockLedgerService {
          qty_reserved = stock_snapshot.qty_reserved + $6,
          expiry_date = COALESCE($7, stock_snapshot.expiry_date),
          updated_at = NOW()`,
-      [tenantId, binId, itemId, batchNo, qtyDelta, reservedDelta, expiryDate || null],
+      [
+        tenantId,
+        binId,
+        itemId,
+        batchNo,
+        qtyDelta,
+        reservedDelta,
+        expiryDate || null,
+      ],
     );
   }
 

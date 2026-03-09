@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type } from "class-transformer";
 import {
   IsString,
   IsNotEmpty,
@@ -8,8 +8,8 @@ import {
   ValidateNested,
   ArrayMinSize,
   ArrayMaxSize,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class WorkstationImportRowDto {
   @ApiProperty()

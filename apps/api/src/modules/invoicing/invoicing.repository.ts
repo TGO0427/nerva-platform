@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface Invoice {
   id: string;
@@ -64,11 +64,11 @@ export interface InvoicePayment {
 export class InvoicingRepository extends BaseRepository {
   async generateInvoiceNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM invoices WHERE tenant_id = $1',
+      "SELECT COUNT(*) as count FROM invoices WHERE tenant_id = $1",
       [tenantId],
     );
-    const count = parseInt(result?.count || '0', 10) + 1;
-    return `INV-${count.toString().padStart(6, '0')}`;
+    const count = parseInt(result?.count || "0", 10) + 1;
+    return `INV-${count.toString().padStart(6, "0")}`;
   }
 
   async createInvoice(data: {
@@ -102,7 +102,7 @@ export class InvoicingRepository extends BaseRepository {
         data.salesOrderId || null,
         data.customerId,
         data.invoiceNo,
-        data.status || 'DRAFT',
+        data.status || "DRAFT",
         data.invoiceDate || new Date(),
         data.dueDate || null,
         data.paymentTerms || null,
@@ -110,7 +110,7 @@ export class InvoicingRepository extends BaseRepository {
         data.taxAmount || 0,
         data.totalAmount || 0,
         data.amountPaid || 0,
-        data.currency || 'ZAR',
+        data.currency || "ZAR",
         data.notes || null,
         data.createdBy || null,
       ],
@@ -190,12 +190,12 @@ export class InvoicingRepository extends BaseRepository {
     }
 
     const result = await this.queryOne<{ count: string }>(sql, params);
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   async updateInvoiceStatus(id: string, status: string): Promise<void> {
     await this.execute(
-      'UPDATE invoices SET status = $1, updated_at = NOW() WHERE id = $2',
+      "UPDATE invoices SET status = $1, updated_at = NOW() WHERE id = $2",
       [status, id],
     );
   }
@@ -326,12 +326,12 @@ export class InvoicingRepository extends BaseRepository {
     );
 
     return {
-      outstandingCount: parseInt((row?.outstanding_count as string) || '0', 10),
-      outstandingAmount: parseFloat((row?.outstanding_amount as string) || '0'),
-      overdueCount: parseInt((row?.overdue_count as string) || '0', 10),
-      overdueAmount: parseFloat((row?.overdue_amount as string) || '0'),
-      paidThisMonth: parseFloat((row?.paid_this_month as string) || '0'),
-      totalThisMonth: parseInt((row?.total_this_month as string) || '0', 10),
+      outstandingCount: parseInt((row?.outstanding_count as string) || "0", 10),
+      outstandingAmount: parseFloat((row?.outstanding_amount as string) || "0"),
+      overdueCount: parseInt((row?.overdue_count as string) || "0", 10),
+      overdueAmount: parseFloat((row?.overdue_amount as string) || "0"),
+      paidThisMonth: parseFloat((row?.paid_this_month as string) || "0"),
+      totalThisMonth: parseInt((row?.total_this_month as string) || "0", 10),
     };
   }
 
@@ -347,10 +347,10 @@ export class InvoicingRepository extends BaseRepository {
       invoiceDate: row.invoice_date as Date,
       dueDate: row.due_date as Date | null,
       paymentTerms: row.payment_terms as string | null,
-      subtotal: parseFloat((row.subtotal as string) || '0'),
-      taxAmount: parseFloat((row.tax_amount as string) || '0'),
-      totalAmount: parseFloat((row.total_amount as string) || '0'),
-      amountPaid: parseFloat((row.amount_paid as string) || '0'),
+      subtotal: parseFloat((row.subtotal as string) || "0"),
+      taxAmount: parseFloat((row.tax_amount as string) || "0"),
+      totalAmount: parseFloat((row.total_amount as string) || "0"),
+      amountPaid: parseFloat((row.amount_paid as string) || "0"),
       currency: row.currency as string,
       notes: row.notes as string | null,
       createdBy: row.created_by as string | null,
@@ -370,11 +370,11 @@ export class InvoicingRepository extends BaseRepository {
       salesOrderLineId: row.sales_order_line_id as string | null,
       itemId: row.item_id as string,
       description: row.description as string | null,
-      qty: parseFloat((row.qty as string) || '0'),
-      unitPrice: parseFloat((row.unit_price as string) || '0'),
-      discountPct: parseFloat((row.discount_pct as string) || '0'),
-      taxRate: parseFloat((row.tax_rate as string) || '0'),
-      lineTotal: parseFloat((row.line_total as string) || '0'),
+      qty: parseFloat((row.qty as string) || "0"),
+      unitPrice: parseFloat((row.unit_price as string) || "0"),
+      discountPct: parseFloat((row.discount_pct as string) || "0"),
+      taxRate: parseFloat((row.tax_rate as string) || "0"),
+      lineTotal: parseFloat((row.line_total as string) || "0"),
       createdAt: row.created_at as Date,
       sku: row.sku as string | undefined,
       itemDescription: row.item_description as string | undefined,
@@ -386,7 +386,7 @@ export class InvoicingRepository extends BaseRepository {
       id: row.id as string,
       tenantId: row.tenant_id as string,
       invoiceId: row.invoice_id as string,
-      amount: parseFloat((row.amount as string) || '0'),
+      amount: parseFloat((row.amount as string) || "0"),
       paymentDate: row.payment_date as Date,
       paymentMethod: row.payment_method as string | null,
       reference: row.reference as string | null,

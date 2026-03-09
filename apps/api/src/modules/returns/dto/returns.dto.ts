@@ -8,9 +8,9 @@ import {
   ValidateNested,
   Min,
   MaxLength,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { Type } from "class-transformer";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateRmaLineDto {
   @ApiProperty()

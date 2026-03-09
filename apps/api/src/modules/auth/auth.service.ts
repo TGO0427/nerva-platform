@@ -10,6 +10,7 @@ import { Pool } from "pg";
 import * as argon2 from "argon2";
 import { randomBytes } from "crypto";
 import { DATABASE_POOL } from "../../common/db/database.module";
+import { EmailService } from "../../common/email/email.service";
 import { UsersService } from "../users/users.service";
 import { LoginDto } from "./dto/login.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";
@@ -44,6 +45,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly emailService: EmailService,
     @Inject(DATABASE_POOL) private readonly pool: Pool,
   ) {}
 
@@ -276,12 +278,20 @@ export class AuthService {
 
     const tokenId = result.rows[0].id;
 
+    const compositeToken = `${tokenId}.${raw}`;
+
     this.logger.log(
       `Password reset token created for user ${user.id} (token id: ${tokenId})`,
     );
 
-    // Return composite token: id.rawToken
-    return `${tokenId}.${raw}`;
+    // Send password reset email (non-blocking — failures are logged, not thrown)
+    await this.emailService.sendPasswordResetEmail(
+      email,
+      compositeToken,
+      tenantId,
+    );
+
+    return compositeToken;
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {

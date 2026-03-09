@@ -7,8 +7,8 @@ import {
   IsArray,
   MaxLength,
   Min,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreatePickWaveDto {
   @ApiProperty()

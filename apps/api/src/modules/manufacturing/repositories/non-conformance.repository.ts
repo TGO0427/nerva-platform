@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../../common/db/base.repository";
 
 export interface NonConformance {
   id: string;
@@ -35,15 +35,28 @@ export class NonConformanceRepository extends BaseRepository {
         next = parseInt(match[1], 10) + 1;
       }
     }
-    return `NC-${next.toString().padStart(6, '0')}`;
+    return `NC-${next.toString().padStart(6, "0")}`;
   }
 
   async findByTenant(
     tenantId: string,
-    filters: { status?: string; severity?: string; workOrderId?: string; search?: string },
+    filters: {
+      status?: string;
+      severity?: string;
+      workOrderId?: string;
+      search?: string;
+    },
     limit = 50,
     offset = 0,
-  ): Promise<{ data: (NonConformance & { itemSku?: string; itemDescription?: string; workOrderNo?: string; reportedByName?: string })[]; total: number }> {
+  ): Promise<{
+    data: (NonConformance & {
+      itemSku?: string;
+      itemDescription?: string;
+      workOrderNo?: string;
+      reportedByName?: string;
+    })[];
+    total: number;
+  }> {
     let sql = `
       SELECT nc.*, i.sku as item_sku, i.description as item_description,
              wo.work_order_no, u.display_name as reported_by_name
@@ -107,17 +120,20 @@ export class NonConformanceRepository extends BaseRepository {
         workOrderNo: r.work_order_no as string | undefined,
         reportedByName: r.reported_by_name as string | undefined,
       })),
-      total: parseInt(countResult?.count || '0', 10),
+      total: parseInt(countResult?.count || "0", 10),
     };
   }
 
-  async findById(id: string): Promise<(NonConformance & {
-    itemSku?: string;
-    itemDescription?: string;
-    workOrderNo?: string;
-    reportedByName?: string;
-    resolvedByName?: string;
-  }) | null> {
+  async findById(id: string): Promise<
+    | (NonConformance & {
+        itemSku?: string;
+        itemDescription?: string;
+        workOrderNo?: string;
+        reportedByName?: string;
+        resolvedByName?: string;
+      })
+    | null
+  > {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT nc.*, i.sku as item_sku, i.description as item_description,
               wo.work_order_no, u.display_name as reported_by_name,
@@ -232,7 +248,7 @@ export class NonConformanceRepository extends BaseRepository {
 
     params.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE non_conformances SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE non_conformances SET ${updates.join(", ")} WHERE id = $${idx} RETURNING *`,
       params,
     );
     return row ? this.mapNc(row) : null;
@@ -249,7 +265,9 @@ export class NonConformanceRepository extends BaseRepository {
       defectType: row.defect_type as string,
       severity: row.severity as string,
       description: row.description as string,
-      qtyAffected: row.qty_affected ? parseFloat(row.qty_affected as string) : 0,
+      qtyAffected: row.qty_affected
+        ? parseFloat(row.qty_affected as string)
+        : 0,
       disposition: row.disposition as string | null,
       correctiveAction: row.corrective_action as string | null,
       status: row.status as string,

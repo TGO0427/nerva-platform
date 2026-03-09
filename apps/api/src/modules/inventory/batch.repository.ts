@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface Batch {
   id: string;
@@ -27,7 +27,7 @@ export interface ExpiringStock {
   expiryDate: Date;
   qtyOnHand: number;
   qtyAvailable: number;
-  expiryStatus: 'EXPIRED' | 'CRITICAL' | 'WARNING' | 'OK';
+  expiryStatus: "EXPIRED" | "CRITICAL" | "WARNING" | "OK";
   daysUntilExpiry: number;
 }
 
@@ -85,15 +85,19 @@ export class BatchRepository extends BaseRepository {
 
   async findBatchById(id: string): Promise<Batch | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM batches WHERE id = $1',
+      "SELECT * FROM batches WHERE id = $1",
       [id],
     );
     return row ? this.mapBatch(row) : null;
   }
 
-  async findBatchByNo(tenantId: string, itemId: string, batchNo: string): Promise<Batch | null> {
+  async findBatchByNo(
+    tenantId: string,
+    itemId: string,
+    batchNo: string,
+  ): Promise<Batch | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM batches WHERE tenant_id = $1 AND item_id = $2 AND batch_no = $3',
+      "SELECT * FROM batches WHERE tenant_id = $1 AND item_id = $2 AND batch_no = $3",
       [tenantId, itemId, batchNo],
     );
     return row ? this.mapBatch(row) : null;
@@ -155,7 +159,10 @@ export class BatchRepository extends BaseRepository {
     return rows.map((r) => this.mapExpiringStock(r));
   }
 
-  async getExpiredStock(tenantId: string, warehouseId?: string): Promise<ExpiringStock[]> {
+  async getExpiredStock(
+    tenantId: string,
+    warehouseId?: string,
+  ): Promise<ExpiringStock[]> {
     let sql = `
       SELECT
         ss.tenant_id,
@@ -245,7 +252,11 @@ export class BatchRepository extends BaseRepository {
       expiryDate: row.expiry_date as Date,
       qtyOnHand: Number(row.qty_on_hand),
       qtyAvailable: Number(row.qty_available),
-      expiryStatus: row.expiry_status as 'EXPIRED' | 'CRITICAL' | 'WARNING' | 'OK',
+      expiryStatus: row.expiry_status as
+        | "EXPIRED"
+        | "CRITICAL"
+        | "WARNING"
+        | "OK",
       daysUntilExpiry: Number(row.days_until_expiry),
     };
   }

@@ -3,12 +3,13 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-} from '@nestjs/common';
-import { Observable, tap } from 'rxjs';
-import { Reflector } from '@nestjs/core';
-import { AuditService } from '../../modules/audit/audit.service';
+} from "@nestjs/common";
+import { Observable, tap } from "rxjs";
+import { Reflector } from "@nestjs/core";
+import { PinoLogger } from "nestjs-pino";
+import { AuditService } from "../../modules/audit/audit.service";
 
-export const AUDIT_ACTION_KEY = 'audit_action';
+export const AUDIT_ACTION_KEY = "audit_action";
 
 export interface AuditMetadata {
   entityType: string;
@@ -23,7 +24,10 @@ export class AuditInterceptor implements NestInterceptor {
   constructor(
     private reflector: Reflector,
     private auditService: AuditService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(AuditInterceptor.name);
+  }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const auditMetadata = this.reflector.get<AuditMetadata>(
@@ -40,17 +44,19 @@ export class AuditInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap((response) => {
-        this.auditService.log({
-          tenantId: request.tenantId,
-          actorUserId: request.user?.id,
-          entityType: auditMetadata.entityType,
-          entityId: response?.id,
-          action: auditMetadata.action,
-          before: beforeState,
-          after: response,
-          ipAddress: request.ip,
-          userAgent: request.headers['user-agent'],
-        }).catch((err) => console.error('Audit log failed:', err));
+        this.auditService
+          .log({
+            tenantId: request.tenantId,
+            actorUserId: request.user?.id,
+            entityType: auditMetadata.entityType,
+            entityId: response?.id,
+            action: auditMetadata.action,
+            before: beforeState,
+            after: response,
+            ipAddress: request.ip,
+            userAgent: request.headers["user-agent"],
+          })
+          .catch((err) => this.logger.error(err, "Audit log failed"));
       }),
     );
   }

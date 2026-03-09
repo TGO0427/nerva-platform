@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 import {
   AuditRepository,
   AuditEntry,
   AuditEntryWithActor,
   AuditSearchFilters,
   CreateAuditEntry,
-} from './audit.repository';
+} from "./audit.repository";
 
 @Injectable()
 export class AuditService {
@@ -28,7 +28,7 @@ export class AuditService {
       tenantId,
       entityType,
       entityId,
-      action: 'CREATE',
+      action: "CREATE",
       after,
       actorUserId,
       ipAddress,
@@ -50,7 +50,7 @@ export class AuditService {
       tenantId,
       entityType,
       entityId,
-      action: 'UPDATE',
+      action: "UPDATE",
       before,
       after,
       actorUserId,
@@ -72,7 +72,7 @@ export class AuditService {
       tenantId,
       entityType,
       entityId,
-      action: 'DELETE',
+      action: "DELETE",
       before,
       actorUserId,
       ipAddress,
@@ -94,7 +94,7 @@ export class AuditService {
       tenantId,
       entityType,
       entityId,
-      action: 'APPROVE',
+      action: "APPROVE",
       before,
       after,
       actorUserId,
@@ -134,13 +134,15 @@ export class AuditService {
     limit = 50,
     offset = 0,
   ): Promise<AuditEntryWithActor[]> {
-    return this.auditRepository.findByTenantWithActor(tenantId, filters, limit, offset);
+    return this.auditRepository.findByTenantWithActor(
+      tenantId,
+      filters,
+      limit,
+      offset,
+    );
   }
 
-  async count(
-    tenantId: string,
-    filters: AuditSearchFilters,
-  ): Promise<number> {
+  async count(tenantId: string, filters: AuditSearchFilters): Promise<number> {
     return this.auditRepository.countByTenant(tenantId, filters);
   }
 }

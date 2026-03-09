@@ -47,17 +47,11 @@ export class AuthController {
   @Throttle({ short: { ttl: 60000, limit: 3 } })
   @ApiOperation({ summary: "Request a password reset email" })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    const token = await this.authService.requestPasswordReset(
-      dto.tenantId,
-      dto.email,
-    );
+    await this.authService.requestPasswordReset(dto.tenantId, dto.email);
 
-    // TODO: In production, send the reset link via email instead of returning the token.
-    // For now, return the token in the response body for testing purposes.
     return {
       message:
         "If an account exists with that email, a password reset link has been sent.",
-      ...(token ? { resetToken: token } : {}),
     };
   }
 

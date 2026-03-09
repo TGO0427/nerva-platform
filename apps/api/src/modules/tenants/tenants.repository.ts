@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface Tenant {
   id: string;
@@ -24,7 +24,7 @@ export interface Site {
 export class TenantsRepository extends BaseRepository {
   async findTenantById(id: string): Promise<Tenant | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM tenants WHERE id = $1',
+      "SELECT * FROM tenants WHERE id = $1",
       [id],
     );
     return row ? this.mapTenant(row) : null;
@@ -32,7 +32,7 @@ export class TenantsRepository extends BaseRepository {
 
   async findTenantByCode(code: string): Promise<Tenant | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM tenants WHERE code = $1',
+      "SELECT * FROM tenants WHERE code = $1",
       [code],
     );
     return row ? this.mapTenant(row) : null;
@@ -40,7 +40,7 @@ export class TenantsRepository extends BaseRepository {
 
   async listTenants(): Promise<Tenant[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM tenants ORDER BY name',
+      "SELECT * FROM tenants ORDER BY name",
     );
     return rows.map(this.mapTenant);
   }
@@ -78,7 +78,7 @@ export class TenantsRepository extends BaseRepository {
 
     values.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE tenants SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE tenants SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,
       values,
     );
     return row ? this.mapTenant(row) : null;
@@ -86,7 +86,7 @@ export class TenantsRepository extends BaseRepository {
 
   async findSitesByTenant(tenantId: string): Promise<Site[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM sites WHERE tenant_id = $1 ORDER BY name',
+      "SELECT * FROM sites WHERE tenant_id = $1 ORDER BY name",
       [tenantId],
     );
     return rows.map(this.mapSite);
@@ -94,7 +94,7 @@ export class TenantsRepository extends BaseRepository {
 
   async findSiteById(id: string): Promise<Site | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM sites WHERE id = $1',
+      "SELECT * FROM sites WHERE id = $1",
       [id],
     );
     return row ? this.mapSite(row) : null;
@@ -137,7 +137,7 @@ export class TenantsRepository extends BaseRepository {
 
     values.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE sites SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE sites SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,
       values,
     );
     return row ? this.mapSite(row) : null;

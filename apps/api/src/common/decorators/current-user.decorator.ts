@@ -1,4 +1,4 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
 
 export interface CurrentUserData {
   id: string;
@@ -6,7 +6,7 @@ export interface CurrentUserData {
   email: string;
   displayName: string;
   permissions: string[];
-  userType: 'internal' | 'customer' | 'driver';
+  userType: "internal" | "customer" | "driver";
   customerId: string | null;
 }
 

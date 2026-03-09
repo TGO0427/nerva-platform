@@ -5,8 +5,8 @@ import {
   IsBoolean,
   IsInt,
   Min,
-} from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 
 export class UpdateSupplierItemDto {
   @ApiPropertyOptional({ description: "Supplier's own SKU/part number" })
@@ -14,30 +14,32 @@ export class UpdateSupplierItemDto {
   @IsString()
   supplierSku?: string;
 
-  @ApiPropertyOptional({ description: 'Unit cost from supplier' })
+  @ApiPropertyOptional({ description: "Unit cost from supplier" })
   @IsOptional()
   @IsNumber()
   @Min(0)
   unitCost?: number;
 
-  @ApiPropertyOptional({ description: 'Lead time in days' })
+  @ApiPropertyOptional({ description: "Lead time in days" })
   @IsOptional()
   @IsInt()
   @Min(0)
   leadTimeDays?: number;
 
-  @ApiPropertyOptional({ description: 'Minimum order quantity' })
+  @ApiPropertyOptional({ description: "Minimum order quantity" })
   @IsOptional()
   @IsInt()
   @Min(1)
   minOrderQty?: number;
 
-  @ApiPropertyOptional({ description: 'Is this the preferred supplier for this item?' })
+  @ApiPropertyOptional({
+    description: "Is this the preferred supplier for this item?",
+  })
   @IsOptional()
   @IsBoolean()
   isPreferred?: boolean;
 
-  @ApiPropertyOptional({ description: 'Is this supplier item active?' })
+  @ApiPropertyOptional({ description: "Is this supplier item active?" })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;

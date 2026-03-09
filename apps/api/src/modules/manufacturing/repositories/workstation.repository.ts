@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../../common/db/base.repository";
 
 export interface Workstation {
   id: string;
@@ -50,7 +50,7 @@ export class WorkstationRepository extends BaseRepository {
 
   async findById(id: string): Promise<Workstation | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM workstations WHERE id = $1',
+      "SELECT * FROM workstations WHERE id = $1",
       [id],
     );
     return row ? this.mapWorkstation(row) : null;
@@ -62,8 +62,9 @@ export class WorkstationRepository extends BaseRepository {
     limit = 50,
     offset = 0,
   ): Promise<{ data: Workstation[]; total: number }> {
-    let sql = 'SELECT * FROM workstations WHERE tenant_id = $1';
-    let countSql = 'SELECT COUNT(*) as count FROM workstations WHERE tenant_id = $1';
+    let sql = "SELECT * FROM workstations WHERE tenant_id = $1";
+    let countSql =
+      "SELECT COUNT(*) as count FROM workstations WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
     const countParams: unknown[] = [tenantId];
     let idx = 2;
@@ -100,7 +101,7 @@ export class WorkstationRepository extends BaseRepository {
 
     return {
       data: rows.map((r) => this.mapWorkstation(r)),
-      total: parseInt(countResult?.count || '0', 10),
+      total: parseInt(countResult?.count || "0", 10),
     };
   }
 
@@ -153,7 +154,7 @@ export class WorkstationRepository extends BaseRepository {
 
     params.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE workstations SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE workstations SET ${updates.join(", ")} WHERE id = $${idx} RETURNING *`,
       params,
     );
     return row ? this.mapWorkstation(row) : null;
@@ -161,16 +162,18 @@ export class WorkstationRepository extends BaseRepository {
 
   async findByCodes(tenantId: string, codes: string[]): Promise<Workstation[]> {
     if (codes.length === 0) return [];
-    const lowerCodes = codes.map(c => c.toLowerCase());
+    const lowerCodes = codes.map((c) => c.toLowerCase());
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT * FROM workstations WHERE tenant_id = $1 AND LOWER(code) = ANY($2)`,
       [tenantId, lowerCodes],
     );
-    return rows.map(r => this.mapWorkstation(r));
+    return rows.map((r) => this.mapWorkstation(r));
   }
 
   async delete(id: string): Promise<boolean> {
-    const count = await this.execute('DELETE FROM workstations WHERE id = $1', [id]);
+    const count = await this.execute("DELETE FROM workstations WHERE id = $1", [
+      id,
+    ]);
     return count > 0;
   }
 
@@ -183,8 +186,12 @@ export class WorkstationRepository extends BaseRepository {
       name: row.name as string,
       description: row.description as string | null,
       workstationType: row.workstation_type as string,
-      capacityPerHour: row.capacity_per_hour ? parseFloat(row.capacity_per_hour as string) : null,
-      costPerHour: row.cost_per_hour ? parseFloat(row.cost_per_hour as string) : null,
+      capacityPerHour: row.capacity_per_hour
+        ? parseFloat(row.capacity_per_hour as string)
+        : null,
+      costPerHour: row.cost_per_hour
+        ? parseFloat(row.cost_per_hour as string)
+        : null,
       status: row.status as string,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,

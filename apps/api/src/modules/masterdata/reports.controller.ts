@@ -1,34 +1,29 @@
-import {
-  Controller,
-  Get,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { MasterDataService } from './masterdata.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TenantGuard } from '../../common/guards/tenant.guard';
-import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { TenantId } from '../../common/decorators/tenant.decorator';
+import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import { MasterDataService } from "./masterdata.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { TenantGuard } from "../../common/guards/tenant.guard";
+import { PermissionsGuard } from "../../common/guards/permissions.guard";
+import { RequirePermissions } from "../../common/decorators/permissions.decorator";
+import { TenantId } from "../../common/decorators/tenant.decorator";
 
-@ApiTags('reports')
+@ApiTags("reports")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('reports')
+@Controller("reports")
 export class ReportsController {
   constructor(private readonly service: MasterDataService) {}
 
-  @Get('sales')
-  @RequirePermissions('salesOrder.read')
-  @ApiOperation({ summary: 'Get sales report' })
+  @Get("sales")
+  @RequirePermissions("salesOrder.read")
+  @ApiOperation({ summary: "Get sales report" })
   async getSalesReport(
     @TenantId() tenantId: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     // Default to last 12 months if not specified
-    const end = endDate ? new Date(endDate + 'T23:59:59.999') : new Date();
+    const end = endDate ? new Date(endDate + "T23:59:59.999") : new Date();
     const start = startDate
       ? new Date(startDate)
       : new Date(end.getTime() - 365 * 24 * 60 * 60 * 1000);
@@ -36,23 +31,23 @@ export class ReportsController {
     return this.service.getSalesReport(tenantId, start, end);
   }
 
-  @Get('inventory')
-  @RequirePermissions('inventory.read')
-  @ApiOperation({ summary: 'Get inventory report' })
+  @Get("inventory")
+  @RequirePermissions("inventory.read")
+  @ApiOperation({ summary: "Get inventory report" })
   async getInventoryReport(@TenantId() tenantId: string) {
     return this.service.getInventoryReport(tenantId);
   }
 
-  @Get('procurement')
-  @RequirePermissions('purchaseOrder.read')
-  @ApiOperation({ summary: 'Get procurement report' })
+  @Get("procurement")
+  @RequirePermissions("purchaseOrder.read")
+  @ApiOperation({ summary: "Get procurement report" })
   async getProcurementReport(
     @TenantId() tenantId: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
     // Default to last 12 months if not specified
-    const end = endDate ? new Date(endDate + 'T23:59:59.999') : new Date();
+    const end = endDate ? new Date(endDate + "T23:59:59.999") : new Date();
     const start = startDate
       ? new Date(startDate)
       : new Date(end.getTime() - 365 * 24 * 60 * 60 * 1000);

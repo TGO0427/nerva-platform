@@ -1,8 +1,19 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { FulfilmentRepository, PickWave, PickTask, Shipment, ShipmentLine, ShippableOrder } from './fulfilment.repository';
-import { StockLedgerService } from '../inventory/stock-ledger.service';
-import { SalesService } from '../sales/sales.service';
-import { buildPaginatedResult } from '../../common/utils/pagination';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import {
+  FulfilmentRepository,
+  PickWave,
+  PickTask,
+  Shipment,
+  ShipmentLine,
+  ShippableOrder,
+} from "./fulfilment.repository";
+import { StockLedgerService } from "../inventory/stock-ledger.service";
+import { SalesService } from "../sales/sales.service";
+import { buildPaginatedResult } from "../../common/utils/pagination";
 
 @Injectable()
 export class FulfilmentService {
@@ -31,7 +42,7 @@ export class FulfilmentService {
     for (const orderId of data.orderIds) {
       const orderData = await this.salesService.getOrderWithLines(orderId);
 
-      if (orderData.status !== 'ALLOCATED') {
+      if (orderData.status !== "ALLOCATED") {
         continue; // Skip non-allocated orders
       }
 
@@ -40,7 +51,10 @@ export class FulfilmentService {
           const qtyToPick = line.qtyAllocated - line.qtyPicked;
 
           // Get stock locations (FEFO ordered by expiry date)
-          const stock = await this.stockLedger.getStockOnHand(data.tenantId, line.itemId);
+          const stock = await this.stockLedger.getStockOnHand(
+            data.tenantId,
+            line.itemId,
+          );
           let remaining = qtyToPick;
 
           for (const s of stock) {
@@ -67,13 +81,15 @@ export class FulfilmentService {
 
           // Log warning if we couldn't allocate all qty
           if (remaining > 0) {
-            console.warn(`Could not allocate full qty for order line ${line.id}: ${remaining} units remaining`);
+            console.warn(
+              `Could not allocate full qty for order line ${line.id}: ${remaining} units remaining`,
+            );
           }
         }
       }
 
       // Update order status to PICKING
-      await this.salesService.updateOrderStatus(orderId, 'PICKING');
+      await this.salesService.updateOrderStatus(orderId, "PICKING");
     }
 
     return wave;
@@ -81,12 +97,17 @@ export class FulfilmentService {
 
   // Get allocated orders ready for picking
   async getAllocatedOrders(tenantId: string) {
-    return this.salesService.listOrders(tenantId, { status: 'ALLOCATED' }, 1, 100);
+    return this.salesService.listOrders(
+      tenantId,
+      { status: "ALLOCATED" },
+      1,
+      100,
+    );
   }
 
   async getPickWave(id: string): Promise<PickWave> {
     const wave = await this.repository.findPickWaveById(id);
-    if (!wave) throw new NotFoundException('Pick wave not found');
+    if (!wave) throw new NotFoundException("Pick wave not found");
     return wave;
   }
 
@@ -100,7 +121,7 @@ export class FulfilmentService {
 
   async assignPickTask(taskId: string, userId: string): Promise<PickTask> {
     const task = await this.repository.assignPickTask(taskId, userId);
-    if (!task) throw new NotFoundException('Pick task not found');
+    if (!task) throw new NotFoundException("Pick task not found");
     return task;
   }
 
@@ -109,10 +130,10 @@ export class FulfilmentService {
     data: { qtyPicked: number; shortReason?: string; createdBy?: string },
   ): Promise<PickTask> {
     const task = await this.repository.findPickTaskById(taskId);
-    if (!task) throw new NotFoundException('Pick task not found');
+    if (!task) throw new NotFoundException("Pick task not found");
 
-    if (task.status === 'PICKED' || task.status === 'CANCELLED') {
-      throw new BadRequestException('Task already completed');
+    if (task.status === "PICKED" || task.status === "CANCELLED") {
+      throw new BadRequestException("Task already completed");
     }
 
     // Record stock movement
@@ -121,8 +142,8 @@ export class FulfilmentService {
       itemId: task.itemId,
       fromBinId: task.fromBinId,
       qty: data.qtyPicked,
-      reason: 'PICK',
-      refType: 'pick_task',
+      reason: "PICK",
+      refType: "pick_task",
       refId: taskId,
       batchNo: task.batchNo || undefined,
       createdBy: data.createdBy,
@@ -171,11 +192,14 @@ export class FulfilmentService {
     });
 
     // Get order lines and create shipment lines from picked quantities
-    const orderData = await this.salesService.getOrderWithLines(data.salesOrderId);
+    const orderData = await this.salesService.getOrderWithLines(
+      data.salesOrderId,
+    );
     for (const line of orderData.lines) {
       if (line.qtyPicked > 0) {
         // Get picked batches for this order line
-        const pickedBatches = await this.repository.findPickedBatchesByOrderLine(line.id);
+        const pickedBatches =
+          await this.repository.findPickedBatchesByOrderLine(line.id);
 
         if (pickedBatches.length > 0) {
           // Create a shipment line per batch
@@ -224,7 +248,7 @@ export class FulfilmentService {
 
   async getShipment(id: string): Promise<Shipment> {
     const shipment = await this.repository.findShipmentById(id);
-    if (!shipment) throw new NotFoundException('Shipment not found');
+    if (!shipment) throw new NotFoundException("Shipment not found");
     return shipment;
   }
 
@@ -239,10 +263,15 @@ export class FulfilmentService {
 
   async markShipmentReady(id: string): Promise<Shipment> {
     const shipment = await this.getShipment(id);
-    if (shipment.status !== 'PACKED') {
-      throw new BadRequestException('Shipment must be packed before marking ready');
+    if (shipment.status !== "PACKED") {
+      throw new BadRequestException(
+        "Shipment must be packed before marking ready",
+      );
     }
-    const updated = await this.repository.updateShipmentStatus(id, 'READY_FOR_DISPATCH');
+    const updated = await this.repository.updateShipmentStatus(
+      id,
+      "READY_FOR_DISPATCH",
+    );
     return updated!;
   }
 
@@ -267,56 +296,63 @@ export class FulfilmentService {
   // Release wave for execution
   async releasePickWave(id: string): Promise<PickWave> {
     const wave = await this.getPickWave(id);
-    if (wave.status !== 'OPEN') {
-      throw new BadRequestException('Wave must be in OPEN status to release');
+    if (wave.status !== "OPEN") {
+      throw new BadRequestException("Wave must be in OPEN status to release");
     }
-    const updated = await this.repository.updatePickWaveStatus(id, 'IN_PROGRESS');
+    const updated = await this.repository.updatePickWaveStatus(
+      id,
+      "IN_PROGRESS",
+    );
     return updated!;
   }
 
   // Complete pick wave
   async completePickWave(id: string): Promise<PickWave> {
     const wave = await this.getPickWave(id);
-    if (wave.status !== 'IN_PROGRESS') {
-      throw new BadRequestException('Wave must be in progress to complete');
+    if (wave.status !== "IN_PROGRESS") {
+      throw new BadRequestException("Wave must be in progress to complete");
     }
 
     const allComplete = await this.repository.areAllTasksComplete(id);
     if (!allComplete) {
-      throw new BadRequestException('Cannot complete wave while tasks are still pending');
+      throw new BadRequestException(
+        "Cannot complete wave while tasks are still pending",
+      );
     }
 
-    const updated = await this.repository.updatePickWaveStatus(id, 'COMPLETE');
+    const updated = await this.repository.updatePickWaveStatus(id, "COMPLETE");
     return updated!;
   }
 
   // Cancel pick wave
   async cancelPickWave(id: string, reason: string): Promise<PickWave> {
     const wave = await this.getPickWave(id);
-    if (wave.status === 'COMPLETE') {
-      throw new BadRequestException('Cannot cancel a completed wave');
+    if (wave.status === "COMPLETE") {
+      throw new BadRequestException("Cannot cancel a completed wave");
     }
 
     // Cancel all pending tasks
     const tasks = await this.getPickTasks(id);
     for (const task of tasks) {
-      if (task.status !== 'PICKED' && task.status !== 'CANCELLED') {
+      if (task.status !== "PICKED" && task.status !== "CANCELLED") {
         await this.repository.cancelPickTask(task.id, reason);
       }
     }
 
-    const updated = await this.repository.updatePickWaveStatus(id, 'CANCELLED');
+    const updated = await this.repository.updatePickWaveStatus(id, "CANCELLED");
     return updated!;
   }
 
   // Reopen completed or cancelled pick wave
   async reopenPickWave(id: string): Promise<PickWave> {
     const wave = await this.getPickWave(id);
-    if (!['COMPLETE', 'CANCELLED'].includes(wave.status)) {
-      throw new BadRequestException('Only completed or cancelled pick waves can be reopened');
+    if (!["COMPLETE", "CANCELLED"].includes(wave.status)) {
+      throw new BadRequestException(
+        "Only completed or cancelled pick waves can be reopened",
+      );
     }
 
-    const newStatus = wave.status === 'CANCELLED' ? 'OPEN' : 'IN_PROGRESS';
+    const newStatus = wave.status === "CANCELLED" ? "OPEN" : "IN_PROGRESS";
     const updated = await this.repository.updatePickWaveStatus(id, newStatus);
     return updated!;
   }
@@ -324,10 +360,10 @@ export class FulfilmentService {
   // Cancel single pick task
   async cancelPickTask(taskId: string, reason: string): Promise<PickTask> {
     const task = await this.repository.findPickTaskById(taskId);
-    if (!task) throw new NotFoundException('Pick task not found');
+    if (!task) throw new NotFoundException("Pick task not found");
 
-    if (task.status === 'PICKED') {
-      throw new BadRequestException('Cannot cancel a completed task');
+    if (task.status === "PICKED") {
+      throw new BadRequestException("Cannot cancel a completed task");
     }
 
     // Release reservation if any
@@ -348,10 +384,12 @@ export class FulfilmentService {
   // Pack shipment
   async packShipment(id: string): Promise<Shipment> {
     const shipment = await this.getShipment(id);
-    if (shipment.status !== 'PENDING') {
-      throw new BadRequestException('Shipment must be in PENDING status to pack');
+    if (shipment.status !== "PENDING") {
+      throw new BadRequestException(
+        "Shipment must be in PENDING status to pack",
+      );
     }
-    const updated = await this.repository.updateShipmentStatus(id, 'PACKED');
+    const updated = await this.repository.updateShipmentStatus(id, "PACKED");
     return updated!;
   }
 
@@ -361,8 +399,11 @@ export class FulfilmentService {
     data: { carrier: string; trackingNo: string },
   ): Promise<Shipment> {
     const shipment = await this.getShipment(id);
-    if (shipment.status !== 'READY_FOR_DISPATCH' && shipment.status !== 'PACKED') {
-      throw new BadRequestException('Shipment must be ready for dispatch');
+    if (
+      shipment.status !== "READY_FOR_DISPATCH" &&
+      shipment.status !== "PACKED"
+    ) {
+      throw new BadRequestException("Shipment must be ready for dispatch");
     }
 
     const updated = await this.repository.updateShipmentCarrier(
@@ -376,20 +417,20 @@ export class FulfilmentService {
   // Mark shipment as delivered
   async deliverShipment(id: string): Promise<Shipment> {
     const shipment = await this.getShipment(id);
-    if (shipment.status !== 'SHIPPED') {
-      throw new BadRequestException('Shipment must be shipped before delivery');
+    if (shipment.status !== "SHIPPED") {
+      throw new BadRequestException("Shipment must be shipped before delivery");
     }
-    const updated = await this.repository.updateShipmentStatus(id, 'DELIVERED');
+    const updated = await this.repository.updateShipmentStatus(id, "DELIVERED");
     return updated!;
   }
 
   // Reopen delivered shipment back to shipped
   async reopenShipment(id: string): Promise<Shipment> {
     const shipment = await this.getShipment(id);
-    if (shipment.status !== 'DELIVERED') {
-      throw new BadRequestException('Only delivered shipments can be reopened');
+    if (shipment.status !== "DELIVERED") {
+      throw new BadRequestException("Only delivered shipments can be reopened");
     }
-    const updated = await this.repository.updateShipmentStatus(id, 'SHIPPED');
+    const updated = await this.repository.updateShipmentStatus(id, "SHIPPED");
     return updated!;
   }
 

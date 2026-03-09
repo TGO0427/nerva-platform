@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { TenantsRepository, Tenant, Site } from './tenants.repository';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { TenantsRepository, Tenant, Site } from "./tenants.repository";
 
 @Injectable()
 export class TenantsService {
@@ -23,7 +23,7 @@ export class TenantsService {
   ): Promise<Tenant> {
     const tenant = await this.tenantsRepository.updateTenant(id, data);
     if (!tenant) {
-      throw new NotFoundException('Tenant not found');
+      throw new NotFoundException("Tenant not found");
     }
     return tenant;
   }
@@ -50,7 +50,7 @@ export class TenantsService {
   ): Promise<Site> {
     const site = await this.tenantsRepository.updateSite(id, data);
     if (!site) {
-      throw new NotFoundException('Site not found');
+      throw new NotFoundException("Site not found");
     }
     return site;
   }

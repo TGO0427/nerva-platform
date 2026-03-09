@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface IbtRecord {
   id: string;
@@ -75,7 +75,7 @@ export interface IbtFilters {
 @Injectable()
 export class IbtRepository extends BaseRepository {
   async deleteIbt(id: string): Promise<boolean> {
-    const count = await this.execute('DELETE FROM ibts WHERE id = $1', [id]);
+    const count = await this.execute("DELETE FROM ibts WHERE id = $1", [id]);
     return count > 0;
   }
 
@@ -85,7 +85,7 @@ export class IbtRepository extends BaseRepository {
       [tenantId],
     );
     const num = (row?.next as number) || 1;
-    return `IBT-${String(num).padStart(6, '0')}`;
+    return `IBT-${String(num).padStart(6, "0")}`;
   }
 
   async create(data: CreateIbt): Promise<IbtRecord> {
@@ -93,7 +93,14 @@ export class IbtRepository extends BaseRepository {
       `INSERT INTO ibts (tenant_id, ibt_no, from_warehouse_id, to_warehouse_id, notes, created_by)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [data.tenantId, data.ibtNo, data.fromWarehouseId, data.toWarehouseId, data.notes || null, data.createdBy || null],
+      [
+        data.tenantId,
+        data.ibtNo,
+        data.fromWarehouseId,
+        data.toWarehouseId,
+        data.notes || null,
+        data.createdBy || null,
+      ],
     );
     return this.mapIbt(row!);
   }
@@ -138,7 +145,7 @@ export class IbtRepository extends BaseRepository {
        JOIN warehouses tw ON tw.id = ibt.to_warehouse_id
        LEFT JOIN users uc ON uc.id = ibt.created_by
        LEFT JOIN users ua ON ua.id = ibt.approved_by
-       WHERE ${conditions.join(' AND ')}
+       WHERE ${conditions.join(" AND ")}
        ORDER BY ibt.created_at DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
       values,
@@ -152,7 +159,7 @@ export class IbtRepository extends BaseRepository {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT COUNT(*)::int AS total
        FROM ibts ibt
-       WHERE ${conditions.join(' AND ')}`,
+       WHERE ${conditions.join(" AND ")}`,
       values,
     );
     return (row?.total as number) || 0;
@@ -161,9 +168,14 @@ export class IbtRepository extends BaseRepository {
   async updateStatus(
     id: string,
     status: string,
-    extras?: { approvedBy?: string; approvedAt?: Date; shippedAt?: Date; receivedAt?: Date },
+    extras?: {
+      approvedBy?: string;
+      approvedAt?: Date;
+      shippedAt?: Date;
+      receivedAt?: Date;
+    },
   ): Promise<IbtRecord | null> {
-    const sets = ['status = $1'];
+    const sets = ["status = $1"];
     const values: unknown[] = [status];
     let idx = 2;
 
@@ -186,7 +198,7 @@ export class IbtRepository extends BaseRepository {
 
     values.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE ibts SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE ibts SET ${sets.join(", ")} WHERE id = $${idx} RETURNING *`,
       values,
     );
     return row ? this.mapIbt(row) : null;
@@ -197,7 +209,15 @@ export class IbtRepository extends BaseRepository {
       `INSERT INTO ibt_lines (tenant_id, ibt_id, item_id, qty_requested, from_bin_id, to_bin_id, batch_no)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [data.tenantId, data.ibtId, data.itemId, data.qtyRequested, data.fromBinId || null, data.toBinId || null, data.batchNo || null],
+      [
+        data.tenantId,
+        data.ibtId,
+        data.itemId,
+        data.qtyRequested,
+        data.fromBinId || null,
+        data.toBinId || null,
+        data.batchNo || null,
+      ],
     );
     return this.mapLine(row!);
   }
@@ -223,13 +243,17 @@ export class IbtRepository extends BaseRepository {
   }
 
   async updateLineShipped(lineId: string, qtyShipped: number): Promise<void> {
-    await this.queryOne(
-      `UPDATE ibt_lines SET qty_shipped = $1 WHERE id = $2`,
-      [qtyShipped, lineId],
-    );
+    await this.queryOne(`UPDATE ibt_lines SET qty_shipped = $1 WHERE id = $2`, [
+      qtyShipped,
+      lineId,
+    ]);
   }
 
-  async updateLineReceived(lineId: string, qtyReceived: number, toBinId?: string): Promise<void> {
+  async updateLineReceived(
+    lineId: string,
+    qtyReceived: number,
+    toBinId?: string,
+  ): Promise<void> {
     if (toBinId) {
       await this.queryOne(
         `UPDATE ibt_lines SET qty_received = $1, to_bin_id = $2 WHERE id = $3`,
@@ -247,7 +271,7 @@ export class IbtRepository extends BaseRepository {
     tenantId: string,
     filters: IbtFilters,
   ): { conditions: string[]; values: unknown[]; idx: number } {
-    const conditions = ['ibt.tenant_id = $1'];
+    const conditions = ["ibt.tenant_id = $1"];
     const values: unknown[] = [tenantId];
     let idx = 2;
 

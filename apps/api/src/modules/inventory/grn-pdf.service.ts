@@ -1,8 +1,8 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { Pool } from 'pg';
-import { DATABASE_POOL } from '../../common/db/database.module';
-import { InventoryRepository } from './inventory.repository';
-import { TenantProfileService } from '../../common/pdf/tenant-profile.service';
+import { Injectable, Inject, NotFoundException } from "@nestjs/common";
+import { Pool } from "pg";
+import { DATABASE_POOL } from "../../common/db/database.module";
+import { InventoryRepository } from "./inventory.repository";
+import { TenantProfileService } from "../../common/pdf/tenant-profile.service";
 import {
   createPdfDocument,
   pdfToBuffer,
@@ -14,7 +14,7 @@ import {
   renderNotes,
   renderSignatureBlock,
   formatDate,
-} from '../../common/pdf/pdf-helpers';
+} from "../../common/pdf/pdf-helpers";
 
 @Injectable()
 export class GrnPdfService {
@@ -26,16 +26,20 @@ export class GrnPdfService {
 
   async generate(grnId: string, tenantId: string): Promise<Buffer> {
     const grn = await this.repository.findGrnById(grnId);
-    if (!grn) throw new NotFoundException('GRN not found');
+    if (!grn) throw new NotFoundException("GRN not found");
 
     const lines = await this.repository.getGrnLines(grnId);
     const profile = await this.tenantProfile.getProfile(tenantId);
 
     // Fetch supplier details if available
-    const supplier = grn.supplierId ? await this.getSupplier(grn.supplierId, tenantId) : null;
+    const supplier = grn.supplierId
+      ? await this.getSupplier(grn.supplierId, tenantId)
+      : null;
 
     // Fetch PO reference number if available
-    const poNo = grn.purchaseOrderId ? await this.getPoNo(grn.purchaseOrderId, tenantId) : null;
+    const poNo = grn.purchaseOrderId
+      ? await this.getPoNo(grn.purchaseOrderId, tenantId)
+      : null;
 
     // Fetch item details for each line (SKU + description)
     const itemIds = [...new Set(lines.map((l) => l.itemId))];
@@ -48,18 +52,18 @@ export class GrnPdfService {
     let y = renderCompanyHeader(doc, profile);
 
     // Document title
-    y = renderDocumentTitle(doc, 'GOODS RECEIVED NOTE', y);
+    y = renderDocumentTitle(doc, "GOODS RECEIVED NOTE", y);
 
     // Meta info
     y = renderDocumentMeta(
       doc,
       [
-        { label: 'GRN No', value: grn.grnNo },
-        { label: 'Date', value: formatDate(grn.receivedAt || grn.createdAt) },
+        { label: "GRN No", value: grn.grnNo },
+        { label: "Date", value: formatDate(grn.receivedAt || grn.createdAt) },
       ],
       [
-        { label: 'PO Reference', value: poNo || '-' },
-        { label: 'Status', value: grn.status },
+        { label: "PO Reference", value: poNo || "-" },
+        { label: "Status", value: grn.status },
       ],
       y,
     );
@@ -70,7 +74,7 @@ export class GrnPdfService {
     if (supplier) {
       y = renderAddressBlock(
         doc,
-        'Supplier:',
+        "Supplier:",
         {
           name: supplier.name,
           contactPerson: supplier.contact_person || undefined,
@@ -93,20 +97,30 @@ export class GrnPdfService {
     // Line items table
     y = renderTable(doc, {
       columns: [
-        { key: 'sku', header: 'SKU', width: 90 },
-        { key: 'description', header: 'Description', width: 190 },
-        { key: 'qtyExpected', header: 'Expected Qty', width: 75, align: 'right' },
-        { key: 'qtyReceived', header: 'Received Qty', width: 75, align: 'right' },
-        { key: 'batchNo', header: 'Batch #', width: 85 },
+        { key: "sku", header: "SKU", width: 90 },
+        { key: "description", header: "Description", width: 190 },
+        {
+          key: "qtyExpected",
+          header: "Expected Qty",
+          width: 75,
+          align: "right",
+        },
+        {
+          key: "qtyReceived",
+          header: "Received Qty",
+          width: 75,
+          align: "right",
+        },
+        { key: "batchNo", header: "Batch #", width: 85 },
       ],
       rows: lines.map((line) => {
         const item = items.get(line.itemId);
         return {
-          sku: item?.sku || '-',
-          description: (item?.description || '-').substring(0, 40),
+          sku: item?.sku || "-",
+          description: (item?.description || "-").substring(0, 40),
           qtyExpected: String(line.qtyExpected),
           qtyReceived: String(line.qtyReceived),
-          batchNo: line.batchNo || '-',
+          batchNo: line.batchNo || "-",
         };
       }),
       startY: y,
@@ -116,13 +130,16 @@ export class GrnPdfService {
     y = renderNotes(doc, grn.notes, y);
 
     // Signature
-    renderSignatureBlock(doc, y, 'Received By', 'Date');
+    renderSignatureBlock(doc, y, "Received By", "Date");
 
     doc.end();
     return bufferPromise;
   }
 
-  private async getSupplier(supplierId: string, tenantId: string): Promise<Record<string, any> | null> {
+  private async getSupplier(
+    supplierId: string,
+    tenantId: string,
+  ): Promise<Record<string, any> | null> {
     const result = await this.pool.query(
       `SELECT name, contact_person, phone, email, vat_no,
               address_line1, address_line2, city, postal_code, country
@@ -132,17 +149,23 @@ export class GrnPdfService {
     return result.rows[0] || null;
   }
 
-  private async getPoNo(purchaseOrderId: string, tenantId: string): Promise<string | null> {
+  private async getPoNo(
+    purchaseOrderId: string,
+    tenantId: string,
+  ): Promise<string | null> {
     const result = await this.pool.query(
-      'SELECT po_no FROM purchase_orders WHERE id = $1 AND tenant_id = $2',
+      "SELECT po_no FROM purchase_orders WHERE id = $1 AND tenant_id = $2",
       [purchaseOrderId, tenantId],
     );
     return result.rows[0]?.po_no || null;
   }
 
-  private async getItems(itemIds: string[], tenantId: string): Promise<Map<string, { sku: string; description: string }>> {
+  private async getItems(
+    itemIds: string[],
+    tenantId: string,
+  ): Promise<Map<string, { sku: string; description: string }>> {
     if (itemIds.length === 0) return new Map();
-    const placeholders = itemIds.map((_, i) => `$${i + 1}`).join(', ');
+    const placeholders = itemIds.map((_, i) => `$${i + 1}`).join(", ");
     const result = await this.pool.query(
       `SELECT id, sku, description FROM items WHERE id IN (${placeholders}) AND tenant_id = $${itemIds.length + 1}`,
       [...itemIds, tenantId],

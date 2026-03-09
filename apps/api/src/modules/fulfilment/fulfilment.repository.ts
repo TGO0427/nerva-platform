@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface PickWave {
   id: string;
@@ -90,15 +90,18 @@ export class FulfilmentRepository extends BaseRepository {
 
   async findPickWaveById(id: string): Promise<PickWave | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM pick_waves WHERE id = $1',
+      "SELECT * FROM pick_waves WHERE id = $1",
       [id],
     );
     return row ? this.mapPickWave(row) : null;
   }
 
-  async updatePickWaveStatus(id: string, status: string): Promise<PickWave | null> {
+  async updatePickWaveStatus(
+    id: string,
+    status: string,
+  ): Promise<PickWave | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'UPDATE pick_waves SET status = $1 WHERE id = $2 RETURNING *',
+      "UPDATE pick_waves SET status = $1 WHERE id = $2 RETURNING *",
       [status, id],
     );
     return row ? this.mapPickWave(row) : null;
@@ -138,7 +141,7 @@ export class FulfilmentRepository extends BaseRepository {
 
   async findPickTaskById(id: string): Promise<PickTask | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM pick_tasks WHERE id = $1',
+      "SELECT * FROM pick_tasks WHERE id = $1",
       [id],
     );
     return row ? this.mapPickTask(row) : null;
@@ -146,36 +149,46 @@ export class FulfilmentRepository extends BaseRepository {
 
   async findPickTasksByWave(waveId: string): Promise<PickTask[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM pick_tasks WHERE pick_wave_id = $1 ORDER BY from_bin_id, item_id',
+      "SELECT * FROM pick_tasks WHERE pick_wave_id = $1 ORDER BY from_bin_id, item_id",
       [waveId],
     );
     return rows.map(this.mapPickTask);
   }
 
-  async findPickTasksByAssignee(userId: string, status?: string): Promise<PickTask[]> {
-    let sql = 'SELECT * FROM pick_tasks WHERE assigned_to = $1';
+  async findPickTasksByAssignee(
+    userId: string,
+    status?: string,
+  ): Promise<PickTask[]> {
+    let sql = "SELECT * FROM pick_tasks WHERE assigned_to = $1";
     const params: unknown[] = [userId];
 
     if (status) {
-      sql += ' AND status = $2';
+      sql += " AND status = $2";
       params.push(status);
     }
 
-    sql += ' ORDER BY created_at';
+    sql += " ORDER BY created_at";
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
     return rows.map(this.mapPickTask);
   }
 
-  async assignPickTask(taskId: string, userId: string): Promise<PickTask | null> {
+  async assignPickTask(
+    taskId: string,
+    userId: string,
+  ): Promise<PickTask | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'UPDATE pick_tasks SET assigned_to = $1, status = \'IN_PROGRESS\' WHERE id = $2 RETURNING *',
+      "UPDATE pick_tasks SET assigned_to = $1, status = 'IN_PROGRESS' WHERE id = $2 RETURNING *",
       [userId, taskId],
     );
     return row ? this.mapPickTask(row) : null;
   }
 
-  async confirmPickTask(taskId: string, qtyPicked: number, shortReason?: string): Promise<PickTask | null> {
-    const status = shortReason ? 'SHORT' : 'PICKED';
+  async confirmPickTask(
+    taskId: string,
+    qtyPicked: number,
+    shortReason?: string,
+  ): Promise<PickTask | null> {
+    const status = shortReason ? "SHORT" : "PICKED";
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE pick_tasks SET qty_picked = $1, status = $2, short_reason = $3, picked_at = NOW()
        WHERE id = $4 RETURNING *`,
@@ -196,7 +209,14 @@ export class FulfilmentRepository extends BaseRepository {
     const row = await this.queryOne<Record<string, unknown>>(
       `INSERT INTO shipments (tenant_id, site_id, warehouse_id, sales_order_id, shipment_no, status, created_by)
        VALUES ($1, $2, $3, $4, $5, 'PENDING', $6) RETURNING *`,
-      [data.tenantId, data.siteId, data.warehouseId, data.salesOrderId, data.shipmentNo, data.createdBy || null],
+      [
+        data.tenantId,
+        data.siteId,
+        data.warehouseId,
+        data.salesOrderId,
+        data.shipmentNo,
+        data.createdBy || null,
+      ],
     );
     return this.mapShipment(row!);
   }
@@ -212,7 +232,12 @@ export class FulfilmentRepository extends BaseRepository {
     return row ? this.mapShipment(row) : null;
   }
 
-  async findShipmentsByTenant(tenantId: string, status?: string, limit = 50, offset = 0): Promise<Shipment[]> {
+  async findShipmentsByTenant(
+    tenantId: string,
+    status?: string,
+    limit = 50,
+    offset = 0,
+  ): Promise<Shipment[]> {
     let sql = `SELECT s.*, so.order_no
                FROM shipments s
                LEFT JOIN sales_orders so ON so.id = s.sales_order_id
@@ -220,7 +245,7 @@ export class FulfilmentRepository extends BaseRepository {
     const params: unknown[] = [tenantId];
 
     if (status) {
-      sql += ' AND s.status = $2';
+      sql += " AND s.status = $2";
       params.push(status);
     }
 
@@ -231,20 +256,26 @@ export class FulfilmentRepository extends BaseRepository {
     return rows.map((row) => this.mapShipment(row));
   }
 
-  async countShipmentsByTenant(tenantId: string, status?: string): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM shipments WHERE tenant_id = $1';
+  async countShipmentsByTenant(
+    tenantId: string,
+    status?: string,
+  ): Promise<number> {
+    let sql = "SELECT COUNT(*) as count FROM shipments WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
     if (status) {
-      sql += ' AND status = $2';
+      sql += " AND status = $2";
       params.push(status);
     }
     const result = await this.queryOne<{ count: string }>(sql, params);
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
-  async updateShipmentStatus(id: string, status: string): Promise<Shipment | null> {
+  async updateShipmentStatus(
+    id: string,
+    status: string,
+  ): Promise<Shipment | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'UPDATE shipments SET status = $1 WHERE id = $2 RETURNING *',
+      "UPDATE shipments SET status = $1 WHERE id = $2 RETURNING *",
       [status, id],
     );
     return row ? this.mapShipment(row) : null;
@@ -252,29 +283,34 @@ export class FulfilmentRepository extends BaseRepository {
 
   async generateWaveNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM pick_waves WHERE tenant_id = $1',
+      "SELECT COUNT(*) as count FROM pick_waves WHERE tenant_id = $1",
       [tenantId],
     );
-    const count = parseInt(result?.count || '0', 10) + 1;
-    return `WAVE-${count.toString().padStart(6, '0')}`;
+    const count = parseInt(result?.count || "0", 10) + 1;
+    return `WAVE-${count.toString().padStart(6, "0")}`;
   }
 
   async generateShipmentNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM shipments WHERE tenant_id = $1',
+      "SELECT COUNT(*) as count FROM shipments WHERE tenant_id = $1",
       [tenantId],
     );
-    const count = parseInt(result?.count || '0', 10) + 1;
-    return `SHIP-${count.toString().padStart(6, '0')}`;
+    const count = parseInt(result?.count || "0", 10) + 1;
+    return `SHIP-${count.toString().padStart(6, "0")}`;
   }
 
   // List pick waves
-  async findPickWavesByTenant(tenantId: string, status?: string, limit = 50, offset = 0): Promise<PickWave[]> {
-    let sql = 'SELECT * FROM pick_waves WHERE tenant_id = $1';
+  async findPickWavesByTenant(
+    tenantId: string,
+    status?: string,
+    limit = 50,
+    offset = 0,
+  ): Promise<PickWave[]> {
+    let sql = "SELECT * FROM pick_waves WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
 
     if (status) {
-      sql += ' AND status = $2';
+      sql += " AND status = $2";
       params.push(status);
     }
 
@@ -285,21 +321,27 @@ export class FulfilmentRepository extends BaseRepository {
     return rows.map((row) => this.mapPickWave(row));
   }
 
-  async countPickWavesByTenant(tenantId: string, status?: string): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM pick_waves WHERE tenant_id = $1';
+  async countPickWavesByTenant(
+    tenantId: string,
+    status?: string,
+  ): Promise<number> {
+    let sql = "SELECT COUNT(*) as count FROM pick_waves WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
 
     if (status) {
-      sql += ' AND status = $2';
+      sql += " AND status = $2";
       params.push(status);
     }
 
     const result = await this.queryOne<{ count: string }>(sql, params);
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   // Cancel pick task
-  async cancelPickTask(taskId: string, reason: string): Promise<PickTask | null> {
+  async cancelPickTask(
+    taskId: string,
+    reason: string,
+  ): Promise<PickTask | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE pick_tasks SET status = 'CANCELLED', short_reason = $1
        WHERE id = $2 AND status NOT IN ('PICKED', 'CANCELLED') RETURNING *`,
@@ -329,7 +371,7 @@ export class FulfilmentRepository extends BaseRepository {
        WHERE pick_wave_id = $1 AND status NOT IN ('PICKED', 'SHORT', 'CANCELLED')`,
       [waveId],
     );
-    return parseInt(result?.pending || '0', 10) === 0;
+    return parseInt(result?.pending || "0", 10) === 0;
   }
 
   // Find shipments by order
@@ -357,11 +399,20 @@ export class FulfilmentRepository extends BaseRepository {
     await this.execute(
       `INSERT INTO shipment_lines (tenant_id, shipment_id, sales_order_line_id, item_id, qty, batch_no)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [data.tenantId, data.shipmentId, data.salesOrderLineId, data.itemId, data.qty, data.batchNo || null],
+      [
+        data.tenantId,
+        data.shipmentId,
+        data.salesOrderLineId,
+        data.itemId,
+        data.qty,
+        data.batchNo || null,
+      ],
     );
   }
 
-  async findShipmentLinesByShipment(shipmentId: string): Promise<ShipmentLine[]> {
+  async findShipmentLinesByShipment(
+    shipmentId: string,
+  ): Promise<ShipmentLine[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT sl.*, i.sku AS item_sku, i.description AS item_description
        FROM shipment_lines sl
@@ -373,7 +424,9 @@ export class FulfilmentRepository extends BaseRepository {
     return rows.map((row) => this.mapShipmentLine(row));
   }
 
-  async findPickedBatchesByOrderLine(salesOrderLineId: string): Promise<Array<{ batchNo: string | null; qtyPicked: number }>> {
+  async findPickedBatchesByOrderLine(
+    salesOrderLineId: string,
+  ): Promise<Array<{ batchNo: string | null; qtyPicked: number }>> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT batch_no, SUM(qty_picked) AS qty_picked
        FROM pick_tasks
@@ -382,7 +435,7 @@ export class FulfilmentRepository extends BaseRepository {
        ORDER BY batch_no`,
       [salesOrderLineId],
     );
-    return rows.map(row => ({
+    return rows.map((row) => ({
       batchNo: row.batch_no as string | null,
       qtyPicked: parseFloat(row.qty_picked as string),
     }));
@@ -396,12 +449,12 @@ export class FulfilmentRepository extends BaseRepository {
        WHERE sl.shipment_id = $1`,
       [shipmentId],
     );
-    return parseFloat(result?.total_weight || '0');
+    return parseFloat(result?.total_weight || "0");
   }
 
   async updateShipmentWeight(id: string, totalWeightKg: number): Promise<void> {
     await this.execute(
-      'UPDATE shipments SET total_weight_kg = $1 WHERE id = $2',
+      "UPDATE shipments SET total_weight_kg = $1 WHERE id = $2",
       [totalWeightKg, id],
     );
   }
@@ -419,7 +472,7 @@ export class FulfilmentRepository extends BaseRepository {
        ORDER BY so.priority, so.created_at`,
       [tenantId],
     );
-    return rows.map(row => ({
+    return rows.map((row) => ({
       id: row.id as string,
       orderNo: row.order_no as string,
       customerName: row.customer_name as string,
@@ -436,8 +489,8 @@ export class FulfilmentRepository extends BaseRepository {
       shipmentId: row.shipment_id as string,
       salesOrderLineId: row.sales_order_line_id as string,
       itemId: row.item_id as string,
-      itemSku: (row.item_sku as string) || '',
-      itemDescription: (row.item_description as string) || '',
+      itemSku: (row.item_sku as string) || "",
+      itemDescription: (row.item_description as string) || "",
       qty: parseFloat(row.qty as string),
       batchNo: row.batch_no as string | null,
       createdAt: row.created_at as Date,
@@ -626,7 +679,7 @@ export class FulfilmentRepository extends BaseRepository {
       orderNo: shipment.order_no as string,
       createdAt: shipment.created_at as Date,
       customerName: shipment.customer_name as string,
-      shippingAddress: (shipment.shipping_address as string) || '',
+      shippingAddress: (shipment.shipping_address as string) || "",
       lines: lines.map((row) => ({
         itemSku: row.item_sku as string,
         itemDescription: row.item_description as string,

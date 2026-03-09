@@ -1,11 +1,5 @@
-import {
-  IsString,
-  IsOptional,
-  IsUUID,
-  IsNumber,
-  Min,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsOptional, IsUUID, IsNumber, Min } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class TransferStockDto {
   @ApiProperty()

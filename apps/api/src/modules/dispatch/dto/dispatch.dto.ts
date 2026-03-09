@@ -8,8 +8,8 @@ import {
   IsBoolean,
   IsDateString,
   MaxLength,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateTripDto {
   @ApiPropertyOptional()

@@ -6,8 +6,8 @@ import {
   MaxLength,
   Min,
   IsDateString,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateGrnDto {
   @ApiProperty()

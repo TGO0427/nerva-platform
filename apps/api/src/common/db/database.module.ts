@@ -1,29 +1,32 @@
-import { Module, Global, OnModuleInit, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Pool } from 'pg';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Module, Global, OnModuleInit, Inject } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { Pool } from "pg";
+import * as fs from "fs";
+import * as path from "path";
 
-export const DATABASE_POOL = 'DATABASE_POOL';
+export const DATABASE_POOL = "DATABASE_POOL";
 
 const databasePoolFactory = {
   provide: DATABASE_POOL,
   inject: [ConfigService],
   useFactory: (configService: ConfigService) => {
-    const connectionString = configService.get<string>('DATABASE_URL');
-    const isProduction = configService.get<string>('NODE_ENV') === 'production';
-    const isExternalDb = connectionString?.includes('render.com') || connectionString?.includes('neon.tech') || connectionString?.includes('supabase');
+    const connectionString = configService.get<string>("DATABASE_URL");
+    const isProduction = configService.get<string>("NODE_ENV") === "production";
+    const isExternalDb =
+      connectionString?.includes("render.com") ||
+      connectionString?.includes("neon.tech") ||
+      connectionString?.includes("supabase");
 
     const pool = new Pool({
       connectionString,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
-      ssl: (isProduction || isExternalDb) ? { rejectUnauthorized: false } : false,
+      ssl: isProduction || isExternalDb ? { rejectUnauthorized: false } : false,
     });
 
-    pool.on('error', (err) => {
-      console.error('Unexpected error on idle database client', err);
+    pool.on("error", (err) => {
+      console.error("Unexpected error on idle database client", err);
     });
 
     return pool;
@@ -43,7 +46,7 @@ export class DatabaseModule implements OnModuleInit {
   }
 
   private async runMigrations() {
-    console.log('🔄 Checking database migrations...');
+    console.log("🔄 Checking database migrations...");
 
     // Create migrations tracking table if it doesn't exist
     await this.pool.query(`
@@ -55,19 +58,25 @@ export class DatabaseModule implements OnModuleInit {
     `);
 
     // Get list of applied migrations
-    const result = await this.pool.query('SELECT name FROM _migrations ORDER BY name');
+    const result = await this.pool.query(
+      "SELECT name FROM _migrations ORDER BY name",
+    );
     const appliedMigrations = new Set(result.rows.map((r) => r.name));
 
     // Find migration files
-    const migrationsDir = path.resolve(__dirname, '../../../../../infra/db/migrations');
+    const migrationsDir = path.resolve(
+      __dirname,
+      "../../../../../infra/db/migrations",
+    );
 
     if (!fs.existsSync(migrationsDir)) {
-      console.log('📁 No migrations directory found, skipping migrations');
+      console.log("📁 No migrations directory found, skipping migrations");
       return;
     }
 
-    const migrationFiles = fs.readdirSync(migrationsDir)
-      .filter((f) => f.endsWith('.sql'))
+    const migrationFiles = fs
+      .readdirSync(migrationsDir)
+      .filter((f) => f.endsWith(".sql"))
       .sort();
 
     let migrationsRun = 0;
@@ -78,11 +87,13 @@ export class DatabaseModule implements OnModuleInit {
       }
 
       console.log(`📄 Running migration: ${file}`);
-      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
+      const sql = fs.readFileSync(path.join(migrationsDir, file), "utf-8");
 
       try {
         await this.pool.query(sql);
-        await this.pool.query('INSERT INTO _migrations (name) VALUES ($1)', [file]);
+        await this.pool.query("INSERT INTO _migrations (name) VALUES ($1)", [
+          file,
+        ]);
         console.log(`✅ Migration ${file} applied successfully`);
         migrationsRun++;
       } catch (error) {
@@ -92,7 +103,7 @@ export class DatabaseModule implements OnModuleInit {
     }
 
     if (migrationsRun === 0) {
-      console.log('✅ Database is up to date');
+      console.log("✅ Database is up to date");
     } else {
       console.log(`✅ Applied ${migrationsRun} migration(s)`);
     }

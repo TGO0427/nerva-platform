@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface CycleCount {
   id: string;
@@ -39,7 +39,9 @@ export interface CycleCountLine {
 @Injectable()
 export class CycleCountRepository extends BaseRepository {
   async deleteCycleCount(id: string): Promise<boolean> {
-    const count = await this.execute('DELETE FROM cycle_counts WHERE id = $1', [id]);
+    const count = await this.execute("DELETE FROM cycle_counts WHERE id = $1", [
+      id,
+    ]);
     return count > 0;
   }
 
@@ -49,8 +51,8 @@ export class CycleCountRepository extends BaseRepository {
        FROM cycle_counts WHERE tenant_id = $1 AND count_no ~ '^CC-[0-9]+$'`,
       [tenantId],
     );
-    const next = (parseInt(result?.max_num || '0', 10) || 0) + 1;
-    return `CC-${next.toString().padStart(6, '0')}`;
+    const next = (parseInt(result?.max_num || "0", 10) || 0) + 1;
+    return `CC-${next.toString().padStart(6, "0")}`;
   }
 
   async create(data: {
@@ -64,14 +66,20 @@ export class CycleCountRepository extends BaseRepository {
       `INSERT INTO cycle_counts (tenant_id, warehouse_id, count_no, created_by, is_blind)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [data.tenantId, data.warehouseId, data.countNo, data.createdBy || null, data.isBlind ?? false],
+      [
+        data.tenantId,
+        data.warehouseId,
+        data.countNo,
+        data.createdBy || null,
+        data.isBlind ?? false,
+      ],
     );
     return this.mapCycleCount(row!);
   }
 
   async findById(id: string): Promise<CycleCount | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM cycle_counts WHERE id = $1',
+      "SELECT * FROM cycle_counts WHERE id = $1",
       [id],
     );
     return row ? this.mapCycleCount(row) : null;
@@ -114,7 +122,7 @@ export class CycleCountRepository extends BaseRepository {
     status: string,
     extra?: { startedAt?: Date; closedAt?: Date; approvedBy?: string },
   ): Promise<CycleCount | null> {
-    const setClauses = ['status = $1'];
+    const setClauses = ["status = $1"];
     const params: unknown[] = [status];
     let idx = 2;
 
@@ -136,7 +144,7 @@ export class CycleCountRepository extends BaseRepository {
 
     params.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE cycle_counts SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE cycle_counts SET ${setClauses.join(", ")} WHERE id = $${idx} RETURNING *`,
       params,
     );
     return row ? this.mapCycleCount(row) : null;
@@ -154,18 +162,26 @@ export class CycleCountRepository extends BaseRepository {
       `INSERT INTO cycle_count_lines (tenant_id, cycle_count_id, bin_id, item_id, system_qty)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [data.tenantId, data.cycleCountId, data.binId, data.itemId, data.systemQty],
+      [
+        data.tenantId,
+        data.cycleCountId,
+        data.binId,
+        data.itemId,
+        data.systemQty,
+      ],
     );
     return this.mapCycleCountLine(row!);
   }
 
-  async addLines(lines: Array<{
-    tenantId: string;
-    cycleCountId: string;
-    binId: string;
-    itemId: string;
-    systemQty: number;
-  }>): Promise<number> {
+  async addLines(
+    lines: Array<{
+      tenantId: string;
+      cycleCountId: string;
+      binId: string;
+      itemId: string;
+      systemQty: number;
+    }>,
+  ): Promise<number> {
     let count = 0;
     for (const line of lines) {
       await this.addLine(line);
@@ -189,7 +205,7 @@ export class CycleCountRepository extends BaseRepository {
 
   async getLine(lineId: string): Promise<CycleCountLine | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM cycle_count_lines WHERE id = $1',
+      "SELECT * FROM cycle_count_lines WHERE id = $1",
       [lineId],
     );
     return row ? this.mapCycleCountLine(row) : null;
@@ -209,7 +225,9 @@ export class CycleCountRepository extends BaseRepository {
   }
 
   async deleteLine(lineId: string): Promise<void> {
-    await this.queryOne('DELETE FROM cycle_count_lines WHERE id = $1', [lineId]);
+    await this.queryOne("DELETE FROM cycle_count_lines WHERE id = $1", [
+      lineId,
+    ]);
   }
 
   async getLinesWithVariance(cycleCountId: string): Promise<CycleCountLine[]> {
@@ -227,18 +245,18 @@ export class CycleCountRepository extends BaseRepository {
 
   async getCountedLineCount(cycleCountId: string): Promise<number> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM cycle_count_lines WHERE cycle_count_id = $1 AND counted_qty IS NOT NULL',
+      "SELECT COUNT(*) as count FROM cycle_count_lines WHERE cycle_count_id = $1 AND counted_qty IS NOT NULL",
       [cycleCountId],
     );
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   async getTotalLineCount(cycleCountId: string): Promise<number> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM cycle_count_lines WHERE cycle_count_id = $1',
+      "SELECT COUNT(*) as count FROM cycle_count_lines WHERE cycle_count_id = $1",
       [cycleCountId],
     );
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   private mapCycleCount(row: Record<string, unknown>): CycleCount {
@@ -256,8 +274,14 @@ export class CycleCountRepository extends BaseRepository {
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,
       warehouseName: row.warehouse_name as string | undefined,
-      lineCount: row.line_count !== undefined ? parseInt(row.line_count as string, 10) : undefined,
-      varianceCount: row.variance_count !== undefined ? parseInt(row.variance_count as string, 10) : undefined,
+      lineCount:
+        row.line_count !== undefined
+          ? parseInt(row.line_count as string, 10)
+          : undefined,
+      varianceCount:
+        row.variance_count !== undefined
+          ? parseInt(row.variance_count as string, 10)
+          : undefined,
     };
   }
 
@@ -269,7 +293,8 @@ export class CycleCountRepository extends BaseRepository {
       binId: row.bin_id as string,
       itemId: row.item_id as string,
       systemQty: parseFloat(row.system_qty as string),
-      countedQty: row.counted_qty !== null ? parseFloat(row.counted_qty as string) : null,
+      countedQty:
+        row.counted_qty !== null ? parseFloat(row.counted_qty as string) : null,
       varianceQty: parseFloat(row.variance_qty as string) || 0,
       countedBy: row.counted_by as string | null,
       countedAt: row.counted_at as Date | null,

@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface IntegrationConnection {
   id: string;
@@ -45,22 +45,29 @@ export class IntegrationsRepository extends BaseRepository {
     const row = await this.queryOne<Record<string, unknown>>(
       `INSERT INTO integration_connections (tenant_id, type, name, config_json)
        VALUES ($1, $2, $3, $4) RETURNING *`,
-      [data.tenantId, data.type, data.name, JSON.stringify(data.configJson || {})],
+      [
+        data.tenantId,
+        data.type,
+        data.name,
+        JSON.stringify(data.configJson || {}),
+      ],
     );
     return this.mapConnection(row!);
   }
 
   async findConnectionById(id: string): Promise<IntegrationConnection | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM integration_connections WHERE id = $1',
+      "SELECT * FROM integration_connections WHERE id = $1",
       [id],
     );
     return row ? this.mapConnection(row) : null;
   }
 
-  async findConnectionsByTenant(tenantId: string): Promise<IntegrationConnection[]> {
+  async findConnectionsByTenant(
+    tenantId: string,
+  ): Promise<IntegrationConnection[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM integration_connections WHERE tenant_id = $1 ORDER BY name',
+      "SELECT * FROM integration_connections WHERE tenant_id = $1 ORDER BY name",
       [tenantId],
     );
     return rows.map(this.mapConnection);
@@ -118,13 +125,16 @@ export class IntegrationsRepository extends BaseRepository {
 
   async findQueueItemById(id: string): Promise<PostingQueueItem | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM posting_queue WHERE id = $1',
+      "SELECT * FROM posting_queue WHERE id = $1",
       [id],
     );
     return row ? this.mapQueueItem(row) : null;
   }
 
-  async findPendingItems(integrationId: string, limit = 50): Promise<PostingQueueItem[]> {
+  async findPendingItems(
+    integrationId: string,
+    limit = 50,
+  ): Promise<PostingQueueItem[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT * FROM posting_queue
        WHERE integration_id = $1 AND status IN ('PENDING', 'RETRYING')
@@ -141,11 +151,11 @@ export class IntegrationsRepository extends BaseRepository {
     limit = 50,
     offset = 0,
   ): Promise<PostingQueueItem[]> {
-    let sql = 'SELECT * FROM posting_queue WHERE tenant_id = $1';
+    let sql = "SELECT * FROM posting_queue WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
 
     if (status) {
-      sql += ' AND status = $2';
+      sql += " AND status = $2";
       params.push(status);
     }
 
@@ -157,14 +167,15 @@ export class IntegrationsRepository extends BaseRepository {
   }
 
   async countQueueByTenant(tenantId: string, status?: string): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM posting_queue WHERE tenant_id = $1';
+    let sql =
+      "SELECT COUNT(*) as count FROM posting_queue WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
     if (status) {
-      sql += ' AND status = $2';
+      sql += " AND status = $2";
       params.push(status);
     }
     const result = await this.queryOne<{ count: string }>(sql, params);
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   async markProcessing(id: string): Promise<PostingQueueItem | null> {
@@ -176,7 +187,10 @@ export class IntegrationsRepository extends BaseRepository {
     return row ? this.mapQueueItem(row) : null;
   }
 
-  async markSuccess(id: string, externalRef?: string): Promise<PostingQueueItem | null> {
+  async markSuccess(
+    id: string,
+    externalRef?: string,
+  ): Promise<PostingQueueItem | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE posting_queue SET status = 'SUCCESS', external_ref = $1, processed_at = NOW()
        WHERE id = $2 RETURNING *`,
@@ -185,7 +199,10 @@ export class IntegrationsRepository extends BaseRepository {
     return row ? this.mapQueueItem(row) : null;
   }
 
-  async markFailed(id: string, error: string): Promise<PostingQueueItem | null> {
+  async markFailed(
+    id: string,
+    error: string,
+  ): Promise<PostingQueueItem | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE posting_queue SET
          status = CASE WHEN attempts >= max_attempts THEN 'FAILED' ELSE 'RETRYING' END,

@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 export interface Item {
   id: string;
@@ -290,15 +290,19 @@ export class MasterDataRepository extends BaseRepository {
     offset: number,
     search?: string,
   ): Promise<Item[]> {
-    let sql = 'SELECT * FROM items WHERE tenant_id = $1';
+    let sql = "SELECT * FROM items WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
 
     if (search) {
-      sql += ' AND (sku ILIKE $2 OR description ILIKE $2)';
+      sql += " AND (sku ILIKE $2 OR description ILIKE $2)";
       params.push(`%${search}%`);
     }
 
-    sql += ' ORDER BY sku LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+    sql +=
+      " ORDER BY sku LIMIT $" +
+      (params.length + 1) +
+      " OFFSET $" +
+      (params.length + 2);
     params.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
@@ -306,21 +310,21 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   async countItems(tenantId: string, search?: string): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM items WHERE tenant_id = $1';
+    let sql = "SELECT COUNT(*) as count FROM items WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
 
     if (search) {
-      sql += ' AND (sku ILIKE $2 OR description ILIKE $2)';
+      sql += " AND (sku ILIKE $2 OR description ILIKE $2)";
       params.push(`%${search}%`);
     }
 
     const result = await this.queryOne<{ count: string }>(sql, params);
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   async findItemById(tenantId: string, id: string): Promise<Item | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM items WHERE id = $1 AND tenant_id = $2',
+      "SELECT * FROM items WHERE id = $1 AND tenant_id = $2",
       [id, tenantId],
     );
     return row ? this.mapItem(row) : null;
@@ -328,17 +332,20 @@ export class MasterDataRepository extends BaseRepository {
 
   async findItemBySku(tenantId: string, sku: string): Promise<Item | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM items WHERE tenant_id = $1 AND sku = $2',
+      "SELECT * FROM items WHERE tenant_id = $1 AND sku = $2",
       [tenantId, sku],
     );
     return row ? this.mapItem(row) : null;
   }
 
-  async findItemsBySkus(tenantId: string, skus: string[]): Promise<Array<{ id: string; sku: string }>> {
+  async findItemsBySkus(
+    tenantId: string,
+    skus: string[],
+  ): Promise<Array<{ id: string; sku: string }>> {
     if (skus.length === 0) return [];
     const lowerSkus = skus.map((s) => s.toLowerCase());
     const rows = await this.queryMany<{ id: string; sku: string }>(
-      'SELECT id, sku FROM items WHERE tenant_id = $1 AND LOWER(sku) = ANY($2)',
+      "SELECT id, sku FROM items WHERE tenant_id = $1 AND LOWER(sku) = ANY($2)",
       [tenantId, lowerSkus],
     );
     return rows;
@@ -355,7 +362,13 @@ export class MasterDataRepository extends BaseRepository {
       `INSERT INTO items (tenant_id, sku, description, uom, weight_kg)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [data.tenantId, data.sku, data.description, data.uom || 'EA', data.weightKg || null],
+      [
+        data.tenantId,
+        data.sku,
+        data.description,
+        data.uom || "EA",
+        data.weightKg || null,
+      ],
     );
     return this.mapItem(row!);
   }
@@ -363,24 +376,45 @@ export class MasterDataRepository extends BaseRepository {
   async updateItem(
     tenantId: string,
     id: string,
-    data: Partial<{ sku: string; description: string; uom: string; weightKg: number; isActive: boolean }>,
+    data: Partial<{
+      sku: string;
+      description: string;
+      uom: string;
+      weightKg: number;
+      isActive: boolean;
+    }>,
   ): Promise<Item | null> {
     const fields: string[] = [];
     const values: unknown[] = [];
     let idx = 1;
 
-    if (data.sku !== undefined) { fields.push(`sku = $${idx++}`); values.push(data.sku); }
-    if (data.description !== undefined) { fields.push(`description = $${idx++}`); values.push(data.description); }
-    if (data.uom !== undefined) { fields.push(`uom = $${idx++}`); values.push(data.uom); }
-    if (data.weightKg !== undefined) { fields.push(`weight_kg = $${idx++}`); values.push(data.weightKg); }
-    if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.isActive); }
+    if (data.sku !== undefined) {
+      fields.push(`sku = $${idx++}`);
+      values.push(data.sku);
+    }
+    if (data.description !== undefined) {
+      fields.push(`description = $${idx++}`);
+      values.push(data.description);
+    }
+    if (data.uom !== undefined) {
+      fields.push(`uom = $${idx++}`);
+      values.push(data.uom);
+    }
+    if (data.weightKg !== undefined) {
+      fields.push(`weight_kg = $${idx++}`);
+      values.push(data.weightKg);
+    }
+    if (data.isActive !== undefined) {
+      fields.push(`is_active = $${idx++}`);
+      values.push(data.isActive);
+    }
 
     if (fields.length === 0) return this.findItemById(tenantId, id);
 
     values.push(id);
     values.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE items SET ${fields.join(', ')} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
+      `UPDATE items SET ${fields.join(", ")} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapItem(row) : null;
@@ -388,7 +422,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async deleteItem(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM items WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      "DELETE FROM items WHERE id = $1 AND tenant_id = $2 RETURNING id",
       [id, tenantId],
     );
     return !!result;
@@ -396,23 +430,32 @@ export class MasterDataRepository extends BaseRepository {
 
   async countItemReferences(id: string): Promise<number> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM sales_order_lines WHERE item_id = $1',
+      "SELECT COUNT(*) as count FROM sales_order_lines WHERE item_id = $1",
       [id],
     );
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   // Customers
-  async findCustomers(tenantId: string, limit: number, offset: number, search?: string): Promise<Customer[]> {
-    let sql = 'SELECT * FROM customers WHERE tenant_id = $1';
+  async findCustomers(
+    tenantId: string,
+    limit: number,
+    offset: number,
+    search?: string,
+  ): Promise<Customer[]> {
+    let sql = "SELECT * FROM customers WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
 
     if (search) {
-      sql += ' AND (name ILIKE $2 OR code ILIKE $2)';
+      sql += " AND (name ILIKE $2 OR code ILIKE $2)";
       params.push(`%${search}%`);
     }
 
-    sql += ' ORDER BY name LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+    sql +=
+      " ORDER BY name LIMIT $" +
+      (params.length + 1) +
+      " OFFSET $" +
+      (params.length + 2);
     params.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
@@ -420,29 +463,35 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   async countCustomers(tenantId: string, search?: string): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM customers WHERE tenant_id = $1';
+    let sql = "SELECT COUNT(*) as count FROM customers WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
     if (search) {
       sql += ` AND (name ILIKE $2 OR code ILIKE $2)`;
       params.push(`%${search}%`);
     }
     const result = await this.queryOne<{ count: string }>(sql, params);
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
-  async findCustomerById(tenantId: string, id: string): Promise<Customer | null> {
+  async findCustomerById(
+    tenantId: string,
+    id: string,
+  ): Promise<Customer | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM customers WHERE id = $1 AND tenant_id = $2',
+      "SELECT * FROM customers WHERE id = $1 AND tenant_id = $2",
       [id, tenantId],
     );
     return row ? this.mapCustomer(row) : null;
   }
 
-  async findCustomersByCodes(tenantId: string, codes: string[]): Promise<Array<{ id: string; code: string }>> {
+  async findCustomersByCodes(
+    tenantId: string,
+    codes: string[],
+  ): Promise<Array<{ id: string; code: string }>> {
     if (codes.length === 0) return [];
     const lowerCodes = codes.map((c) => c.toLowerCase());
     const rows = await this.queryMany<{ id: string; code: string }>(
-      'SELECT id, code FROM customers WHERE tenant_id = $1 AND LOWER(code) = ANY($2)',
+      "SELECT id, code FROM customers WHERE tenant_id = $1 AND LOWER(code) = ANY($2)",
       [tenantId, lowerCodes],
     );
     return rows;
@@ -521,29 +570,77 @@ export class MasterDataRepository extends BaseRepository {
     const values: unknown[] = [];
     let idx = 1;
 
-    if (data.code !== undefined) { fields.push(`code = $${idx++}`); values.push(data.code); }
-    if (data.name !== undefined) { fields.push(`name = $${idx++}`); values.push(data.name); }
-    if (data.email !== undefined) { fields.push(`email = $${idx++}`); values.push(data.email); }
-    if (data.phone !== undefined) { fields.push(`phone = $${idx++}`); values.push(data.phone); }
-    if (data.vatNo !== undefined) { fields.push(`vat_no = $${idx++}`); values.push(data.vatNo); }
-    if (data.billingAddressLine1 !== undefined) { fields.push(`billing_address_line1 = $${idx++}`); values.push(data.billingAddressLine1); }
-    if (data.billingAddressLine2 !== undefined) { fields.push(`billing_address_line2 = $${idx++}`); values.push(data.billingAddressLine2); }
-    if (data.billingCity !== undefined) { fields.push(`billing_city = $${idx++}`); values.push(data.billingCity); }
-    if (data.billingPostalCode !== undefined) { fields.push(`billing_postal_code = $${idx++}`); values.push(data.billingPostalCode); }
-    if (data.billingCountry !== undefined) { fields.push(`billing_country = $${idx++}`); values.push(data.billingCountry); }
-    if (data.shippingAddressLine1 !== undefined) { fields.push(`shipping_address_line1 = $${idx++}`); values.push(data.shippingAddressLine1); }
-    if (data.shippingAddressLine2 !== undefined) { fields.push(`shipping_address_line2 = $${idx++}`); values.push(data.shippingAddressLine2); }
-    if (data.shippingCity !== undefined) { fields.push(`shipping_city = $${idx++}`); values.push(data.shippingCity); }
-    if (data.shippingPostalCode !== undefined) { fields.push(`shipping_postal_code = $${idx++}`); values.push(data.shippingPostalCode); }
-    if (data.shippingCountry !== undefined) { fields.push(`shipping_country = $${idx++}`); values.push(data.shippingCountry); }
-    if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.isActive); }
+    if (data.code !== undefined) {
+      fields.push(`code = $${idx++}`);
+      values.push(data.code);
+    }
+    if (data.name !== undefined) {
+      fields.push(`name = $${idx++}`);
+      values.push(data.name);
+    }
+    if (data.email !== undefined) {
+      fields.push(`email = $${idx++}`);
+      values.push(data.email);
+    }
+    if (data.phone !== undefined) {
+      fields.push(`phone = $${idx++}`);
+      values.push(data.phone);
+    }
+    if (data.vatNo !== undefined) {
+      fields.push(`vat_no = $${idx++}`);
+      values.push(data.vatNo);
+    }
+    if (data.billingAddressLine1 !== undefined) {
+      fields.push(`billing_address_line1 = $${idx++}`);
+      values.push(data.billingAddressLine1);
+    }
+    if (data.billingAddressLine2 !== undefined) {
+      fields.push(`billing_address_line2 = $${idx++}`);
+      values.push(data.billingAddressLine2);
+    }
+    if (data.billingCity !== undefined) {
+      fields.push(`billing_city = $${idx++}`);
+      values.push(data.billingCity);
+    }
+    if (data.billingPostalCode !== undefined) {
+      fields.push(`billing_postal_code = $${idx++}`);
+      values.push(data.billingPostalCode);
+    }
+    if (data.billingCountry !== undefined) {
+      fields.push(`billing_country = $${idx++}`);
+      values.push(data.billingCountry);
+    }
+    if (data.shippingAddressLine1 !== undefined) {
+      fields.push(`shipping_address_line1 = $${idx++}`);
+      values.push(data.shippingAddressLine1);
+    }
+    if (data.shippingAddressLine2 !== undefined) {
+      fields.push(`shipping_address_line2 = $${idx++}`);
+      values.push(data.shippingAddressLine2);
+    }
+    if (data.shippingCity !== undefined) {
+      fields.push(`shipping_city = $${idx++}`);
+      values.push(data.shippingCity);
+    }
+    if (data.shippingPostalCode !== undefined) {
+      fields.push(`shipping_postal_code = $${idx++}`);
+      values.push(data.shippingPostalCode);
+    }
+    if (data.shippingCountry !== undefined) {
+      fields.push(`shipping_country = $${idx++}`);
+      values.push(data.shippingCountry);
+    }
+    if (data.isActive !== undefined) {
+      fields.push(`is_active = $${idx++}`);
+      values.push(data.isActive);
+    }
 
     if (fields.length === 0) return this.findCustomerById(tenantId, id);
 
     values.push(id);
     values.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE customers SET ${fields.join(', ')} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
+      `UPDATE customers SET ${fields.join(", ")} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapCustomer(row) : null;
@@ -551,7 +648,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async deleteCustomer(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM customers WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      "DELETE FROM customers WHERE id = $1 AND tenant_id = $2 RETURNING id",
       [id, tenantId],
     );
     return !!result;
@@ -559,23 +656,32 @@ export class MasterDataRepository extends BaseRepository {
 
   async countCustomerReferences(id: string): Promise<number> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM sales_orders WHERE customer_id = $1',
+      "SELECT COUNT(*) as count FROM sales_orders WHERE customer_id = $1",
       [id],
     );
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   // Suppliers
-  async findSuppliers(tenantId: string, limit: number, offset: number, search?: string): Promise<Supplier[]> {
-    let sql = 'SELECT * FROM suppliers WHERE tenant_id = $1';
+  async findSuppliers(
+    tenantId: string,
+    limit: number,
+    offset: number,
+    search?: string,
+  ): Promise<Supplier[]> {
+    let sql = "SELECT * FROM suppliers WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
 
     if (search) {
-      sql += ' AND (name ILIKE $2 OR code ILIKE $2)';
+      sql += " AND (name ILIKE $2 OR code ILIKE $2)";
       params.push(`%${search}%`);
     }
 
-    sql += ' ORDER BY name LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+    sql +=
+      " ORDER BY name LIMIT $" +
+      (params.length + 1) +
+      " OFFSET $" +
+      (params.length + 2);
     params.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
@@ -583,29 +689,35 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   async countSuppliers(tenantId: string, search?: string): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM suppliers WHERE tenant_id = $1';
+    let sql = "SELECT COUNT(*) as count FROM suppliers WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
     if (search) {
       sql += ` AND (name ILIKE $2 OR code ILIKE $2)`;
       params.push(`%${search}%`);
     }
     const result = await this.queryOne<{ count: string }>(sql, params);
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
-  async findSupplierById(tenantId: string, id: string): Promise<Supplier | null> {
+  async findSupplierById(
+    tenantId: string,
+    id: string,
+  ): Promise<Supplier | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM suppliers WHERE id = $1 AND tenant_id = $2',
+      "SELECT * FROM suppliers WHERE id = $1 AND tenant_id = $2",
       [id, tenantId],
     );
     return row ? this.mapSupplier(row) : null;
   }
 
-  async findSuppliersByCodes(tenantId: string, codes: string[]): Promise<Array<{ id: string; code: string }>> {
+  async findSuppliersByCodes(
+    tenantId: string,
+    codes: string[],
+  ): Promise<Array<{ id: string; code: string }>> {
     if (codes.length === 0) return [];
     const lowerCodes = codes.map((c) => c.toLowerCase());
     const rows = await this.queryMany<{ id: string; code: string }>(
-      'SELECT id, code FROM suppliers WHERE tenant_id = $1 AND LOWER(code) = ANY($2)',
+      "SELECT id, code FROM suppliers WHERE tenant_id = $1 AND LOWER(code) = ANY($2)",
       [tenantId, lowerCodes],
     );
     return rows;
@@ -690,31 +802,85 @@ export class MasterDataRepository extends BaseRepository {
     const values: unknown[] = [];
     let idx = 1;
 
-    if (data.code !== undefined) { fields.push(`code = $${idx++}`); values.push(data.code); }
-    if (data.name !== undefined) { fields.push(`name = $${idx++}`); values.push(data.name); }
-    if (data.email !== undefined) { fields.push(`email = $${idx++}`); values.push(data.email); }
-    if (data.phone !== undefined) { fields.push(`phone = $${idx++}`); values.push(data.phone); }
-    if (data.vatNo !== undefined) { fields.push(`vat_no = $${idx++}`); values.push(data.vatNo); }
-    if (data.contactPerson !== undefined) { fields.push(`contact_person = $${idx++}`); values.push(data.contactPerson); }
-    if (data.registrationNo !== undefined) { fields.push(`registration_no = $${idx++}`); values.push(data.registrationNo); }
-    if (data.addressLine1 !== undefined) { fields.push(`address_line1 = $${idx++}`); values.push(data.addressLine1); }
-    if (data.addressLine2 !== undefined) { fields.push(`address_line2 = $${idx++}`); values.push(data.addressLine2); }
-    if (data.city !== undefined) { fields.push(`city = $${idx++}`); values.push(data.city); }
-    if (data.postalCode !== undefined) { fields.push(`postal_code = $${idx++}`); values.push(data.postalCode); }
-    if (data.country !== undefined) { fields.push(`country = $${idx++}`); values.push(data.country); }
-    if (data.tradingAddressLine1 !== undefined) { fields.push(`trading_address_line1 = $${idx++}`); values.push(data.tradingAddressLine1); }
-    if (data.tradingAddressLine2 !== undefined) { fields.push(`trading_address_line2 = $${idx++}`); values.push(data.tradingAddressLine2); }
-    if (data.tradingCity !== undefined) { fields.push(`trading_city = $${idx++}`); values.push(data.tradingCity); }
-    if (data.tradingPostalCode !== undefined) { fields.push(`trading_postal_code = $${idx++}`); values.push(data.tradingPostalCode); }
-    if (data.tradingCountry !== undefined) { fields.push(`trading_country = $${idx++}`); values.push(data.tradingCountry); }
-    if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.isActive); }
+    if (data.code !== undefined) {
+      fields.push(`code = $${idx++}`);
+      values.push(data.code);
+    }
+    if (data.name !== undefined) {
+      fields.push(`name = $${idx++}`);
+      values.push(data.name);
+    }
+    if (data.email !== undefined) {
+      fields.push(`email = $${idx++}`);
+      values.push(data.email);
+    }
+    if (data.phone !== undefined) {
+      fields.push(`phone = $${idx++}`);
+      values.push(data.phone);
+    }
+    if (data.vatNo !== undefined) {
+      fields.push(`vat_no = $${idx++}`);
+      values.push(data.vatNo);
+    }
+    if (data.contactPerson !== undefined) {
+      fields.push(`contact_person = $${idx++}`);
+      values.push(data.contactPerson);
+    }
+    if (data.registrationNo !== undefined) {
+      fields.push(`registration_no = $${idx++}`);
+      values.push(data.registrationNo);
+    }
+    if (data.addressLine1 !== undefined) {
+      fields.push(`address_line1 = $${idx++}`);
+      values.push(data.addressLine1);
+    }
+    if (data.addressLine2 !== undefined) {
+      fields.push(`address_line2 = $${idx++}`);
+      values.push(data.addressLine2);
+    }
+    if (data.city !== undefined) {
+      fields.push(`city = $${idx++}`);
+      values.push(data.city);
+    }
+    if (data.postalCode !== undefined) {
+      fields.push(`postal_code = $${idx++}`);
+      values.push(data.postalCode);
+    }
+    if (data.country !== undefined) {
+      fields.push(`country = $${idx++}`);
+      values.push(data.country);
+    }
+    if (data.tradingAddressLine1 !== undefined) {
+      fields.push(`trading_address_line1 = $${idx++}`);
+      values.push(data.tradingAddressLine1);
+    }
+    if (data.tradingAddressLine2 !== undefined) {
+      fields.push(`trading_address_line2 = $${idx++}`);
+      values.push(data.tradingAddressLine2);
+    }
+    if (data.tradingCity !== undefined) {
+      fields.push(`trading_city = $${idx++}`);
+      values.push(data.tradingCity);
+    }
+    if (data.tradingPostalCode !== undefined) {
+      fields.push(`trading_postal_code = $${idx++}`);
+      values.push(data.tradingPostalCode);
+    }
+    if (data.tradingCountry !== undefined) {
+      fields.push(`trading_country = $${idx++}`);
+      values.push(data.tradingCountry);
+    }
+    if (data.isActive !== undefined) {
+      fields.push(`is_active = $${idx++}`);
+      values.push(data.isActive);
+    }
 
     if (fields.length === 0) return this.findSupplierById(tenantId, id);
 
     values.push(id);
     values.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE suppliers SET ${fields.join(', ')} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
+      `UPDATE suppliers SET ${fields.join(", ")} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapSupplier(row) : null;
@@ -722,7 +888,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async deleteSupplier(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM suppliers WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      "DELETE FROM suppliers WHERE id = $1 AND tenant_id = $2 RETURNING id",
       [id, tenantId],
     );
     return !!result;
@@ -730,24 +896,27 @@ export class MasterDataRepository extends BaseRepository {
 
   async countSupplierReferences(id: string): Promise<number> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM purchase_orders WHERE supplier_id = $1',
+      "SELECT COUNT(*) as count FROM purchase_orders WHERE supplier_id = $1",
       [id],
     );
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   // Supplier Contacts
   async findSupplierContacts(supplierId: string): Promise<SupplierContact[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM supplier_contacts WHERE supplier_id = $1 ORDER BY is_primary DESC, name',
+      "SELECT * FROM supplier_contacts WHERE supplier_id = $1 ORDER BY is_primary DESC, name",
       [supplierId],
     );
     return rows.map(this.mapSupplierContact);
   }
 
-  async findSupplierContactById(tenantId: string, id: string): Promise<SupplierContact | null> {
+  async findSupplierContactById(
+    tenantId: string,
+    id: string,
+  ): Promise<SupplierContact | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM supplier_contacts WHERE id = $1 AND tenant_id = $2',
+      "SELECT * FROM supplier_contacts WHERE id = $1 AND tenant_id = $2",
       [id, tenantId],
     );
     return row ? this.mapSupplierContact(row) : null;
@@ -795,19 +964,37 @@ export class MasterDataRepository extends BaseRepository {
     const values: unknown[] = [];
     let idx = 1;
 
-    if (data.name !== undefined) { fields.push(`name = $${idx++}`); values.push(data.name); }
-    if (data.email !== undefined) { fields.push(`email = $${idx++}`); values.push(data.email); }
-    if (data.phone !== undefined) { fields.push(`phone = $${idx++}`); values.push(data.phone); }
-    if (data.title !== undefined) { fields.push(`title = $${idx++}`); values.push(data.title); }
-    if (data.isPrimary !== undefined) { fields.push(`is_primary = $${idx++}`); values.push(data.isPrimary); }
-    if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.isActive); }
+    if (data.name !== undefined) {
+      fields.push(`name = $${idx++}`);
+      values.push(data.name);
+    }
+    if (data.email !== undefined) {
+      fields.push(`email = $${idx++}`);
+      values.push(data.email);
+    }
+    if (data.phone !== undefined) {
+      fields.push(`phone = $${idx++}`);
+      values.push(data.phone);
+    }
+    if (data.title !== undefined) {
+      fields.push(`title = $${idx++}`);
+      values.push(data.title);
+    }
+    if (data.isPrimary !== undefined) {
+      fields.push(`is_primary = $${idx++}`);
+      values.push(data.isPrimary);
+    }
+    if (data.isActive !== undefined) {
+      fields.push(`is_active = $${idx++}`);
+      values.push(data.isActive);
+    }
 
     if (fields.length === 0) return this.findSupplierContactById(tenantId, id);
 
     values.push(id);
     values.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE supplier_contacts SET ${fields.join(', ')} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
+      `UPDATE supplier_contacts SET ${fields.join(", ")} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapSupplierContact(row) : null;
@@ -815,7 +1002,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async deleteSupplierContact(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM supplier_contacts WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      "DELETE FROM supplier_contacts WHERE id = $1 AND tenant_id = $2 RETURNING id",
       [id, tenantId],
     );
     return !!result;
@@ -851,7 +1038,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async deleteSupplierNote(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM supplier_notes WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      "DELETE FROM supplier_notes WHERE id = $1 AND tenant_id = $2 RETURNING id",
       [id, tenantId],
     );
     return !!result;
@@ -873,7 +1060,10 @@ export class MasterDataRepository extends BaseRepository {
     return rows.map(this.mapSupplierNcr);
   }
 
-  async findSupplierNcrById(tenantId: string, id: string): Promise<SupplierNcr | null> {
+  async findSupplierNcrById(
+    tenantId: string,
+    id: string,
+  ): Promise<SupplierNcr | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT sn.*,
               u1.display_name as created_by_name,
@@ -899,7 +1089,14 @@ export class MasterDataRepository extends BaseRepository {
       `INSERT INTO supplier_ncrs (tenant_id, supplier_id, ncr_no, ncr_type, description, created_by)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [data.tenantId, data.supplierId, data.ncrNo, data.ncrType, data.description, data.createdBy || null],
+      [
+        data.tenantId,
+        data.supplierId,
+        data.ncrNo,
+        data.ncrType,
+        data.description,
+        data.createdBy || null,
+      ],
     );
     return this.mapSupplierNcr(row!);
   }
@@ -918,17 +1115,29 @@ export class MasterDataRepository extends BaseRepository {
     const values: unknown[] = [];
     let idx = 1;
 
-    if (data.status !== undefined) { fields.push(`status = $${idx++}`); values.push(data.status); }
-    if (data.resolution !== undefined) { fields.push(`resolution = $${idx++}`); values.push(data.resolution); }
-    if (data.resolvedBy !== undefined) { fields.push(`resolved_by = $${idx++}`); values.push(data.resolvedBy); }
-    if (data.resolvedAt !== undefined) { fields.push(`resolved_at = $${idx++}`); values.push(data.resolvedAt); }
+    if (data.status !== undefined) {
+      fields.push(`status = $${idx++}`);
+      values.push(data.status);
+    }
+    if (data.resolution !== undefined) {
+      fields.push(`resolution = $${idx++}`);
+      values.push(data.resolution);
+    }
+    if (data.resolvedBy !== undefined) {
+      fields.push(`resolved_by = $${idx++}`);
+      values.push(data.resolvedBy);
+    }
+    if (data.resolvedAt !== undefined) {
+      fields.push(`resolved_at = $${idx++}`);
+      values.push(data.resolvedAt);
+    }
 
     if (fields.length === 0) return this.findSupplierNcrById(tenantId, id);
 
     values.push(id);
     values.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE supplier_ncrs SET ${fields.join(', ')} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
+      `UPDATE supplier_ncrs SET ${fields.join(", ")} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapSupplierNcr(row) : null;
@@ -936,32 +1145,38 @@ export class MasterDataRepository extends BaseRepository {
 
   async generateNcrNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM supplier_ncrs WHERE tenant_id = $1',
+      "SELECT COUNT(*) as count FROM supplier_ncrs WHERE tenant_id = $1",
       [tenantId],
     );
-    const count = parseInt(result?.count || '0', 10) + 1;
-    return `NCR-${String(count).padStart(5, '0')}`;
+    const count = parseInt(result?.count || "0", 10) + 1;
+    return `NCR-${String(count).padStart(5, "0")}`;
   }
 
   // Warehouses
-  async findWarehouses(tenantId: string, siteId?: string): Promise<Warehouse[]> {
-    let sql = 'SELECT * FROM warehouses WHERE tenant_id = $1';
+  async findWarehouses(
+    tenantId: string,
+    siteId?: string,
+  ): Promise<Warehouse[]> {
+    let sql = "SELECT * FROM warehouses WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
 
     if (siteId) {
-      sql += ' AND site_id = $2';
+      sql += " AND site_id = $2";
       params.push(siteId);
     }
 
-    sql += ' ORDER BY name';
+    sql += " ORDER BY name";
 
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
     return rows.map(this.mapWarehouse);
   }
 
-  async findWarehouseById(tenantId: string, id: string): Promise<Warehouse | null> {
+  async findWarehouseById(
+    tenantId: string,
+    id: string,
+  ): Promise<Warehouse | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM warehouses WHERE id = $1 AND tenant_id = $2',
+      "SELECT * FROM warehouses WHERE id = $1 AND tenant_id = $2",
       [id, tenantId],
     );
     return row ? this.mapWarehouse(row) : null;
@@ -982,7 +1197,11 @@ export class MasterDataRepository extends BaseRepository {
     return this.mapWarehouse(row!);
   }
 
-  async updateWarehouse(tenantId: string, id: string, data: { name?: string; code?: string; isActive?: boolean }): Promise<Warehouse> {
+  async updateWarehouse(
+    tenantId: string,
+    id: string,
+    data: { name?: string; code?: string; isActive?: boolean },
+  ): Promise<Warehouse> {
     const setClauses: string[] = [];
     const params: unknown[] = [];
     let paramIndex = 1;
@@ -1007,7 +1226,7 @@ export class MasterDataRepository extends BaseRepository {
     params.push(id);
     params.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE warehouses SET ${setClauses.join(', ')} WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1} RETURNING *`,
+      `UPDATE warehouses SET ${setClauses.join(", ")} WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1} RETURNING *`,
       params,
     );
     return this.mapWarehouse(row!);
@@ -1015,7 +1234,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async deleteWarehouse(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM warehouses WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      "DELETE FROM warehouses WHERE id = $1 AND tenant_id = $2 RETURNING id",
       [id, tenantId],
     );
     return !!result;
@@ -1023,36 +1242,44 @@ export class MasterDataRepository extends BaseRepository {
 
   async countWarehouseReferences(id: string): Promise<number> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM work_orders WHERE warehouse_id = $1',
+      "SELECT COUNT(*) as count FROM work_orders WHERE warehouse_id = $1",
       [id],
     );
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   // Bins
   async findBins(tenantId: string, warehouseId: string): Promise<Bin[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM bins WHERE tenant_id = $1 AND warehouse_id = $2 ORDER BY code',
+      "SELECT * FROM bins WHERE tenant_id = $1 AND warehouse_id = $2 ORDER BY code",
       [tenantId, warehouseId],
     );
     return rows.map(this.mapBin);
   }
 
-  async findWarehousesByNames(tenantId: string, siteId: string, names: string[]): Promise<Warehouse[]> {
+  async findWarehousesByNames(
+    tenantId: string,
+    siteId: string,
+    names: string[],
+  ): Promise<Warehouse[]> {
     if (names.length === 0) return [];
     const lowerNames = names.map((n) => n.toLowerCase());
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM warehouses WHERE tenant_id = $1 AND site_id = $2 AND LOWER(name) = ANY($3) AND is_active = true',
+      "SELECT * FROM warehouses WHERE tenant_id = $1 AND site_id = $2 AND LOWER(name) = ANY($3) AND is_active = true",
       [tenantId, siteId, lowerNames],
     );
     return rows.map(this.mapWarehouse);
   }
 
-  async findBinsByCodes(tenantId: string, warehouseId: string, codes: string[]): Promise<Bin[]> {
+  async findBinsByCodes(
+    tenantId: string,
+    warehouseId: string,
+    codes: string[],
+  ): Promise<Bin[]> {
     if (codes.length === 0) return [];
     const lowerCodes = codes.map((c) => c.toLowerCase());
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM bins WHERE tenant_id = $1 AND warehouse_id = $2 AND LOWER(code) = ANY($3) AND is_active = true',
+      "SELECT * FROM bins WHERE tenant_id = $1 AND warehouse_id = $2 AND LOWER(code) = ANY($3) AND is_active = true",
       [tenantId, warehouseId, lowerCodes],
     );
     return rows.map(this.mapBin);
@@ -1060,7 +1287,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async findBinById(tenantId: string, id: string): Promise<Bin | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM bins WHERE id = $1 AND tenant_id = $2',
+      "SELECT * FROM bins WHERE id = $1 AND tenant_id = $2",
       [id, tenantId],
     );
     return row ? this.mapBin(row) : null;
@@ -1083,7 +1310,7 @@ export class MasterDataRepository extends BaseRepository {
         data.tenantId,
         data.warehouseId,
         data.code,
-        data.binType || 'STORAGE',
+        data.binType || "STORAGE",
         data.aisle || null,
         data.rack || null,
         data.level || null,
@@ -1092,7 +1319,11 @@ export class MasterDataRepository extends BaseRepository {
     return this.mapBin(row!);
   }
 
-  async updateBin(tenantId: string, id: string, data: { code?: string; binType?: string; isActive?: boolean }): Promise<Bin> {
+  async updateBin(
+    tenantId: string,
+    id: string,
+    data: { code?: string; binType?: string; isActive?: boolean },
+  ): Promise<Bin> {
     const setClauses: string[] = [];
     const params: unknown[] = [];
     let paramIndex = 1;
@@ -1116,7 +1347,7 @@ export class MasterDataRepository extends BaseRepository {
 
     params.push(id, tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE bins SET ${setClauses.join(', ')} WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1} RETURNING *`,
+      `UPDATE bins SET ${setClauses.join(", ")} WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1} RETURNING *`,
       params,
     );
     return this.mapBin(row!);
@@ -1332,18 +1563,36 @@ export class MasterDataRepository extends BaseRepository {
     const values: unknown[] = [];
     let idx = 1;
 
-    if (data.supplierSku !== undefined) { fields.push(`supplier_sku = $${idx++}`); values.push(data.supplierSku); }
-    if (data.unitCost !== undefined) { fields.push(`unit_cost = $${idx++}`); values.push(data.unitCost); }
-    if (data.leadTimeDays !== undefined) { fields.push(`lead_time_days = $${idx++}`); values.push(data.leadTimeDays); }
-    if (data.minOrderQty !== undefined) { fields.push(`min_order_qty = $${idx++}`); values.push(data.minOrderQty); }
-    if (data.isPreferred !== undefined) { fields.push(`is_preferred = $${idx++}`); values.push(data.isPreferred); }
-    if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.isActive); }
+    if (data.supplierSku !== undefined) {
+      fields.push(`supplier_sku = $${idx++}`);
+      values.push(data.supplierSku);
+    }
+    if (data.unitCost !== undefined) {
+      fields.push(`unit_cost = $${idx++}`);
+      values.push(data.unitCost);
+    }
+    if (data.leadTimeDays !== undefined) {
+      fields.push(`lead_time_days = $${idx++}`);
+      values.push(data.leadTimeDays);
+    }
+    if (data.minOrderQty !== undefined) {
+      fields.push(`min_order_qty = $${idx++}`);
+      values.push(data.minOrderQty);
+    }
+    if (data.isPreferred !== undefined) {
+      fields.push(`is_preferred = $${idx++}`);
+      values.push(data.isPreferred);
+    }
+    if (data.isActive !== undefined) {
+      fields.push(`is_active = $${idx++}`);
+      values.push(data.isActive);
+    }
 
     if (fields.length === 0) return this.findSupplierItemById(id);
 
     values.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE supplier_items SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE supplier_items SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,
       values,
     );
     return row ? this.mapSupplierItem(row) : null;
@@ -1351,7 +1600,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async deleteSupplierItem(id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM supplier_items WHERE id = $1 RETURNING id',
+      "DELETE FROM supplier_items WHERE id = $1 RETURNING id",
       [id],
     );
     return !!result;
@@ -1368,7 +1617,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async findSupplierContractById(id: string): Promise<SupplierContract | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM supplier_contracts WHERE id = $1',
+      "SELECT * FROM supplier_contracts WHERE id = $1",
       [id],
     );
     return row ? this.mapSupplierContract(row) : null;
@@ -1399,7 +1648,7 @@ export class MasterDataRepository extends BaseRepository {
         data.endDate,
         data.terms || null,
         data.totalValue || null,
-        data.currency || 'ZAR',
+        data.currency || "ZAR",
         data.createdBy || null,
       ],
     );
@@ -1421,18 +1670,36 @@ export class MasterDataRepository extends BaseRepository {
     const values: unknown[] = [];
     let idx = 1;
 
-    if (data.name !== undefined) { fields.push(`name = $${idx++}`); values.push(data.name); }
-    if (data.status !== undefined) { fields.push(`status = $${idx++}`); values.push(data.status); }
-    if (data.startDate !== undefined) { fields.push(`start_date = $${idx++}`); values.push(data.startDate); }
-    if (data.endDate !== undefined) { fields.push(`end_date = $${idx++}`); values.push(data.endDate); }
-    if (data.terms !== undefined) { fields.push(`terms = $${idx++}`); values.push(data.terms); }
-    if (data.totalValue !== undefined) { fields.push(`total_value = $${idx++}`); values.push(data.totalValue); }
+    if (data.name !== undefined) {
+      fields.push(`name = $${idx++}`);
+      values.push(data.name);
+    }
+    if (data.status !== undefined) {
+      fields.push(`status = $${idx++}`);
+      values.push(data.status);
+    }
+    if (data.startDate !== undefined) {
+      fields.push(`start_date = $${idx++}`);
+      values.push(data.startDate);
+    }
+    if (data.endDate !== undefined) {
+      fields.push(`end_date = $${idx++}`);
+      values.push(data.endDate);
+    }
+    if (data.terms !== undefined) {
+      fields.push(`terms = $${idx++}`);
+      values.push(data.terms);
+    }
+    if (data.totalValue !== undefined) {
+      fields.push(`total_value = $${idx++}`);
+      values.push(data.totalValue);
+    }
 
     if (fields.length === 0) return this.findSupplierContractById(id);
 
     values.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE supplier_contracts SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE supplier_contracts SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,
       values,
     );
     return row ? this.mapSupplierContract(row) : null;
@@ -1440,25 +1707,28 @@ export class MasterDataRepository extends BaseRepository {
 
   async generateContractNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM supplier_contracts WHERE tenant_id = $1',
+      "SELECT COUNT(*) as count FROM supplier_contracts WHERE tenant_id = $1",
       [tenantId],
     );
-    const count = parseInt(result?.count || '0', 10) + 1;
-    return `CON-${String(count).padStart(5, '0')}`;
+    const count = parseInt(result?.count || "0", 10) + 1;
+    return `CON-${String(count).padStart(5, "0")}`;
   }
 
   // Customer Contacts
   async findCustomerContacts(customerId: string): Promise<CustomerContact[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      'SELECT * FROM customer_contacts WHERE customer_id = $1 ORDER BY is_primary DESC, name',
+      "SELECT * FROM customer_contacts WHERE customer_id = $1 ORDER BY is_primary DESC, name",
       [customerId],
     );
     return rows.map(this.mapCustomerContact);
   }
 
-  async findCustomerContactById(tenantId: string, id: string): Promise<CustomerContact | null> {
+  async findCustomerContactById(
+    tenantId: string,
+    id: string,
+  ): Promise<CustomerContact | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM customer_contacts WHERE id = $1 AND tenant_id = $2',
+      "SELECT * FROM customer_contacts WHERE id = $1 AND tenant_id = $2",
       [id, tenantId],
     );
     return row ? this.mapCustomerContact(row) : null;
@@ -1506,19 +1776,37 @@ export class MasterDataRepository extends BaseRepository {
     const values: unknown[] = [];
     let idx = 1;
 
-    if (data.name !== undefined) { fields.push(`name = $${idx++}`); values.push(data.name); }
-    if (data.email !== undefined) { fields.push(`email = $${idx++}`); values.push(data.email); }
-    if (data.phone !== undefined) { fields.push(`phone = $${idx++}`); values.push(data.phone); }
-    if (data.title !== undefined) { fields.push(`title = $${idx++}`); values.push(data.title); }
-    if (data.isPrimary !== undefined) { fields.push(`is_primary = $${idx++}`); values.push(data.isPrimary); }
-    if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.isActive); }
+    if (data.name !== undefined) {
+      fields.push(`name = $${idx++}`);
+      values.push(data.name);
+    }
+    if (data.email !== undefined) {
+      fields.push(`email = $${idx++}`);
+      values.push(data.email);
+    }
+    if (data.phone !== undefined) {
+      fields.push(`phone = $${idx++}`);
+      values.push(data.phone);
+    }
+    if (data.title !== undefined) {
+      fields.push(`title = $${idx++}`);
+      values.push(data.title);
+    }
+    if (data.isPrimary !== undefined) {
+      fields.push(`is_primary = $${idx++}`);
+      values.push(data.isPrimary);
+    }
+    if (data.isActive !== undefined) {
+      fields.push(`is_active = $${idx++}`);
+      values.push(data.isActive);
+    }
 
     if (fields.length === 0) return this.findCustomerContactById(tenantId, id);
 
     values.push(id);
     values.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE customer_contacts SET ${fields.join(', ')} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
+      `UPDATE customer_contacts SET ${fields.join(", ")} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapCustomerContact(row) : null;
@@ -1526,7 +1814,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async deleteCustomerContact(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM customer_contacts WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      "DELETE FROM customer_contacts WHERE id = $1 AND tenant_id = $2 RETURNING id",
       [id, tenantId],
     );
     return !!result;
@@ -1562,7 +1850,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async deleteCustomerNote(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM customer_notes WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      "DELETE FROM customer_notes WHERE id = $1 AND tenant_id = $2 RETURNING id",
       [id, tenantId],
     );
     return !!result;
@@ -1598,7 +1886,9 @@ export class MasterDataRepository extends BaseRepository {
       startDate: row.start_date as Date,
       endDate: row.end_date as Date,
       terms: row.terms as string | null,
-      totalValue: row.total_value ? parseFloat(row.total_value as string) : null,
+      totalValue: row.total_value
+        ? parseFloat(row.total_value as string)
+        : null,
       currency: row.currency as string,
       createdBy: row.created_by as string | null,
       createdAt: row.created_at as Date,
@@ -1640,7 +1930,12 @@ export class MasterDataRepository extends BaseRepository {
     tenantId: string,
     limit: number,
     offset: number,
-    filters?: { status?: string; supplierId?: string; search?: string; siteId?: string },
+    filters?: {
+      status?: string;
+      supplierId?: string;
+      search?: string;
+      siteId?: string;
+    },
   ): Promise<PurchaseOrder[]> {
     let sql = `
       SELECT po.*,
@@ -1682,7 +1977,15 @@ export class MasterDataRepository extends BaseRepository {
     return rows.map(this.mapPurchaseOrder);
   }
 
-  async countPurchaseOrders(tenantId: string, filters?: { status?: string; supplierId?: string; search?: string; siteId?: string }): Promise<number> {
+  async countPurchaseOrders(
+    tenantId: string,
+    filters?: {
+      status?: string;
+      supplierId?: string;
+      search?: string;
+      siteId?: string;
+    },
+  ): Promise<number> {
     let sql = `
       SELECT COUNT(*) as count
       FROM purchase_orders po
@@ -1710,7 +2013,7 @@ export class MasterDataRepository extends BaseRepository {
     }
 
     const result = await this.queryOne<{ count: string }>(sql, params);
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   async findPurchaseOrderById(id: string): Promise<PurchaseOrder | null> {
@@ -1777,19 +2080,40 @@ export class MasterDataRepository extends BaseRepository {
     const values: unknown[] = [];
     let idx = 1;
 
-    if (data.status !== undefined) { fields.push(`status = $${idx++}`); values.push(data.status); }
-    if (data.expectedDate !== undefined) { fields.push(`expected_date = $${idx++}`); values.push(data.expectedDate); }
-    if (data.shipToWarehouseId !== undefined) { fields.push(`ship_to_warehouse_id = $${idx++}`); values.push(data.shipToWarehouseId); }
-    if (data.subtotal !== undefined) { fields.push(`subtotal = $${idx++}`); values.push(data.subtotal); }
-    if (data.taxAmount !== undefined) { fields.push(`tax_amount = $${idx++}`); values.push(data.taxAmount); }
-    if (data.totalAmount !== undefined) { fields.push(`total_amount = $${idx++}`); values.push(data.totalAmount); }
-    if (data.notes !== undefined) { fields.push(`notes = $${idx++}`); values.push(data.notes); }
+    if (data.status !== undefined) {
+      fields.push(`status = $${idx++}`);
+      values.push(data.status);
+    }
+    if (data.expectedDate !== undefined) {
+      fields.push(`expected_date = $${idx++}`);
+      values.push(data.expectedDate);
+    }
+    if (data.shipToWarehouseId !== undefined) {
+      fields.push(`ship_to_warehouse_id = $${idx++}`);
+      values.push(data.shipToWarehouseId);
+    }
+    if (data.subtotal !== undefined) {
+      fields.push(`subtotal = $${idx++}`);
+      values.push(data.subtotal);
+    }
+    if (data.taxAmount !== undefined) {
+      fields.push(`tax_amount = $${idx++}`);
+      values.push(data.taxAmount);
+    }
+    if (data.totalAmount !== undefined) {
+      fields.push(`total_amount = $${idx++}`);
+      values.push(data.totalAmount);
+    }
+    if (data.notes !== undefined) {
+      fields.push(`notes = $${idx++}`);
+      values.push(data.notes);
+    }
 
     if (fields.length === 0) return this.findPurchaseOrderById(id);
 
     values.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE purchase_orders SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE purchase_orders SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,
       values,
     );
     return row ? this.mapPurchaseOrder(row) : null;
@@ -1811,24 +2135,26 @@ export class MasterDataRepository extends BaseRepository {
       [tenantId],
     );
     return {
-      total: parseInt(result?.total || '0', 10),
-      draft: parseInt(result?.draft || '0', 10),
-      pendingReceipt: parseInt(result?.pending_receipt || '0', 10),
-      received: parseInt(result?.received || '0', 10),
+      total: parseInt(result?.total || "0", 10),
+      draft: parseInt(result?.draft || "0", 10),
+      pendingReceipt: parseInt(result?.pending_receipt || "0", 10),
+      received: parseInt(result?.received || "0", 10),
     };
   }
 
   async generatePoNo(tenantId: string): Promise<string> {
     const result = await this.queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM purchase_orders WHERE tenant_id = $1',
+      "SELECT COUNT(*) as count FROM purchase_orders WHERE tenant_id = $1",
       [tenantId],
     );
-    const count = parseInt(result?.count || '0', 10) + 1;
-    return `PO-${String(count).padStart(5, '0')}`;
+    const count = parseInt(result?.count || "0", 10) + 1;
+    return `PO-${String(count).padStart(5, "0")}`;
   }
 
   // Purchase Order Lines
-  async findPurchaseOrderLines(purchaseOrderId: string): Promise<PurchaseOrderLine[]> {
+  async findPurchaseOrderLines(
+    purchaseOrderId: string,
+  ): Promise<PurchaseOrderLine[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT pol.*, i.sku as item_sku, i.description as item_description
        FROM purchase_order_lines pol
@@ -1852,28 +2178,47 @@ export class MasterDataRepository extends BaseRepository {
       `INSERT INTO purchase_order_lines (tenant_id, purchase_order_id, item_id, qty_ordered, unit_cost)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [data.tenantId, data.purchaseOrderId, data.itemId, data.qtyOrdered, data.unitCost || null],
+      [
+        data.tenantId,
+        data.purchaseOrderId,
+        data.itemId,
+        data.qtyOrdered,
+        data.unitCost || null,
+      ],
     );
     return this.mapPurchaseOrderLine(row!);
   }
 
   async updatePurchaseOrderLine(
     id: string,
-    data: Partial<{ qtyOrdered: number; qtyReceived: number; unitCost: number }>,
+    data: Partial<{
+      qtyOrdered: number;
+      qtyReceived: number;
+      unitCost: number;
+    }>,
   ): Promise<PurchaseOrderLine | null> {
     const fields: string[] = [];
     const values: unknown[] = [];
     let idx = 1;
 
-    if (data.qtyOrdered !== undefined) { fields.push(`qty_ordered = $${idx++}`); values.push(data.qtyOrdered); }
-    if (data.qtyReceived !== undefined) { fields.push(`qty_received = $${idx++}`); values.push(data.qtyReceived); }
-    if (data.unitCost !== undefined) { fields.push(`unit_cost = $${idx++}`); values.push(data.unitCost); }
+    if (data.qtyOrdered !== undefined) {
+      fields.push(`qty_ordered = $${idx++}`);
+      values.push(data.qtyOrdered);
+    }
+    if (data.qtyReceived !== undefined) {
+      fields.push(`qty_received = $${idx++}`);
+      values.push(data.qtyReceived);
+    }
+    if (data.unitCost !== undefined) {
+      fields.push(`unit_cost = $${idx++}`);
+      values.push(data.unitCost);
+    }
 
     if (fields.length === 0) return null;
 
     values.push(id);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE purchase_order_lines SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE purchase_order_lines SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,
       values,
     );
     return row ? this.mapPurchaseOrderLine(row) : null;
@@ -1881,7 +2226,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async deletePurchaseOrderLine(id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM purchase_order_lines WHERE id = $1 RETURNING id',
+      "DELETE FROM purchase_order_lines WHERE id = $1 RETURNING id",
       [id],
     );
     return !!result;
@@ -1889,7 +2234,7 @@ export class MasterDataRepository extends BaseRepository {
 
   async deletePurchaseOrder(id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM purchase_orders WHERE id = $1 RETURNING id',
+      "DELETE FROM purchase_orders WHERE id = $1 RETURNING id",
       [id],
     );
     return !!result;
@@ -1907,7 +2252,9 @@ export class MasterDataRepository extends BaseRepository {
       shipToWarehouseId: row.ship_to_warehouse_id as string | null,
       subtotal: row.subtotal ? parseFloat(row.subtotal as string) : 0,
       taxAmount: row.tax_amount ? parseFloat(row.tax_amount as string) : 0,
-      totalAmount: row.total_amount ? parseFloat(row.total_amount as string) : 0,
+      totalAmount: row.total_amount
+        ? parseFloat(row.total_amount as string)
+        : 0,
       notes: row.notes as string | null,
       createdBy: row.created_by as string | null,
       createdAt: row.created_at as Date,
@@ -1915,12 +2262,18 @@ export class MasterDataRepository extends BaseRepository {
       supplierName: row.supplier_name as string | undefined,
       warehouseName: row.warehouse_name as string | undefined,
       createdByName: row.created_by_name as string | undefined,
-      lineCount: row.line_count ? parseInt(row.line_count as string, 10) : undefined,
+      lineCount: row.line_count
+        ? parseInt(row.line_count as string, 10)
+        : undefined,
     };
   }
 
-  private mapPurchaseOrderLine(row: Record<string, unknown>): PurchaseOrderLine {
-    const qtyOrdered = row.qty_ordered ? parseFloat(row.qty_ordered as string) : 0;
+  private mapPurchaseOrderLine(
+    row: Record<string, unknown>,
+  ): PurchaseOrderLine {
+    const qtyOrdered = row.qty_ordered
+      ? parseFloat(row.qty_ordered as string)
+      : 0;
     const unitCost = row.unit_cost ? parseFloat(row.unit_cost as string) : null;
     return {
       id: row.id as string,
@@ -1928,7 +2281,9 @@ export class MasterDataRepository extends BaseRepository {
       purchaseOrderId: row.purchase_order_id as string,
       itemId: row.item_id as string,
       qtyOrdered,
-      qtyReceived: row.qty_received ? parseFloat(row.qty_received as string) : 0,
+      qtyReceived: row.qty_received
+        ? parseFloat(row.qty_received as string)
+        : 0,
       unitCost,
       lineTotal: unitCost ? qtyOrdered * unitCost : null,
       createdAt: row.created_at as Date,
@@ -1938,7 +2293,9 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   // Supplier Performance Analytics
-  async getSupplierDashboardSummary(tenantId: string): Promise<SupplierDashboardSummary> {
+  async getSupplierDashboardSummary(
+    tenantId: string,
+  ): Promise<SupplierDashboardSummary> {
     // Get basic stats
     const result = await this.queryOne<Record<string, unknown>>(
       `SELECT
@@ -1952,8 +2309,8 @@ export class MasterDataRepository extends BaseRepository {
       [tenantId],
     );
 
-    const totalPOs = parseInt(result?.total_pos as string || '0', 10);
-    const totalPOValue = parseFloat(result?.total_po_value as string || '0');
+    const totalPOs = parseInt((result?.total_pos as string) || "0", 10);
+    const totalPOValue = parseFloat((result?.total_po_value as string) || "0");
 
     // Get top suppliers by PO value
     const topSuppliers = await this.queryMany<Record<string, unknown>>(
@@ -1990,16 +2347,22 @@ export class MasterDataRepository extends BaseRepository {
     );
 
     return {
-      totalSuppliers: parseInt(result?.total_suppliers as string || '0', 10),
-      activeSuppliers: parseInt(result?.active_suppliers as string || '0', 10),
+      totalSuppliers: parseInt((result?.total_suppliers as string) || "0", 10),
+      activeSuppliers: parseInt(
+        (result?.active_suppliers as string) || "0",
+        10,
+      ),
       totalPOValue,
       avgPOValue: totalPOs > 0 ? totalPOValue / totalPOs : 0,
-      openNCRs: parseInt(result?.open_ncrs as string || '0', 10),
-      activeContracts: parseInt(result?.active_contracts as string || '0', 10),
+      openNCRs: parseInt((result?.open_ncrs as string) || "0", 10),
+      activeContracts: parseInt(
+        (result?.active_contracts as string) || "0",
+        10,
+      ),
       topSuppliersByPO: topSuppliers.map((row) => ({
         id: row.id as string,
         name: row.name as string,
-        totalValue: parseFloat(row.total_value as string || '0'),
+        totalValue: parseFloat((row.total_value as string) || "0"),
         poCount: parseInt(row.po_count as string, 10),
       })),
       recentNCRs: recentNCRs.map((row) => ({
@@ -2015,30 +2378,37 @@ export class MasterDataRepository extends BaseRepository {
 
   async getSupplierPerformanceStats(
     tenantId: string,
-    options: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}
+    options: {
+      page?: number;
+      limit?: number;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    } = {},
   ) {
     const page = options.page || 1;
     const limit = options.limit || 10;
     const offset = (page - 1) * limit;
-    const sortOrder = options.sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const sortOrder =
+      options.sortOrder?.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
     // Map frontend sort column names to SQL columns
     const sortColumnMap: Record<string, string> = {
-      totalPOs: 'total_orders',
-      totalPOValue: 'total_order_value',
-      avgPOValue: 'avg_order_value',
-      totalNCRs: 'total_ncrs',
-      ncrRate: 'ncr_rate',
-      name: 's.name',
+      totalPOs: "total_orders",
+      totalPOValue: "total_order_value",
+      avgPOValue: "avg_order_value",
+      totalNCRs: "total_ncrs",
+      ncrRate: "ncr_rate",
+      name: "s.name",
     };
-    const sortColumn = sortColumnMap[options.sortBy || 'totalPOValue'] || 'total_order_value';
+    const sortColumn =
+      sortColumnMap[options.sortBy || "totalPOValue"] || "total_order_value";
 
     // Get total count
     const countResult = await this.queryOne<{ count: string }>(
       `SELECT COUNT(*) as count FROM suppliers WHERE tenant_id = $1 AND is_active = true`,
-      [tenantId]
+      [tenantId],
     );
-    const total = parseInt(countResult?.count || '0', 10);
+    const total = parseInt(countResult?.count || "0", 10);
 
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT
@@ -2093,14 +2463,16 @@ export class MasterDataRepository extends BaseRepository {
       code: row.code as string | null,
       name: row.name as string,
       totalPOs: parseInt(row.total_orders as string, 10),
-      totalPOValue: parseFloat(row.total_order_value as string || '0'),
-      avgPOValue: parseFloat(row.avg_order_value as string || '0'),
+      totalPOValue: parseFloat((row.total_order_value as string) || "0"),
+      avgPOValue: parseFloat((row.avg_order_value as string) || "0"),
       openNCRs: parseInt(row.open_ncrs as string, 10),
       closedNCRs: parseInt(row.closed_ncrs as string, 10),
       totalNCRs: parseInt(row.total_ncrs as string, 10),
-      ncrRate: parseFloat(row.ncr_rate as string || '0'),
+      ncrRate: parseFloat((row.ncr_rate as string) || "0"),
       activeContracts: parseInt(row.active_contracts as string, 10),
-      lastPODate: row.last_po_date ? (row.last_po_date as Date).toISOString() : null,
+      lastPODate: row.last_po_date
+        ? (row.last_po_date as Date).toISOString()
+        : null,
     }));
 
     return {
@@ -2114,7 +2486,10 @@ export class MasterDataRepository extends BaseRepository {
     };
   }
 
-  async getNcrTrendsByMonth(tenantId: string, months: number = 12): Promise<{ month: string; count: number }[]> {
+  async getNcrTrendsByMonth(
+    tenantId: string,
+    months: number = 12,
+  ): Promise<{ month: string; count: number }[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `WITH month_series AS (
         SELECT generate_series(
@@ -2139,7 +2514,10 @@ export class MasterDataRepository extends BaseRepository {
     }));
   }
 
-  async getPurchaseOrderTrendsByMonth(tenantId: string, months: number = 12): Promise<{ month: string; count: number; value: number }[]> {
+  async getPurchaseOrderTrendsByMonth(
+    tenantId: string,
+    months: number = 12,
+  ): Promise<{ month: string; count: number; value: number }[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `WITH month_series AS (
         SELECT generate_series(
@@ -2162,12 +2540,14 @@ export class MasterDataRepository extends BaseRepository {
     return rows.map((row) => ({
       month: row.month as string,
       count: parseInt(row.order_count as string, 10),
-      value: parseFloat(row.total_value as string || '0'),
+      value: parseFloat((row.total_value as string) || "0"),
     }));
   }
 
   // Customer Performance Analytics
-  async getCustomerDashboardSummary(tenantId: string): Promise<CustomerDashboardSummary> {
+  async getCustomerDashboardSummary(
+    tenantId: string,
+  ): Promise<CustomerDashboardSummary> {
     const result = await this.queryOne<Record<string, unknown>>(
       `SELECT
         (SELECT COUNT(*) FROM customers WHERE tenant_id = $1) as total_customers,
@@ -2179,8 +2559,10 @@ export class MasterDataRepository extends BaseRepository {
       [tenantId],
     );
 
-    const totalOrders = parseInt(result?.total_orders as string || '0', 10);
-    const totalSalesValue = parseFloat(result?.total_sales_value as string || '0');
+    const totalOrders = parseInt((result?.total_orders as string) || "0", 10);
+    const totalSalesValue = parseFloat(
+      (result?.total_sales_value as string) || "0",
+    );
 
     const topCustomers = await this.queryMany<Record<string, unknown>>(
       `SELECT
@@ -2215,16 +2597,19 @@ export class MasterDataRepository extends BaseRepository {
     );
 
     return {
-      totalCustomers: parseInt(result?.total_customers as string || '0', 10),
-      activeCustomers: parseInt(result?.active_customers as string || '0', 10),
+      totalCustomers: parseInt((result?.total_customers as string) || "0", 10),
+      activeCustomers: parseInt(
+        (result?.active_customers as string) || "0",
+        10,
+      ),
       totalSalesValue,
       avgOrderValue: totalOrders > 0 ? totalSalesValue / totalOrders : 0,
       totalOrders,
-      pendingOrders: parseInt(result?.pending_orders as string || '0', 10),
+      pendingOrders: parseInt((result?.pending_orders as string) || "0", 10),
       topCustomersBySales: topCustomers.map((row) => ({
         id: row.id as string,
         name: row.name as string,
-        totalValue: parseFloat(row.total_value as string || '0'),
+        totalValue: parseFloat((row.total_value as string) || "0"),
         orderCount: parseInt(row.order_count as string, 10),
       })),
       recentOrders: recentOrders.map((row) => ({
@@ -2240,26 +2625,33 @@ export class MasterDataRepository extends BaseRepository {
 
   async getCustomerPerformanceStats(
     tenantId: string,
-    options: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}
+    options: {
+      page?: number;
+      limit?: number;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    } = {},
   ) {
     const page = options.page || 1;
     const limit = options.limit || 10;
     const offset = (page - 1) * limit;
-    const sortOrder = options.sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const sortOrder =
+      options.sortOrder?.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
     const sortColumnMap: Record<string, string> = {
-      totalOrders: 'total_orders',
-      totalOrderValue: 'total_order_value',
-      avgOrderValue: 'avg_order_value',
-      name: 'c.name',
+      totalOrders: "total_orders",
+      totalOrderValue: "total_order_value",
+      avgOrderValue: "avg_order_value",
+      name: "c.name",
     };
-    const sortColumn = sortColumnMap[options.sortBy || 'totalOrderValue'] || 'total_order_value';
+    const sortColumn =
+      sortColumnMap[options.sortBy || "totalOrderValue"] || "total_order_value";
 
     const countResult = await this.queryOne<{ count: string }>(
       `SELECT COUNT(*) as count FROM customers WHERE tenant_id = $1 AND is_active = true`,
-      [tenantId]
+      [tenantId],
     );
-    const total = parseInt(countResult?.count || '0', 10);
+    const total = parseInt(countResult?.count || "0", 10);
 
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT
@@ -2297,11 +2689,13 @@ export class MasterDataRepository extends BaseRepository {
       code: row.code as string | null,
       name: row.name as string,
       totalOrders: parseInt(row.total_orders as string, 10),
-      totalOrderValue: parseFloat(row.total_order_value as string || '0'),
-      avgOrderValue: parseFloat(row.avg_order_value as string || '0'),
+      totalOrderValue: parseFloat((row.total_order_value as string) || "0"),
+      avgOrderValue: parseFloat((row.avg_order_value as string) || "0"),
       shippedOrders: parseInt(row.shipped_orders as string, 10),
       cancelledOrders: parseInt(row.cancelled_orders as string, 10),
-      lastOrderDate: row.last_order_date ? (row.last_order_date as Date).toISOString() : null,
+      lastOrderDate: row.last_order_date
+        ? (row.last_order_date as Date).toISOString()
+        : null,
     }));
 
     return {
@@ -2315,7 +2709,10 @@ export class MasterDataRepository extends BaseRepository {
     };
   }
 
-  async getSalesOrderTrendsByMonth(tenantId: string, months: number = 12): Promise<{ month: string; count: number; value: number }[]> {
+  async getSalesOrderTrendsByMonth(
+    tenantId: string,
+    months: number = 12,
+  ): Promise<{ month: string; count: number; value: number }[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `WITH month_series AS (
         SELECT generate_series(
@@ -2339,7 +2736,7 @@ export class MasterDataRepository extends BaseRepository {
     return rows.map((row) => ({
       month: row.month as string,
       count: parseInt(row.order_count as string, 10),
-      value: parseFloat(row.total_value as string || '0'),
+      value: parseFloat((row.total_value as string) || "0"),
     }));
   }
 
@@ -2426,46 +2823,98 @@ export class MasterDataRepository extends BaseRepository {
     );
 
     // Calculate derived KPIs
-    const ordersOnTime = parseInt(result?.orders_on_time as string || '0', 10);
-    const ordersWithShipDate = parseInt(result?.orders_with_ship_date as string || '0', 10);
-    const otifPercent = ordersWithShipDate > 0 ? Math.round((ordersOnTime / ordersWithShipDate) * 100) : 0;
+    const ordersOnTime = parseInt(
+      (result?.orders_on_time as string) || "0",
+      10,
+    );
+    const ordersWithShipDate = parseInt(
+      (result?.orders_with_ship_date as string) || "0",
+      10,
+    );
+    const otifPercent =
+      ordersWithShipDate > 0
+        ? Math.round((ordersOnTime / ordersWithShipDate) * 100)
+        : 0;
 
-    const weeklyReturnsValue = parseFloat(result?.weekly_returns_value as string || '0');
-    const weeklySalesValue = parseFloat(result?.weekly_sales_value as string || '0');
-    const returnsRate = weeklySalesValue > 0 ? Math.round((weeklyReturnsValue / weeklySalesValue) * 1000) / 10 : 0;
+    const weeklyReturnsValue = parseFloat(
+      (result?.weekly_returns_value as string) || "0",
+    );
+    const weeklySalesValue = parseFloat(
+      (result?.weekly_sales_value as string) || "0",
+    );
+    const returnsRate =
+      weeklySalesValue > 0
+        ? Math.round((weeklyReturnsValue / weeklySalesValue) * 1000) / 10
+        : 0;
 
-    const totalDeliveredStops = parseInt(result?.total_delivered_stops as string || '0', 10);
-    const stopsWithPod = parseInt(result?.stops_with_pod as string || '0', 10);
-    const podCompletionPercent = totalDeliveredStops > 0 ? Math.round((stopsWithPod / totalDeliveredStops) * 100) : 0;
+    const totalDeliveredStops = parseInt(
+      (result?.total_delivered_stops as string) || "0",
+      10,
+    );
+    const stopsWithPod = parseInt(
+      (result?.stops_with_pod as string) || "0",
+      10,
+    );
+    const podCompletionPercent =
+      totalDeliveredStops > 0
+        ? Math.round((stopsWithPod / totalDeliveredStops) * 100)
+        : 0;
 
-    const avgDispatchCycleHours = Math.round(parseFloat(result?.avg_dispatch_cycle_hours as string || '0') * 10) / 10;
+    const avgDispatchCycleHours =
+      Math.round(
+        parseFloat((result?.avg_dispatch_cycle_hours as string) || "0") * 10,
+      ) / 10;
 
     return {
-      pendingOrders: parseInt(result?.pending_orders as string || '0', 10),
-      allocatedOrders: parseInt(result?.allocated_orders as string || '0', 10),
-      shippedOrders: parseInt(result?.shipped_orders as string || '0', 10),
-      activePickWaves: parseInt(result?.active_pick_waves as string || '0', 10),
-      pendingPickTasks: parseInt(result?.pending_pick_tasks as string || '0', 10),
-      openReturns: parseInt(result?.open_returns as string || '0', 10),
-      lowStockItems: parseInt(result?.low_stock_items as string || '0', 10),
-      expiringItems: parseInt(result?.expiring_items as string || '0', 10),
-      openNCRs: parseInt(result?.open_ncrs as string || '0', 10),
+      pendingOrders: parseInt((result?.pending_orders as string) || "0", 10),
+      allocatedOrders: parseInt(
+        (result?.allocated_orders as string) || "0",
+        10,
+      ),
+      shippedOrders: parseInt((result?.shipped_orders as string) || "0", 10),
+      activePickWaves: parseInt(
+        (result?.active_pick_waves as string) || "0",
+        10,
+      ),
+      pendingPickTasks: parseInt(
+        (result?.pending_pick_tasks as string) || "0",
+        10,
+      ),
+      openReturns: parseInt((result?.open_returns as string) || "0", 10),
+      lowStockItems: parseInt((result?.low_stock_items as string) || "0", 10),
+      expiringItems: parseInt((result?.expiring_items as string) || "0", 10),
+      openNCRs: parseInt((result?.open_ncrs as string) || "0", 10),
       weeklySalesValue,
-      weeklyOrdersCount: parseInt(result?.weekly_orders_count as string || '0', 10),
-      tripsInProgress: parseInt(result?.trips_in_progress as string || '0', 10),
-      tripsCompletedToday: parseInt(result?.trips_completed_today as string || '0', 10),
-      lateOrders: parseInt(result?.late_orders as string || '0', 10),
+      weeklyOrdersCount: parseInt(
+        (result?.weekly_orders_count as string) || "0",
+        10,
+      ),
+      tripsInProgress: parseInt(
+        (result?.trips_in_progress as string) || "0",
+        10,
+      ),
+      tripsCompletedToday: parseInt(
+        (result?.trips_completed_today as string) || "0",
+        10,
+      ),
+      lateOrders: parseInt((result?.late_orders as string) || "0", 10),
       // Operational KPIs
       otifPercent,
       returnsRate,
       podCompletionPercent,
       avgDispatchCycleHours,
-      pendingGrns: parseInt(result?.pending_grns as string || '0', 10),
-      openCycleCounts: parseInt(result?.open_cycle_counts as string || '0', 10),
+      pendingGrns: parseInt((result?.pending_grns as string) || "0", 10),
+      openCycleCounts: parseInt(
+        (result?.open_cycle_counts as string) || "0",
+        10,
+      ),
     };
   }
 
-  async getRecentActivity(tenantId: string, limit: number = 10): Promise<RecentActivity[]> {
+  async getRecentActivity(
+    tenantId: string,
+    limit: number = 10,
+  ): Promise<RecentActivity[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT * FROM (
         -- Sales Orders
@@ -2598,30 +3047,36 @@ export class MasterDataRepository extends BaseRepository {
 
     return {
       summary: {
-        totalOrders: parseInt(summary?.total_orders as string || '0', 10),
-        totalValue: parseFloat(summary?.total_value as string || '0'),
-        avgOrderValue: parseFloat(summary?.avg_order_value as string || '0'),
-        uniqueCustomers: parseInt(summary?.unique_customers as string || '0', 10),
-        shippedOrders: parseInt(summary?.shipped_orders as string || '0', 10),
-        cancelledOrders: parseInt(summary?.cancelled_orders as string || '0', 10),
+        totalOrders: parseInt((summary?.total_orders as string) || "0", 10),
+        totalValue: parseFloat((summary?.total_value as string) || "0"),
+        avgOrderValue: parseFloat((summary?.avg_order_value as string) || "0"),
+        uniqueCustomers: parseInt(
+          (summary?.unique_customers as string) || "0",
+          10,
+        ),
+        shippedOrders: parseInt((summary?.shipped_orders as string) || "0", 10),
+        cancelledOrders: parseInt(
+          (summary?.cancelled_orders as string) || "0",
+          10,
+        ),
       },
       byDay: byDay.map((row) => ({
         date: row.date as string,
         orderCount: parseInt(row.order_count as string, 10),
-        dailyValue: parseFloat(row.daily_value as string || '0'),
+        dailyValue: parseFloat((row.daily_value as string) || "0"),
       })),
       topCustomers: topCustomers.map((row) => ({
         id: row.id as string,
         name: row.name as string,
         orderCount: parseInt(row.order_count as string, 10),
-        totalValue: parseFloat(row.total_value as string || '0'),
+        totalValue: parseFloat((row.total_value as string) || "0"),
       })),
       topItems: topItems.map((row) => ({
         id: row.id as string,
         sku: row.sku as string,
         description: row.description as string,
-        qtySold: parseFloat(row.qty_sold as string || '0'),
-        totalValue: parseFloat(row.total_value as string || '0'),
+        qtySold: parseFloat((row.qty_sold as string) || "0"),
+        totalValue: parseFloat((row.total_value as string) || "0"),
       })),
     };
   }
@@ -2707,19 +3162,22 @@ export class MasterDataRepository extends BaseRepository {
 
     return {
       summary: {
-        totalItems: parseInt(summary?.total_items as string || '0', 10),
-        totalQty: parseFloat(summary?.total_qty as string || '0'),
-        totalValue: parseFloat(summary?.total_value as string || '0'),
-        lowStockCount: parseInt(summary?.low_stock_count as string || '0', 10),
-        expiringCount: parseInt(summary?.expiring_count as string || '0', 10),
+        totalItems: parseInt((summary?.total_items as string) || "0", 10),
+        totalQty: parseFloat((summary?.total_qty as string) || "0"),
+        totalValue: parseFloat((summary?.total_value as string) || "0"),
+        lowStockCount: parseInt(
+          (summary?.low_stock_count as string) || "0",
+          10,
+        ),
+        expiringCount: parseInt((summary?.expiring_count as string) || "0", 10),
       },
       byWarehouse: byWarehouse.map((row) => ({
         id: row.id as string,
         name: row.name as string,
         code: row.code as string | null,
         itemCount: parseInt(row.item_count as string, 10),
-        totalQty: parseFloat(row.total_qty as string || '0'),
-        totalValue: parseFloat(row.total_value as string || '0'),
+        totalQty: parseFloat((row.total_qty as string) || "0"),
+        totalValue: parseFloat((row.total_value as string) || "0"),
       })),
       lowStock: lowStock.map((row) => ({
         inventoryId: row.inventory_id as string,
@@ -2727,8 +3185,8 @@ export class MasterDataRepository extends BaseRepository {
         sku: row.sku as string,
         description: row.description as string,
         warehouseName: row.warehouse_name as string,
-        qtyOnHand: parseFloat(row.qty_on_hand as string || '0'),
-        reorderPoint: parseFloat(row.reorder_point as string || '0'),
+        qtyOnHand: parseFloat((row.qty_on_hand as string) || "0"),
+        reorderPoint: parseFloat((row.reorder_point as string) || "0"),
       })),
       expiringSoon: expiringSoon.map((row) => ({
         inventoryId: row.inventory_id as string,
@@ -2736,9 +3194,11 @@ export class MasterDataRepository extends BaseRepository {
         sku: row.sku as string,
         description: row.description as string,
         warehouseName: row.warehouse_name as string,
-        qtyOnHand: parseFloat(row.qty_on_hand as string || '0'),
+        qtyOnHand: parseFloat((row.qty_on_hand as string) || "0"),
         batchNumber: row.batch_number as string | null,
-        expiryDate: row.expiry_date ? (row.expiry_date as Date).toISOString().split('T')[0] : null,
+        expiryDate: row.expiry_date
+          ? (row.expiry_date as Date).toISOString().split("T")[0]
+          : null,
       })),
     };
   }
@@ -2799,29 +3259,32 @@ export class MasterDataRepository extends BaseRepository {
 
     return {
       summary: {
-        totalPOs: parseInt(summary?.total_pos as string || '0', 10),
-        totalValue: parseFloat(summary?.total_value as string || '0'),
-        avgPOValue: parseFloat(summary?.avg_po_value as string || '0'),
-        uniqueSuppliers: parseInt(summary?.unique_suppliers as string || '0', 10),
-        receivedPOs: parseInt(summary?.received_pos as string || '0', 10),
-        pendingPOs: parseInt(summary?.pending_pos as string || '0', 10),
+        totalPOs: parseInt((summary?.total_pos as string) || "0", 10),
+        totalValue: parseFloat((summary?.total_value as string) || "0"),
+        avgPOValue: parseFloat((summary?.avg_po_value as string) || "0"),
+        uniqueSuppliers: parseInt(
+          (summary?.unique_suppliers as string) || "0",
+          10,
+        ),
+        receivedPOs: parseInt((summary?.received_pos as string) || "0", 10),
+        pendingPOs: parseInt((summary?.pending_pos as string) || "0", 10),
       },
       byMonth: byMonth.map((row) => ({
         month: row.month as string,
         poCount: parseInt(row.po_count as string, 10),
-        monthlyValue: parseFloat(row.monthly_value as string || '0'),
+        monthlyValue: parseFloat((row.monthly_value as string) || "0"),
       })),
       topSuppliers: topSuppliers.map((row) => ({
         id: row.id as string,
         name: row.name as string,
         code: row.code as string | null,
         poCount: parseInt(row.po_count as string, 10),
-        totalValue: parseFloat(row.total_value as string || '0'),
+        totalValue: parseFloat((row.total_value as string) || "0"),
       })),
       byStatus: byStatus.map((row) => ({
         status: row.status as string,
         count: parseInt(row.count as string, 10),
-        value: parseFloat(row.value as string || '0'),
+        value: parseFloat((row.value as string) || "0"),
       })),
     };
   }
@@ -2830,29 +3293,30 @@ export class MasterDataRepository extends BaseRepository {
   async listNotifications(
     tenantId: string,
     userId: string,
-    options: { page?: number; limit?: number; unreadOnly?: boolean } = {}
+    options: { page?: number; limit?: number; unreadOnly?: boolean } = {},
   ) {
     const page = options.page || 1;
     const limit = options.limit || 20;
     const offset = (page - 1) * limit;
 
-    let whereClause = 'WHERE tenant_id = $1 AND (user_id = $2 OR user_id IS NULL)';
+    let whereClause =
+      "WHERE tenant_id = $1 AND (user_id = $2 OR user_id IS NULL)";
     if (options.unreadOnly) {
-      whereClause += ' AND is_read = false';
+      whereClause += " AND is_read = false";
     }
 
     const countResult = await this.queryOne<{ count: string }>(
       `SELECT COUNT(*) as count FROM notifications ${whereClause}`,
-      [tenantId, userId]
+      [tenantId, userId],
     );
-    const total = parseInt(countResult?.count || '0', 10);
+    const total = parseInt(countResult?.count || "0", 10);
 
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT * FROM notifications
        ${whereClause}
        ORDER BY created_at DESC
        LIMIT $3 OFFSET $4`,
-      [tenantId, userId, limit, offset]
+      [tenantId, userId, limit, offset],
     );
 
     const data = rows.map(this.mapNotification);
@@ -2868,13 +3332,16 @@ export class MasterDataRepository extends BaseRepository {
     };
   }
 
-  async getUnreadNotificationCount(tenantId: string, userId: string): Promise<number> {
+  async getUnreadNotificationCount(
+    tenantId: string,
+    userId: string,
+  ): Promise<number> {
     const result = await this.queryOne<{ count: string }>(
       `SELECT COUNT(*) as count FROM notifications
        WHERE tenant_id = $1 AND (user_id = $2 OR user_id IS NULL) AND is_read = false`,
-      [tenantId, userId]
+      [tenantId, userId],
     );
-    return parseInt(result?.count || '0', 10);
+    return parseInt(result?.count || "0", 10);
   }
 
   async createNotification(data: {
@@ -2890,30 +3357,41 @@ export class MasterDataRepository extends BaseRepository {
       `INSERT INTO notifications (tenant_id, user_id, type, category, title, message, link)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [data.tenantId, data.userId || null, data.type, data.category, data.title, data.message, data.link || null]
+      [
+        data.tenantId,
+        data.userId || null,
+        data.type,
+        data.category,
+        data.title,
+        data.message,
+        data.link || null,
+      ],
     );
-    if (!row) throw new Error('Failed to create notification');
+    if (!row) throw new Error("Failed to create notification");
     return this.mapNotification(row);
   }
 
   async markNotificationAsRead(id: string): Promise<Notification | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE notifications SET is_read = true, read_at = NOW() WHERE id = $1 RETURNING *`,
-      [id]
+      [id],
     );
     return row ? this.mapNotification(row) : null;
   }
 
-  async markAllNotificationsAsRead(tenantId: string, userId: string): Promise<void> {
+  async markAllNotificationsAsRead(
+    tenantId: string,
+    userId: string,
+  ): Promise<void> {
     await this.execute(
       `UPDATE notifications SET is_read = true, read_at = NOW()
        WHERE tenant_id = $1 AND (user_id = $2 OR user_id IS NULL) AND is_read = false`,
-      [tenantId, userId]
+      [tenantId, userId],
     );
   }
 
   async deleteNotification(id: string): Promise<void> {
-    await this.execute('DELETE FROM notifications WHERE id = $1', [id]);
+    await this.execute("DELETE FROM notifications WHERE id = $1", [id]);
   }
 
   private mapNotification(row: Record<string, unknown>): Notification {
@@ -2932,7 +3410,9 @@ export class MasterDataRepository extends BaseRepository {
     };
   }
 
-  async getWeeklyTrend(tenantId: string): Promise<{ week: string; orders: number; shipments: number }[]> {
+  async getWeeklyTrend(
+    tenantId: string,
+  ): Promise<{ week: string; orders: number; shipments: number }[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT
         'W' || EXTRACT(WEEK FROM d.dt)::int as week,
@@ -2950,14 +3430,16 @@ export class MasterDataRepository extends BaseRepository {
       ORDER BY d.dt`,
       [tenantId],
     );
-    return rows.map(r => ({
+    return rows.map((r) => ({
       week: r.week as string,
-      orders: parseInt(r.orders as string || '0', 10),
-      shipments: parseInt(r.shipments as string || '0', 10),
+      orders: parseInt((r.orders as string) || "0", 10),
+      shipments: parseInt((r.shipments as string) || "0", 10),
     }));
   }
 
-  async getStatusDistribution(tenantId: string): Promise<{ status: string; count: number }[]> {
+  async getStatusDistribution(
+    tenantId: string,
+  ): Promise<{ status: string; count: number }[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT status, COUNT(*) as count
        FROM sales_orders
@@ -2966,13 +3448,15 @@ export class MasterDataRepository extends BaseRepository {
        ORDER BY count DESC`,
       [tenantId],
     );
-    return rows.map(r => ({
+    return rows.map((r) => ({
       status: r.status as string,
-      count: parseInt(r.count as string || '0', 10),
+      count: parseInt((r.count as string) || "0", 10),
     }));
   }
 
-  async getOrdersByWarehouse(tenantId: string): Promise<{ warehouse: string; orders: number }[]> {
+  async getOrdersByWarehouse(
+    tenantId: string,
+  ): Promise<{ warehouse: string; orders: number }[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT w.name as warehouse, COUNT(so.id) as orders
        FROM sales_orders so
@@ -2983,13 +3467,15 @@ export class MasterDataRepository extends BaseRepository {
        LIMIT 10`,
       [tenantId],
     );
-    return rows.map(r => ({
+    return rows.map((r) => ({
       warehouse: r.warehouse as string,
-      orders: parseInt(r.orders as string || '0', 10),
+      orders: parseInt((r.orders as string) || "0", 10),
     }));
   }
 
-  async getTopCustomers(tenantId: string): Promise<{ name: string; orders: number }[]> {
+  async getTopCustomers(
+    tenantId: string,
+  ): Promise<{ name: string; orders: number }[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT c.name, COUNT(so.id) as orders
        FROM sales_orders so
@@ -3000,16 +3486,27 @@ export class MasterDataRepository extends BaseRepository {
        LIMIT 5`,
       [tenantId],
     );
-    return rows.map(r => ({
+    return rows.map((r) => ({
       name: r.name as string,
-      orders: parseInt(r.orders as string || '0', 10),
+      orders: parseInt((r.orders as string) || "0", 10),
     }));
   }
 
   async globalSearch(tenantId: string, search: string, limit: number = 5) {
     const term = `%${search}%`;
 
-    const [orders, purchaseOrders, customers, items, suppliers, trips, shipments, invoices, rmas, workOrders] = await Promise.all([
+    const [
+      orders,
+      purchaseOrders,
+      customers,
+      items,
+      suppliers,
+      trips,
+      shipments,
+      invoices,
+      rmas,
+      workOrders,
+    ] = await Promise.all([
       // Sales Orders
       this.queryMany(
         `SELECT so.id, so.order_no, so.status, c.name as customer_name
@@ -3092,7 +3589,18 @@ export class MasterDataRepository extends BaseRepository {
       ),
     ]);
 
-    return { orders, purchaseOrders, customers, items, suppliers, trips, shipments, invoices, rmas, workOrders };
+    return {
+      orders,
+      purchaseOrders,
+      customers,
+      items,
+      suppliers,
+      trips,
+      shipments,
+      invoices,
+      rmas,
+      workOrders,
+    };
   }
 
   // ============================
@@ -3133,11 +3641,17 @@ export class MasterDataRepository extends BaseRepository {
       `SELECT sku FROM items WHERE tenant_id = $1 AND LOWER(sku) = ANY($2::text[])`,
       [tenantId, skus.map((s) => s.toLowerCase())],
     );
-    const existingSkus = new Set(existingRows.map((r) => (r.sku as string).toLowerCase()));
+    const existingSkus = new Set(
+      existingRows.map((r) => (r.sku as string).toLowerCase()),
+    );
 
-    const toInsert = unique.filter((i) => !existingSkus.has(i.sku.toLowerCase()));
+    const toInsert = unique.filter(
+      (i) => !existingSkus.has(i.sku.toLowerCase()),
+    );
     const skippedCodes = [
-      ...unique.filter((i) => existingSkus.has(i.sku.toLowerCase())).map((i) => i.sku),
+      ...unique
+        .filter((i) => existingSkus.has(i.sku.toLowerCase()))
+        .map((i) => i.sku),
       ...batchDuplicates,
     ];
 
@@ -3153,13 +3667,21 @@ export class MasterDataRepository extends BaseRepository {
       let idx = 1;
 
       for (const item of batch) {
-        placeholders.push(`($${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++})`);
-        values.push(tenantId, item.sku, item.description, item.uom || 'EA', item.weightKg ?? null);
+        placeholders.push(
+          `($${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++})`,
+        );
+        values.push(
+          tenantId,
+          item.sku,
+          item.description,
+          item.uom || "EA",
+          item.weightKg ?? null,
+        );
       }
 
       const rows = await this.queryMany<Record<string, unknown>>(
         `INSERT INTO items (tenant_id, sku, description, uom, weight_kg)
-         VALUES ${placeholders.join(', ')}
+         VALUES ${placeholders.join(", ")}
          ON CONFLICT (tenant_id, sku) DO NOTHING
          RETURNING *`,
         values,
@@ -3216,14 +3738,18 @@ export class MasterDataRepository extends BaseRepository {
         `SELECT code FROM customers WHERE tenant_id = $1 AND LOWER(code) = ANY($2::text[])`,
         [tenantId, codes.map((c) => c.toLowerCase())],
       );
-      existingCodes = new Set(existingRows.map((r) => (r.code as string).toLowerCase()));
+      existingCodes = new Set(
+        existingRows.map((r) => (r.code as string).toLowerCase()),
+      );
     }
 
     const toInsert = unique.filter(
       (c) => !c.code || !existingCodes.has(c.code.toLowerCase()),
     );
     const skippedCodes = [
-      ...unique.filter((c) => c.code && existingCodes.has(c.code.toLowerCase())).map((c) => c.code!),
+      ...unique
+        .filter((c) => c.code && existingCodes.has(c.code.toLowerCase()))
+        .map((c) => c.code!),
       ...batchDuplicates,
     ];
 
@@ -3241,13 +3767,24 @@ export class MasterDataRepository extends BaseRepository {
 
       for (const c of batch) {
         const indices = Array.from({ length: colCount }, () => `$${idx++}`);
-        placeholders.push(`(${indices.join(', ')})`);
+        placeholders.push(`(${indices.join(", ")})`);
         values.push(
-          tenantId, c.code || null, c.name, c.email || null, c.phone || null, c.vatNo || null,
-          c.billingAddressLine1 || null, c.billingAddressLine2 || null,
-          c.billingCity || null, c.billingPostalCode || null, c.billingCountry || null,
-          c.shippingAddressLine1 || null, c.shippingAddressLine2 || null,
-          c.shippingCity || null, c.shippingPostalCode || null, c.shippingCountry || null,
+          tenantId,
+          c.code || null,
+          c.name,
+          c.email || null,
+          c.phone || null,
+          c.vatNo || null,
+          c.billingAddressLine1 || null,
+          c.billingAddressLine2 || null,
+          c.billingCity || null,
+          c.billingPostalCode || null,
+          c.billingCountry || null,
+          c.shippingAddressLine1 || null,
+          c.shippingAddressLine2 || null,
+          c.shippingCity || null,
+          c.shippingPostalCode || null,
+          c.shippingCountry || null,
         );
       }
 
@@ -3256,7 +3793,7 @@ export class MasterDataRepository extends BaseRepository {
           tenant_id, code, name, email, phone, vat_no,
           billing_address_line1, billing_address_line2, billing_city, billing_postal_code, billing_country,
           shipping_address_line1, shipping_address_line2, shipping_city, shipping_postal_code, shipping_country
-        ) VALUES ${placeholders.join(', ')}
+        ) VALUES ${placeholders.join(", ")}
          RETURNING *`,
         values,
       );
@@ -3312,14 +3849,18 @@ export class MasterDataRepository extends BaseRepository {
         `SELECT code FROM suppliers WHERE tenant_id = $1 AND LOWER(code) = ANY($2::text[])`,
         [tenantId, codes.map((c) => c.toLowerCase())],
       );
-      existingCodes = new Set(existingRows.map((r) => (r.code as string).toLowerCase()));
+      existingCodes = new Set(
+        existingRows.map((r) => (r.code as string).toLowerCase()),
+      );
     }
 
     const toInsert = unique.filter(
       (s) => !s.code || !existingCodes.has(s.code.toLowerCase()),
     );
     const skippedCodes = [
-      ...unique.filter((s) => s.code && existingCodes.has(s.code.toLowerCase())).map((s) => s.code!),
+      ...unique
+        .filter((s) => s.code && existingCodes.has(s.code.toLowerCase()))
+        .map((s) => s.code!),
       ...batchDuplicates,
     ];
 
@@ -3337,14 +3878,26 @@ export class MasterDataRepository extends BaseRepository {
 
       for (const s of batch) {
         const indices = Array.from({ length: colCount }, () => `$${idx++}`);
-        placeholders.push(`(${indices.join(', ')})`);
+        placeholders.push(`(${indices.join(", ")})`);
         values.push(
-          tenantId, s.code || null, s.name, s.email || null, s.phone || null,
-          s.vatNo || null, s.contactPerson || null, s.registrationNo || null,
-          s.addressLine1 || null, s.addressLine2 || null,
-          s.city || null, s.postalCode || null, s.country || null,
-          s.tradingAddressLine1 || null, s.tradingAddressLine2 || null,
-          s.tradingCity || null, s.tradingPostalCode || null, s.tradingCountry || null,
+          tenantId,
+          s.code || null,
+          s.name,
+          s.email || null,
+          s.phone || null,
+          s.vatNo || null,
+          s.contactPerson || null,
+          s.registrationNo || null,
+          s.addressLine1 || null,
+          s.addressLine2 || null,
+          s.city || null,
+          s.postalCode || null,
+          s.country || null,
+          s.tradingAddressLine1 || null,
+          s.tradingAddressLine2 || null,
+          s.tradingCity || null,
+          s.tradingPostalCode || null,
+          s.tradingCountry || null,
         );
       }
 
@@ -3353,7 +3906,7 @@ export class MasterDataRepository extends BaseRepository {
           tenant_id, code, name, email, phone, vat_no, contact_person, registration_no,
           address_line1, address_line2, city, postal_code, country,
           trading_address_line1, trading_address_line2, trading_city, trading_postal_code, trading_country
-        ) VALUES ${placeholders.join(', ')}
+        ) VALUES ${placeholders.join(", ")}
          RETURNING *`,
         values,
       );

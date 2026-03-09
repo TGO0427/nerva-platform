@@ -1,7 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { ReturnsRepository, Rma, RmaLine, CreditNoteDraft } from './returns.repository';
-import { StockLedgerService } from '../inventory/stock-ledger.service';
-import { buildPaginatedResult } from '../../common/utils/pagination';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import {
+  ReturnsRepository,
+  Rma,
+  RmaLine,
+  CreditNoteDraft,
+} from "./returns.repository";
+import { StockLedgerService } from "../inventory/stock-ledger.service";
+import { buildPaginatedResult } from "../../common/utils/pagination";
 
 @Injectable()
 export class ReturnsService {
@@ -45,7 +54,7 @@ export class ReturnsService {
 
   async getRma(id: string): Promise<Rma> {
     const rma = await this.repository.findRmaById(id);
-    if (!rma) throw new NotFoundException('RMA not found');
+    if (!rma) throw new NotFoundException("RMA not found");
     return rma;
   }
 
@@ -64,7 +73,12 @@ export class ReturnsService {
   ) {
     const offset = (page - 1) * limit;
     const [data, total] = await Promise.all([
-      this.repository.findRmasByTenant(tenantId, { ...filters, siteId }, limit, offset),
+      this.repository.findRmasByTenant(
+        tenantId,
+        { ...filters, siteId },
+        limit,
+        offset,
+      ),
       this.repository.countRmasByTenant(tenantId, { ...filters, siteId }),
     ]);
     return buildPaginatedResult(data, total, page, limit);
@@ -81,7 +95,7 @@ export class ReturnsService {
     const line = await this.repository.findRmaLineById(lineId);
 
     if (!line || line.rmaId !== rmaId) {
-      throw new NotFoundException('RMA line not found');
+      throw new NotFoundException("RMA line not found");
     }
 
     // Record stock receipt
@@ -91,8 +105,8 @@ export class ReturnsService {
       itemId: line.itemId,
       toBinId: receivingBinId,
       qty: qtyReceived,
-      reason: 'RETURN',
-      refType: 'rma',
+      reason: "RETURN",
+      refType: "rma",
       refId: rmaId,
       createdBy,
     });
@@ -102,8 +116,8 @@ export class ReturnsService {
     // Update RMA status if all lines received
     const lines = await this.repository.getRmaLines(rmaId);
     const allReceived = lines.every((l) => l.qtyReceived >= l.qtyExpected);
-    if (allReceived && rma.status === 'AWAITING_RETURN') {
-      await this.repository.updateRmaStatus(rmaId, 'RECEIVED');
+    if (allReceived && rma.status === "AWAITING_RETURN") {
+      await this.repository.updateRmaStatus(rmaId, "RECEIVED");
     }
 
     return updated!;
@@ -121,15 +135,15 @@ export class ReturnsService {
     const line = await this.repository.findRmaLineById(lineId);
 
     if (!line || line.rmaId !== rmaId) {
-      throw new NotFoundException('RMA line not found');
+      throw new NotFoundException("RMA line not found");
     }
 
     if (line.qtyReceived <= 0) {
-      throw new BadRequestException('Line must be received before disposition');
+      throw new BadRequestException("Line must be received before disposition");
     }
 
     // Move stock based on disposition
-    const reason = disposition === 'SCRAP' ? 'SCRAP' : 'TRANSFER';
+    const reason = disposition === "SCRAP" ? "SCRAP" : "TRANSFER";
     await this.stockLedger.recordMovement({
       tenantId: rma.tenantId,
       siteId: rma.siteId,
@@ -137,7 +151,7 @@ export class ReturnsService {
       toBinId: dispositionBinId,
       qty: line.qtyReceived,
       reason,
-      refType: 'rma',
+      refType: "rma",
       refId: rmaId,
       createdBy: inspectedBy,
     });
@@ -152,9 +166,9 @@ export class ReturnsService {
 
     // Update RMA status if all lines disposed
     const lines = await this.repository.getRmaLines(rmaId);
-    const allDisposed = lines.every((l) => l.disposition !== 'PENDING');
+    const allDisposed = lines.every((l) => l.disposition !== "PENDING");
     if (allDisposed) {
-      await this.repository.updateRmaStatus(rmaId, 'DISPOSITION_COMPLETE');
+      await this.repository.updateRmaStatus(rmaId, "DISPOSITION_COMPLETE");
     }
 
     return updated!;
@@ -162,15 +176,18 @@ export class ReturnsService {
 
   async deleteRma(id: string): Promise<void> {
     const rma = await this.repository.findRmaById(id);
-    if (!rma) throw new NotFoundException('RMA not found');
-    if (rma.status !== 'OPEN') {
-      throw new BadRequestException('Only OPEN RMAs can be deleted');
+    if (!rma) throw new NotFoundException("RMA not found");
+    if (rma.status !== "OPEN") {
+      throw new BadRequestException("Only OPEN RMAs can be deleted");
     }
     await this.repository.deleteRma(id);
   }
 
   // Credit Notes
-  async createCreditNote(rmaId: string, createdBy?: string): Promise<CreditNoteDraft> {
+  async createCreditNote(
+    rmaId: string,
+    createdBy?: string,
+  ): Promise<CreditNoteDraft> {
     const rma = await this.getRma(rmaId);
     const lines = await this.repository.getRmaLines(rmaId);
 
@@ -198,18 +215,23 @@ export class ReturnsService {
       createdBy,
     });
 
-    await this.repository.updateRmaStatus(rmaId, 'CREDIT_PENDING');
+    await this.repository.updateRmaStatus(rmaId, "CREDIT_PENDING");
 
     return creditNote;
   }
 
   async getCreditNote(id: string): Promise<CreditNoteDraft> {
     const creditNote = await this.repository.findCreditNoteById(id);
-    if (!creditNote) throw new NotFoundException('Credit note not found');
+    if (!creditNote) throw new NotFoundException("Credit note not found");
     return creditNote;
   }
 
-  async listCreditNotes(tenantId: string, status?: string, page = 1, limit = 50) {
+  async listCreditNotes(
+    tenantId: string,
+    status?: string,
+    page = 1,
+    limit = 50,
+  ) {
     const offset = (page - 1) * limit;
     const [data, total] = await Promise.all([
       this.repository.findCreditNotesByTenant(tenantId, status, limit, offset),
@@ -220,21 +242,26 @@ export class ReturnsService {
 
   async deleteCreditNote(id: string): Promise<void> {
     const creditNote = await this.repository.findCreditNoteById(id);
-    if (!creditNote) throw new NotFoundException('Credit note not found');
-    if (creditNote.status !== 'DRAFT') {
-      throw new BadRequestException('Only DRAFT credit notes can be deleted');
+    if (!creditNote) throw new NotFoundException("Credit note not found");
+    if (creditNote.status !== "DRAFT") {
+      throw new BadRequestException("Only DRAFT credit notes can be deleted");
     }
     await this.repository.deleteCreditNote(id);
   }
 
-  async approveCreditNote(id: string, approvedBy: string): Promise<CreditNoteDraft> {
+  async approveCreditNote(
+    id: string,
+    approvedBy: string,
+  ): Promise<CreditNoteDraft> {
     const creditNote = await this.repository.approveCreditNote(id, approvedBy);
     if (!creditNote) {
-      throw new BadRequestException('Credit note not found or not in SUBMITTED status');
+      throw new BadRequestException(
+        "Credit note not found or not in SUBMITTED status",
+      );
     }
 
     // Update RMA status
-    await this.repository.updateRmaStatus(creditNote.rmaId, 'CREDIT_APPROVED');
+    await this.repository.updateRmaStatus(creditNote.rmaId, "CREDIT_APPROVED");
 
     return creditNote;
   }
@@ -253,7 +280,7 @@ export class ReturnsService {
 
     const creditNo = await this.repository.generateCreditNo(tenantId);
 
-    const notes = [data.reason, data.notes].filter(Boolean).join(' — ');
+    const notes = [data.reason, data.notes].filter(Boolean).join(" — ");
 
     const creditNote = await this.repository.createCreditNoteDraft({
       tenantId,
@@ -266,7 +293,7 @@ export class ReturnsService {
       createdBy,
     });
 
-    await this.repository.updateRmaStatus(data.rmaId, 'CREDIT_PENDING');
+    await this.repository.updateRmaStatus(data.rmaId, "CREDIT_PENDING");
 
     return creditNote;
   }
@@ -274,7 +301,9 @@ export class ReturnsService {
   async postCreditNote(id: string): Promise<CreditNoteDraft> {
     const creditNote = await this.repository.postCreditNote(id);
     if (!creditNote) {
-      throw new BadRequestException('Credit note not found or not in APPROVED status');
+      throw new BadRequestException(
+        "Credit note not found or not in APPROVED status",
+      );
     }
     return creditNote;
   }
@@ -282,7 +311,9 @@ export class ReturnsService {
   async cancelCreditNote(id: string, reason: string): Promise<CreditNoteDraft> {
     const creditNote = await this.repository.cancelCreditNote(id, reason);
     if (!creditNote) {
-      throw new BadRequestException('Credit note not found or already cancelled');
+      throw new BadRequestException(
+        "Credit note not found or already cancelled",
+      );
     }
     return creditNote;
   }
@@ -292,17 +323,22 @@ export class ReturnsService {
     const lines = await this.repository.getRmaLines(rmaId);
 
     if (lines.length === 0) {
-      throw new BadRequestException('RMA has no lines');
+      throw new BadRequestException("RMA has no lines");
     }
 
-    const allDisposed = lines.every((l) => l.disposition !== 'PENDING');
+    const allDisposed = lines.every((l) => l.disposition !== "PENDING");
     if (!allDisposed) {
-      throw new BadRequestException('All lines must have a disposition set before completing');
+      throw new BadRequestException(
+        "All lines must have a disposition set before completing",
+      );
     }
 
-    const updated = await this.repository.updateRmaStatus(rmaId, 'DISPOSITIONED');
+    const updated = await this.repository.updateRmaStatus(
+      rmaId,
+      "DISPOSITIONED",
+    );
     if (!updated) {
-      throw new BadRequestException('Failed to update RMA status');
+      throw new BadRequestException("Failed to update RMA status");
     }
     return updated;
   }
@@ -310,16 +346,21 @@ export class ReturnsService {
   async closeRma(rmaId: string): Promise<Rma> {
     const rma = await this.getRma(rmaId);
 
-    const closableStatuses = ['DISPOSITIONED', 'RECEIVED', 'DISPOSITION_COMPLETE', 'CREDIT_APPROVED'];
+    const closableStatuses = [
+      "DISPOSITIONED",
+      "RECEIVED",
+      "DISPOSITION_COMPLETE",
+      "CREDIT_APPROVED",
+    ];
     if (!closableStatuses.includes(rma.status)) {
       throw new BadRequestException(
-        `RMA cannot be closed from status ${rma.status}. Must be in: ${closableStatuses.join(', ')}`,
+        `RMA cannot be closed from status ${rma.status}. Must be in: ${closableStatuses.join(", ")}`,
       );
     }
 
-    const updated = await this.repository.updateRmaStatus(rmaId, 'CLOSED');
+    const updated = await this.repository.updateRmaStatus(rmaId, "CLOSED");
     if (!updated) {
-      throw new BadRequestException('Failed to update RMA status');
+      throw new BadRequestException("Failed to update RMA status");
     }
     return updated;
   }
@@ -327,13 +368,15 @@ export class ReturnsService {
   async cancelRma(rmaId: string, reason: string): Promise<Rma> {
     const rma = await this.getRma(rmaId);
 
-    if (rma.status === 'CLOSED' || rma.status === 'CANCELLED') {
-      throw new BadRequestException(`RMA cannot be cancelled from status ${rma.status}`);
+    if (rma.status === "CLOSED" || rma.status === "CANCELLED") {
+      throw new BadRequestException(
+        `RMA cannot be cancelled from status ${rma.status}`,
+      );
     }
 
-    const updated = await this.repository.updateRmaStatus(rmaId, 'CANCELLED');
+    const updated = await this.repository.updateRmaStatus(rmaId, "CANCELLED");
     if (!updated) {
-      throw new BadRequestException('Failed to update RMA status');
+      throw new BadRequestException("Failed to update RMA status");
     }
     return updated;
   }

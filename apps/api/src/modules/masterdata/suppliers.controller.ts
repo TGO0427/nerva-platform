@@ -8,17 +8,17 @@ import {
   Body,
   Query,
   UseGuards,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { MasterDataService } from './masterdata.service';
-import { AuditService } from '../audit/audit.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TenantGuard } from '../../common/guards/tenant.guard';
-import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { TenantId } from '../../common/decorators/tenant.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+} from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import { MasterDataService } from "./masterdata.service";
+import { AuditService } from "../audit/audit.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { TenantGuard } from "../../common/guards/tenant.guard";
+import { PermissionsGuard } from "../../common/guards/permissions.guard";
+import { RequirePermissions } from "../../common/decorators/permissions.decorator";
+import { TenantId } from "../../common/decorators/tenant.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { UuidValidationPipe } from "../../common/pipes/uuid-validation.pipe";
 import {
   CreateSupplierDto,
   UpdateSupplierDto,
@@ -32,13 +32,13 @@ import {
   CreateSupplierContractDto,
   UpdateSupplierContractDto,
   ImportSuppliersDto,
-} from './dto';
-import type { ImportResult } from './dto';
+} from "./dto";
+import type { ImportResult } from "./dto";
 
-@ApiTags('master-data')
+@ApiTags("master-data")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('masterdata/suppliers')
+@Controller("masterdata/suppliers")
 export class SuppliersController {
   constructor(
     private readonly service: MasterDataService,
@@ -46,20 +46,20 @@ export class SuppliersController {
   ) {}
 
   @Get()
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'List suppliers' })
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "List suppliers" })
   async list(
     @TenantId() tenantId: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-    @Query('search') search?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+    @Query("search") search?: string,
   ) {
     return this.service.listSuppliers(tenantId, { page, limit, search });
   }
 
-  @Post('import')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Bulk import suppliers from CSV' })
+  @Post("import")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Bulk import suppliers from CSV" })
   async import(
     @TenantId() tenantId: string,
     @Body() data: ImportSuppliersDto,
@@ -67,115 +67,122 @@ export class SuppliersController {
     return this.service.importSuppliers(tenantId, data.suppliers);
   }
 
-  @Get(':id')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'Get supplier by ID' })
+  @Get(":id")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "Get supplier by ID" })
   async get(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
   ) {
     return this.service.getSupplier(tenantId, id);
   }
 
   @Post()
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Create supplier' })
-  async create(
-    @TenantId() tenantId: string,
-    @Body() data: CreateSupplierDto,
-  ) {
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Create supplier" })
+  async create(@TenantId() tenantId: string, @Body() data: CreateSupplierDto) {
     return this.service.createSupplier({ tenantId, ...data });
   }
 
-  @Patch(':id')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Update supplier' })
+  @Patch(":id")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Update supplier" })
   async update(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @Body() data: UpdateSupplierDto,
   ) {
     return this.service.updateSupplier(tenantId, id, data);
   }
 
-  @Delete(':id')
-  @RequirePermissions('supplier.delete')
-  @ApiOperation({ summary: 'Delete supplier (no references)' })
+  @Delete(":id")
+  @RequirePermissions("supplier.delete")
+  @ApiOperation({ summary: "Delete supplier (no references)" })
   async delete(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
   ) {
     await this.service.deleteSupplier(tenantId, id);
     return { success: true };
   }
 
   // Activity Log
-  @Get(':id/activity')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'Get supplier activity log' })
+  @Get(":id/activity")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "Get supplier activity log" })
   async getActivity(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) id: string,
-    @Query('limit') limit?: number,
+    @Param("id", UuidValidationPipe) id: string,
+    @Query("limit") limit?: number,
   ) {
-    return this.auditService.getEntityHistory(tenantId, 'supplier', id, limit || 50, 0);
+    return this.auditService.getEntityHistory(
+      tenantId,
+      "supplier",
+      id,
+      limit || 50,
+      0,
+    );
   }
 
   // Contacts
-  @Get(':id/contacts')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'List supplier contacts' })
-  async listContacts(@Param('id', UuidValidationPipe) supplierId: string) {
+  @Get(":id/contacts")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "List supplier contacts" })
+  async listContacts(@Param("id", UuidValidationPipe) supplierId: string) {
     return this.service.listSupplierContacts(supplierId);
   }
 
-  @Post(':id/contacts')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Create supplier contact' })
+  @Post(":id/contacts")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Create supplier contact" })
   async createContact(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) supplierId: string,
+    @Param("id", UuidValidationPipe) supplierId: string,
     @Body() data: CreateSupplierContactDto,
   ) {
-    return this.service.createSupplierContact({ tenantId, supplierId, ...data });
+    return this.service.createSupplierContact({
+      tenantId,
+      supplierId,
+      ...data,
+    });
   }
 
-  @Patch('contacts/:contactId')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Update supplier contact' })
+  @Patch("contacts/:contactId")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Update supplier contact" })
   async updateContact(
     @TenantId() tenantId: string,
-    @Param('contactId', UuidValidationPipe) contactId: string,
+    @Param("contactId", UuidValidationPipe) contactId: string,
     @Body() data: UpdateSupplierContactDto,
   ) {
     return this.service.updateSupplierContact(tenantId, contactId, data);
   }
 
-  @Delete('contacts/:contactId')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Delete supplier contact' })
+  @Delete("contacts/:contactId")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Delete supplier contact" })
   async deleteContact(
     @TenantId() tenantId: string,
-    @Param('contactId', UuidValidationPipe) contactId: string,
+    @Param("contactId", UuidValidationPipe) contactId: string,
   ) {
     await this.service.deleteSupplierContact(tenantId, contactId);
     return { success: true };
   }
 
   // Notes
-  @Get(':id/notes')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'List supplier notes' })
-  async listNotes(@Param('id', UuidValidationPipe) supplierId: string) {
+  @Get(":id/notes")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "List supplier notes" })
+  async listNotes(@Param("id", UuidValidationPipe) supplierId: string) {
     return this.service.listSupplierNotes(supplierId);
   }
 
-  @Post(':id/notes')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Create supplier note' })
+  @Post(":id/notes")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Create supplier note" })
   async createNote(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) supplierId: string,
+    @Param("id", UuidValidationPipe) supplierId: string,
     @Body() data: CreateSupplierNoteDto,
     @CurrentUser() user: { id: string },
   ) {
@@ -187,31 +194,31 @@ export class SuppliersController {
     });
   }
 
-  @Delete('notes/:noteId')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Delete supplier note' })
+  @Delete("notes/:noteId")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Delete supplier note" })
   async deleteNote(
     @TenantId() tenantId: string,
-    @Param('noteId', UuidValidationPipe) noteId: string,
+    @Param("noteId", UuidValidationPipe) noteId: string,
   ) {
     await this.service.deleteSupplierNote(tenantId, noteId);
     return { success: true };
   }
 
   // NCRs
-  @Get(':id/ncrs')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'List supplier NCRs' })
-  async listNcrs(@Param('id', UuidValidationPipe) supplierId: string) {
+  @Get(":id/ncrs")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "List supplier NCRs" })
+  async listNcrs(@Param("id", UuidValidationPipe) supplierId: string) {
     return this.service.listSupplierNcrs(supplierId);
   }
 
-  @Post(':id/ncrs')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Create supplier NCR' })
+  @Post(":id/ncrs")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Create supplier NCR" })
   async createNcr(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) supplierId: string,
+    @Param("id", UuidValidationPipe) supplierId: string,
     @Body() data: CreateSupplierNcrDto,
     @CurrentUser() user: { id: string },
   ) {
@@ -224,22 +231,22 @@ export class SuppliersController {
     });
   }
 
-  @Get('ncrs/:ncrId')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'Get supplier NCR by ID' })
+  @Get("ncrs/:ncrId")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "Get supplier NCR by ID" })
   async getNcr(
     @TenantId() tenantId: string,
-    @Param('ncrId', UuidValidationPipe) ncrId: string,
+    @Param("ncrId", UuidValidationPipe) ncrId: string,
   ) {
     return this.service.getSupplierNcr(tenantId, ncrId);
   }
 
-  @Post('ncrs/:ncrId/resolve')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Resolve supplier NCR' })
+  @Post("ncrs/:ncrId/resolve")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Resolve supplier NCR" })
   async resolveNcr(
     @TenantId() tenantId: string,
-    @Param('ncrId', UuidValidationPipe) ncrId: string,
+    @Param("ncrId", UuidValidationPipe) ncrId: string,
     @Body() data: ResolveSupplierNcrDto,
     @CurrentUser() user: { id: string },
   ) {
@@ -250,56 +257,56 @@ export class SuppliersController {
   }
 
   // Supplier Items (Products & Services)
-  @Get(':id/items')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'List supplier items' })
-  async listItems(@Param('id', UuidValidationPipe) supplierId: string) {
+  @Get(":id/items")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "List supplier items" })
+  async listItems(@Param("id", UuidValidationPipe) supplierId: string) {
     return this.service.listSupplierItems(supplierId);
   }
 
-  @Post(':id/items')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Add item to supplier' })
+  @Post(":id/items")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Add item to supplier" })
   async addItem(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) supplierId: string,
+    @Param("id", UuidValidationPipe) supplierId: string,
     @Body() data: CreateSupplierItemDto,
   ) {
     return this.service.createSupplierItem({ tenantId, supplierId, ...data });
   }
 
-  @Patch('items/:itemId')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Update supplier item' })
+  @Patch("items/:itemId")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Update supplier item" })
   async updateItem(
-    @Param('itemId', UuidValidationPipe) itemId: string,
+    @Param("itemId", UuidValidationPipe) itemId: string,
     @Body() data: UpdateSupplierItemDto,
   ) {
     return this.service.updateSupplierItem(itemId, data);
   }
 
-  @Delete('items/:itemId')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Remove item from supplier' })
-  async removeItem(@Param('itemId', UuidValidationPipe) itemId: string) {
+  @Delete("items/:itemId")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Remove item from supplier" })
+  async removeItem(@Param("itemId", UuidValidationPipe) itemId: string) {
     await this.service.deleteSupplierItem(itemId);
     return { success: true };
   }
 
   // Supplier Contracts
-  @Get(':id/contracts')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'List supplier contracts' })
-  async listContracts(@Param('id', UuidValidationPipe) supplierId: string) {
+  @Get(":id/contracts")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "List supplier contracts" })
+  async listContracts(@Param("id", UuidValidationPipe) supplierId: string) {
     return this.service.listSupplierContracts(supplierId);
   }
 
-  @Post(':id/contracts')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Create supplier contract' })
+  @Post(":id/contracts")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Create supplier contract" })
   async createContract(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) supplierId: string,
+    @Param("id", UuidValidationPipe) supplierId: string,
     @Body() data: CreateSupplierContractDto,
     @CurrentUser() user: { id: string },
   ) {
@@ -316,18 +323,20 @@ export class SuppliersController {
     });
   }
 
-  @Get('contracts/:contractId')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'Get supplier contract by ID' })
-  async getContract(@Param('contractId', UuidValidationPipe) contractId: string) {
+  @Get("contracts/:contractId")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "Get supplier contract by ID" })
+  async getContract(
+    @Param("contractId", UuidValidationPipe) contractId: string,
+  ) {
     return this.service.getSupplierContract(contractId);
   }
 
-  @Patch('contracts/:contractId')
-  @RequirePermissions('supplier.write')
-  @ApiOperation({ summary: 'Update supplier contract' })
+  @Patch("contracts/:contractId")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Update supplier contract" })
   async updateContract(
-    @Param('contractId', UuidValidationPipe) contractId: string,
+    @Param("contractId", UuidValidationPipe) contractId: string,
     @Body() data: UpdateSupplierContractDto,
   ) {
     return this.service.updateSupplierContract(contractId, {
@@ -341,47 +350,47 @@ export class SuppliersController {
   }
 
   // Analytics
-  @Get('analytics/summary')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'Get supplier dashboard summary' })
+  @Get("analytics/summary")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "Get supplier dashboard summary" })
   async getAnalyticsSummary(@TenantId() tenantId: string) {
     return this.service.getSupplierDashboardSummary(tenantId);
   }
 
-  @Get('analytics/performance')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'Get supplier performance statistics' })
+  @Get("analytics/performance")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "Get supplier performance statistics" })
   async getAnalyticsPerformance(
     @TenantId() tenantId: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-    @Query('sortBy') sortBy?: string,
-    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortOrder") sortOrder?: "asc" | "desc",
   ) {
     return this.service.getSupplierPerformanceStats(tenantId, {
       page: page || 1,
       limit: limit || 10,
-      sortBy: sortBy || 'totalPOValue',
-      sortOrder: sortOrder || 'desc',
+      sortBy: sortBy || "totalPOValue",
+      sortOrder: sortOrder || "desc",
     });
   }
 
-  @Get('analytics/ncr-trends')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'Get NCR trends by month' })
+  @Get("analytics/ncr-trends")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "Get NCR trends by month" })
   async getNcrTrends(
     @TenantId() tenantId: string,
-    @Query('months') months?: number,
+    @Query("months") months?: number,
   ) {
     return this.service.getNcrTrendsByMonth(tenantId, months || 12);
   }
 
-  @Get('analytics/po-trends')
-  @RequirePermissions('supplier.read')
-  @ApiOperation({ summary: 'Get purchase order trends by month' })
+  @Get("analytics/po-trends")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "Get purchase order trends by month" })
   async getPoTrends(
     @TenantId() tenantId: string,
-    @Query('months') months?: number,
+    @Query("months") months?: number,
   ) {
     return this.service.getPurchaseOrderTrendsByMonth(tenantId, months || 12);
   }

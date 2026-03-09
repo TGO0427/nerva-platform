@@ -1,6 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { IntegrationsRepository, PostingQueueItem } from './integrations.repository';
-import { buildPaginatedResult } from '../../common/utils/pagination';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  IntegrationsRepository,
+  PostingQueueItem,
+} from "./integrations.repository";
+import { buildPaginatedResult } from "../../common/utils/pagination";
 
 @Injectable()
 export class PostingQueueService {
@@ -22,7 +25,7 @@ export class PostingQueueService {
 
   async getQueueItem(id: string): Promise<PostingQueueItem> {
     const item = await this.repository.findQueueItemById(id);
-    if (!item) throw new NotFoundException('Queue item not found');
+    if (!item) throw new NotFoundException("Queue item not found");
     return item;
   }
 
@@ -35,31 +38,37 @@ export class PostingQueueService {
     return buildPaginatedResult(data, total, page, limit);
   }
 
-  async getPendingItems(integrationId: string, limit = 50): Promise<PostingQueueItem[]> {
+  async getPendingItems(
+    integrationId: string,
+    limit = 50,
+  ): Promise<PostingQueueItem[]> {
     return this.repository.findPendingItems(integrationId, limit);
   }
 
   async processItem(id: string): Promise<PostingQueueItem> {
     const item = await this.repository.markProcessing(id);
-    if (!item) throw new NotFoundException('Queue item not found');
+    if (!item) throw new NotFoundException("Queue item not found");
     return item;
   }
 
-  async markSuccess(id: string, externalRef?: string): Promise<PostingQueueItem> {
+  async markSuccess(
+    id: string,
+    externalRef?: string,
+  ): Promise<PostingQueueItem> {
     const item = await this.repository.markSuccess(id, externalRef);
-    if (!item) throw new NotFoundException('Queue item not found');
+    if (!item) throw new NotFoundException("Queue item not found");
     return item;
   }
 
   async markFailed(id: string, error: string): Promise<PostingQueueItem> {
     const item = await this.repository.markFailed(id, error);
-    if (!item) throw new NotFoundException('Queue item not found');
+    if (!item) throw new NotFoundException("Queue item not found");
     return item;
   }
 
   async retry(id: string): Promise<PostingQueueItem> {
     const item = await this.repository.retryItem(id);
-    if (!item) throw new NotFoundException('Queue item not found');
+    if (!item) throw new NotFoundException("Queue item not found");
     return item;
   }
 
@@ -76,21 +85,32 @@ export class PostingQueueService {
     // Get the integration connection
     const connection = await this.repository.findConnectionById(integrationId);
     if (!connection) {
-      return { success: false, error: 'Integration not found' };
+      return { success: false, error: "Integration not found" };
     }
 
-    if (connection.status !== 'CONNECTED') {
-      return { success: false, error: 'Integration not connected' };
+    if (connection.status !== "CONNECTED") {
+      return { success: false, error: "Integration not connected" };
     }
 
     // Dispatch to appropriate handler based on type
     switch (connection.type) {
-      case 'xero':
-        return this.postToXero(connection as unknown as Record<string, unknown>, docType, payload);
-      case 'sage':
-        return this.postToSage(connection as unknown as Record<string, unknown>, docType, payload);
+      case "xero":
+        return this.postToXero(
+          connection as unknown as Record<string, unknown>,
+          docType,
+          payload,
+        );
+      case "sage":
+        return this.postToSage(
+          connection as unknown as Record<string, unknown>,
+          docType,
+          payload,
+        );
       default:
-        return { success: false, error: `Unknown integration type: ${connection.type}` };
+        return {
+          success: false,
+          error: `Unknown integration type: ${connection.type}`,
+        };
     }
   }
 
@@ -103,7 +123,7 @@ export class PostingQueueService {
     // In real implementation:
     // 1. Use Xero SDK to create invoice/credit note
     // 2. Return the Xero invoice ID as externalRef
-    return { success: true, externalRef: 'XERO-PLACEHOLDER-ID' };
+    return { success: true, externalRef: "XERO-PLACEHOLDER-ID" };
   }
 
   private async postToSage(
@@ -112,6 +132,6 @@ export class PostingQueueService {
     _payload: Record<string, unknown>,
   ): Promise<{ success: boolean; externalRef?: string; error?: string }> {
     // Placeholder for Sage API integration
-    return { success: true, externalRef: 'SAGE-PLACEHOLDER-ID' };
+    return { success: true, externalRef: "SAGE-PLACEHOLDER-ID" };
   }
 }

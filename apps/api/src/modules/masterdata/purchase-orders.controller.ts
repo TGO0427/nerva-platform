@@ -11,31 +11,36 @@ import {
   BadRequestException,
   Res,
   StreamableFile,
-} from '@nestjs/common';
-import { Response } from 'express';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
-import { MasterDataService } from './masterdata.service';
-import { PurchaseOrderPdfService } from './purchase-order-pdf.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TenantGuard } from '../../common/guards/tenant.guard';
-import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { TenantId, SiteId } from '../../common/decorators/tenant.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { UuidValidationPipe } from '../../common/pipes/uuid-validation.pipe';
+} from "@nestjs/common";
+import { Response } from "express";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiProduces,
+} from "@nestjs/swagger";
+import { MasterDataService } from "./masterdata.service";
+import { PurchaseOrderPdfService } from "./purchase-order-pdf.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { TenantGuard } from "../../common/guards/tenant.guard";
+import { PermissionsGuard } from "../../common/guards/permissions.guard";
+import { RequirePermissions } from "../../common/decorators/permissions.decorator";
+import { TenantId, SiteId } from "../../common/decorators/tenant.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { UuidValidationPipe } from "../../common/pipes/uuid-validation.pipe";
 import {
   CreatePurchaseOrderDto,
   UpdatePurchaseOrderDto,
   CreatePurchaseOrderLineDto,
   UpdatePurchaseOrderLineDto,
   ImportPurchaseOrdersDto,
-} from './dto';
-import type { ImportResult } from './dto/import.dto';
+} from "./dto";
+import type { ImportResult } from "./dto/import.dto";
 
-@ApiTags('purchase-orders')
+@ApiTags("purchase-orders")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
-@Controller('purchase-orders')
+@Controller("purchase-orders")
 export class PurchaseOrdersController {
   constructor(
     private readonly service: MasterDataService,
@@ -43,30 +48,36 @@ export class PurchaseOrdersController {
   ) {}
 
   @Get()
-    @RequirePermissions('purchase_order.read')
-  @ApiOperation({ summary: 'List purchase orders' })
+  @RequirePermissions("purchase_order.read")
+  @ApiOperation({ summary: "List purchase orders" })
   async list(
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-    @Query('status') status?: string,
-    @Query('supplierId') supplierId?: string,
-    @Query('search') search?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+    @Query("status") status?: string,
+    @Query("supplierId") supplierId?: string,
+    @Query("search") search?: string,
   ) {
-    return this.service.listPurchaseOrders(tenantId, siteId, { page, limit, status, supplierId, search });
+    return this.service.listPurchaseOrders(tenantId, siteId, {
+      page,
+      limit,
+      status,
+      supplierId,
+      search,
+    });
   }
 
-  @Get('stats')
-  @RequirePermissions('purchase_order.read')
-  @ApiOperation({ summary: 'Get purchase order status counts' })
+  @Get("stats")
+  @RequirePermissions("purchase_order.read")
+  @ApiOperation({ summary: "Get purchase order status counts" })
   async stats(@TenantId() tenantId: string) {
     return this.service.getPurchaseOrderStats(tenantId);
   }
 
-  @Post('import')
-  @RequirePermissions('purchase_order.write')
-  @ApiOperation({ summary: 'Bulk import purchase orders from spreadsheet' })
+  @Post("import")
+  @RequirePermissions("purchase_order.write")
+  @ApiOperation({ summary: "Bulk import purchase orders from spreadsheet" })
   async importOrders(
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
@@ -74,39 +85,46 @@ export class PurchaseOrdersController {
     @Body() data: ImportPurchaseOrdersDto,
   ): Promise<ImportResult> {
     if (!siteId) {
-      throw new BadRequestException('Please select a site before importing purchase orders');
+      throw new BadRequestException(
+        "Please select a site before importing purchase orders",
+      );
     }
-    return this.service.importPurchaseOrders(tenantId, siteId, user.id, data.rows);
+    return this.service.importPurchaseOrders(
+      tenantId,
+      siteId,
+      user.id,
+      data.rows,
+    );
   }
 
-  @Get(':id')
-    @RequirePermissions('purchase_order.read')
-  @ApiOperation({ summary: 'Get purchase order by ID' })
-  async get(@Param('id', UuidValidationPipe) id: string) {
+  @Get(":id")
+  @RequirePermissions("purchase_order.read")
+  @ApiOperation({ summary: "Get purchase order by ID" })
+  async get(@Param("id", UuidValidationPipe) id: string) {
     return this.service.getPurchaseOrder(id);
   }
 
-  @Get(':id/pdf')
-  @RequirePermissions('purchase_order.read')
-  @ApiOperation({ summary: 'Download purchase order PDF' })
-  @ApiProduces('application/pdf')
+  @Get(":id/pdf")
+  @RequirePermissions("purchase_order.read")
+  @ApiOperation({ summary: "Download purchase order PDF" })
+  @ApiProduces("application/pdf")
   async downloadPdf(
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @TenantId() tenantId: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const pdfBuffer = await this.pdfService.generate(id, tenantId);
     res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="purchase-order-${id}.pdf"`,
-      'Content-Length': pdfBuffer.length,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="purchase-order-${id}.pdf"`,
+      "Content-Length": pdfBuffer.length,
     });
     return new StreamableFile(pdfBuffer);
   }
 
   @Post()
-  @RequirePermissions('purchase_order.write')
-  @ApiOperation({ summary: 'Create purchase order' })
+  @RequirePermissions("purchase_order.write")
+  @ApiOperation({ summary: "Create purchase order" })
   async create(
     @TenantId() tenantId: string,
     @SiteId() siteId: string,
@@ -114,7 +132,9 @@ export class PurchaseOrdersController {
     @CurrentUser() user: { id: string },
   ) {
     if (!siteId) {
-      throw new BadRequestException('Please select a site before creating a purchase order');
+      throw new BadRequestException(
+        "Please select a site before creating a purchase order",
+      );
     }
     const po = await this.service.createPurchaseOrder({
       tenantId,
@@ -145,11 +165,11 @@ export class PurchaseOrdersController {
     return po;
   }
 
-  @Patch(':id')
-  @RequirePermissions('purchase_order.write')
-  @ApiOperation({ summary: 'Update purchase order' })
+  @Patch(":id")
+  @RequirePermissions("purchase_order.write")
+  @ApiOperation({ summary: "Update purchase order" })
   async update(
-    @Param('id', UuidValidationPipe) id: string,
+    @Param("id", UuidValidationPipe) id: string,
     @Body() data: UpdatePurchaseOrderDto,
   ) {
     return this.service.updatePurchaseOrder(id, {
@@ -158,30 +178,30 @@ export class PurchaseOrdersController {
     });
   }
 
-  @Patch(':id/status')
-  @RequirePermissions('purchase_order.write')
-  @ApiOperation({ summary: 'Update purchase order status' })
+  @Patch(":id/status")
+  @RequirePermissions("purchase_order.write")
+  @ApiOperation({ summary: "Update purchase order status" })
   async updateStatus(
-    @Param('id', UuidValidationPipe) id: string,
-    @Body('status') status: string,
+    @Param("id", UuidValidationPipe) id: string,
+    @Body("status") status: string,
   ) {
     return this.service.updatePurchaseOrder(id, { status });
   }
 
   // Lines
-  @Get(':id/lines')
-    @RequirePermissions('purchase_order.read')
-  @ApiOperation({ summary: 'List purchase order lines' })
-  async listLines(@Param('id', UuidValidationPipe) purchaseOrderId: string) {
+  @Get(":id/lines")
+  @RequirePermissions("purchase_order.read")
+  @ApiOperation({ summary: "List purchase order lines" })
+  async listLines(@Param("id", UuidValidationPipe) purchaseOrderId: string) {
     return this.service.listPurchaseOrderLines(purchaseOrderId);
   }
 
-  @Post(':id/lines')
-  @RequirePermissions('purchase_order.write')
-  @ApiOperation({ summary: 'Add line to purchase order' })
+  @Post(":id/lines")
+  @RequirePermissions("purchase_order.write")
+  @ApiOperation({ summary: "Add line to purchase order" })
   async addLine(
     @TenantId() tenantId: string,
-    @Param('id', UuidValidationPipe) purchaseOrderId: string,
+    @Param("id", UuidValidationPipe) purchaseOrderId: string,
     @Body() data: CreatePurchaseOrderLineDto,
   ) {
     const line = await this.service.createPurchaseOrderLine({
@@ -196,11 +216,11 @@ export class PurchaseOrdersController {
     return line;
   }
 
-  @Patch('lines/:lineId')
-  @RequirePermissions('purchase_order.write')
-  @ApiOperation({ summary: 'Update purchase order line' })
+  @Patch("lines/:lineId")
+  @RequirePermissions("purchase_order.write")
+  @ApiOperation({ summary: "Update purchase order line" })
   async updateLine(
-    @Param('lineId', UuidValidationPipe) lineId: string,
+    @Param("lineId", UuidValidationPipe) lineId: string,
     @Body() data: UpdatePurchaseOrderLineDto,
   ) {
     const line = await this.service.updatePurchaseOrderLine(lineId, data);
@@ -209,12 +229,12 @@ export class PurchaseOrdersController {
     return line;
   }
 
-  @Delete('lines/:lineId')
-  @RequirePermissions('purchase_order.write')
-  @ApiOperation({ summary: 'Delete purchase order line' })
+  @Delete("lines/:lineId")
+  @RequirePermissions("purchase_order.write")
+  @ApiOperation({ summary: "Delete purchase order line" })
   async deleteLine(
-    @Param('lineId', UuidValidationPipe) lineId: string,
-    @Query('purchaseOrderId', UuidValidationPipe) purchaseOrderId: string,
+    @Param("lineId", UuidValidationPipe) lineId: string,
+    @Query("purchaseOrderId", UuidValidationPipe) purchaseOrderId: string,
   ) {
     await this.service.deletePurchaseOrderLine(lineId);
     // Recalculate totals after deleting line
@@ -222,17 +242,17 @@ export class PurchaseOrdersController {
     return { success: true };
   }
 
-  @Post(':id/reopen')
-  @RequirePermissions('purchase_order.write')
-  @ApiOperation({ summary: 'Reopen cancelled or received purchase order' })
-  async reopen(@Param('id', UuidValidationPipe) id: string) {
+  @Post(":id/reopen")
+  @RequirePermissions("purchase_order.write")
+  @ApiOperation({ summary: "Reopen cancelled or received purchase order" })
+  async reopen(@Param("id", UuidValidationPipe) id: string) {
     return this.service.reopenPurchaseOrder(id);
   }
 
-  @Delete(':id')
-  @RequirePermissions('purchase_order.delete')
-  @ApiOperation({ summary: 'Delete purchase order (draft only)' })
-  async deleteOrder(@Param('id', UuidValidationPipe) id: string) {
+  @Delete(":id")
+  @RequirePermissions("purchase_order.delete")
+  @ApiOperation({ summary: "Delete purchase order (draft only)" })
+  async deleteOrder(@Param("id", UuidValidationPipe) id: string) {
     await this.service.deletePurchaseOrder(id);
     return { success: true };
   }

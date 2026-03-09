@@ -4,8 +4,8 @@ import {
   IsOptional,
   IsUUID,
   IsObject,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class ConnectIntegrationDto {
   @ApiProperty()

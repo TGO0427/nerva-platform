@@ -5,8 +5,8 @@ import {
   IsNumber,
   IsArray,
   MaxLength,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class DeliverStopDto {
   @ApiPropertyOptional()

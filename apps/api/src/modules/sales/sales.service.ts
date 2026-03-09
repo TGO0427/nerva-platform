@@ -1,10 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { SalesRepository, SalesOrder, SalesOrderLine } from './sales.repository';
-import { StockLedgerService } from '../inventory/stock-ledger.service';
-import { MasterDataService } from '../masterdata/masterdata.service';
-import { buildPaginatedResult } from '../../common/utils/pagination';
-import type { ImportResult } from '../masterdata/dto/import.dto';
-import type { SalesOrderImportRowDto } from './dto/sales-import.dto';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import {
+  SalesRepository,
+  SalesOrder,
+  SalesOrderLine,
+} from "./sales.repository";
+import { StockLedgerService } from "../inventory/stock-ledger.service";
+import { MasterDataService } from "../masterdata/masterdata.service";
+import { buildPaginatedResult } from "../../common/utils/pagination";
+import type { ImportResult } from "../masterdata/dto/import.dto";
+import type { SalesOrderImportRowDto } from "./dto/sales-import.dto";
 
 @Injectable()
 export class SalesService {
@@ -44,15 +52,19 @@ export class SalesService {
     // Get siteId from warehouse if not provided
     let siteId = data.siteId;
     if (!siteId) {
-      const warehouse = await this.masterDataService.getWarehouse(data.tenantId, data.warehouseId);
+      const warehouse = await this.masterDataService.getWarehouse(
+        data.tenantId,
+        data.warehouseId,
+      );
       if (!warehouse) {
-        throw new NotFoundException('Warehouse not found');
+        throw new NotFoundException("Warehouse not found");
       }
       siteId = warehouse.siteId;
     }
 
     // Use provided orderNo or generate one
-    const orderNo = data.orderNo || await this.repository.generateOrderNo(data.tenantId);
+    const orderNo =
+      data.orderNo || (await this.repository.generateOrderNo(data.tenantId));
 
     const order = await this.repository.createOrder({
       tenantId: data.tenantId,
@@ -87,11 +99,13 @@ export class SalesService {
 
   async getOrder(id: string): Promise<SalesOrder> {
     const order = await this.repository.findOrderById(id);
-    if (!order) throw new NotFoundException('Sales order not found');
+    if (!order) throw new NotFoundException("Sales order not found");
     return order;
   }
 
-  async getOrderWithLines(id: string): Promise<SalesOrder & { lines: SalesOrderLine[] }> {
+  async getOrderWithLines(
+    id: string,
+  ): Promise<SalesOrder & { lines: SalesOrderLine[] }> {
     const order = await this.getOrder(id);
     const lines = await this.repository.getOrderLines(id);
     return { ...order, lines };
@@ -127,8 +141,8 @@ export class SalesService {
     },
   ): Promise<SalesOrder> {
     const order = await this.getOrder(id);
-    if (order.status !== 'DRAFT') {
-      throw new BadRequestException('Only DRAFT orders can be edited');
+    if (order.status !== "DRAFT") {
+      throw new BadRequestException("Only DRAFT orders can be edited");
     }
 
     // Update header fields
@@ -161,29 +175,38 @@ export class SalesService {
 
   async confirmOrder(id: string): Promise<SalesOrder> {
     const order = await this.getOrder(id);
-    if (order.status !== 'DRAFT') {
-      throw new BadRequestException('Only draft orders can be confirmed');
+    if (order.status !== "DRAFT") {
+      throw new BadRequestException("Only draft orders can be confirmed");
     }
-    const updated = await this.repository.updateOrderStatus(id, 'CONFIRMED');
+    const updated = await this.repository.updateOrderStatus(id, "CONFIRMED");
     return updated!;
   }
 
   async allocateOrder(id: string): Promise<SalesOrder> {
     const order = await this.getOrder(id);
-    if (order.status !== 'CONFIRMED') {
-      throw new BadRequestException('Only confirmed orders can be allocated');
+    if (order.status !== "CONFIRMED") {
+      throw new BadRequestException("Only confirmed orders can be allocated");
     }
 
     const lines = await this.repository.getOrderLines(id);
 
     // Check and allocate stock for each line using FEFO
     for (const line of lines) {
-      const available = await this.stockLedger.getTotalAvailable(order.tenantId, line.itemId);
-      const toAllocate = Math.min(line.qtyOrdered - line.qtyAllocated, available);
+      const available = await this.stockLedger.getTotalAvailable(
+        order.tenantId,
+        line.itemId,
+      );
+      const toAllocate = Math.min(
+        line.qtyOrdered - line.qtyAllocated,
+        available,
+      );
 
       if (toAllocate > 0) {
         // Get stock from bins in FEFO order (First Expired, First Out)
-        const stock = await this.stockLedger.getAvailableStockFEFO(order.tenantId, line.itemId);
+        const stock = await this.stockLedger.getAvailableStockFEFO(
+          order.tenantId,
+          line.itemId,
+        );
 
         let remaining = toAllocate;
         for (const s of stock) {
@@ -205,27 +228,30 @@ export class SalesService {
 
         await this.repository.updateOrderLineQty(
           line.id,
-          'qty_allocated',
+          "qty_allocated",
           line.qtyAllocated + toAllocate,
         );
       }
     }
 
-    const updated = await this.repository.updateOrderStatus(id, 'ALLOCATED');
+    const updated = await this.repository.updateOrderStatus(id, "ALLOCATED");
     return updated!;
   }
 
   async cancelOrder(id: string): Promise<SalesOrder> {
     const order = await this.getOrder(id);
-    if (['SHIPPED', 'DELIVERED', 'CANCELLED'].includes(order.status)) {
-      throw new BadRequestException('Cannot cancel order in current status');
+    if (["SHIPPED", "DELIVERED", "CANCELLED"].includes(order.status)) {
+      throw new BadRequestException("Cannot cancel order in current status");
     }
 
     // Release any reservations
     const lines = await this.repository.getOrderLines(id);
     for (const line of lines) {
       if (line.qtyAllocated > 0) {
-        const stock = await this.stockLedger.getStockOnHand(order.tenantId, line.itemId);
+        const stock = await this.stockLedger.getStockOnHand(
+          order.tenantId,
+          line.itemId,
+        );
         for (const s of stock) {
           if (s.qtyReserved > 0) {
             await this.stockLedger.releaseReservation(
@@ -240,26 +266,28 @@ export class SalesService {
       }
     }
 
-    const updated = await this.repository.updateOrderStatus(id, 'CANCELLED');
+    const updated = await this.repository.updateOrderStatus(id, "CANCELLED");
     return updated!;
   }
 
   async reopenOrder(id: string): Promise<SalesOrder> {
     const order = await this.getOrder(id);
-    if (!['CANCELLED', 'DELIVERED'].includes(order.status)) {
-      throw new BadRequestException('Only cancelled or delivered orders can be reopened');
+    if (!["CANCELLED", "DELIVERED"].includes(order.status)) {
+      throw new BadRequestException(
+        "Only cancelled or delivered orders can be reopened",
+      );
     }
 
-    const newStatus = order.status === 'CANCELLED' ? 'DRAFT' : 'SHIPPED';
+    const newStatus = order.status === "CANCELLED" ? "DRAFT" : "SHIPPED";
     const updated = await this.repository.updateOrderStatus(id, newStatus);
     return updated!;
   }
 
   async deleteOrder(id: string): Promise<void> {
     const order = await this.repository.findOrderById(id);
-    if (!order) throw new NotFoundException('Sales order not found');
-    if (order.status !== 'DRAFT') {
-      throw new BadRequestException('Only DRAFT orders can be deleted');
+    if (!order) throw new NotFoundException("Sales order not found");
+    if (order.status !== "DRAFT") {
+      throw new BadRequestException("Only DRAFT orders can be deleted");
     }
     await this.repository.deleteOrder(id);
   }
@@ -272,26 +300,39 @@ export class SalesService {
     rows: SalesOrderImportRowDto[],
   ): Promise<ImportResult> {
     // 1. Resolve warehouse: get first warehouse for site
-    const warehouses = await this.masterDataService.listWarehouses(tenantId, siteId);
+    const warehouses = await this.masterDataService.listWarehouses(
+      tenantId,
+      siteId,
+    );
     if (warehouses.length === 0) {
-      throw new BadRequestException('No warehouse found for the selected site');
+      throw new BadRequestException("No warehouse found for the selected site");
     }
     const warehouseId = warehouses[0].id;
 
     // 2. Resolve customer codes
     const uniqueCustomerCodes = [...new Set(rows.map((r) => r.customerCode))];
-    const customerMap = await this.masterDataService.resolveCustomerCodes(tenantId, uniqueCustomerCodes);
-    const unknownCustomers = uniqueCustomerCodes.filter((c) => !customerMap.has(c.toLowerCase()));
+    const customerMap = await this.masterDataService.resolveCustomerCodes(
+      tenantId,
+      uniqueCustomerCodes,
+    );
+    const unknownCustomers = uniqueCustomerCodes.filter(
+      (c) => !customerMap.has(c.toLowerCase()),
+    );
     if (unknownCustomers.length > 0) {
-      throw new BadRequestException(`Unknown customer codes: ${unknownCustomers.join(', ')}`);
+      throw new BadRequestException(
+        `Unknown customer codes: ${unknownCustomers.join(", ")}`,
+      );
     }
 
     // 3. Resolve SKUs
     const uniqueSkus = [...new Set(rows.map((r) => r.sku))];
-    const itemMap = await this.masterDataService.resolveItemSkus(tenantId, uniqueSkus);
+    const itemMap = await this.masterDataService.resolveItemSkus(
+      tenantId,
+      uniqueSkus,
+    );
     const unknownSkus = uniqueSkus.filter((s) => !itemMap.has(s.toLowerCase()));
     if (unknownSkus.length > 0) {
-      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(', ')}`);
+      throw new BadRequestException(`Unknown SKUs: ${unknownSkus.join(", ")}`);
     }
 
     // 4. Group rows by orderGroup
@@ -311,7 +352,10 @@ export class SalesService {
         refsToCheck.push({ externalRef: header.externalRef, customerId });
       }
     }
-    const existingRefs = await this.repository.findExistingExternalRefs(tenantId, refsToCheck);
+    const existingRefs = await this.repository.findExistingExternalRefs(
+      tenantId,
+      refsToCheck,
+    );
 
     // 6. Create orders
     let imported = 0;
@@ -325,7 +369,9 @@ export class SalesService {
       if (header.externalRef) {
         const key = `${header.externalRef}::${customerId}`;
         if (existingRefs.has(key)) {
-          skippedCodes.push(`Group ${groupNo}: duplicate external ref '${header.externalRef}'`);
+          skippedCodes.push(
+            `Group ${groupNo}: duplicate external ref '${header.externalRef}'`,
+          );
           continue;
         }
       }
@@ -343,7 +389,9 @@ export class SalesService {
         customerId,
         externalRef: header.externalRef,
         priority: header.priority,
-        requestedShipDate: header.requestedShipDate ? new Date(header.requestedShipDate) : undefined,
+        requestedShipDate: header.requestedShipDate
+          ? new Date(header.requestedShipDate)
+          : undefined,
         createdBy,
         lines,
       });
@@ -362,16 +410,16 @@ export class SalesService {
   async updateOrderStatus(id: string, status: string): Promise<SalesOrder> {
     const order = await this.getOrder(id);
     const validTransitions: Record<string, string[]> = {
-      DRAFT: ['CONFIRMED', 'CANCELLED'],
-      CONFIRMED: ['ALLOCATED', 'CANCELLED'],
-      ALLOCATED: ['PICKING', 'CANCELLED'],
-      PICKING: ['PICKED', 'CANCELLED'],
-      PICKED: ['PACKING', 'CANCELLED'],
-      PACKING: ['PACKED', 'CANCELLED'],
-      PACKED: ['SHIPPED', 'CANCELLED'],
-      SHIPPED: ['DELIVERED'],
-      DELIVERED: ['SHIPPED'],
-      CANCELLED: ['DRAFT'],
+      DRAFT: ["CONFIRMED", "CANCELLED"],
+      CONFIRMED: ["ALLOCATED", "CANCELLED"],
+      ALLOCATED: ["PICKING", "CANCELLED"],
+      PICKING: ["PICKED", "CANCELLED"],
+      PICKED: ["PACKING", "CANCELLED"],
+      PACKING: ["PACKED", "CANCELLED"],
+      PACKED: ["SHIPPED", "CANCELLED"],
+      SHIPPED: ["DELIVERED"],
+      DELIVERED: ["SHIPPED"],
+      CANCELLED: ["DRAFT"],
     };
 
     const allowed = validTransitions[order.status] || [];

@@ -6,8 +6,8 @@ import {
   IsNumber,
   MaxLength,
   Min,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateStandaloneCreditNoteDto {
   @ApiProperty()

@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../../common/db/base.repository';
+import { Injectable } from "@nestjs/common";
+import { BaseRepository } from "../../common/db/base.repository";
 
 @Injectable()
 export class PortalRepository extends BaseRepository {
@@ -19,18 +19,24 @@ export class PortalRepository extends BaseRepository {
       [tenantId, customerId],
     );
     return {
-      totalOrders: parseInt(stats?.total_orders || '0', 10),
-      pendingDeliveries: parseInt(stats?.pending_deliveries || '0', 10),
-      openReturns: parseInt(stats?.open_returns || '0', 10),
-      outstandingInvoices: parseInt(stats?.outstanding_invoices || '0', 10),
+      totalOrders: parseInt(stats?.total_orders || "0", 10),
+      pendingDeliveries: parseInt(stats?.pending_deliveries || "0", 10),
+      openReturns: parseInt(stats?.open_returns || "0", 10),
+      outstandingInvoices: parseInt(stats?.outstanding_invoices || "0", 10),
     };
   }
 
   // Orders
-  async findOrders(tenantId: string, customerId: string, page: number, limit: number, status?: string) {
+  async findOrders(
+    tenantId: string,
+    customerId: string,
+    page: number,
+    limit: number,
+    status?: string,
+  ) {
     const offset = (page - 1) * limit;
     const params: any[] = [tenantId, customerId, limit, offset];
-    let whereExtra = '';
+    let whereExtra = "";
     if (status) {
       params.push(status);
       whereExtra = ` AND so.status = $${params.length}`;
@@ -49,10 +55,10 @@ export class PortalRepository extends BaseRepository {
     );
 
     const countResult = await this.queryOne<{ count: string }>(
-      `SELECT COUNT(*) as count FROM sales_orders WHERE tenant_id = $1 AND customer_id = $2${status ? ` AND status = $3` : ''}`,
+      `SELECT COUNT(*) as count FROM sales_orders WHERE tenant_id = $1 AND customer_id = $2${status ? ` AND status = $3` : ""}`,
       status ? [tenantId, customerId, status] : [tenantId, customerId],
     );
-    const total = parseInt(countResult?.count || '0', 10);
+    const total = parseInt(countResult?.count || "0", 10);
 
     return {
       data: rows,
@@ -82,10 +88,16 @@ export class PortalRepository extends BaseRepository {
   }
 
   // Invoices
-  async findInvoices(tenantId: string, customerId: string, page: number, limit: number, status?: string) {
+  async findInvoices(
+    tenantId: string,
+    customerId: string,
+    page: number,
+    limit: number,
+    status?: string,
+  ) {
     const offset = (page - 1) * limit;
     const params: any[] = [tenantId, customerId, limit, offset];
-    let whereExtra = '';
+    let whereExtra = "";
     if (status) {
       params.push(status);
       whereExtra = ` AND inv.status = $${params.length}`;
@@ -104,10 +116,10 @@ export class PortalRepository extends BaseRepository {
     );
 
     const countResult = await this.queryOne<{ count: string }>(
-      `SELECT COUNT(*) as count FROM invoices WHERE tenant_id = $1 AND customer_id = $2${status ? ` AND status = $3` : ''}`,
+      `SELECT COUNT(*) as count FROM invoices WHERE tenant_id = $1 AND customer_id = $2${status ? ` AND status = $3` : ""}`,
       status ? [tenantId, customerId, status] : [tenantId, customerId],
     );
-    const total = parseInt(countResult?.count || '0', 10);
+    const total = parseInt(countResult?.count || "0", 10);
 
     return {
       data: rows,
@@ -115,7 +127,11 @@ export class PortalRepository extends BaseRepository {
     };
   }
 
-  async findInvoiceById(tenantId: string, customerId: string, invoiceId: string) {
+  async findInvoiceById(
+    tenantId: string,
+    customerId: string,
+    invoiceId: string,
+  ) {
     return this.queryOne<any>(
       `SELECT inv.*, so.order_no, c.name as customer_name
        FROM invoices inv
@@ -127,7 +143,12 @@ export class PortalRepository extends BaseRepository {
   }
 
   // Deliveries
-  async findDeliveries(tenantId: string, customerId: string, page: number, limit: number) {
+  async findDeliveries(
+    tenantId: string,
+    customerId: string,
+    page: number,
+    limit: number,
+  ) {
     const offset = (page - 1) * limit;
     const rows = await this.queryMany<any>(
       `SELECT ds.id, ds.sequence, ds.address_line1, ds.city, ds.status,
@@ -145,7 +166,7 @@ export class PortalRepository extends BaseRepository {
       `SELECT COUNT(*) as count FROM dispatch_stops WHERE tenant_id = $1 AND customer_id = $2`,
       [tenantId, customerId],
     );
-    const total = parseInt(countResult?.count || '0', 10);
+    const total = parseInt(countResult?.count || "0", 10);
 
     return {
       data: rows,
@@ -173,7 +194,12 @@ export class PortalRepository extends BaseRepository {
   }
 
   // Returns
-  async findReturns(tenantId: string, customerId: string, page: number, limit: number) {
+  async findReturns(
+    tenantId: string,
+    customerId: string,
+    page: number,
+    limit: number,
+  ) {
     const offset = (page - 1) * limit;
     const rows = await this.queryMany<any>(
       `SELECT r.id, r.rma_no, r.status, r.return_type, r.reason, r.created_at,
@@ -190,7 +216,7 @@ export class PortalRepository extends BaseRepository {
       `SELECT COUNT(*) as count FROM rmas WHERE tenant_id = $1 AND customer_id = $2`,
       [tenantId, customerId],
     );
-    const total = parseInt(countResult?.count || '0', 10);
+    const total = parseInt(countResult?.count || "0", 10);
 
     return {
       data: rows,
@@ -236,13 +262,22 @@ export class PortalRepository extends BaseRepository {
        FROM rmas WHERE tenant_id = $1`,
       [data.tenantId],
     );
-    const rmaNo = seqResult?.next_no || 'RMA-000001';
+    const rmaNo = seqResult?.next_no || "RMA-000001";
 
     return this.queryOne<any>(
       `INSERT INTO rmas (tenant_id, customer_id, rma_no, sales_order_id, status, return_type, reason, notes, created_by)
        VALUES ($1, $2, $3, $4, 'OPEN', $5, $6, $7, $8)
        RETURNING *`,
-      [data.tenantId, data.customerId, rmaNo, data.salesOrderId || null, data.returnType, data.reason, data.notes || null, data.createdBy],
+      [
+        data.tenantId,
+        data.customerId,
+        rmaNo,
+        data.salesOrderId || null,
+        data.returnType,
+        data.reason,
+        data.notes || null,
+        data.createdBy,
+      ],
     );
   }
 
