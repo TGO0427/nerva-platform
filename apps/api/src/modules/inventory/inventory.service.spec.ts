@@ -1,14 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { InventoryService } from './inventory.service';
-import { InventoryRepository, Grn, GrnLine, Adjustment } from './inventory.repository';
-import { CycleCountRepository } from './cycle-count.repository';
-import { PutawayRepository } from './putaway.repository';
-import { StockLedgerService } from './stock-ledger.service';
-import { BatchRepository } from './batch.repository';
-import { MasterDataService } from '../masterdata/masterdata.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { NotFoundException, BadRequestException } from "@nestjs/common";
+import { InventoryService } from "./inventory.service";
+import {
+  InventoryRepository,
+  Grn,
+  GrnLine,
+  Adjustment,
+} from "./inventory.repository";
+import { CycleCountRepository } from "./cycle-count.repository";
+import { PutawayRepository } from "./putaway.repository";
+import { StockLedgerService } from "./stock-ledger.service";
+import { BatchRepository } from "./batch.repository";
+import { MasterDataService } from "../masterdata/masterdata.service";
 
-describe('InventoryService', () => {
+describe("InventoryService", () => {
   let service: InventoryService;
   let repository: jest.Mocked<InventoryRepository>;
   let stockLedger: jest.Mocked<StockLedgerService>;
@@ -16,46 +21,46 @@ describe('InventoryService', () => {
   let masterDataService: jest.Mocked<MasterDataService>;
 
   const mockGrn: Grn = {
-    id: 'grn-123',
-    tenantId: 'tenant-123',
-    siteId: 'site-123',
-    warehouseId: 'warehouse-123',
-    grnNo: 'GRN-000001',
-    status: 'DRAFT',
+    id: "grn-123",
+    tenantId: "tenant-123",
+    siteId: "site-123",
+    warehouseId: "warehouse-123",
+    grnNo: "GRN-000001",
+    status: "DRAFT",
     purchaseOrderId: null,
     supplierId: null,
     receivedAt: null,
     notes: null,
-    createdBy: 'user-123',
+    createdBy: "user-123",
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
   const mockGrnLine: GrnLine = {
-    id: 'line-123',
-    tenantId: 'tenant-123',
-    grnId: 'grn-123',
+    id: "line-123",
+    tenantId: "tenant-123",
+    grnId: "grn-123",
     purchaseOrderLineId: null,
-    itemId: 'item-123',
+    itemId: "item-123",
     qtyExpected: 10,
     qtyReceived: 10,
-    batchNo: 'BATCH001',
+    batchNo: "BATCH001",
     expiryDate: null,
     batchId: null,
-    receivingBinId: 'bin-123',
+    receivingBinId: "bin-123",
     createdAt: new Date(),
   };
 
   const mockAdjustment: Adjustment = {
-    id: 'adj-123',
-    tenantId: 'tenant-123',
-    warehouseId: 'warehouse-123',
-    adjustmentNo: 'ADJ-000001',
-    status: 'DRAFT',
-    reason: 'CYCLE_COUNT',
+    id: "adj-123",
+    tenantId: "tenant-123",
+    warehouseId: "warehouse-123",
+    adjustmentNo: "ADJ-000001",
+    status: "DRAFT",
+    reason: "CYCLE_COUNT",
     notes: null,
     cycleCountId: null,
-    createdBy: 'user-123',
+    createdBy: "user-123",
     approvedBy: null,
     approvedAt: null,
     createdAt: new Date(),
@@ -162,133 +167,142 @@ describe('InventoryService', () => {
     jest.clearAllMocks();
   });
 
-  describe('createGrn', () => {
-    it('should create a GRN with generated number when siteId is provided', async () => {
+  describe("createGrn", () => {
+    it("should create a GRN with generated number when siteId is provided", async () => {
       const createData = {
-        tenantId: 'tenant-123',
-        siteId: 'site-123',
-        warehouseId: 'warehouse-123',
-        createdBy: 'user-123',
+        tenantId: "tenant-123",
+        siteId: "site-123",
+        warehouseId: "warehouse-123",
+        createdBy: "user-123",
       };
 
-      repository.generateGrnNo.mockResolvedValue('GRN-000001');
+      repository.generateGrnNo.mockResolvedValue("GRN-000001");
       repository.createGrn.mockResolvedValue(mockGrn);
 
       const result = await service.createGrn(createData);
 
       expect(result).toEqual(mockGrn);
-      expect(repository.generateGrnNo).toHaveBeenCalledWith('tenant-123');
+      expect(repository.generateGrnNo).toHaveBeenCalledWith("tenant-123");
       expect(repository.createGrn).toHaveBeenCalledWith({
         ...createData,
-        grnNo: 'GRN-000001',
+        grnNo: "GRN-000001",
       });
     });
 
-    it('should fetch siteId from warehouse when not provided', async () => {
+    it("should fetch siteId from warehouse when not provided", async () => {
       const createData = {
-        tenantId: 'tenant-123',
-        warehouseId: 'warehouse-123',
-        createdBy: 'user-123',
+        tenantId: "tenant-123",
+        warehouseId: "warehouse-123",
+        createdBy: "user-123",
       };
 
       masterDataService.getWarehouse.mockResolvedValue({
-        id: 'warehouse-123',
-        tenantId: 'tenant-123',
-        siteId: 'site-123',
-        name: 'Main Warehouse',
-        code: 'WH1',
+        id: "warehouse-123",
+        tenantId: "tenant-123",
+        siteId: "site-123",
+        name: "Main Warehouse",
+        code: "WH1",
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      repository.generateGrnNo.mockResolvedValue('GRN-000001');
+      repository.generateGrnNo.mockResolvedValue("GRN-000001");
       repository.createGrn.mockResolvedValue(mockGrn);
 
       const result = await service.createGrn(createData);
 
       expect(result).toEqual(mockGrn);
-      expect(masterDataService.getWarehouse).toHaveBeenCalledWith('warehouse-123');
+      expect(masterDataService.getWarehouse).toHaveBeenCalledWith(
+        "tenant-123",
+        "warehouse-123",
+      );
       expect(repository.createGrn).toHaveBeenCalledWith({
-        tenantId: 'tenant-123',
-        siteId: 'site-123',
-        warehouseId: 'warehouse-123',
-        createdBy: 'user-123',
-        grnNo: 'GRN-000001',
+        tenantId: "tenant-123",
+        siteId: "site-123",
+        warehouseId: "warehouse-123",
+        createdBy: "user-123",
+        grnNo: "GRN-000001",
       });
     });
 
-    it('should throw NotFoundException when warehouse not found', async () => {
+    it("should throw NotFoundException when warehouse not found", async () => {
       const createData = {
-        tenantId: 'tenant-123',
-        warehouseId: 'warehouse-123',
-        createdBy: 'user-123',
+        tenantId: "tenant-123",
+        warehouseId: "warehouse-123",
+        createdBy: "user-123",
       };
 
       masterDataService.getWarehouse.mockResolvedValue(null as any);
 
-      await expect(service.createGrn(createData)).rejects.toThrow(NotFoundException);
-      await expect(service.createGrn(createData)).rejects.toThrow('Warehouse not found');
+      await expect(service.createGrn(createData)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.createGrn(createData)).rejects.toThrow(
+        "Warehouse not found",
+      );
     });
   });
 
-  describe('getGrn', () => {
-    it('should return GRN when found', async () => {
+  describe("getGrn", () => {
+    it("should return GRN when found", async () => {
       repository.findGrnById.mockResolvedValue(mockGrn);
 
-      const result = await service.getGrn('grn-123');
+      const result = await service.getGrn("grn-123");
 
       expect(result).toEqual(mockGrn);
-      expect(repository.findGrnById).toHaveBeenCalledWith('grn-123');
+      expect(repository.findGrnById).toHaveBeenCalledWith("grn-123");
     });
 
-    it('should throw NotFoundException when GRN not found', async () => {
+    it("should throw NotFoundException when GRN not found", async () => {
       repository.findGrnById.mockResolvedValue(null);
 
-      await expect(service.getGrn('grn-123')).rejects.toThrow(NotFoundException);
-      await expect(service.getGrn('grn-123')).rejects.toThrow('GRN not found');
+      await expect(service.getGrn("grn-123")).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getGrn("grn-123")).rejects.toThrow("GRN not found");
     });
   });
 
-  describe('listGrns', () => {
-    it('should return paginated GRNs', async () => {
+  describe("listGrns", () => {
+    it("should return paginated GRNs", async () => {
       repository.findGrnsByTenant.mockResolvedValue([mockGrn]);
       repository.countGrnsByTenant.mockResolvedValue(1);
 
-      const result = await service.listGrns('tenant-123', undefined, 1, 10);
+      const result = await service.listGrns("tenant-123", undefined, 1, 10);
 
       expect(result.data).toEqual([mockGrn]);
       expect(result.meta.page).toBe(1);
       expect(result.meta.limit).toBe(10);
       expect(repository.findGrnsByTenant).toHaveBeenCalledWith(
-        'tenant-123',
+        "tenant-123",
         undefined,
         10,
         0,
       );
     });
 
-    it('should filter by status', async () => {
+    it("should filter by status", async () => {
       repository.findGrnsByTenant.mockResolvedValue([]);
       repository.countGrnsByTenant.mockResolvedValue(0);
 
-      await service.listGrns('tenant-123', 'COMPLETE', 1, 10);
+      await service.listGrns("tenant-123", "COMPLETE", 1, 10);
 
       expect(repository.findGrnsByTenant).toHaveBeenCalledWith(
-        'tenant-123',
-        'COMPLETE',
+        "tenant-123",
+        "COMPLETE",
         10,
         0,
       );
     });
 
-    it('should calculate correct offset for pagination', async () => {
+    it("should calculate correct offset for pagination", async () => {
       repository.findGrnsByTenant.mockResolvedValue([]);
       repository.countGrnsByTenant.mockResolvedValue(0);
 
-      await service.listGrns('tenant-123', undefined, 3, 20);
+      await service.listGrns("tenant-123", undefined, 3, 20);
 
       expect(repository.findGrnsByTenant).toHaveBeenCalledWith(
-        'tenant-123',
+        "tenant-123",
         undefined,
         20,
         40, // (3-1) * 20 = 40
@@ -296,55 +310,58 @@ describe('InventoryService', () => {
     });
   });
 
-  describe('receiveGrnLine', () => {
+  describe("receiveGrnLine", () => {
     const receiveData = {
-      tenantId: 'tenant-123',
-      itemId: 'item-123',
+      tenantId: "tenant-123",
+      itemId: "item-123",
       qtyReceived: 10,
-      batchNo: 'BATCH001',
-      receivingBinId: 'bin-123',
-      createdBy: 'user-123',
+      batchNo: "BATCH001",
+      receivingBinId: "bin-123",
+      createdBy: "user-123",
     };
 
     const receiveDataWithExpiry = {
       ...receiveData,
-      expiryDate: new Date('2025-12-31'),
+      expiryDate: new Date("2025-12-31"),
     };
 
-    it('should receive items and record stock movement', async () => {
+    it("should receive items and record stock movement", async () => {
       repository.findGrnById.mockResolvedValue(mockGrn);
       repository.addGrnLine.mockResolvedValue(mockGrnLine);
-      repository.updateGrnStatus.mockResolvedValue({ ...mockGrn, status: 'RECEIVED' });
-      stockLedger.recordMovement.mockResolvedValue('ledger-123');
+      repository.updateGrnStatus.mockResolvedValue({
+        ...mockGrn,
+        status: "RECEIVED",
+      });
+      stockLedger.recordMovement.mockResolvedValue("ledger-123");
 
-      const result = await service.receiveGrnLine('grn-123', receiveData);
+      const result = await service.receiveGrnLine("grn-123", receiveData);
 
       expect(result).toEqual(mockGrnLine);
       expect(stockLedger.recordMovement).toHaveBeenCalledWith({
-        tenantId: 'tenant-123',
-        siteId: 'site-123',
-        itemId: 'item-123',
-        toBinId: 'bin-123',
+        tenantId: "tenant-123",
+        siteId: "site-123",
+        itemId: "item-123",
+        toBinId: "bin-123",
         qty: 10,
-        reason: 'RECEIVE',
-        refType: 'grn',
-        refId: 'grn-123',
-        batchNo: 'BATCH001',
+        reason: "RECEIVE",
+        refType: "grn",
+        refId: "grn-123",
+        batchNo: "BATCH001",
         expiryDate: undefined,
-        createdBy: 'user-123',
+        createdBy: "user-123",
       });
     });
 
-    it('should create batch when batchNo and expiryDate are provided', async () => {
+    it("should create batch when batchNo and expiryDate are provided", async () => {
       const mockBatch = {
-        id: 'batch-123',
-        tenantId: 'tenant-123',
-        itemId: 'item-123',
-        batchNo: 'BATCH001',
-        expiryDate: new Date('2025-12-31'),
+        id: "batch-123",
+        tenantId: "tenant-123",
+        itemId: "item-123",
+        batchNo: "BATCH001",
+        expiryDate: new Date("2025-12-31"),
         manufacturedDate: null,
         supplierId: null,
-        grnId: 'grn-123',
+        grnId: "grn-123",
         notes: null,
         isActive: true,
         createdAt: new Date(),
@@ -353,241 +370,289 @@ describe('InventoryService', () => {
 
       repository.findGrnById.mockResolvedValue(mockGrn);
       batchRepository.findOrCreateBatch.mockResolvedValue(mockBatch);
-      repository.addGrnLine.mockResolvedValue({ ...mockGrnLine, batchId: 'batch-123' });
-      repository.updateGrnStatus.mockResolvedValue({ ...mockGrn, status: 'RECEIVED' });
-      stockLedger.recordMovement.mockResolvedValue('ledger-123');
+      repository.addGrnLine.mockResolvedValue({
+        ...mockGrnLine,
+        batchId: "batch-123",
+      });
+      repository.updateGrnStatus.mockResolvedValue({
+        ...mockGrn,
+        status: "RECEIVED",
+      });
+      stockLedger.recordMovement.mockResolvedValue("ledger-123");
 
-      await service.receiveGrnLine('grn-123', receiveDataWithExpiry);
+      await service.receiveGrnLine("grn-123", receiveDataWithExpiry);
 
       expect(batchRepository.findOrCreateBatch).toHaveBeenCalledWith({
-        tenantId: 'tenant-123',
-        itemId: 'item-123',
-        batchNo: 'BATCH001',
-        expiryDate: new Date('2025-12-31'),
+        tenantId: "tenant-123",
+        itemId: "item-123",
+        batchNo: "BATCH001",
+        expiryDate: new Date("2025-12-31"),
         supplierId: undefined,
-        grnId: 'grn-123',
+        grnId: "grn-123",
       });
     });
 
-    it('should update GRN status from DRAFT to RECEIVED', async () => {
+    it("should update GRN status from DRAFT to RECEIVED", async () => {
       repository.findGrnById.mockResolvedValue(mockGrn);
       repository.addGrnLine.mockResolvedValue(mockGrnLine);
-      stockLedger.recordMovement.mockResolvedValue('ledger-123');
+      stockLedger.recordMovement.mockResolvedValue("ledger-123");
 
-      await service.receiveGrnLine('grn-123', receiveData);
+      await service.receiveGrnLine("grn-123", receiveData);
 
-      expect(repository.updateGrnStatus).toHaveBeenCalledWith('grn-123', 'RECEIVED');
+      expect(repository.updateGrnStatus).toHaveBeenCalledWith(
+        "grn-123",
+        "RECEIVED",
+      );
     });
 
-    it('should not update status if already RECEIVED', async () => {
-      const receivedGrn = { ...mockGrn, status: 'RECEIVED' };
+    it("should not update status if already RECEIVED", async () => {
+      const receivedGrn = { ...mockGrn, status: "RECEIVED" };
       repository.findGrnById.mockResolvedValue(receivedGrn);
       repository.addGrnLine.mockResolvedValue(mockGrnLine);
-      stockLedger.recordMovement.mockResolvedValue('ledger-123');
+      stockLedger.recordMovement.mockResolvedValue("ledger-123");
 
-      await service.receiveGrnLine('grn-123', receiveData);
+      await service.receiveGrnLine("grn-123", receiveData);
 
       expect(repository.updateGrnStatus).not.toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException for COMPLETE GRN', async () => {
-      const completeGrn = { ...mockGrn, status: 'COMPLETE' };
+    it("should throw BadRequestException for COMPLETE GRN", async () => {
+      const completeGrn = { ...mockGrn, status: "COMPLETE" };
       repository.findGrnById.mockResolvedValue(completeGrn);
 
-      await expect(service.receiveGrnLine('grn-123', receiveData)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.receiveGrnLine('grn-123', receiveData)).rejects.toThrow(
-        'GRN is already complete or cancelled',
-      );
+      await expect(
+        service.receiveGrnLine("grn-123", receiveData),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.receiveGrnLine("grn-123", receiveData),
+      ).rejects.toThrow("GRN is already complete or cancelled");
     });
 
-    it('should throw BadRequestException for CANCELLED GRN', async () => {
-      const cancelledGrn = { ...mockGrn, status: 'CANCELLED' };
+    it("should throw BadRequestException for CANCELLED GRN", async () => {
+      const cancelledGrn = { ...mockGrn, status: "CANCELLED" };
       repository.findGrnById.mockResolvedValue(cancelledGrn);
 
-      await expect(service.receiveGrnLine('grn-123', receiveData)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.receiveGrnLine("grn-123", receiveData),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
-  describe('completeGrn', () => {
-    it('should complete a RECEIVED GRN', async () => {
-      const receivedGrn = { ...mockGrn, status: 'RECEIVED' };
-      const completeGrn = { ...mockGrn, status: 'COMPLETE' };
+  describe("completeGrn", () => {
+    it("should complete a RECEIVED GRN", async () => {
+      const receivedGrn = { ...mockGrn, status: "RECEIVED" };
+      const completeGrn = { ...mockGrn, status: "COMPLETE" };
       repository.findGrnById.mockResolvedValue(receivedGrn);
       repository.updateGrnStatus.mockResolvedValue(completeGrn);
 
-      const result = await service.completeGrn('grn-123');
+      const result = await service.completeGrn("grn-123");
 
       expect(result).toEqual(completeGrn);
-      expect(repository.updateGrnStatus).toHaveBeenCalledWith('grn-123', 'COMPLETE');
+      expect(repository.updateGrnStatus).toHaveBeenCalledWith(
+        "grn-123",
+        "COMPLETE",
+      );
     });
 
-    it('should throw BadRequestException if GRN not in RECEIVED status', async () => {
+    it("should throw BadRequestException if GRN not in RECEIVED status", async () => {
       repository.findGrnById.mockResolvedValue(mockGrn); // DRAFT status
 
-      await expect(service.completeGrn('grn-123')).rejects.toThrow(BadRequestException);
-      await expect(service.completeGrn('grn-123')).rejects.toThrow(
-        'GRN must be in RECEIVED or PUTAWAY_PENDING status to complete',
+      await expect(service.completeGrn("grn-123")).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.completeGrn("grn-123")).rejects.toThrow(
+        "GRN must be in RECEIVED or PUTAWAY_PENDING status to complete",
       );
     });
   });
 
-  describe('transferStock', () => {
+  describe("transferStock", () => {
     const transferData = {
-      tenantId: 'tenant-123',
-      siteId: 'site-123',
-      itemId: 'item-123',
-      fromBinId: 'bin-from',
-      toBinId: 'bin-to',
+      tenantId: "tenant-123",
+      siteId: "site-123",
+      itemId: "item-123",
+      fromBinId: "bin-from",
+      toBinId: "bin-to",
       qty: 5,
-      batchNo: 'BATCH001',
-      createdBy: 'user-123',
+      batchNo: "BATCH001",
+      createdBy: "user-123",
     };
 
-    it('should transfer stock when sufficient available', async () => {
+    it("should transfer stock when sufficient available", async () => {
       stockLedger.getTotalAvailable.mockResolvedValue(10);
-      stockLedger.recordMovement.mockResolvedValue('ledger-123');
+      stockLedger.recordMovement.mockResolvedValue("ledger-123");
 
       await service.transferStock(transferData);
 
       expect(stockLedger.recordMovement).toHaveBeenCalledWith({
-        tenantId: 'tenant-123',
-        siteId: 'site-123',
-        itemId: 'item-123',
-        fromBinId: 'bin-from',
-        toBinId: 'bin-to',
+        tenantId: "tenant-123",
+        siteId: "site-123",
+        itemId: "item-123",
+        fromBinId: "bin-from",
+        toBinId: "bin-to",
         qty: 5,
-        reason: 'TRANSFER',
-        batchNo: 'BATCH001',
-        createdBy: 'user-123',
+        reason: "TRANSFER",
+        batchNo: "BATCH001",
+        createdBy: "user-123",
       });
     });
 
-    it('should throw BadRequestException for insufficient stock', async () => {
+    it("should throw BadRequestException for insufficient stock", async () => {
       stockLedger.getTotalAvailable.mockResolvedValue(3);
 
       await expect(service.transferStock(transferData)).rejects.toThrow(
         BadRequestException,
       );
       await expect(service.transferStock(transferData)).rejects.toThrow(
-        'Insufficient stock available for transfer',
+        "Insufficient stock available for transfer",
       );
     });
   });
 
-  describe('createAdjustment', () => {
-    it('should create adjustment with generated number', async () => {
+  describe("createAdjustment", () => {
+    it("should create adjustment with generated number", async () => {
       const createData = {
-        tenantId: 'tenant-123',
-        warehouseId: 'warehouse-123',
-        reason: 'CYCLE_COUNT',
-        createdBy: 'user-123',
+        tenantId: "tenant-123",
+        warehouseId: "warehouse-123",
+        reason: "CYCLE_COUNT",
+        createdBy: "user-123",
       };
 
-      repository.generateAdjustmentNo.mockResolvedValue('ADJ-000001');
+      repository.generateAdjustmentNo.mockResolvedValue("ADJ-000001");
       repository.createAdjustment.mockResolvedValue(mockAdjustment);
 
       const result = await service.createAdjustment(createData);
 
       expect(result).toEqual(mockAdjustment);
-      expect(repository.generateAdjustmentNo).toHaveBeenCalledWith('tenant-123');
+      expect(repository.generateAdjustmentNo).toHaveBeenCalledWith(
+        "tenant-123",
+      );
       expect(repository.createAdjustment).toHaveBeenCalledWith({
         ...createData,
-        adjustmentNo: 'ADJ-000001',
+        adjustmentNo: "ADJ-000001",
       });
     });
   });
 
-  describe('getAdjustment', () => {
-    it('should return adjustment when found', async () => {
+  describe("getAdjustment", () => {
+    it("should return adjustment when found", async () => {
       repository.findAdjustmentById.mockResolvedValue(mockAdjustment);
 
-      const result = await service.getAdjustment('adj-123');
+      const result = await service.getAdjustment("adj-123");
 
       expect(result).toEqual(mockAdjustment);
     });
 
-    it('should throw NotFoundException when adjustment not found', async () => {
+    it("should throw NotFoundException when adjustment not found", async () => {
       repository.findAdjustmentById.mockResolvedValue(null);
 
-      await expect(service.getAdjustment('adj-123')).rejects.toThrow(NotFoundException);
-      await expect(service.getAdjustment('adj-123')).rejects.toThrow('Adjustment not found');
+      await expect(service.getAdjustment("adj-123")).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getAdjustment("adj-123")).rejects.toThrow(
+        "Adjustment not found",
+      );
     });
   });
 
-  describe('approveAdjustment', () => {
-    it('should approve adjustment', async () => {
+  describe("approveAdjustment", () => {
+    it("should approve adjustment", async () => {
       const approvedAdjustment = {
         ...mockAdjustment,
-        status: 'APPROVED',
-        approvedBy: 'admin-123',
+        status: "APPROVED",
+        approvedBy: "admin-123",
         approvedAt: new Date(),
       };
       repository.approveAdjustment.mockResolvedValue(approvedAdjustment);
 
-      const result = await service.approveAdjustment('adj-123', 'admin-123');
+      const result = await service.approveAdjustment("adj-123", "admin-123");
 
       expect(result).toEqual(approvedAdjustment);
-      expect(repository.approveAdjustment).toHaveBeenCalledWith('adj-123', 'admin-123');
+      expect(repository.approveAdjustment).toHaveBeenCalledWith(
+        "adj-123",
+        "admin-123",
+      );
     });
 
-    it('should throw BadRequestException when adjustment not in SUBMITTED status', async () => {
+    it("should throw BadRequestException when adjustment not in SUBMITTED status", async () => {
       repository.approveAdjustment.mockResolvedValue(null);
 
-      await expect(service.approveAdjustment('adj-123', 'admin-123')).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.approveAdjustment('adj-123', 'admin-123')).rejects.toThrow(
-        'Adjustment not found or not in SUBMITTED status',
-      );
+      await expect(
+        service.approveAdjustment("adj-123", "admin-123"),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.approveAdjustment("adj-123", "admin-123"),
+      ).rejects.toThrow("Adjustment not found or not in SUBMITTED status");
     });
   });
 
-  describe('getStockOnHand', () => {
-    it('should delegate to stock ledger service', async () => {
+  describe("getStockOnHand", () => {
+    it("should delegate to stock ledger service", async () => {
       const mockStock = [
-        { itemId: 'item-123', binId: 'bin-123', qtyOnHand: 10, qtyReserved: 2, qtyAvailable: 8, batchNo: null },
+        {
+          itemId: "item-123",
+          binId: "bin-123",
+          qtyOnHand: 10,
+          qtyReserved: 2,
+          qtyAvailable: 8,
+          batchNo: null,
+        },
       ];
       stockLedger.getStockOnHand.mockResolvedValue(mockStock as any);
 
-      const result = await service.getStockOnHand('tenant-123', 'item-123');
+      const result = await service.getStockOnHand("tenant-123", "item-123");
 
       expect(result).toEqual(mockStock);
-      expect(stockLedger.getStockOnHand).toHaveBeenCalledWith('tenant-123', 'item-123');
+      expect(stockLedger.getStockOnHand).toHaveBeenCalledWith(
+        "tenant-123",
+        "item-123",
+      );
     });
   });
 
-  describe('getStockInBin', () => {
-    it('should delegate to stock ledger service', async () => {
+  describe("getStockInBin", () => {
+    it("should delegate to stock ledger service", async () => {
       const mockStock = [
-        { itemId: 'item-123', binId: 'bin-123', qtyOnHand: 10, qtyReserved: 0, qtyAvailable: 10, batchNo: 'BATCH001' },
+        {
+          itemId: "item-123",
+          binId: "bin-123",
+          qtyOnHand: 10,
+          qtyReserved: 0,
+          qtyAvailable: 10,
+          batchNo: "BATCH001",
+        },
       ];
       stockLedger.getStockInBin.mockResolvedValue(mockStock as any);
 
-      const result = await service.getStockInBin('tenant-123', 'bin-123');
+      const result = await service.getStockInBin("tenant-123", "bin-123");
 
       expect(result).toEqual(mockStock);
-      expect(stockLedger.getStockInBin).toHaveBeenCalledWith('tenant-123', 'bin-123');
+      expect(stockLedger.getStockInBin).toHaveBeenCalledWith(
+        "tenant-123",
+        "bin-123",
+      );
     });
   });
 
-  describe('getLedgerHistory', () => {
-    it('should return paginated ledger history', async () => {
-      const mockHistory = [{ id: 'entry-1', qtyChange: 10 }];
+  describe("getLedgerHistory", () => {
+    it("should return paginated ledger history", async () => {
+      const mockHistory = [{ id: "entry-1", qtyChange: 10 }];
       stockLedger.getLedgerHistory.mockResolvedValue(mockHistory as any);
       stockLedger.countLedgerHistory.mockResolvedValue(1);
 
-      const result = await service.getLedgerHistory('tenant-123', 'item-123', 1, 20);
+      const result = await service.getLedgerHistory(
+        "tenant-123",
+        "item-123",
+        1,
+        20,
+      );
 
       expect(result.data).toEqual(mockHistory);
       expect(result.meta.page).toBe(1);
       expect(result.meta.limit).toBe(20);
       expect(stockLedger.getLedgerHistory).toHaveBeenCalledWith(
-        'tenant-123',
-        'item-123',
+        "tenant-123",
+        "item-123",
         20,
         0,
       );
