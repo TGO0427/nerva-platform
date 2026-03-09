@@ -1,9 +1,23 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Logger,
+} from "@nestjs/common";
 import { TenantsRepository, Tenant, Site } from "./tenants.repository";
+import { UsersService } from "../users/users.service";
+import { RbacService } from "../rbac/rbac.service";
+import { RegisterTenantDto } from "./dto/register-tenant.dto";
 
 @Injectable()
 export class TenantsService {
-  constructor(private readonly tenantsRepository: TenantsRepository) {}
+  private readonly logger = new Logger(TenantsService.name);
+
+  constructor(
+    private readonly tenantsRepository: TenantsRepository,
+    private readonly usersService: UsersService,
+    private readonly rbacService: RbacService,
+  ) {}
 
   async findTenantById(id: string): Promise<Tenant | null> {
     return this.tenantsRepository.findTenantById(id);
@@ -53,5 +67,79 @@ export class TenantsService {
       throw new NotFoundException("Site not found");
     }
     return site;
+  }
+
+  async registerTenant(dto: RegisterTenantDto) {
+    // Check if tenant code already exists
+    const existingTenant = await this.tenantsRepository.findTenantByCode(
+      dto.tenantCode,
+    );
+    if (existingTenant) {
+      throw new ConflictException("Tenant code is already taken");
+    }
+
+    // Check if email already exists across all tenants
+    const existingEmail =
+      await this.tenantsRepository.findUserByEmailGlobal(dto.email);
+    if (existingEmail) {
+      throw new ConflictException("Email address is already registered");
+    }
+
+    // 1. Create the tenant
+    const tenant = await this.tenantsRepository.createTenant({
+      name: dto.companyName,
+      code: dto.tenantCode,
+    });
+
+    this.logger.log(
+      `New tenant created: ${tenant.id} (${tenant.code}) - ${tenant.name}`,
+    );
+
+    // 2. Create a default site
+    const site = await this.tenantsRepository.createSite({
+      tenantId: tenant.id,
+      name: "Main Site",
+      code: "MAIN",
+    });
+
+    // 3. Get all permissions and create an Admin role with all of them
+    const allPermissions = await this.rbacService.listPermissions();
+    const permissionIds = allPermissions.map((p) => p.id);
+
+    const adminRole = await this.rbacService.createRole({
+      tenantId: tenant.id,
+      name: "Admin",
+      description: "Full access administrator role",
+      permissionIds,
+    });
+
+    // 4. Create the admin user (UsersService handles password hashing)
+    const user = await this.usersService.create(tenant.id, {
+      email: dto.email,
+      displayName: dto.displayName,
+      password: dto.password,
+      roleIds: [adminRole.id],
+    });
+
+    // 5. Assign the user to the default site
+    await this.usersService.assignSite(user.id, site.id);
+
+    this.logger.log(
+      `Tenant registration complete: ${tenant.code} - admin user ${user.id} (${user.email})`,
+    );
+
+    return {
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        code: tenant.code,
+      },
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+      },
+      message: `Tenant "${tenant.name}" created successfully. Use tenant ID "${tenant.id}" and your email to log in.`,
+    };
   }
 }

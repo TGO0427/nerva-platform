@@ -38,10 +38,22 @@ const SETTINGS_SECTIONS = [
     icon: CompanyIcon,
   },
   {
+    title: 'Security',
+    description: 'Manage two-factor authentication',
+    href: '/settings/security',
+    icon: SecurityIcon,
+  },
+  {
     title: 'Integrations',
     description: 'Connect to accounting and ERP systems',
     href: '/settings/integrations',
     icon: IntegrationIcon,
+  },
+  {
+    title: 'Privacy & Data',
+    description: 'Export your data or delete your account',
+    href: '/settings/privacy',
+    icon: PrivacyIcon,
   },
 ];
 
@@ -164,6 +176,22 @@ function IntegrationIcon() {
   return (
     <svg className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+    </svg>
+  );
+}
+
+function SecurityIcon() {
+  return (
+    <svg className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.864 4.243A7.5 7.5 0 0119.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 004.5 10.5a7.464 7.464 0 01-1.15 3.993m1.989 3.559A11.209 11.209 0 008.25 10.5a3.75 3.75 0 117.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 01-3.6 9.75m6.633-4.596a18.666 18.666 0 01-2.485 5.33" />
+    </svg>
+  );
+}
+
+function PrivacyIcon() {
+  return (
+    <svg className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
     </svg>
   );
 }

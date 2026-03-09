@@ -44,12 +44,15 @@
     "@sentry/nestjs": "^9.1.0",
     "nestjs-pino": "^4.0.0",
     "nodemailer": "^6.9.8",
+    "otplib": "^12.0.1",
+    "qrcode": "^1.5.3",
     "pino": "^9.0.0",
     "pino-http": "^10.0.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/nodemailer": "^6.4.14",
+    "@types/qrcode": "^1.5.5",
     "@nestjs/cli": "^10.3.0",
     "@nestjs/schematics": "^10.1.0",
     "@nestjs/testing": "^10.3.0",

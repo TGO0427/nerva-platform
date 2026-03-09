@@ -9,6 +9,8 @@ import { JwtService } from "@nestjs/jwt";
 import { Pool } from "pg";
 import * as argon2 from "argon2";
 import { randomBytes } from "crypto";
+import { authenticator } from "otplib";
+import * as QRCode from "qrcode";
 import { DATABASE_POOL } from "../../common/db/database.module";
 import { EmailService } from "../../common/email/email.service";
 import { UsersService } from "../users/users.service";
@@ -49,7 +51,9 @@ export class AuthService {
     @Inject(DATABASE_POOL) private readonly pool: Pool,
   ) {}
 
-  async login(dto: LoginDto): Promise<AuthResponse> {
+  async login(
+    dto: LoginDto,
+  ): Promise<AuthResponse | { mfaRequired: true; mfaToken: string }> {
     const user = await this.usersService.findByEmail(dto.tenantId, dto.email);
 
     if (!user) {
@@ -67,6 +71,15 @@ export class AuthService {
 
     if (!isPasswordValid) {
       throw new UnauthorizedException("Invalid credentials");
+    }
+
+    // If MFA is enabled, return a temporary token instead of full auth
+    if (user.mfaEnabled) {
+      const mfaToken = this.jwtService.sign(
+        { sub: user.id, tenantId: user.tenantId, mfaPending: true },
+        { expiresIn: "5m" },
+      );
+      return { mfaRequired: true, mfaToken };
     }
 
     // Get user permissions
@@ -141,6 +154,134 @@ export class AuthService {
 
   async getUserSites(userId: string) {
     return this.usersService.getUserSites(userId);
+  }
+
+  async setupMfa(
+    userId: string,
+  ): Promise<{ secret: string; qrCodeUrl: string }> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException("User not found");
+    }
+
+    const secret = authenticator.generateSecret();
+
+    // Store the secret (mfa_enabled stays false until verified)
+    await this.usersService.setMfaSecret(userId, secret);
+
+    const otpauthUrl = authenticator.keyuri(user.email, "Nerva", secret);
+    const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
+
+    return { secret, qrCodeUrl };
+  }
+
+  async enableMfa(userId: string, code: string): Promise<void> {
+    const user = await this.usersService.findById(userId);
+    if (!user || !user.mfaSecret) {
+      throw new BadRequestException(
+        "MFA has not been set up. Call /auth/mfa/setup first.",
+      );
+    }
+
+    const isValid = authenticator.verify({
+      token: code,
+      secret: user.mfaSecret,
+    });
+
+    if (!isValid) {
+      throw new BadRequestException("Invalid verification code");
+    }
+
+    await this.usersService.enableMfa(userId);
+  }
+
+  async disableMfa(userId: string, code: string): Promise<void> {
+    const user = await this.usersService.findById(userId);
+    if (!user || !user.mfaEnabled) {
+      throw new BadRequestException("MFA is not enabled");
+    }
+
+    const isValid = authenticator.verify({
+      token: code,
+      secret: user.mfaSecret!,
+    });
+
+    if (!isValid) {
+      throw new BadRequestException("Invalid verification code");
+    }
+
+    await this.usersService.disableMfa(userId);
+  }
+
+  async verifyMfaLogin(
+    mfaToken: string,
+    code: string,
+  ): Promise<AuthResponse> {
+    let decoded: { sub: string; tenantId: string; mfaPending?: boolean };
+    try {
+      decoded = this.jwtService.verify(mfaToken);
+    } catch {
+      throw new UnauthorizedException("Invalid or expired MFA token");
+    }
+
+    if (!decoded.mfaPending) {
+      throw new UnauthorizedException("Invalid MFA token");
+    }
+
+    const user = await this.usersService.findById(decoded.sub);
+    if (!user || !user.isActive || !user.mfaEnabled || !user.mfaSecret) {
+      throw new UnauthorizedException("User not found or MFA not configured");
+    }
+
+    const isValid = authenticator.verify({
+      token: code,
+      secret: user.mfaSecret,
+    });
+
+    if (!isValid) {
+      throw new UnauthorizedException("Invalid verification code");
+    }
+
+    // MFA verified — issue full tokens
+    const permissions = await this.usersService.getUserPermissions(user.id);
+    await this.usersService.updateLastLogin(user.id);
+
+    const payload: JwtPayload = {
+      sub: user.id,
+      tenantId: user.tenantId,
+      email: user.email,
+      displayName: user.displayName,
+      permissions,
+      userType: user.userType,
+      customerId: user.customerId,
+    };
+
+    const accessToken = this.jwtService.sign(payload, { expiresIn: "15m" });
+    const refreshToken = await this.generateRefreshToken(
+      user.id,
+      user.tenantId,
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        tenantId: user.tenantId,
+        userType: user.userType,
+        customerId: user.customerId,
+      },
+    };
+  }
+
+  async getMfaStatus(userId: string): Promise<{ mfaEnabled: boolean }> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException("User not found");
+    }
+    return { mfaEnabled: user.mfaEnabled };
   }
 
   async generateRefreshToken(

@@ -25,6 +25,8 @@ describe("AuthService", () => {
     userType: "internal" as const,
     customerId: null as string | null,
     lastLoginAt: null as Date | null,
+    mfaSecret: null as string | null,
+    mfaEnabled: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -92,7 +94,7 @@ describe("AuthService", () => {
       jwtService.sign.mockReturnValue("jwt_token");
       pool.query.mockResolvedValue({ rows: [{ id: "token-id" }] });
 
-      const result = await service.login(loginDto);
+      const result = await service.login(loginDto) as any;
 
       expect(result.accessToken).toBe("jwt_token");
       expect(result.refreshToken).toBeDefined();

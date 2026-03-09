@@ -20,6 +20,8 @@ describe("UsersService", () => {
     userType: "internal",
     customerId: null,
     lastLoginAt: null,
+    mfaSecret: null,
+    mfaEnabled: false,
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
   };
@@ -99,21 +101,9 @@ describe("UsersService", () => {
 
       const result = await service.findByTenant("tenant-123", 1, 20);
 
+      const { passwordHash, ...sanitized } = mockUser;
       expect(result).toEqual({
-        data: [
-          {
-            id: mockUser.id,
-            tenantId: mockUser.tenantId,
-            email: mockUser.email,
-            displayName: mockUser.displayName,
-            isActive: mockUser.isActive,
-            userType: mockUser.userType,
-            customerId: mockUser.customerId,
-            lastLoginAt: mockUser.lastLoginAt,
-            createdAt: mockUser.createdAt,
-            updatedAt: mockUser.updatedAt,
-          },
-        ],
+        data: [sanitized],
         meta: {
           page: 1,
           limit: 20,

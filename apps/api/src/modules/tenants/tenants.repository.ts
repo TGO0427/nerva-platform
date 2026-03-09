@@ -143,6 +143,18 @@ export class TenantsRepository extends BaseRepository {
     return row ? this.mapSite(row) : null;
   }
 
+  async findUserByEmailGlobal(
+    email: string,
+  ): Promise<{ id: string; tenantId: string } | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      "SELECT id, tenant_id FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1",
+      [email],
+    );
+    return row
+      ? { id: row.id as string, tenantId: row.tenant_id as string }
+      : null;
+  }
+
   private mapTenant(row: Record<string, unknown>): Tenant {
     return {
       id: row.id as string,

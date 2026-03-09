@@ -6,8 +6,11 @@ import {
   Param,
   Body,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import { ThrottlerGuard, Throttle } from "@nestjs/throttler";
 import { TenantsService } from "./tenants.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { TenantGuard } from "../../common/guards/tenant.guard";
@@ -15,41 +18,55 @@ import { PermissionsGuard } from "../../common/guards/permissions.guard";
 import { RequirePermissions } from "../../common/decorators/permissions.decorator";
 import { TenantId } from "../../common/decorators/tenant.decorator";
 import { UuidValidationPipe } from "../../common/pipes/uuid-validation.pipe";
+import { RegisterTenantDto } from "./dto/register-tenant.dto";
 
 @ApiTags("tenants")
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
-@Controller("admin")
+@Controller()
 export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}
 
-  @Get("tenants")
+  // ─── Public registration endpoint ────────────────────────────────
+  @Post("tenants/register")
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ short: { ttl: 3600000, limit: 3 } })
+  @ApiOperation({ summary: "Self-serve tenant registration (public)" })
+  async registerTenant(@Body() dto: RegisterTenantDto) {
+    return this.tenantsService.registerTenant(dto);
+  }
+
+  // ─── Admin-only endpoints ────────────────────────────────────────
+  @Get("admin/tenants")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions("system.admin")
-  @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: "List all tenants (system admin only)" })
   async listTenants() {
     return this.tenantsService.listTenants();
   }
 
-  @Post("tenants")
+  @Post("admin/tenants")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions("system.admin")
-  @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: "Create new tenant" })
   async createTenant(@Body() data: { name: string; code?: string }) {
     return this.tenantsService.createTenant(data);
   }
 
-  @Get("tenants/:id")
+  @Get("admin/tenants/:id")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions("system.admin")
-  @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: "Get tenant by ID" })
   async getTenant(@Param("id", UuidValidationPipe) id: string) {
     return this.tenantsService.findTenantById(id);
   }
 
-  @Patch("tenants/:id")
+  @Patch("admin/tenants/:id")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions("system.admin")
-  @UseGuards(PermissionsGuard)
   @ApiOperation({ summary: "Update tenant" })
   async updateTenant(
     @Param("id", UuidValidationPipe) id: string,
@@ -58,16 +75,18 @@ export class TenantsController {
     return this.tenantsService.updateTenant(id, data);
   }
 
-  @Get("sites")
-  @UseGuards(TenantGuard, PermissionsGuard)
+  @Get("admin/sites")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
   @RequirePermissions("site.manage")
   @ApiOperation({ summary: "List sites in tenant" })
   async listSites(@TenantId() tenantId: string) {
     return this.tenantsService.findSitesByTenant(tenantId);
   }
 
-  @Post("sites")
-  @UseGuards(TenantGuard, PermissionsGuard)
+  @Post("admin/sites")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
   @RequirePermissions("site.manage")
   @ApiOperation({ summary: "Create new site" })
   async createSite(
@@ -77,16 +96,18 @@ export class TenantsController {
     return this.tenantsService.createSite({ tenantId, ...data });
   }
 
-  @Get("sites/:id")
-  @UseGuards(TenantGuard, PermissionsGuard)
+  @Get("admin/sites/:id")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
   @RequirePermissions("site.manage")
   @ApiOperation({ summary: "Get site by ID" })
   async getSite(@Param("id", UuidValidationPipe) id: string) {
     return this.tenantsService.findSiteById(id);
   }
 
-  @Patch("sites/:id")
-  @UseGuards(TenantGuard, PermissionsGuard)
+  @Patch("admin/sites/:id")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
   @RequirePermissions("site.manage")
   @ApiOperation({ summary: "Update site" })
   async updateSite(

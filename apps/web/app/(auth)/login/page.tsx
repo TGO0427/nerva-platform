@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth, getHomeRoute } from '@/lib/auth';
+import api from '@/lib/api';
 import type { ApiError } from '@nerva/shared';
 import { AxiosError } from 'axios';
 
@@ -26,6 +27,13 @@ export default function LoginPage() {
     email?: string;
     password?: string;
   }>({});
+
+  // MFA state
+  const [mfaPending, setMfaPending] = useState(false);
+  const [mfaToken, setMfaToken] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaLoading, setMfaLoading] = useState(false);
+  const mfaInputRef = useRef<HTMLInputElement>(null);
 
   // Load remembered tenant on mount
   useEffect(() => {
@@ -77,6 +85,18 @@ export default function LoginPage() {
     }
 
     try {
+      // First, call the login API directly to check for MFA requirement
+      const response = await api.post('/auth/login', { tenantId, email, password });
+
+      if (response.data.mfaRequired) {
+        setMfaToken(response.data.mfaToken);
+        setMfaPending(true);
+        setMfaCode('');
+        setTimeout(() => mfaInputRef.current?.focus(), 100);
+        return;
+      }
+
+      // No MFA — proceed with normal login flow via the store
       await login({ tenantId, email, password });
       const user = useAuth.getState().user;
       router.push(getHomeRoute(user?.userType || 'internal'));
@@ -90,6 +110,105 @@ export default function LoginPage() {
       }
     }
   };
+
+  const handleMfaSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setMfaLoading(true);
+
+    try {
+      const response = await api.post('/auth/mfa/verify', {
+        mfaToken,
+        code: mfaCode,
+      });
+
+      const { accessToken, refreshToken, user } = response.data;
+
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('tenantId', tenantId);
+
+      // Update auth store
+      useAuth.setState({
+        accessToken,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
+      // Fetch full user with permissions
+      await useAuth.getState().fetchUser();
+
+      const currentUser = useAuth.getState().user;
+      router.push(getHomeRoute(currentUser?.userType || 'internal'));
+    } catch (err) {
+      const axiosError = err as AxiosError<ApiError>;
+      if (axiosError.response?.data?.message) {
+        const message = axiosError.response.data.message;
+        setError(Array.isArray(message) ? message.join(', ') : message);
+      } else {
+        setError('Invalid verification code. Please try again.');
+      }
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  if (mfaPending) {
+    return (
+      <div className="card">
+        <form onSubmit={handleMfaSubmit} className="space-y-5">
+          <h2 className="text-xl font-semibold text-gray-900 text-center">
+            Two-Factor Authentication
+          </h2>
+          <p className="text-sm text-gray-500 text-center">
+            Enter the 6-digit code from your authenticator app
+          </p>
+
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          <Input
+            ref={mfaInputRef}
+            label="Verification Code"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            value={mfaCode}
+            onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+            placeholder="000000"
+            autoComplete="one-time-code"
+            className="text-center text-2xl tracking-widest"
+          />
+
+          <Button
+            type="submit"
+            className="w-full"
+            isLoading={mfaLoading}
+            disabled={mfaLoading || mfaCode.length !== 6}
+          >
+            Verify
+          </Button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMfaPending(false);
+              setMfaToken('');
+              setMfaCode('');
+              setError(null);
+            }}
+            className="w-full text-sm text-primary-600 hover:text-primary-700"
+          >
+            Back to login
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="card">
@@ -195,8 +314,9 @@ export default function LoginPage() {
         </Button>
 
         <p className="text-center text-sm text-gray-600">
-          <Link href="/" className="text-primary-600 hover:text-primary-700 font-medium">
-            Back to home
+          Don&apos;t have an account?{' '}
+          <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
+            Sign up
           </Link>
         </p>
 

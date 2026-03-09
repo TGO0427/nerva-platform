@@ -49,6 +49,7 @@ const COMMANDS: SearchResult[] = [
   { type: 'command', id: 'settings', title: 'Go to Settings', subtitle: 'System configuration', href: '/settings', icon: 'nav' },
   { type: 'command', id: 'notifications', title: 'Go to Notifications', subtitle: 'View all notifications', href: '/notifications', icon: 'nav' },
   { type: 'command', id: 'audit-log', title: 'Go to Audit Log', subtitle: 'Activity audit trail', href: '/settings/audit-log', icon: 'nav' },
+  { type: 'command', id: 'privacy', title: 'Go to Privacy & Data', subtitle: 'Export data or delete account', href: '/settings/privacy', icon: 'nav' },
 ];
 
 // Recent items storage key

@@ -127,6 +127,18 @@ export class UsersService {
     await this.usersRepository.removeWarehouse(userId, warehouseId);
   }
 
+  async setMfaSecret(userId: string, secret: string): Promise<void> {
+    await this.usersRepository.setMfaSecret(userId, secret);
+  }
+
+  async enableMfa(userId: string): Promise<void> {
+    await this.usersRepository.enableMfa(userId);
+  }
+
+  async disableMfa(userId: string): Promise<void> {
+    await this.usersRepository.disableMfa(userId);
+  }
+
   private sanitizeUser(user: User) {
     const { passwordHash, ...rest } = user;
     return rest;

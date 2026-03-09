@@ -11,6 +11,8 @@ export interface UserRow {
   user_type: "internal" | "customer" | "driver";
   customer_id: string | null;
   last_login_at: Date | null;
+  mfa_secret: string | null;
+  mfa_enabled: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -25,6 +27,8 @@ export interface User {
   userType: "internal" | "customer" | "driver";
   customerId: string | null;
   lastLoginAt: Date | null;
+  mfaSecret: string | null;
+  mfaEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,6 +46,8 @@ export class UsersRepository extends BaseRepository {
       userType: row.user_type || "internal",
       customerId: row.customer_id || null,
       lastLoginAt: row.last_login_at,
+      mfaSecret: row.mfa_secret || null,
+      mfaEnabled: row.mfa_enabled || false,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -271,6 +277,27 @@ export class UsersRepository extends BaseRepository {
     await this.execute(
       "DELETE FROM user_warehouses WHERE user_id = $1 AND warehouse_id = $2",
       [userId, warehouseId],
+    );
+  }
+
+  async setMfaSecret(userId: string, secret: string): Promise<void> {
+    await this.execute(
+      "UPDATE users SET mfa_secret = $1 WHERE id = $2",
+      [secret, userId],
+    );
+  }
+
+  async enableMfa(userId: string): Promise<void> {
+    await this.execute(
+      "UPDATE users SET mfa_enabled = true WHERE id = $1",
+      [userId],
+    );
+  }
+
+  async disableMfa(userId: string): Promise<void> {
+    await this.execute(
+      "UPDATE users SET mfa_enabled = false, mfa_secret = NULL WHERE id = $1",
+      [userId],
     );
   }
 }
