@@ -25,9 +25,10 @@ export const useAuth = create<AuthState>()(
         set({ isLoading: true });
         try {
           const response = await api.post<AuthResponse>('/auth/login', data);
-          const { accessToken, user } = response.data;
+          const { accessToken, refreshToken, user } = response.data;
 
           localStorage.setItem('accessToken', accessToken);
+          localStorage.setItem('refreshToken', refreshToken);
           localStorage.setItem('tenantId', data.tenantId);
 
           set({
@@ -45,7 +46,14 @@ export const useAuth = create<AuthState>()(
       },
 
       logout: () => {
+        const refreshToken = localStorage.getItem('refreshToken');
+        const accessToken = localStorage.getItem('accessToken');
+        // Fire-and-forget: try to revoke the refresh token on the server
+        if (refreshToken && accessToken) {
+          api.post('/auth/logout', { refreshToken }).catch(() => {});
+        }
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('tenantId');
         localStorage.removeItem('siteId');
         set({

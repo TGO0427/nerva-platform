@@ -66,22 +66,80 @@ function extractErrorMessage(error: unknown): string {
   return 'An unexpected error occurred';
 }
 
+// Refresh token queue to prevent multiple simultaneous refresh calls
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
+
+function processQueue(error: unknown, token: string | null) {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve(token!);
+  });
+  failedQueue = [];
+}
+
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status || 500;
       const message = extractErrorMessage(error);
       const code = error.response?.data?.code;
+      const originalRequest = error.config;
 
-      // Handle 401 - redirect to login (skip for auth endpoints to avoid loops)
-      if (status === 401) {
-        const requestUrl = error.config?.url || '';
-        const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/me');
-        if (typeof window !== 'undefined' && !isAuthEndpoint && !window.location.pathname.startsWith('/login')) {
-          localStorage.removeItem('accessToken');
-          window.location.href = '/login';
+      // Handle 401 - attempt token refresh before redirecting
+      if (status === 401 && originalRequest) {
+        const requestUrl = originalRequest.url || '';
+        const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/refresh');
+
+        if (!isAuthEndpoint && typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          const refreshToken = localStorage.getItem('refreshToken');
+
+          if (refreshToken) {
+            if (isRefreshing) {
+              // Queue this request until refresh completes
+              return new Promise((resolve, reject) => {
+                failedQueue.push({
+                  resolve: (token: string) => {
+                    originalRequest.headers.Authorization = `Bearer ${token}`;
+                    resolve(api(originalRequest));
+                  },
+                  reject: (err: unknown) => {
+                    reject(err);
+                  },
+                });
+              });
+            }
+
+            isRefreshing = true;
+
+            try {
+              const response = await axios.post(`${api.defaults.baseURL}/auth/refresh`, { refreshToken });
+              const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
+
+              localStorage.setItem('accessToken', newAccessToken);
+              localStorage.setItem('refreshToken', newRefreshToken);
+
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+              processQueue(null, newAccessToken);
+              return api(originalRequest);
+            } catch (refreshError) {
+              processQueue(refreshError, null);
+              // Refresh failed - clear tokens and redirect to login
+              localStorage.removeItem('accessToken');
+              localStorage.removeItem('refreshToken');
+              window.location.href = '/login';
+              return Promise.reject(new ApiError('Session expired', 401));
+            } finally {
+              isRefreshing = false;
+            }
+          } else {
+            // No refresh token available - redirect to login
+            localStorage.removeItem('accessToken');
+            window.location.href = '/login';
+          }
         }
       }
 

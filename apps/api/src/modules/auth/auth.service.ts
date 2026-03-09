@@ -1,10 +1,14 @@
 import {
   Injectable,
+  Inject,
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Pool } from 'pg';
 import * as argon2 from 'argon2';
+import { randomBytes } from 'crypto';
+import { DATABASE_POOL } from '../../common/db/database.module';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -21,6 +25,7 @@ export interface JwtPayload {
 
 export interface AuthResponse {
   accessToken: string;
+  refreshToken: string;
   user: {
     id: string;
     email: string;
@@ -36,6 +41,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    @Inject(DATABASE_POOL) private readonly pool: Pool,
   ) {}
 
   async login(dto: LoginDto): Promise<AuthResponse> {
@@ -71,10 +77,12 @@ export class AuthService {
       customerId: user.customerId,
     };
 
-    const accessToken = this.jwtService.sign(payload);
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const refreshToken = await this.generateRefreshToken(user.id, user.tenantId);
 
     return {
       accessToken,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -119,5 +127,108 @@ export class AuthService {
 
   async getUserSites(userId: string) {
     return this.usersService.getUserSites(userId);
+  }
+
+  async generateRefreshToken(userId: string, tenantId: string): Promise<string> {
+    const raw = randomBytes(40).toString('hex');
+    const tokenHash = await argon2.hash(raw);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    const result = await this.pool.query(
+      `INSERT INTO refresh_tokens (user_id, tenant_id, token_hash, expires_at)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+      [userId, tenantId, tokenHash, expiresAt],
+    );
+
+    const tokenId = result.rows[0].id;
+    return `${tokenId}.${raw}`;
+  }
+
+  async refreshTokens(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const dotIndex = refreshToken.indexOf('.');
+    if (dotIndex === -1) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const tokenId = refreshToken.substring(0, dotIndex);
+    const raw = refreshToken.substring(dotIndex + 1);
+
+    const result = await this.pool.query(
+      `SELECT id, user_id, tenant_id, token_hash, expires_at, revoked_at
+       FROM refresh_tokens
+       WHERE id = $1`,
+      [tokenId],
+    );
+
+    if (result.rows.length === 0) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const row = result.rows[0];
+
+    if (row.revoked_at) {
+      throw new UnauthorizedException('Refresh token has been revoked');
+    }
+
+    if (new Date(row.expires_at) < new Date()) {
+      throw new UnauthorizedException('Refresh token has expired');
+    }
+
+    const isValid = await argon2.verify(row.token_hash, raw);
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Revoke old token (rotation)
+    await this.pool.query(
+      `UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1`,
+      [tokenId],
+    );
+
+    // Get user and generate new tokens
+    const user = await this.usersService.findById(row.user_id);
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User not found or disabled');
+    }
+
+    const permissions = await this.usersService.getUserPermissions(user.id);
+
+    const payload: JwtPayload = {
+      sub: user.id,
+      tenantId: user.tenantId,
+      email: user.email,
+      displayName: user.displayName,
+      permissions,
+      userType: user.userType,
+      customerId: user.customerId,
+    };
+
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const newRefreshToken = await this.generateRefreshToken(user.id, user.tenantId);
+
+    return { accessToken, refreshToken: newRefreshToken };
+  }
+
+  async revokeRefreshToken(refreshToken: string): Promise<void> {
+    const dotIndex = refreshToken.indexOf('.');
+    if (dotIndex === -1) return;
+
+    const tokenId = refreshToken.substring(0, dotIndex);
+    await this.pool.query(
+      `UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL`,
+      [tokenId],
+    );
+  }
+
+  async revokeAllUserTokens(userId: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL`,
+      [userId],
+    );
+  }
+
+  async logout(refreshToken: string): Promise<void> {
+    await this.revokeRefreshToken(refreshToken);
   }
 }
