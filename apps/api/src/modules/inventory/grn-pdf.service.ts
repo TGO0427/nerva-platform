@@ -32,14 +32,14 @@ export class GrnPdfService {
     const profile = await this.tenantProfile.getProfile(tenantId);
 
     // Fetch supplier details if available
-    const supplier = grn.supplierId ? await this.getSupplier(grn.supplierId) : null;
+    const supplier = grn.supplierId ? await this.getSupplier(grn.supplierId, tenantId) : null;
 
     // Fetch PO reference number if available
-    const poNo = grn.purchaseOrderId ? await this.getPoNo(grn.purchaseOrderId) : null;
+    const poNo = grn.purchaseOrderId ? await this.getPoNo(grn.purchaseOrderId, tenantId) : null;
 
     // Fetch item details for each line (SKU + description)
     const itemIds = [...new Set(lines.map((l) => l.itemId))];
-    const items = await this.getItems(itemIds);
+    const items = await this.getItems(itemIds, tenantId);
 
     const doc = createPdfDocument();
     const bufferPromise = pdfToBuffer(doc);
@@ -122,30 +122,30 @@ export class GrnPdfService {
     return bufferPromise;
   }
 
-  private async getSupplier(supplierId: string): Promise<Record<string, any> | null> {
+  private async getSupplier(supplierId: string, tenantId: string): Promise<Record<string, any> | null> {
     const result = await this.pool.query(
       `SELECT name, contact_person, phone, email, vat_no,
               address_line1, address_line2, city, postal_code, country
-       FROM suppliers WHERE id = $1`,
-      [supplierId],
+       FROM suppliers WHERE id = $1 AND tenant_id = $2`,
+      [supplierId, tenantId],
     );
     return result.rows[0] || null;
   }
 
-  private async getPoNo(purchaseOrderId: string): Promise<string | null> {
+  private async getPoNo(purchaseOrderId: string, tenantId: string): Promise<string | null> {
     const result = await this.pool.query(
-      'SELECT po_no FROM purchase_orders WHERE id = $1',
-      [purchaseOrderId],
+      'SELECT po_no FROM purchase_orders WHERE id = $1 AND tenant_id = $2',
+      [purchaseOrderId, tenantId],
     );
     return result.rows[0]?.po_no || null;
   }
 
-  private async getItems(itemIds: string[]): Promise<Map<string, { sku: string; description: string }>> {
+  private async getItems(itemIds: string[], tenantId: string): Promise<Map<string, { sku: string; description: string }>> {
     if (itemIds.length === 0) return new Map();
     const placeholders = itemIds.map((_, i) => `$${i + 1}`).join(', ');
     const result = await this.pool.query(
-      `SELECT id, sku, description FROM items WHERE id IN (${placeholders})`,
-      itemIds,
+      `SELECT id, sku, description FROM items WHERE id IN (${placeholders}) AND tenant_id = $${itemIds.length + 1}`,
+      [...itemIds, tenantId],
     );
     const map = new Map<string, { sku: string; description: string }>();
     for (const row of result.rows) {

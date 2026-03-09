@@ -36,11 +36,11 @@ export class InvoicePdfService {
     const profile = await this.tenantProfile.getProfile(tenantId);
 
     // Fetch customer details
-    const customer = await this.getCustomer(invoice.customerId);
+    const customer = await this.getCustomer(invoice.customerId, tenantId);
 
     // Fetch item details for each line (SKU + description)
     const itemIds = [...new Set(lines.map((l) => l.itemId))];
-    const items = await this.getItems(itemIds);
+    const items = await this.getItems(itemIds, tenantId);
 
     const doc = createPdfDocument();
     const bufferPromise = pdfToBuffer(doc);
@@ -165,24 +165,24 @@ export class InvoicePdfService {
     return bufferPromise;
   }
 
-  private async getCustomer(customerId: string): Promise<Record<string, any> | null> {
+  private async getCustomer(customerId: string, tenantId: string): Promise<Record<string, any> | null> {
     const result = await this.pool.query(
       `SELECT name, phone, email, vat_no,
               billing_address_line1, billing_address_line2, billing_city,
               billing_postal_code, billing_country,
               shipping_address_line1, shipping_city
-       FROM customers WHERE id = $1`,
-      [customerId],
+       FROM customers WHERE id = $1 AND tenant_id = $2`,
+      [customerId, tenantId],
     );
     return result.rows[0] || null;
   }
 
-  private async getItems(itemIds: string[]): Promise<Map<string, { sku: string; description: string }>> {
+  private async getItems(itemIds: string[], tenantId: string): Promise<Map<string, { sku: string; description: string }>> {
     if (itemIds.length === 0) return new Map();
     const placeholders = itemIds.map((_, i) => `$${i + 1}`).join(', ');
     const result = await this.pool.query(
-      `SELECT id, sku, description FROM items WHERE id IN (${placeholders})`,
-      itemIds,
+      `SELECT id, sku, description FROM items WHERE id IN (${placeholders}) AND tenant_id = $${itemIds.length + 1}`,
+      [...itemIds, tenantId],
     );
     const map = new Map<string, { sku: string; description: string }>();
     for (const row of result.rows) {

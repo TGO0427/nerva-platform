@@ -64,8 +64,11 @@ export class CustomersController {
   @Get(':id')
   @RequirePermissions('customer.read')
   @ApiOperation({ summary: 'Get customer by ID' })
-  async get(@Param('id', UuidValidationPipe) id: string) {
-    return this.service.getCustomer(id);
+  async get(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+  ) {
+    return this.service.getCustomer(tenantId, id);
   }
 
   @Post()
@@ -82,17 +85,21 @@ export class CustomersController {
   @RequirePermissions('customer.write')
   @ApiOperation({ summary: 'Update customer' })
   async update(
+    @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
     @Body() data: UpdateCustomerDto,
   ) {
-    return this.service.updateCustomer(id, data);
+    return this.service.updateCustomer(tenantId, id, data);
   }
 
   @Delete(':id')
   @RequirePermissions('customer.delete')
   @ApiOperation({ summary: 'Delete customer (no references)' })
-  async delete(@Param('id', UuidValidationPipe) id: string) {
-    await this.service.deleteCustomer(id);
+  async delete(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+  ) {
+    await this.service.deleteCustomer(tenantId, id);
     return { success: true };
   }
 
@@ -131,17 +138,21 @@ export class CustomersController {
   @RequirePermissions('customer.write')
   @ApiOperation({ summary: 'Update customer contact' })
   async updateContact(
+    @TenantId() tenantId: string,
     @Param('contactId', UuidValidationPipe) contactId: string,
     @Body() data: UpdateCustomerContactDto,
   ) {
-    return this.service.updateCustomerContact(contactId, data);
+    return this.service.updateCustomerContact(tenantId, contactId, data);
   }
 
   @Delete('contacts/:contactId')
   @RequirePermissions('customer.write')
   @ApiOperation({ summary: 'Delete customer contact' })
-  async deleteContact(@Param('contactId', UuidValidationPipe) contactId: string) {
-    await this.service.deleteCustomerContact(contactId);
+  async deleteContact(
+    @TenantId() tenantId: string,
+    @Param('contactId', UuidValidationPipe) contactId: string,
+  ) {
+    await this.service.deleteCustomerContact(tenantId, contactId);
     return { success: true };
   }
 
@@ -173,8 +184,11 @@ export class CustomersController {
   @Delete('notes/:noteId')
   @RequirePermissions('customer.write')
   @ApiOperation({ summary: 'Delete customer note' })
-  async deleteNote(@Param('noteId', UuidValidationPipe) noteId: string) {
-    await this.service.deleteCustomerNote(noteId);
+  async deleteNote(
+    @TenantId() tenantId: string,
+    @Param('noteId', UuidValidationPipe) noteId: string,
+  ) {
+    await this.service.deleteCustomerNote(tenantId, noteId);
     return { success: true };
   }
 

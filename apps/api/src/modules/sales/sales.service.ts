@@ -44,7 +44,7 @@ export class SalesService {
     // Get siteId from warehouse if not provided
     let siteId = data.siteId;
     if (!siteId) {
-      const warehouse = await this.masterDataService.getWarehouse(data.warehouseId);
+      const warehouse = await this.masterDataService.getWarehouse(data.tenantId, data.warehouseId);
       if (!warehouse) {
         throw new NotFoundException('Warehouse not found');
       }

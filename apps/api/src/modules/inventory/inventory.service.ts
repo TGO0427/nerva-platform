@@ -33,7 +33,7 @@ export class InventoryService {
     // Get siteId from warehouse if not provided
     let siteId = data.siteId;
     if (!siteId) {
-      const warehouse = await this.masterDataService.getWarehouse(data.warehouseId);
+      const warehouse = await this.masterDataService.getWarehouse(data.tenantId, data.warehouseId);
       if (!warehouse) {
         throw new NotFoundException('Warehouse not found');
       }
@@ -313,7 +313,7 @@ export class InventoryService {
     }
 
     const lines = await this.repository.getAdjustmentLines(id);
-    const warehouse = await this.masterDataService.getWarehouse(adjustment.warehouseId);
+    const warehouse = await this.masterDataService.getWarehouse(adjustment.tenantId, adjustment.warehouseId);
 
     for (const line of lines) {
       const delta = line.qtyAfter - line.qtyBefore;
@@ -440,7 +440,7 @@ export class InventoryService {
     createdBy?: string;
     isBlind?: boolean;
   }): Promise<CycleCountEntity> {
-    await this.masterDataService.getWarehouse(data.warehouseId);
+    await this.masterDataService.getWarehouse(data.tenantId, data.warehouseId);
     const countNo = await this.cycleCountRepo.generateCountNo(data.tenantId);
     return this.cycleCountRepo.create({ ...data, countNo });
   }
@@ -724,7 +724,7 @@ export class InventoryService {
     }
 
     // Validate target bin is STORAGE or PICKING type
-    const bin = await this.masterDataService.getBin(toBinId);
+    const bin = await this.masterDataService.getBin(task.tenantId, toBinId);
     if (!bin) {
       throw new NotFoundException('Target bin not found');
     }

@@ -318,10 +318,10 @@ export class MasterDataRepository extends BaseRepository {
     return parseInt(result?.count || '0', 10);
   }
 
-  async findItemById(id: string): Promise<Item | null> {
+  async findItemById(tenantId: string, id: string): Promise<Item | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM items WHERE id = $1',
-      [id],
+      'SELECT * FROM items WHERE id = $1 AND tenant_id = $2',
+      [id, tenantId],
     );
     return row ? this.mapItem(row) : null;
   }
@@ -361,6 +361,7 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   async updateItem(
+    tenantId: string,
     id: string,
     data: Partial<{ sku: string; description: string; uom: string; weightKg: number; isActive: boolean }>,
   ): Promise<Item | null> {
@@ -374,20 +375,21 @@ export class MasterDataRepository extends BaseRepository {
     if (data.weightKg !== undefined) { fields.push(`weight_kg = $${idx++}`); values.push(data.weightKg); }
     if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.isActive); }
 
-    if (fields.length === 0) return this.findItemById(id);
+    if (fields.length === 0) return this.findItemById(tenantId, id);
 
     values.push(id);
+    values.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE items SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE items SET ${fields.join(', ')} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapItem(row) : null;
   }
 
-  async deleteItem(id: string): Promise<boolean> {
+  async deleteItem(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM items WHERE id = $1 RETURNING id',
-      [id],
+      'DELETE FROM items WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      [id, tenantId],
     );
     return !!result;
   }
@@ -428,10 +430,10 @@ export class MasterDataRepository extends BaseRepository {
     return parseInt(result?.count || '0', 10);
   }
 
-  async findCustomerById(id: string): Promise<Customer | null> {
+  async findCustomerById(tenantId: string, id: string): Promise<Customer | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM customers WHERE id = $1',
-      [id],
+      'SELECT * FROM customers WHERE id = $1 AND tenant_id = $2',
+      [id, tenantId],
     );
     return row ? this.mapCustomer(row) : null;
   }
@@ -494,6 +496,7 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   async updateCustomer(
+    tenantId: string,
     id: string,
     data: Partial<{
       code: string;
@@ -535,20 +538,21 @@ export class MasterDataRepository extends BaseRepository {
     if (data.shippingCountry !== undefined) { fields.push(`shipping_country = $${idx++}`); values.push(data.shippingCountry); }
     if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.isActive); }
 
-    if (fields.length === 0) return this.findCustomerById(id);
+    if (fields.length === 0) return this.findCustomerById(tenantId, id);
 
     values.push(id);
+    values.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE customers SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE customers SET ${fields.join(', ')} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapCustomer(row) : null;
   }
 
-  async deleteCustomer(id: string): Promise<boolean> {
+  async deleteCustomer(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM customers WHERE id = $1 RETURNING id',
-      [id],
+      'DELETE FROM customers WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      [id, tenantId],
     );
     return !!result;
   }
@@ -589,10 +593,10 @@ export class MasterDataRepository extends BaseRepository {
     return parseInt(result?.count || '0', 10);
   }
 
-  async findSupplierById(id: string): Promise<Supplier | null> {
+  async findSupplierById(tenantId: string, id: string): Promise<Supplier | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM suppliers WHERE id = $1',
-      [id],
+      'SELECT * FROM suppliers WHERE id = $1 AND tenant_id = $2',
+      [id, tenantId],
     );
     return row ? this.mapSupplier(row) : null;
   }
@@ -659,6 +663,7 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   async updateSupplier(
+    tenantId: string,
     id: string,
     data: Partial<{
       code: string;
@@ -704,20 +709,21 @@ export class MasterDataRepository extends BaseRepository {
     if (data.tradingCountry !== undefined) { fields.push(`trading_country = $${idx++}`); values.push(data.tradingCountry); }
     if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.isActive); }
 
-    if (fields.length === 0) return this.findSupplierById(id);
+    if (fields.length === 0) return this.findSupplierById(tenantId, id);
 
     values.push(id);
+    values.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE suppliers SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE suppliers SET ${fields.join(', ')} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapSupplier(row) : null;
   }
 
-  async deleteSupplier(id: string): Promise<boolean> {
+  async deleteSupplier(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM suppliers WHERE id = $1 RETURNING id',
-      [id],
+      'DELETE FROM suppliers WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      [id, tenantId],
     );
     return !!result;
   }
@@ -739,10 +745,10 @@ export class MasterDataRepository extends BaseRepository {
     return rows.map(this.mapSupplierContact);
   }
 
-  async findSupplierContactById(id: string): Promise<SupplierContact | null> {
+  async findSupplierContactById(tenantId: string, id: string): Promise<SupplierContact | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM supplier_contacts WHERE id = $1',
-      [id],
+      'SELECT * FROM supplier_contacts WHERE id = $1 AND tenant_id = $2',
+      [id, tenantId],
     );
     return row ? this.mapSupplierContact(row) : null;
   }
@@ -774,6 +780,7 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   async updateSupplierContact(
+    tenantId: string,
     id: string,
     data: Partial<{
       name: string;
@@ -795,20 +802,21 @@ export class MasterDataRepository extends BaseRepository {
     if (data.isPrimary !== undefined) { fields.push(`is_primary = $${idx++}`); values.push(data.isPrimary); }
     if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.isActive); }
 
-    if (fields.length === 0) return this.findSupplierContactById(id);
+    if (fields.length === 0) return this.findSupplierContactById(tenantId, id);
 
     values.push(id);
+    values.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE supplier_contacts SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE supplier_contacts SET ${fields.join(', ')} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapSupplierContact(row) : null;
   }
 
-  async deleteSupplierContact(id: string): Promise<boolean> {
+  async deleteSupplierContact(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM supplier_contacts WHERE id = $1 RETURNING id',
-      [id],
+      'DELETE FROM supplier_contacts WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      [id, tenantId],
     );
     return !!result;
   }
@@ -841,10 +849,10 @@ export class MasterDataRepository extends BaseRepository {
     return this.mapSupplierNote(row!);
   }
 
-  async deleteSupplierNote(id: string): Promise<boolean> {
+  async deleteSupplierNote(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM supplier_notes WHERE id = $1 RETURNING id',
-      [id],
+      'DELETE FROM supplier_notes WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      [id, tenantId],
     );
     return !!result;
   }
@@ -865,7 +873,7 @@ export class MasterDataRepository extends BaseRepository {
     return rows.map(this.mapSupplierNcr);
   }
 
-  async findSupplierNcrById(id: string): Promise<SupplierNcr | null> {
+  async findSupplierNcrById(tenantId: string, id: string): Promise<SupplierNcr | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT sn.*,
               u1.display_name as created_by_name,
@@ -873,8 +881,8 @@ export class MasterDataRepository extends BaseRepository {
        FROM supplier_ncrs sn
        LEFT JOIN users u1 ON sn.created_by = u1.id
        LEFT JOIN users u2 ON sn.resolved_by = u2.id
-       WHERE sn.id = $1`,
-      [id],
+       WHERE sn.id = $1 AND sn.tenant_id = $2`,
+      [id, tenantId],
     );
     return row ? this.mapSupplierNcr(row) : null;
   }
@@ -897,6 +905,7 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   async updateSupplierNcr(
+    tenantId: string,
     id: string,
     data: Partial<{
       status: string;
@@ -914,11 +923,12 @@ export class MasterDataRepository extends BaseRepository {
     if (data.resolvedBy !== undefined) { fields.push(`resolved_by = $${idx++}`); values.push(data.resolvedBy); }
     if (data.resolvedAt !== undefined) { fields.push(`resolved_at = $${idx++}`); values.push(data.resolvedAt); }
 
-    if (fields.length === 0) return this.findSupplierNcrById(id);
+    if (fields.length === 0) return this.findSupplierNcrById(tenantId, id);
 
     values.push(id);
+    values.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE supplier_ncrs SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE supplier_ncrs SET ${fields.join(', ')} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapSupplierNcr(row) : null;
@@ -949,10 +959,10 @@ export class MasterDataRepository extends BaseRepository {
     return rows.map(this.mapWarehouse);
   }
 
-  async findWarehouseById(id: string): Promise<Warehouse | null> {
+  async findWarehouseById(tenantId: string, id: string): Promise<Warehouse | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM warehouses WHERE id = $1',
-      [id],
+      'SELECT * FROM warehouses WHERE id = $1 AND tenant_id = $2',
+      [id, tenantId],
     );
     return row ? this.mapWarehouse(row) : null;
   }
@@ -972,7 +982,7 @@ export class MasterDataRepository extends BaseRepository {
     return this.mapWarehouse(row!);
   }
 
-  async updateWarehouse(id: string, data: { name?: string; code?: string; isActive?: boolean }): Promise<Warehouse> {
+  async updateWarehouse(tenantId: string, id: string, data: { name?: string; code?: string; isActive?: boolean }): Promise<Warehouse> {
     const setClauses: string[] = [];
     const params: unknown[] = [];
     let paramIndex = 1;
@@ -991,21 +1001,22 @@ export class MasterDataRepository extends BaseRepository {
     }
 
     if (setClauses.length === 0) {
-      return this.findWarehouseById(id) as Promise<Warehouse>;
+      return this.findWarehouseById(tenantId, id) as Promise<Warehouse>;
     }
 
     params.push(id);
+    params.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE warehouses SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      `UPDATE warehouses SET ${setClauses.join(', ')} WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1} RETURNING *`,
       params,
     );
     return this.mapWarehouse(row!);
   }
 
-  async deleteWarehouse(id: string): Promise<boolean> {
+  async deleteWarehouse(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM warehouses WHERE id = $1 RETURNING id',
-      [id],
+      'DELETE FROM warehouses WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      [id, tenantId],
     );
     return !!result;
   }
@@ -1047,10 +1058,10 @@ export class MasterDataRepository extends BaseRepository {
     return rows.map(this.mapBin);
   }
 
-  async findBinById(id: string): Promise<Bin | null> {
+  async findBinById(tenantId: string, id: string): Promise<Bin | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM bins WHERE id = $1',
-      [id],
+      'SELECT * FROM bins WHERE id = $1 AND tenant_id = $2',
+      [id, tenantId],
     );
     return row ? this.mapBin(row) : null;
   }
@@ -1081,7 +1092,7 @@ export class MasterDataRepository extends BaseRepository {
     return this.mapBin(row!);
   }
 
-  async updateBin(id: string, data: { code?: string; binType?: string; isActive?: boolean }): Promise<Bin> {
+  async updateBin(tenantId: string, id: string, data: { code?: string; binType?: string; isActive?: boolean }): Promise<Bin> {
     const setClauses: string[] = [];
     const params: unknown[] = [];
     let paramIndex = 1;
@@ -1100,12 +1111,12 @@ export class MasterDataRepository extends BaseRepository {
     }
 
     if (setClauses.length === 0) {
-      return this.findBinById(id) as Promise<Bin>;
+      return this.findBinById(tenantId, id) as Promise<Bin>;
     }
 
-    params.push(id);
+    params.push(id, tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE bins SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      `UPDATE bins SET ${setClauses.join(', ')} WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1} RETURNING *`,
       params,
     );
     return this.mapBin(row!);
@@ -1445,10 +1456,10 @@ export class MasterDataRepository extends BaseRepository {
     return rows.map(this.mapCustomerContact);
   }
 
-  async findCustomerContactById(id: string): Promise<CustomerContact | null> {
+  async findCustomerContactById(tenantId: string, id: string): Promise<CustomerContact | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      'SELECT * FROM customer_contacts WHERE id = $1',
-      [id],
+      'SELECT * FROM customer_contacts WHERE id = $1 AND tenant_id = $2',
+      [id, tenantId],
     );
     return row ? this.mapCustomerContact(row) : null;
   }
@@ -1480,6 +1491,7 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   async updateCustomerContact(
+    tenantId: string,
     id: string,
     data: Partial<{
       name: string;
@@ -1501,20 +1513,21 @@ export class MasterDataRepository extends BaseRepository {
     if (data.isPrimary !== undefined) { fields.push(`is_primary = $${idx++}`); values.push(data.isPrimary); }
     if (data.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.isActive); }
 
-    if (fields.length === 0) return this.findCustomerContactById(id);
+    if (fields.length === 0) return this.findCustomerContactById(tenantId, id);
 
     values.push(id);
+    values.push(tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE customer_contacts SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE customer_contacts SET ${fields.join(', ')} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapCustomerContact(row) : null;
   }
 
-  async deleteCustomerContact(id: string): Promise<boolean> {
+  async deleteCustomerContact(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM customer_contacts WHERE id = $1 RETURNING id',
-      [id],
+      'DELETE FROM customer_contacts WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      [id, tenantId],
     );
     return !!result;
   }
@@ -1547,10 +1560,10 @@ export class MasterDataRepository extends BaseRepository {
     return this.mapCustomerNote(row!);
   }
 
-  async deleteCustomerNote(id: string): Promise<boolean> {
+  async deleteCustomerNote(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      'DELETE FROM customer_notes WHERE id = $1 RETURNING id',
-      [id],
+      'DELETE FROM customer_notes WHERE id = $1 AND tenant_id = $2 RETURNING id',
+      [id, tenantId],
     );
     return !!result;
   }

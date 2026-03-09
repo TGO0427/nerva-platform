@@ -52,8 +52,11 @@ export class ItemsController {
   @Get(':id')
   @RequirePermissions('item.read')
   @ApiOperation({ summary: 'Get item by ID' })
-  async get(@Param('id', UuidValidationPipe) id: string) {
-    return this.service.getItem(id);
+  async get(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+  ) {
+    return this.service.getItem(tenantId, id);
   }
 
   @Post()
@@ -70,17 +73,21 @@ export class ItemsController {
   @RequirePermissions('item.write')
   @ApiOperation({ summary: 'Update item' })
   async update(
+    @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
     @Body() data: UpdateItemDto,
   ) {
-    return this.service.updateItem(id, data);
+    return this.service.updateItem(tenantId, id, data);
   }
 
   @Delete(':id')
   @RequirePermissions('item.delete')
   @ApiOperation({ summary: 'Delete item (no references)' })
-  async delete(@Param('id', UuidValidationPipe) id: string) {
-    await this.service.deleteItem(id);
+  async delete(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+  ) {
+    await this.service.deleteItem(tenantId, id);
     return { success: true };
   }
 }

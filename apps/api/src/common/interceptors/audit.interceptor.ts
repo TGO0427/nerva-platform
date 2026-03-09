@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
 import { Reflector } from '@nestjs/core';
+import { AuditService } from '../../modules/audit/audit.service';
 
 export const AUDIT_ACTION_KEY = 'audit_action';
 
@@ -19,7 +20,10 @@ export const AuditAction = (metadata: AuditMetadata) =>
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private auditService: AuditService,
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const auditMetadata = this.reflector.get<AuditMetadata>(
@@ -36,10 +40,9 @@ export class AuditInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap((response) => {
-        // Emit audit event (to be handled by AuditService)
-        const auditEvent = {
+        this.auditService.log({
           tenantId: request.tenantId,
-          userId: request.user?.id,
+          actorUserId: request.user?.id,
           entityType: auditMetadata.entityType,
           entityId: response?.id,
           action: auditMetadata.action,
@@ -47,11 +50,7 @@ export class AuditInterceptor implements NestInterceptor {
           after: response,
           ipAddress: request.ip,
           userAgent: request.headers['user-agent'],
-          timestamp: new Date(),
-        };
-
-        // This would typically emit to an event bus or call the audit service
-        console.log('Audit:', auditEvent);
+        }).catch((err) => console.error('Audit log failed:', err));
       }),
     );
   }

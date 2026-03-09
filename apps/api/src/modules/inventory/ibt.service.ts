@@ -24,8 +24,8 @@ export class IbtService {
     }
 
     // Validate warehouses exist
-    await this.masterDataService.getWarehouse(data.fromWarehouseId);
-    await this.masterDataService.getWarehouse(data.toWarehouseId);
+    await this.masterDataService.getWarehouse(data.tenantId, data.fromWarehouseId);
+    await this.masterDataService.getWarehouse(data.tenantId, data.toWarehouseId);
 
     const ibtNo = await this.ibtRepo.generateIbtNo(data.tenantId);
     const ibt = await this.ibtRepo.create({
@@ -92,7 +92,7 @@ export class IbtService {
 
     // Validate bin belongs to source warehouse if provided
     if (data.fromBinId) {
-      const bin = await this.masterDataService.getBin(data.fromBinId);
+      const bin = await this.masterDataService.getBin(data.tenantId, data.fromBinId);
       if (bin.warehouseId !== ibt.fromWarehouseId) {
         throw new BadRequestException('Source bin must belong to the source warehouse');
       }
@@ -166,7 +166,7 @@ export class IbtService {
       throw new BadRequestException('Only PICKING IBTs can be shipped');
     }
 
-    const fromWarehouse = await this.masterDataService.getWarehouse(ibt.fromWarehouseId);
+    const fromWarehouse = await this.masterDataService.getWarehouse(ibt.tenantId, ibt.fromWarehouseId);
     const ibtLines = await this.ibtRepo.getLines(id);
     const lineMap = new Map(ibtLines.map((l) => [l.id, l]));
 
@@ -215,7 +215,7 @@ export class IbtService {
       throw new BadRequestException('Only IN_TRANSIT IBTs can be received');
     }
 
-    const toWarehouse = await this.masterDataService.getWarehouse(ibt.toWarehouseId);
+    const toWarehouse = await this.masterDataService.getWarehouse(ibt.tenantId, ibt.toWarehouseId);
     const ibtLines = await this.ibtRepo.getLines(id);
     const lineMap = new Map(ibtLines.map((l) => [l.id, l]));
 
@@ -230,7 +230,7 @@ export class IbtService {
       if (rcvLine.qtyReceived <= 0) continue;
 
       // Validate destination bin belongs to target warehouse
-      const destBin = await this.masterDataService.getBin(rcvLine.toBinId);
+      const destBin = await this.masterDataService.getBin(ibt.tenantId, rcvLine.toBinId);
       if (destBin.warehouseId !== ibt.toWarehouseId) {
         throw new BadRequestException('Destination bin must belong to the target warehouse');
       }

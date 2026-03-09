@@ -31,7 +31,7 @@ export class PurchaseOrderPdfService {
     const profile = await this.tenantProfile.getProfile(tenantId);
 
     // Get supplier details
-    const supplier = await this.repository.findSupplierById(po.supplierId);
+    const supplier = await this.repository.findSupplierById(tenantId, po.supplierId);
 
     const doc = createPdfDocument();
     const bufferPromise = pdfToBuffer(doc);

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { useNotifications, useUnreadNotificationCount, useMarkNotificationAsRead, useMarkAllNotificationsAsRead } from '@/lib/queries';
@@ -15,6 +16,7 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, logout } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -50,8 +52,8 @@ export function Header({ onMenuClick }: HeaderProps) {
     localStorage.setItem('siteId', siteId);
     setCurrentSiteId(siteId);
     setIsSiteMenuOpen(false);
-    window.location.reload();
-  }, []);
+    queryClient.invalidateQueries();
+  }, [queryClient]);
 
   // Close menus when clicking outside
   useEffect(() => {

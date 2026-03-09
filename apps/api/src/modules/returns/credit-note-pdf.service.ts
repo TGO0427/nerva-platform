@@ -37,7 +37,7 @@ export class CreditNotePdfService {
     const rmaNo = rma?.rmaNo || '-';
 
     // Fetch customer details through RMA
-    const customer = rma ? await this.getCustomer(rma.customerId) : null;
+    const customer = rma ? await this.getCustomer(rma.customerId, tenantId) : null;
 
     const doc = createPdfDocument();
     const bufferPromise = pdfToBuffer(doc);
@@ -110,13 +110,13 @@ export class CreditNotePdfService {
     return bufferPromise;
   }
 
-  private async getCustomer(customerId: string): Promise<Record<string, any> | null> {
+  private async getCustomer(customerId: string, tenantId: string): Promise<Record<string, any> | null> {
     const result = await this.pool.query(
       `SELECT name, contact_person, phone, email, vat_no,
               billing_address_line1, billing_address_line2, billing_city,
               billing_postal_code, billing_country
-       FROM customers WHERE id = $1`,
-      [customerId],
+       FROM customers WHERE id = $1 AND tenant_id = $2`,
+      [customerId, tenantId],
     );
     return result.rows[0] || null;
   }

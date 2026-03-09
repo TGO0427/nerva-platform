@@ -36,8 +36,8 @@ export class MasterDataService {
     return buildPaginatedResult(items, total, page, limit);
   }
 
-  async getItem(id: string): Promise<Item> {
-    const item = await this.repository.findItemById(id);
+  async getItem(tenantId: string, id: string): Promise<Item> {
+    const item = await this.repository.findItemById(tenantId, id);
     if (!item) throw new NotFoundException('Item not found');
     return item;
   }
@@ -55,20 +55,21 @@ export class MasterDataService {
   }
 
   async updateItem(
+    tenantId: string,
     id: string,
     data: Partial<{ sku: string; description: string; uom: string; weightKg: number; isActive: boolean }>,
   ): Promise<Item> {
-    const item = await this.repository.updateItem(id, data);
+    const item = await this.repository.updateItem(tenantId, id, data);
     if (!item) throw new NotFoundException('Item not found');
     return item;
   }
 
-  async deleteItem(id: string): Promise<void> {
-    const item = await this.repository.findItemById(id);
+  async deleteItem(tenantId: string, id: string): Promise<void> {
+    const item = await this.repository.findItemById(tenantId, id);
     if (!item) throw new NotFoundException('Item not found');
     const refs = await this.repository.countItemReferences(id);
     if (refs > 0) throw new BadRequestException('Cannot delete item: referenced by existing orders');
-    await this.repository.deleteItem(id);
+    await this.repository.deleteItem(tenantId, id);
   }
 
   async importItems(
@@ -93,8 +94,8 @@ export class MasterDataService {
     return buildPaginatedResult(customers, total, page, limit);
   }
 
-  async getCustomer(id: string): Promise<Customer> {
-    const customer = await this.repository.findCustomerById(id);
+  async getCustomer(tenantId: string, id: string): Promise<Customer> {
+    const customer = await this.repository.findCustomerById(tenantId, id);
     if (!customer) throw new NotFoundException('Customer not found');
     return customer;
   }
@@ -121,6 +122,7 @@ export class MasterDataService {
   }
 
   async updateCustomer(
+    tenantId: string,
     id: string,
     data: Partial<{
       code: string;
@@ -141,17 +143,17 @@ export class MasterDataService {
       isActive: boolean;
     }>,
   ): Promise<Customer> {
-    const customer = await this.repository.updateCustomer(id, data);
+    const customer = await this.repository.updateCustomer(tenantId, id, data);
     if (!customer) throw new NotFoundException('Customer not found');
     return customer;
   }
 
-  async deleteCustomer(id: string): Promise<void> {
-    const customer = await this.repository.findCustomerById(id);
+  async deleteCustomer(tenantId: string, id: string): Promise<void> {
+    const customer = await this.repository.findCustomerById(tenantId, id);
     if (!customer) throw new NotFoundException('Customer not found');
     const refs = await this.repository.countCustomerReferences(id);
     if (refs > 0) throw new BadRequestException('Cannot delete customer: has existing sales orders');
-    await this.repository.deleteCustomer(id);
+    await this.repository.deleteCustomer(tenantId, id);
   }
 
   async importCustomers(
@@ -182,8 +184,8 @@ export class MasterDataService {
     return buildPaginatedResult(suppliers, total, page, limit);
   }
 
-  async getSupplier(id: string): Promise<Supplier> {
-    const supplier = await this.repository.findSupplierById(id);
+  async getSupplier(tenantId: string, id: string): Promise<Supplier> {
+    const supplier = await this.repository.findSupplierById(tenantId, id);
     if (!supplier) throw new NotFoundException('Supplier not found');
     return supplier;
   }
@@ -212,6 +214,7 @@ export class MasterDataService {
   }
 
   async updateSupplier(
+    tenantId: string,
     id: string,
     data: Partial<{
       code: string;
@@ -234,17 +237,17 @@ export class MasterDataService {
       isActive: boolean;
     }>,
   ): Promise<Supplier> {
-    const supplier = await this.repository.updateSupplier(id, data);
+    const supplier = await this.repository.updateSupplier(tenantId, id, data);
     if (!supplier) throw new NotFoundException('Supplier not found');
     return supplier;
   }
 
-  async deleteSupplier(id: string): Promise<void> {
-    const supplier = await this.repository.findSupplierById(id);
+  async deleteSupplier(tenantId: string, id: string): Promise<void> {
+    const supplier = await this.repository.findSupplierById(tenantId, id);
     if (!supplier) throw new NotFoundException('Supplier not found');
     const refs = await this.repository.countSupplierReferences(id);
     if (refs > 0) throw new BadRequestException('Cannot delete supplier: has existing purchase orders');
-    await this.repository.deleteSupplier(id);
+    await this.repository.deleteSupplier(tenantId, id);
   }
 
   async importSuppliers(
@@ -316,8 +319,8 @@ export class MasterDataService {
     return this.repository.findSupplierContacts(supplierId);
   }
 
-  async getSupplierContact(id: string): Promise<SupplierContact> {
-    const contact = await this.repository.findSupplierContactById(id);
+  async getSupplierContact(tenantId: string, id: string): Promise<SupplierContact> {
+    const contact = await this.repository.findSupplierContactById(tenantId, id);
     if (!contact) throw new NotFoundException('Contact not found');
     return contact;
   }
@@ -335,6 +338,7 @@ export class MasterDataService {
   }
 
   async updateSupplierContact(
+    tenantId: string,
     id: string,
     data: Partial<{
       name: string;
@@ -345,13 +349,13 @@ export class MasterDataService {
       isActive: boolean;
     }>,
   ): Promise<SupplierContact> {
-    const contact = await this.repository.updateSupplierContact(id, data);
+    const contact = await this.repository.updateSupplierContact(tenantId, id, data);
     if (!contact) throw new NotFoundException('Contact not found');
     return contact;
   }
 
-  async deleteSupplierContact(id: string): Promise<void> {
-    const deleted = await this.repository.deleteSupplierContact(id);
+  async deleteSupplierContact(tenantId: string, id: string): Promise<void> {
+    const deleted = await this.repository.deleteSupplierContact(tenantId, id);
     if (!deleted) throw new NotFoundException('Contact not found');
   }
 
@@ -369,8 +373,8 @@ export class MasterDataService {
     return this.repository.createSupplierNote(data);
   }
 
-  async deleteSupplierNote(id: string): Promise<void> {
-    const deleted = await this.repository.deleteSupplierNote(id);
+  async deleteSupplierNote(tenantId: string, id: string): Promise<void> {
+    const deleted = await this.repository.deleteSupplierNote(tenantId, id);
     if (!deleted) throw new NotFoundException('Note not found');
   }
 
@@ -379,8 +383,8 @@ export class MasterDataService {
     return this.repository.findSupplierNcrs(supplierId);
   }
 
-  async getSupplierNcr(id: string): Promise<SupplierNcr> {
-    const ncr = await this.repository.findSupplierNcrById(id);
+  async getSupplierNcr(tenantId: string, id: string): Promise<SupplierNcr> {
+    const ncr = await this.repository.findSupplierNcrById(tenantId, id);
     if (!ncr) throw new NotFoundException('NCR not found');
     return ncr;
   }
@@ -397,10 +401,11 @@ export class MasterDataService {
   }
 
   async resolveSupplierNcr(
+    tenantId: string,
     id: string,
     data: { resolution: string; resolvedBy: string },
   ): Promise<SupplierNcr> {
-    const ncr = await this.repository.updateSupplierNcr(id, {
+    const ncr = await this.repository.updateSupplierNcr(tenantId, id, {
       status: 'RESOLVED',
       resolution: data.resolution,
       resolvedBy: data.resolvedBy,
@@ -410,8 +415,8 @@ export class MasterDataService {
     return ncr;
   }
 
-  async updateSupplierNcrStatus(id: string, status: string): Promise<SupplierNcr> {
-    const ncr = await this.repository.updateSupplierNcr(id, { status });
+  async updateSupplierNcrStatus(tenantId: string, id: string, status: string): Promise<SupplierNcr> {
+    const ncr = await this.repository.updateSupplierNcr(tenantId, id, { status });
     if (!ncr) throw new NotFoundException('NCR not found');
     return ncr;
   }
@@ -421,8 +426,8 @@ export class MasterDataService {
     return this.repository.findWarehouses(tenantId, siteId);
   }
 
-  async getWarehouse(id: string): Promise<Warehouse> {
-    const warehouse = await this.repository.findWarehouseById(id);
+  async getWarehouse(tenantId: string, id: string): Promise<Warehouse> {
+    const warehouse = await this.repository.findWarehouseById(tenantId, id);
     if (!warehouse) throw new NotFoundException('Warehouse not found');
     return warehouse;
   }
@@ -436,17 +441,17 @@ export class MasterDataService {
     return this.repository.createWarehouse(data);
   }
 
-  async updateWarehouse(id: string, data: { name?: string; code?: string; isActive?: boolean }): Promise<Warehouse> {
-    await this.getWarehouse(id); // throws if not found
-    return this.repository.updateWarehouse(id, data);
+  async updateWarehouse(tenantId: string, id: string, data: { name?: string; code?: string; isActive?: boolean }): Promise<Warehouse> {
+    await this.getWarehouse(tenantId, id); // throws if not found
+    return this.repository.updateWarehouse(tenantId, id, data);
   }
 
-  async deleteWarehouse(id: string): Promise<void> {
-    const warehouse = await this.repository.findWarehouseById(id);
+  async deleteWarehouse(tenantId: string, id: string): Promise<void> {
+    const warehouse = await this.repository.findWarehouseById(tenantId, id);
     if (!warehouse) throw new NotFoundException('Warehouse not found');
     const refs = await this.repository.countWarehouseReferences(id);
     if (refs > 0) throw new BadRequestException('Cannot delete warehouse: has existing work orders');
-    await this.repository.deleteWarehouse(id);
+    await this.repository.deleteWarehouse(tenantId, id);
   }
 
   // Bins
@@ -454,8 +459,8 @@ export class MasterDataService {
     return this.repository.findBins(tenantId, warehouseId);
   }
 
-  async getBin(id: string): Promise<Bin> {
-    const bin = await this.repository.findBinById(id);
+  async getBin(tenantId: string, id: string): Promise<Bin> {
+    const bin = await this.repository.findBinById(tenantId, id);
     if (!bin) throw new NotFoundException('Bin not found');
     return bin;
   }
@@ -472,9 +477,9 @@ export class MasterDataService {
     return this.repository.createBin(data);
   }
 
-  async updateBin(id: string, data: { code?: string; binType?: string; isActive?: boolean }): Promise<Bin> {
-    await this.getBin(id); // throws if not found
-    return this.repository.updateBin(id, data);
+  async updateBin(tenantId: string, id: string, data: { code?: string; binType?: string; isActive?: boolean }): Promise<Bin> {
+    await this.getBin(tenantId, id); // throws if not found
+    return this.repository.updateBin(tenantId, id, data);
   }
 
   // Supplier Items (Products & Services)
@@ -569,8 +574,8 @@ export class MasterDataService {
     return this.repository.findCustomerContacts(customerId);
   }
 
-  async getCustomerContact(id: string): Promise<CustomerContact> {
-    const contact = await this.repository.findCustomerContactById(id);
+  async getCustomerContact(tenantId: string, id: string): Promise<CustomerContact> {
+    const contact = await this.repository.findCustomerContactById(tenantId, id);
     if (!contact) throw new NotFoundException('Contact not found');
     return contact;
   }
@@ -588,6 +593,7 @@ export class MasterDataService {
   }
 
   async updateCustomerContact(
+    tenantId: string,
     id: string,
     data: Partial<{
       name: string;
@@ -598,13 +604,13 @@ export class MasterDataService {
       isActive: boolean;
     }>,
   ): Promise<CustomerContact> {
-    const contact = await this.repository.updateCustomerContact(id, data);
+    const contact = await this.repository.updateCustomerContact(tenantId, id, data);
     if (!contact) throw new NotFoundException('Contact not found');
     return contact;
   }
 
-  async deleteCustomerContact(id: string): Promise<void> {
-    const deleted = await this.repository.deleteCustomerContact(id);
+  async deleteCustomerContact(tenantId: string, id: string): Promise<void> {
+    const deleted = await this.repository.deleteCustomerContact(tenantId, id);
     if (!deleted) throw new NotFoundException('Contact not found');
   }
 
@@ -622,8 +628,8 @@ export class MasterDataService {
     return this.repository.createCustomerNote(data);
   }
 
-  async deleteCustomerNote(id: string): Promise<void> {
-    const deleted = await this.repository.deleteCustomerNote(id);
+  async deleteCustomerNote(tenantId: string, id: string): Promise<void> {
+    const deleted = await this.repository.deleteCustomerNote(tenantId, id);
     if (!deleted) throw new NotFoundException('Note not found');
   }
 

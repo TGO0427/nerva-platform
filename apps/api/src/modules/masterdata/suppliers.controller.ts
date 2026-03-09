@@ -70,8 +70,11 @@ export class SuppliersController {
   @Get(':id')
   @RequirePermissions('supplier.read')
   @ApiOperation({ summary: 'Get supplier by ID' })
-  async get(@Param('id', UuidValidationPipe) id: string) {
-    return this.service.getSupplier(id);
+  async get(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+  ) {
+    return this.service.getSupplier(tenantId, id);
   }
 
   @Post()
@@ -88,17 +91,21 @@ export class SuppliersController {
   @RequirePermissions('supplier.write')
   @ApiOperation({ summary: 'Update supplier' })
   async update(
+    @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
     @Body() data: UpdateSupplierDto,
   ) {
-    return this.service.updateSupplier(id, data);
+    return this.service.updateSupplier(tenantId, id, data);
   }
 
   @Delete(':id')
   @RequirePermissions('supplier.delete')
   @ApiOperation({ summary: 'Delete supplier (no references)' })
-  async delete(@Param('id', UuidValidationPipe) id: string) {
-    await this.service.deleteSupplier(id);
+  async delete(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+  ) {
+    await this.service.deleteSupplier(tenantId, id);
     return { success: true };
   }
 
@@ -137,17 +144,21 @@ export class SuppliersController {
   @RequirePermissions('supplier.write')
   @ApiOperation({ summary: 'Update supplier contact' })
   async updateContact(
+    @TenantId() tenantId: string,
     @Param('contactId', UuidValidationPipe) contactId: string,
     @Body() data: UpdateSupplierContactDto,
   ) {
-    return this.service.updateSupplierContact(contactId, data);
+    return this.service.updateSupplierContact(tenantId, contactId, data);
   }
 
   @Delete('contacts/:contactId')
   @RequirePermissions('supplier.write')
   @ApiOperation({ summary: 'Delete supplier contact' })
-  async deleteContact(@Param('contactId', UuidValidationPipe) contactId: string) {
-    await this.service.deleteSupplierContact(contactId);
+  async deleteContact(
+    @TenantId() tenantId: string,
+    @Param('contactId', UuidValidationPipe) contactId: string,
+  ) {
+    await this.service.deleteSupplierContact(tenantId, contactId);
     return { success: true };
   }
 
@@ -179,8 +190,11 @@ export class SuppliersController {
   @Delete('notes/:noteId')
   @RequirePermissions('supplier.write')
   @ApiOperation({ summary: 'Delete supplier note' })
-  async deleteNote(@Param('noteId', UuidValidationPipe) noteId: string) {
-    await this.service.deleteSupplierNote(noteId);
+  async deleteNote(
+    @TenantId() tenantId: string,
+    @Param('noteId', UuidValidationPipe) noteId: string,
+  ) {
+    await this.service.deleteSupplierNote(tenantId, noteId);
     return { success: true };
   }
 
@@ -213,19 +227,23 @@ export class SuppliersController {
   @Get('ncrs/:ncrId')
   @RequirePermissions('supplier.read')
   @ApiOperation({ summary: 'Get supplier NCR by ID' })
-  async getNcr(@Param('ncrId', UuidValidationPipe) ncrId: string) {
-    return this.service.getSupplierNcr(ncrId);
+  async getNcr(
+    @TenantId() tenantId: string,
+    @Param('ncrId', UuidValidationPipe) ncrId: string,
+  ) {
+    return this.service.getSupplierNcr(tenantId, ncrId);
   }
 
   @Post('ncrs/:ncrId/resolve')
   @RequirePermissions('supplier.write')
   @ApiOperation({ summary: 'Resolve supplier NCR' })
   async resolveNcr(
+    @TenantId() tenantId: string,
     @Param('ncrId', UuidValidationPipe) ncrId: string,
     @Body() data: ResolveSupplierNcrDto,
     @CurrentUser() user: { id: string },
   ) {
-    return this.service.resolveSupplierNcr(ncrId, {
+    return this.service.resolveSupplierNcr(tenantId, ncrId, {
       resolution: data.resolution,
       resolvedBy: user.id,
     });

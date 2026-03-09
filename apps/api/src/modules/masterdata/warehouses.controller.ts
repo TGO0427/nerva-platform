@@ -40,8 +40,11 @@ export class WarehousesController {
   @Get(':id')
   @RequirePermissions('warehouse.manage')
   @ApiOperation({ summary: 'Get warehouse by ID' })
-  async get(@Param('id', UuidValidationPipe) id: string) {
-    return this.service.getWarehouse(id);
+  async get(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+  ) {
+    return this.service.getWarehouse(tenantId, id);
   }
 
   @Post()
@@ -58,17 +61,21 @@ export class WarehousesController {
   @RequirePermissions('warehouse.manage')
   @ApiOperation({ summary: 'Update warehouse' })
   async update(
+    @TenantId() tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
     @Body() data: UpdateWarehouseDto,
   ) {
-    return this.service.updateWarehouse(id, data);
+    return this.service.updateWarehouse(tenantId, id, data);
   }
 
   @Delete(':id')
   @RequirePermissions('warehouse.manage')
   @ApiOperation({ summary: 'Delete warehouse (no references)' })
-  async delete(@Param('id', UuidValidationPipe) id: string) {
-    await this.service.deleteWarehouse(id);
+  async delete(
+    @TenantId() tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+  ) {
+    await this.service.deleteWarehouse(tenantId, id);
     return { success: true };
   }
 
@@ -102,9 +109,10 @@ export class WarehousesController {
   @RequirePermissions('warehouse.manage')
   @ApiOperation({ summary: 'Update bin' })
   async updateBin(
+    @TenantId() tenantId: string,
     @Param('binId', UuidValidationPipe) binId: string,
     @Body() data: UpdateBinDto,
   ) {
-    return this.service.updateBin(binId, data);
+    return this.service.updateBin(tenantId, binId, data);
   }
 }
