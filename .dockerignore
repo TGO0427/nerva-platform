@@ -1,0 +1,44 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build output
+**/dist
+**/.next
+**/.turbo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Version control
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+**/Dockerfile
+docker-compose*.yml
+
+# Tests and docs
+**/coverage
+**/*.spec.ts
+**/*.test.ts
+**/__tests__
+
+# Misc
+*.md
+LICENSE
+.prettierrc
+.eslintrc*
+turbo.json

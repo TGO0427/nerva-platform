@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/components/ui/toast';
 import { useAuth, getHomeRoute } from '@/lib/auth';
 import type { ApiError } from '@nerva/shared';
 import { AxiosError } from 'axios';
@@ -15,7 +14,6 @@ const TENANT_STORAGE_KEY = 'nerva_remembered_tenant';
 export default function LoginPage() {
   const router = useRouter();
   const { login, isLoading } = useAuth();
-  const { addToast } = useToast();
 
   const [tenantId, setTenantId] = useState('');
   const [email, setEmail] = useState('');
@@ -178,13 +176,12 @@ export default function LoginPage() {
             </button>
           </div>
           <div className="mt-1 text-right">
-            <button
-              type="button"
+            <Link
+              href="/forgot-password"
               className="text-xs text-primary-600 hover:text-primary-700"
-              onClick={() => addToast('Contact your administrator to reset your password.', 'info')}
             >
               Forgot password?
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -202,6 +199,16 @@ export default function LoginPage() {
             Back to home
           </Link>
         </p>
+
+        <div className="text-center text-xs text-gray-400 pt-2 border-t border-gray-100">
+          <Link href="/terms" className="hover:text-gray-600">
+            Terms of Service
+          </Link>
+          <span className="mx-2">&middot;</span>
+          <Link href="/privacy" className="hover:text-gray-600">
+            Privacy Policy
+          </Link>
+        </div>
       </form>
     </div>
   );
