@@ -35,6 +35,12 @@ export default function LoginPage() {
   const [mfaLoading, setMfaLoading] = useState(false);
   const mfaInputRef = useRef<HTMLInputElement>(null);
 
+  // Email verification state
+  const [emailVerificationRequired, setEmailVerificationRequired] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+
   // Load remembered tenant on mount
   useEffect(() => {
     const remembered = localStorage.getItem(TENANT_STORAGE_KEY);
@@ -87,6 +93,13 @@ export default function LoginPage() {
     try {
       // First, call the login API directly to check for MFA requirement
       const response = await api.post('/auth/login', { tenantId, email, password });
+
+      if (response.data.emailVerificationRequired) {
+        setVerificationEmail(response.data.email);
+        setEmailVerificationRequired(true);
+        setResendSuccess(false);
+        return;
+      }
 
       if (response.data.mfaRequired) {
         setMfaToken(response.data.mfaToken);
@@ -152,6 +165,90 @@ export default function LoginPage() {
       setMfaLoading(false);
     }
   };
+
+  const handleResendVerification = async () => {
+    setResendLoading(true);
+    setResendSuccess(false);
+    setError(null);
+
+    try {
+      await api.post('/auth/resend-verification', {
+        tenantId,
+        email: verificationEmail,
+      });
+      setResendSuccess(true);
+    } catch (err) {
+      const axiosError = err as AxiosError<ApiError>;
+      if (axiosError.response?.data?.message) {
+        const message = axiosError.response.data.message;
+        setError(Array.isArray(message) ? message.join(', ') : message);
+      } else {
+        setError('Failed to resend verification email. Please try again.');
+      }
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  if (emailVerificationRequired) {
+    return (
+      <div className="card">
+        <div className="space-y-5">
+          <h2 className="text-xl font-semibold text-gray-900 text-center">
+            Verify your email
+          </h2>
+
+          <div className="rounded-md bg-amber-50 p-4">
+            <p className="text-sm text-amber-800">
+              Please verify your email address before signing in. We&apos;ve sent a verification link to <strong>{verificationEmail}</strong>.
+            </p>
+          </div>
+
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          {resendSuccess && (
+            <div className="rounded-md bg-green-50 p-4">
+              <p className="text-sm text-green-700">
+                A new verification link has been sent. Please check your inbox.
+              </p>
+            </div>
+          )}
+
+          <p className="text-sm text-gray-600 text-center">
+            Didn&apos;t receive the email? Check your spam folder or request a new link.
+          </p>
+
+          <Button
+            type="button"
+            className="w-full"
+            variant="secondary"
+            isLoading={resendLoading}
+            disabled={resendLoading}
+            onClick={handleResendVerification}
+          >
+            Resend verification email
+          </Button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setEmailVerificationRequired(false);
+              setVerificationEmail('');
+              setError(null);
+              setResendSuccess(false);
+            }}
+            className="w-full text-sm text-primary-600 hover:text-primary-700"
+          >
+            Back to login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (mfaPending) {
     return (

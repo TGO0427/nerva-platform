@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Terms of Service | Nerva',
+  title: 'Terms of Service',
   description: 'Terms of Service for the Nerva Platform',
 };
 
@@ -32,7 +32,7 @@ export default function TermsOfServicePage() {
                 1. Acceptance of Terms
               </h2>
               <p>
-                By accessing or using the Nerva platform (&quot;Service&quot;), operated by [Company Name]
+                By accessing or using the Nerva platform (&quot;Service&quot;), operated by Nerva Technologies
                 (&quot;Company,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;), you agree to be bound by these Terms of
                 Service (&quot;Terms&quot;). If you are using the Service on behalf of an organization, you
                 represent that you have the authority to bind that organization to these Terms. If you
@@ -111,7 +111,7 @@ export default function TermsOfServicePage() {
               </h2>
               <p>
                 The Service, including all software, design, text, graphics, and other content, is
-                the property of [Company Name] or its licensors and is protected by intellectual
+                the property of Nerva Technologies or its licensors and is protected by intellectual
                 property laws. You retain ownership of all data you input into the Service. We do not
                 claim ownership of your data. You grant us a limited license to host, store, and
                 process your data solely for the purpose of providing the Service.
@@ -136,7 +136,7 @@ export default function TermsOfServicePage() {
                 7. Limitation of Liability
               </h2>
               <p>
-                To the maximum extent permitted by applicable law, [Company Name] shall not be liable
+                To the maximum extent permitted by applicable law, Nerva Technologies shall not be liable
                 for any indirect, incidental, special, consequential, or punitive damages, including
                 but not limited to loss of profits, data, or business opportunities, arising out of
                 or related to your use of the Service. Our total aggregate liability for any claims
@@ -176,7 +176,7 @@ export default function TermsOfServicePage() {
               </h2>
               <p>
                 These Terms shall be governed by and construed in accordance with the laws of the
-                jurisdiction in which [Company Name] is incorporated, without regard to its conflict
+                jurisdiction in which Nerva Technologies is incorporated, without regard to its conflict
                 of law provisions. Any disputes arising under these Terms shall be resolved in the
                 courts of that jurisdiction.
               </p>
@@ -187,7 +187,7 @@ export default function TermsOfServicePage() {
                 11. Contact
               </h2>
               <p>
-                If you have any questions about these Terms, please contact us at [Contact Email].
+                If you have any questions about these Terms, please contact us at support@nerva.app.
               </p>
             </section>
           </div>

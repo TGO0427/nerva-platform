@@ -53,7 +53,11 @@ export class AuthService {
 
   async login(
     dto: LoginDto,
-  ): Promise<AuthResponse | { mfaRequired: true; mfaToken: string }> {
+  ): Promise<
+    | AuthResponse
+    | { mfaRequired: true; mfaToken: string }
+    | { emailVerificationRequired: true; email: string }
+  > {
     const user = await this.usersService.findByEmail(dto.tenantId, dto.email);
 
     if (!user) {
@@ -71,6 +75,17 @@ export class AuthService {
 
     if (!isPasswordValid) {
       throw new UnauthorizedException("Invalid credentials");
+    }
+
+    // Check email verification (skip if SMTP is not configured)
+    if (!user.emailVerified && this.emailService.isConfigured) {
+      // Auto-resend verification email
+      await this.sendVerificationEmail(user.id).catch((err) => {
+        this.logger.error(
+          `Failed to resend verification email for user ${user.id}: ${err.message}`,
+        );
+      });
+      return { emailVerificationRequired: true, email: user.email };
     }
 
     // If MFA is enabled, return a temporary token instead of full auth
@@ -393,6 +408,75 @@ export class AuthService {
 
   async logout(refreshToken: string): Promise<void> {
     await this.revokeRefreshToken(refreshToken);
+  }
+
+  async sendVerificationEmail(userId: string): Promise<boolean> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      return false;
+    }
+
+    if (user.emailVerified) {
+      return false;
+    }
+
+    const token = randomBytes(40).toString("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await this.usersService.setVerificationToken(userId, token, expiresAt);
+
+    await this.emailService.sendVerificationEmail(
+      user.email,
+      token,
+      user.tenantId,
+    );
+
+    this.logger.log(
+      `Verification email sent for user ${userId} (${user.email})`,
+    );
+
+    return true;
+  }
+
+  async verifyEmailToken(token: string): Promise<void> {
+    const user = await this.usersService.findByVerificationToken(token);
+
+    if (!user) {
+      throw new BadRequestException("Invalid or expired verification token");
+    }
+
+    if (
+      user.emailVerificationExpiresAt &&
+      new Date(user.emailVerificationExpiresAt) < new Date()
+    ) {
+      throw new BadRequestException(
+        "Verification token has expired. Please request a new one.",
+      );
+    }
+
+    await this.usersService.verifyEmail(user.id);
+
+    this.logger.log(
+      `Email verified for user ${user.id} (${user.email})`,
+    );
+  }
+
+  async resendVerificationEmail(
+    tenantId: string,
+    email: string,
+  ): Promise<void> {
+    const user = await this.usersService.findByEmail(tenantId, email);
+
+    if (!user || !user.isActive) {
+      // Don't reveal whether the user exists
+      return;
+    }
+
+    if (user.emailVerified) {
+      return;
+    }
+
+    await this.sendVerificationEmail(user.id);
   }
 
   async requestPasswordReset(

@@ -45,6 +45,15 @@ export class TenantsController {
     return this.tenantsService.listTenants();
   }
 
+  @Get("admin/tenants/stats")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions("system.admin")
+  @ApiOperation({ summary: "List all tenants with stats (system admin only)" })
+  async listTenantsWithStats() {
+    return this.tenantsService.getTenantsWithStats();
+  }
+
   @Post("admin/tenants")
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -52,6 +61,15 @@ export class TenantsController {
   @ApiOperation({ summary: "Create new tenant" })
   async createTenant(@Body() data: { name: string; code?: string }) {
     return this.tenantsService.createTenant(data);
+  }
+
+  @Get("admin/tenants/:id/stats")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions("system.admin")
+  @ApiOperation({ summary: "Get detailed stats for a tenant" })
+  async getTenantStats(@Param("id", UuidValidationPipe) id: string) {
+    return this.tenantsService.getTenantStats(id);
   }
 
   @Get("admin/tenants/:id")

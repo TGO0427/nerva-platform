@@ -139,6 +139,22 @@ export class UsersService {
     await this.usersRepository.disableMfa(userId);
   }
 
+  async setVerificationToken(
+    userId: string,
+    token: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.usersRepository.setVerificationToken(userId, token, expiresAt);
+  }
+
+  async verifyEmail(userId: string): Promise<void> {
+    await this.usersRepository.verifyEmail(userId);
+  }
+
+  async findByVerificationToken(token: string): Promise<User | null> {
+    return this.usersRepository.findByVerificationToken(token);
+  }
+
   private sanitizeUser(user: User) {
     const { passwordHash, ...rest } = user;
     return rest;

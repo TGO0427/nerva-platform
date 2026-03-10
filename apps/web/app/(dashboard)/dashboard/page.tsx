@@ -21,6 +21,7 @@ import {
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
 import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
+import { useOnboarding } from '@/lib/hooks/use-onboarding';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: '#94a3b8',
@@ -59,6 +60,7 @@ export default function DashboardPage() {
   const { data: statusDist } = useStatusDistribution();
   const { data: warehouseData } = useOrdersByWarehouse();
   const { data: topCustomers } = useTopCustomers();
+  const { showBanner, dismissBanner } = useOnboarding();
 
   const weeklySalesDisplay = `R ${((stats?.weeklySalesValue ?? 0) / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -99,6 +101,36 @@ export default function DashboardPage() {
       {/* Pinned header + KPIs */}
       <div className="shrink-0">
         <Breadcrumbs />
+
+        {showBanner && (
+          <div className="mb-4 rounded-xl border border-primary-200 dark:border-primary-800 bg-primary-50 dark:bg-primary-900/20 p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-full bg-primary-100 dark:bg-primary-800/40 flex items-center justify-center flex-shrink-0">
+                <svg className="h-5 w-5 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-primary-900 dark:text-primary-200">Complete your setup</p>
+                <p className="text-xs text-primary-700 dark:text-primary-400 truncate">Create your first warehouse and item to get started with Nerva.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link href="/onboarding">
+                <Button size="sm">Get Started</Button>
+              </Link>
+              <button
+                onClick={dismissBanner}
+                className="p-1 rounded hover:bg-primary-100 dark:hover:bg-primary-800/40 text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 transition-colors"
+                aria-label="Dismiss"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
           <div>

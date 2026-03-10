@@ -22,6 +22,9 @@ describe("UsersService", () => {
     lastLoginAt: null,
     mfaSecret: null,
     mfaEnabled: false,
+    emailVerified: true,
+    emailVerificationToken: null,
+    emailVerificationExpiresAt: null,
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
   };

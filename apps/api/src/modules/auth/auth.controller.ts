@@ -21,6 +21,8 @@ import { RefreshTokenDto } from "./dto/refresh-token.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { VerifyMfaDto, LoginMfaDto } from "./dto/mfa.dto";
+import { VerifyEmailDto } from "./dto/verify-email.dto";
+import { ResendVerificationDto } from "./dto/resend-verification.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import {
   CurrentUser,
@@ -73,6 +75,27 @@ export class AuthController {
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto.token, dto.newPassword);
     return { message: "Password has been reset successfully." };
+  }
+
+  @Post("verify-email")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Verify email address using a verification token" })
+  async verifyEmail(@Body() dto: VerifyEmailDto) {
+    await this.authService.verifyEmailToken(dto.token);
+    return { message: "Email verified successfully. You can now sign in." };
+  }
+
+  @Post("resend-verification")
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ short: { ttl: 3600000, limit: 3 } })
+  @ApiOperation({ summary: "Resend email verification link" })
+  async resendVerification(@Body() dto: ResendVerificationDto) {
+    await this.authService.resendVerificationEmail(dto.tenantId, dto.email);
+    return {
+      message:
+        "If an account exists with that email, a verification link has been sent.",
+    };
   }
 
   @Post("refresh")

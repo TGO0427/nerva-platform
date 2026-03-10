@@ -143,6 +143,56 @@ export class TenantsRepository extends BaseRepository {
     return row ? this.mapSite(row) : null;
   }
 
+  async getTenantsWithStats(): Promise<
+    (Tenant & { userCount: number })[]
+  > {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT t.*,
+              COALESCE(uc.cnt, 0) AS user_count
+       FROM tenants t
+       LEFT JOIN (
+         SELECT tenant_id, COUNT(*)::int AS cnt
+         FROM users
+         GROUP BY tenant_id
+       ) uc ON uc.tenant_id = t.id
+       ORDER BY t.name`,
+    );
+    return rows.map((row) => ({
+      ...this.mapTenant(row),
+      userCount: row.user_count as number,
+    }));
+  }
+
+  async getTenantStats(
+    tenantId: string,
+  ): Promise<{
+    userCount: number;
+    itemCount: number;
+    warehouseCount: number;
+    orderCount: number;
+    siteCount: number;
+    lastActivity: Date | null;
+  }> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `SELECT
+         (SELECT COUNT(*)::int FROM users WHERE tenant_id = $1) AS user_count,
+         (SELECT COUNT(*)::int FROM items WHERE tenant_id = $1) AS item_count,
+         (SELECT COUNT(*)::int FROM warehouses WHERE tenant_id = $1) AS warehouse_count,
+         (SELECT COUNT(*)::int FROM sales_orders WHERE tenant_id = $1) AS order_count,
+         (SELECT COUNT(*)::int FROM sites WHERE tenant_id = $1) AS site_count,
+         (SELECT MAX(created_at) FROM users WHERE tenant_id = $1) AS last_activity`,
+      [tenantId],
+    );
+    return {
+      userCount: (row?.user_count as number) ?? 0,
+      itemCount: (row?.item_count as number) ?? 0,
+      warehouseCount: (row?.warehouse_count as number) ?? 0,
+      orderCount: (row?.order_count as number) ?? 0,
+      siteCount: (row?.site_count as number) ?? 0,
+      lastActivity: (row?.last_activity as Date) ?? null,
+    };
+  }
+
   async findUserByEmailGlobal(
     email: string,
   ): Promise<{ id: string; tenantId: string } | null> {

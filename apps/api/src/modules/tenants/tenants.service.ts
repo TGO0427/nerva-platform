@@ -4,9 +4,11 @@ import {
   ConflictException,
   Logger,
 } from "@nestjs/common";
+import { randomBytes } from "crypto";
 import { TenantsRepository, Tenant, Site } from "./tenants.repository";
 import { UsersService } from "../users/users.service";
 import { RbacService } from "../rbac/rbac.service";
+import { EmailService } from "../../common/email/email.service";
 import { RegisterTenantDto } from "./dto/register-tenant.dto";
 
 @Injectable()
@@ -17,10 +19,19 @@ export class TenantsService {
     private readonly tenantsRepository: TenantsRepository,
     private readonly usersService: UsersService,
     private readonly rbacService: RbacService,
+    private readonly emailService: EmailService,
   ) {}
 
   async findTenantById(id: string): Promise<Tenant | null> {
     return this.tenantsRepository.findTenantById(id);
+  }
+
+  async getTenantsWithStats() {
+    return this.tenantsRepository.getTenantsWithStats();
+  }
+
+  async getTenantStats(tenantId: string) {
+    return this.tenantsRepository.getTenantStats(tenantId);
   }
 
   async listTenants(): Promise<Tenant[]> {
@@ -124,6 +135,27 @@ export class TenantsService {
     // 5. Assign the user to the default site
     await this.usersService.assignSite(user.id, site.id);
 
+    // 6. Send email verification (non-blocking — failures are logged, not thrown)
+    if (this.emailService.isConfigured) {
+      try {
+        const token = randomBytes(40).toString("hex");
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+        await this.usersService.setVerificationToken(user.id, token, expiresAt);
+        await this.emailService.sendVerificationEmail(
+          user.email,
+          token,
+          tenant.id,
+        );
+        this.logger.log(
+          `Verification email sent to ${user.email} for new tenant ${tenant.code}`,
+        );
+      } catch (err) {
+        this.logger.error(
+          `Failed to send verification email during registration: ${err.message}`,
+        );
+      }
+    }
+
     this.logger.log(
       `Tenant registration complete: ${tenant.code} - admin user ${user.id} (${user.email})`,
     );
@@ -139,7 +171,7 @@ export class TenantsService {
         email: user.email,
         displayName: user.displayName,
       },
-      message: `Tenant "${tenant.name}" created successfully. Use tenant ID "${tenant.id}" and your email to log in.`,
+      message: `Tenant "${tenant.name}" created successfully. Please check your email to verify your account, then sign in.`,
     };
   }
 }

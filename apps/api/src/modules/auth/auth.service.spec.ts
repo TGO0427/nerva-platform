@@ -27,6 +27,9 @@ describe("AuthService", () => {
     lastLoginAt: null as Date | null,
     mfaSecret: null as string | null,
     mfaEnabled: false,
+    emailVerified: true,
+    emailVerificationToken: null as string | null,
+    emailVerificationExpiresAt: null as Date | null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

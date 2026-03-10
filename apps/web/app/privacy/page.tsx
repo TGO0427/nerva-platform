@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Privacy Policy | Nerva',
+  title: 'Privacy Policy',
   description: 'Privacy Policy for the Nerva Platform',
 };
 
@@ -29,7 +29,7 @@ export default function PrivacyPolicyPage() {
           <div className="space-y-8 text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
             <section>
               <p>
-                [Company Name] (&quot;Company,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates the Nerva
+                Nerva Technologies (&quot;Company,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates the Nerva
                 platform (&quot;Service&quot;), a multi-tenant warehouse and distribution management system.
                 This Privacy Policy explains how we collect, use, share, and protect information in
                 connection with the Service.
@@ -109,7 +109,7 @@ export default function PrivacyPolicyPage() {
                 </li>
                 <li>
                   <strong>Legal Requirements:</strong> When required by law, regulation, or legal
-                  process, or to protect the rights, property, or safety of [Company Name], our
+                  process, or to protect the rights, property, or safety of Nerva Technologies, our
                   users, or others.
                 </li>
                 <li>
@@ -165,7 +165,7 @@ export default function PrivacyPolicyPage() {
               </ul>
               <p className="mt-3">
                 To exercise any of these rights, please contact your organization&apos;s administrator
-                or reach out to us directly at [Contact Email].
+                or reach out to us directly at support@nerva.app.
               </p>
             </section>
 
@@ -199,7 +199,7 @@ export default function PrivacyPolicyPage() {
               </h2>
               <p>
                 If you have any questions or concerns about this Privacy Policy or our data
-                practices, please contact us at [Contact Email].
+                practices, please contact us at support@nerva.app.
               </p>
             </section>
           </div>

@@ -13,6 +13,9 @@ export interface UserRow {
   last_login_at: Date | null;
   mfa_secret: string | null;
   mfa_enabled: boolean;
+  email_verified: boolean;
+  email_verification_token: string | null;
+  email_verification_expires_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -29,6 +32,9 @@ export interface User {
   lastLoginAt: Date | null;
   mfaSecret: string | null;
   mfaEnabled: boolean;
+  emailVerified: boolean;
+  emailVerificationToken: string | null;
+  emailVerificationExpiresAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +54,9 @@ export class UsersRepository extends BaseRepository {
       lastLoginAt: row.last_login_at,
       mfaSecret: row.mfa_secret || null,
       mfaEnabled: row.mfa_enabled || false,
+      emailVerified: row.email_verified ?? false,
+      emailVerificationToken: row.email_verification_token || null,
+      emailVerificationExpiresAt: row.email_verification_expires_at || null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -299,5 +308,31 @@ export class UsersRepository extends BaseRepository {
       "UPDATE users SET mfa_enabled = false, mfa_secret = NULL WHERE id = $1",
       [userId],
     );
+  }
+
+  async setVerificationToken(
+    userId: string,
+    token: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.execute(
+      "UPDATE users SET email_verification_token = $1, email_verification_expires_at = $2 WHERE id = $3",
+      [token, expiresAt, userId],
+    );
+  }
+
+  async verifyEmail(userId: string): Promise<void> {
+    await this.execute(
+      "UPDATE users SET email_verified = true, email_verification_token = NULL, email_verification_expires_at = NULL WHERE id = $1",
+      [userId],
+    );
+  }
+
+  async findByVerificationToken(token: string): Promise<User | null> {
+    const row = await this.queryOne<UserRow>(
+      "SELECT * FROM users WHERE email_verification_token = $1",
+      [token],
+    );
+    return row ? this.mapRowToUser(row) : null;
   }
 }

@@ -4,3 +4,4 @@ export * from './use-column-visibility';
 export * from './use-geolocation';
 export * from './use-upload';
 export * from './use-chart-theme';
+export * from './use-onboarding';
