@@ -1,4 +1,4 @@
-import { Module, Global, OnModuleInit, Inject } from "@nestjs/common";
+import { Module, Global, OnModuleInit, Inject, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Pool } from "pg";
 import * as fs from "fs";
@@ -26,7 +26,8 @@ const databasePoolFactory = {
     });
 
     pool.on("error", (err) => {
-      console.error("Unexpected error on idle database client", err);
+      const logger = new Logger("DatabasePool");
+      logger.error("Unexpected error on idle database client", err.stack);
     });
 
     return pool;
@@ -39,6 +40,8 @@ const databasePoolFactory = {
   exports: [DATABASE_POOL],
 })
 export class DatabaseModule implements OnModuleInit {
+  private readonly logger = new Logger(DatabaseModule.name);
+
   constructor(@Inject(DATABASE_POOL) private readonly pool: Pool) {}
 
   async onModuleInit() {
@@ -46,7 +49,7 @@ export class DatabaseModule implements OnModuleInit {
   }
 
   private async runMigrations() {
-    console.log("🔄 Checking database migrations...");
+    this.logger.log("Checking database migrations...");
 
     // Create migrations tracking table if it doesn't exist
     await this.pool.query(`
@@ -70,7 +73,7 @@ export class DatabaseModule implements OnModuleInit {
     );
 
     if (!fs.existsSync(migrationsDir)) {
-      console.log("📁 No migrations directory found, skipping migrations");
+      this.logger.log("No migrations directory found, skipping migrations");
       return;
     }
 
@@ -86,7 +89,7 @@ export class DatabaseModule implements OnModuleInit {
         continue;
       }
 
-      console.log(`📄 Running migration: ${file}`);
+      this.logger.log(`Running migration: ${file}`);
       const sql = fs.readFileSync(path.join(migrationsDir, file), "utf-8");
 
       try {
@@ -94,18 +97,18 @@ export class DatabaseModule implements OnModuleInit {
         await this.pool.query("INSERT INTO _migrations (name) VALUES ($1)", [
           file,
         ]);
-        console.log(`✅ Migration ${file} applied successfully`);
+        this.logger.log(`Migration ${file} applied successfully`);
         migrationsRun++;
       } catch (error) {
-        console.error(`❌ Migration ${file} failed:`, error);
+        this.logger.error(`Migration ${file} failed:`, error);
         throw error;
       }
     }
 
     if (migrationsRun === 0) {
-      console.log("✅ Database is up to date");
+      this.logger.log("Database is up to date");
     } else {
-      console.log(`✅ Applied ${migrationsRun} migration(s)`);
+      this.logger.log(`Applied ${migrationsRun} migration(s)`);
     }
   }
 }

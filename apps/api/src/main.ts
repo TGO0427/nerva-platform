@@ -4,23 +4,63 @@ import { ConfigService } from "@nestjs/config";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { Logger } from "nestjs-pino";
 import helmet from "helmet";
+import compression from "compression";
+import { json, urlencoded } from "express";
 import { AppModule } from "./app.module";
 import { SentryExceptionFilter } from "./common/sentry/sentry.filter";
+import { DATABASE_POOL } from "./common/db/database.module";
+import { Pool } from "pg";
+
+function validateEnv() {
+  const required = ["DATABASE_URL", "JWT_SECRET"];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required environment variables: ${missing.join(", ")}`,
+    );
+  }
+}
 
 async function bootstrap() {
+  validateEnv();
+
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const logger = app.get(Logger);
   app.useLogger(logger);
   const configService = app.get(ConfigService);
+  const pool = app.get<Pool>(DATABASE_POOL);
 
-  // Health check endpoint (no prefix)
+  // Health check endpoint with DB connectivity check (no prefix)
   const expressApp = app.getHttpAdapter().getInstance();
   expressApp.get(
     "/health",
-    (_req: unknown, res: { json: (data: unknown) => void }) => {
-      res.json({ status: "ok", timestamp: new Date().toISOString() });
+    async (
+      _req: unknown,
+      res: { status: (code: number) => { json: (data: unknown) => void } },
+    ) => {
+      try {
+        await pool.query("SELECT 1");
+        res.status(200).json({
+          status: "ok",
+          timestamp: new Date().toISOString(),
+          database: "connected",
+        });
+      } catch {
+        res.status(503).json({
+          status: "degraded",
+          timestamp: new Date().toISOString(),
+          database: "disconnected",
+        });
+      }
     },
   );
+
+  // Compression
+  app.use(compression());
+
+  // Body size limits
+  app.use(json({ limit: "10mb" }));
+  app.use(urlencoded({ extended: true, limit: "10mb" }));
 
   // Security
   app.use(helmet());

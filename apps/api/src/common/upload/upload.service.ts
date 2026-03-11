@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, BadRequestException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
   S3Client,
@@ -7,6 +7,21 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
+
+const ALLOWED_MIME_TYPES = new Set([
+  // Images
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  // Documents
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "text/csv",
+]);
+
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
 
 @Injectable()
 export class UploadService {
@@ -32,7 +47,20 @@ export class UploadService {
     entityType: string,
     fileName: string,
     contentType: string,
+    fileSize?: number,
   ): Promise<{ uploadUrl: string; s3Key: string }> {
+    if (!ALLOWED_MIME_TYPES.has(contentType)) {
+      throw new BadRequestException(
+        `File type "${contentType}" is not allowed. Accepted types: ${[...ALLOWED_MIME_TYPES].join(", ")}`,
+      );
+    }
+
+    if (fileSize && fileSize > MAX_FILE_SIZE) {
+      throw new BadRequestException(
+        `File size exceeds the maximum allowed size of ${MAX_FILE_SIZE / 1024 / 1024} MB`,
+      );
+    }
+
     const ext = fileName.split(".").pop() || "";
     const s3Key = `${tenantId}/${entityType}/${randomUUID()}.${ext}`;
 
@@ -40,6 +68,7 @@ export class UploadService {
       Bucket: this.bucket,
       Key: s3Key,
       ContentType: contentType,
+      ContentLength: fileSize,
     });
 
     const uploadUrl = await getSignedUrl(this.s3, command, { expiresIn: 600 });
