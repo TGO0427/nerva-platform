@@ -23,6 +23,29 @@ interface TenantBillingResponse {
   trialDaysRemaining: number | null;
 }
 
+interface CheckoutResponse {
+  authorizationUrl: string;
+  accessCode: string;
+  reference: string;
+}
+
+interface VerifyResponse {
+  status: 'activated' | 'already_activated';
+  plan: TenantPlan;
+  billingCycle?: BillingCycle;
+}
+
+interface PaymentTransaction {
+  id: string;
+  tenantId: string;
+  paystackReference: string;
+  amountZar: number;
+  plan: TenantPlan;
+  billingCycle: BillingCycle;
+  status: 'pending' | 'success' | 'failed' | 'refunded';
+  createdAt: string;
+}
+
 export function useBillingPlans() {
   return useQuery<PlanDefinition[]>({
     queryKey: ['billing', 'plans'],
@@ -39,6 +62,38 @@ export function useCurrentPlan() {
     queryFn: async () => {
       const { data } = await api.get('/billing/current');
       return data;
+    },
+  });
+}
+
+export function usePaymentHistory() {
+  return useQuery<PaymentTransaction[]>({
+    queryKey: ['billing', 'history'],
+    queryFn: async () => {
+      const { data } = await api.get('/billing/history');
+      return data;
+    },
+  });
+}
+
+export function useInitiateCheckout() {
+  return useMutation<CheckoutResponse, Error, { plan: TenantPlan; billingCycle: BillingCycle }>({
+    mutationFn: async (body) => {
+      const { data } = await api.post('/billing/checkout', body);
+      return data;
+    },
+  });
+}
+
+export function useVerifyPayment() {
+  const queryClient = useQueryClient();
+  return useMutation<VerifyResponse, Error, string>({
+    mutationFn: async (reference) => {
+      const { data } = await api.get(`/billing/verify?reference=${reference}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['billing'] });
     },
   });
 }

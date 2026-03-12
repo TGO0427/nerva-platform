@@ -26,7 +26,10 @@ function validateEnv() {
 async function bootstrap() {
   validateEnv();
 
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
   const logger = app.get(Logger);
   app.useLogger(logger);
   const configService = app.get(ConfigService);

@@ -1,23 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
-import { useCurrentPlan, useBillingPlans, useChangePlan } from '@/lib/queries/billing';
+import {
+  useCurrentPlan,
+  useInitiateCheckout,
+  useVerifyPayment,
+  usePaymentHistory,
+} from '@/lib/queries/billing';
 import { PLANS, formatZar } from '@nerva/shared';
 import type { TenantPlan, BillingCycle } from '@nerva/shared';
 
 const planOrder: TenantPlan[] = ['starter', 'growth', 'enterprise'];
 
 export default function BillingPage() {
+  const searchParams = useSearchParams();
+  const paymentRef = searchParams.get('ref') || searchParams.get('reference');
+
   const { data: current, isLoading } = useCurrentPlan();
-  const changePlan = useChangePlan();
+  const { data: history } = usePaymentHistory();
+  const checkout = useInitiateCheckout();
+  const verifyPayment = useVerifyPayment();
+
   const [selectedPlan, setSelectedPlan] = useState<TenantPlan | null>(null);
   const [selectedCycle, setSelectedCycle] = useState<BillingCycle>('monthly');
   const [showConfirm, setShowConfirm] = useState(false);
+  const [verifyStatus, setVerifyStatus] = useState<string | null>(null);
+
+  // Auto-verify if returning from PayStack
+  useEffect(() => {
+    if (paymentRef && !verifyPayment.isPending && !verifyStatus) {
+      setVerifyStatus('verifying');
+      verifyPayment.mutate(paymentRef, {
+        onSuccess: (res) => {
+          setVerifyStatus(res.status === 'activated' ? 'success' : 'already_active');
+        },
+        onError: () => {
+          setVerifyStatus('failed');
+        },
+      });
+    }
+  }, [paymentRef]);
 
   if (isLoading) {
     return (
@@ -31,15 +59,22 @@ export default function BillingPage() {
 
   const handleUpgrade = (plan: TenantPlan) => {
     setSelectedPlan(plan);
-    setSelectedCycle(current.billingCycle);
+    setSelectedCycle(current.billingCycle || 'monthly');
     setShowConfirm(true);
   };
 
-  const confirmChange = async () => {
+  const confirmCheckout = async () => {
     if (!selectedPlan) return;
-    await changePlan.mutateAsync({ plan: selectedPlan, billingCycle: selectedCycle });
-    setShowConfirm(false);
-    setSelectedPlan(null);
+    try {
+      const result = await checkout.mutateAsync({
+        plan: selectedPlan,
+        billingCycle: selectedCycle,
+      });
+      // Redirect to PayStack checkout
+      window.location.href = result.authorizationUrl;
+    } catch {
+      // Error handled by mutation
+    }
   };
 
   const usersPercent = current.maxUsers > 0
@@ -58,6 +93,30 @@ export default function BillingPage() {
         <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your subscription and usage</p>
       </div>
 
+      {/* Payment verification banner */}
+      {verifyStatus === 'verifying' && (
+        <div className="rounded-lg p-4 mb-6 bg-blue-50 border border-blue-200">
+          <div className="flex items-center gap-3 text-sm font-medium text-blue-800">
+            <Spinner size="sm" />
+            Verifying your payment...
+          </div>
+        </div>
+      )}
+      {verifyStatus === 'success' && (
+        <div className="rounded-lg p-4 mb-6 bg-green-50 border border-green-200">
+          <div className="text-sm font-medium text-green-800">
+            Payment successful! Your plan has been upgraded.
+          </div>
+        </div>
+      )}
+      {verifyStatus === 'failed' && (
+        <div className="rounded-lg p-4 mb-6 bg-red-50 border border-red-200">
+          <div className="text-sm font-medium text-red-800">
+            Payment verification failed. Please contact support if you were charged.
+          </div>
+        </div>
+      )}
+
       {/* Trial Warning */}
       {current.plan === 'trial' && (
         <div className={`rounded-lg p-4 mb-6 ${
@@ -65,12 +124,10 @@ export default function BillingPage() {
             ? 'bg-red-50 border border-red-200'
             : 'bg-yellow-50 border border-yellow-200'
         }`}>
-          <div className="flex items-center gap-3">
-            <div className={`text-sm font-medium ${current.isTrialExpired ? 'text-red-800' : 'text-yellow-800'}`}>
-              {current.isTrialExpired
-                ? 'Your trial has expired. Choose a plan to continue using Nerva.'
-                : `${current.trialDaysRemaining} days remaining on your free trial.`}
-            </div>
+          <div className={`text-sm font-medium ${current.isTrialExpired ? 'text-red-800' : 'text-yellow-800'}`}>
+            {current.isTrialExpired
+              ? 'Your trial has expired. Choose a plan to continue using Nerva.'
+              : `${current.trialDaysRemaining} days remaining on your free trial.`}
           </div>
         </div>
       )}
@@ -209,7 +266,46 @@ export default function BillingPage() {
         })}
       </div>
 
-      {/* Confirm Modal */}
+      {/* Payment History */}
+      {history && history.length > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Payment History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th className="text-left py-2 pr-4 font-medium text-slate-500">Date</th>
+                    <th className="text-left py-2 pr-4 font-medium text-slate-500">Plan</th>
+                    <th className="text-left py-2 pr-4 font-medium text-slate-500">Cycle</th>
+                    <th className="text-right py-2 pr-4 font-medium text-slate-500">Amount</th>
+                    <th className="text-left py-2 font-medium text-slate-500">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((tx) => (
+                    <tr key={tx.id} className="border-b border-slate-100 dark:border-slate-800">
+                      <td className="py-2 pr-4">{new Date(tx.createdAt).toLocaleDateString('en-ZA')}</td>
+                      <td className="py-2 pr-4 capitalize">{tx.plan}</td>
+                      <td className="py-2 pr-4 capitalize">{tx.billingCycle}</td>
+                      <td className="py-2 pr-4 text-right">{formatZar(tx.amountZar)}</td>
+                      <td className="py-2">
+                        <Badge variant={tx.status === 'success' ? 'success' : tx.status === 'pending' ? 'warning' : 'error'}>
+                          {tx.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Checkout Confirm Modal */}
       {showConfirm && selectedPlan && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowConfirm(false)}>
           <div className="bg-white dark:bg-slate-900 rounded-lg p-6 w-full max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
@@ -217,17 +313,18 @@ export default function BillingPage() {
               Confirm Plan Change
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-              Switch to <strong>{PLANS[selectedPlan].name}</strong> plan?
+              Switch to <strong>{PLANS[selectedPlan].name}</strong> plan? You'll be redirected to PayStack to complete payment.
             </p>
 
             <div className="rounded-lg bg-slate-50 dark:bg-slate-800 p-4 mb-4">
               <div className="flex items-center justify-between text-sm">
-                <span>New monthly price</span>
+                <span>Amount</span>
                 <span className="font-semibold">
                   {formatZar(selectedCycle === 'monthly'
                     ? PLANS[selectedPlan].monthlyPriceZar
-                    : Math.round(PLANS[selectedPlan].annualPriceZar / 12)
-                  )}/mo
+                    : PLANS[selectedPlan].annualPriceZar
+                  )}
+                  {selectedCycle === 'monthly' ? '/mo' : '/yr'}
                 </span>
               </div>
             </div>
@@ -258,6 +355,12 @@ export default function BillingPage() {
               </div>
             </div>
 
+            {checkout.error && (
+              <div className="text-sm text-red-600 mb-4">
+                {(checkout.error as Error).message || 'Failed to initialize checkout'}
+              </div>
+            )}
+
             <div className="flex gap-3">
               <Button
                 variant="secondary"
@@ -268,11 +371,11 @@ export default function BillingPage() {
               </Button>
               <Button
                 className="flex-1"
-                onClick={confirmChange}
-                disabled={changePlan.isPending}
-                isLoading={changePlan.isPending}
+                onClick={confirmCheckout}
+                disabled={checkout.isPending}
+                isLoading={checkout.isPending}
               >
-                Confirm
+                Pay with PayStack
               </Button>
             </div>
           </div>
