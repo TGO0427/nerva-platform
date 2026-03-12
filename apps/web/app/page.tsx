@@ -44,6 +44,7 @@ export default function HomePage() {
             <a href="#why" className="hover:text-gray-900 transition-colors">Why Nerva</a>
             <a href="#modules" className="hover:text-gray-900 transition-colors">Modules</a>
             <a href="#how" className="hover:text-gray-900 transition-colors">How it works</a>
+            <Link href="/pricing" className="hover:text-gray-900 transition-colors">Pricing</Link>
             <a href="#faq" className="hover:text-gray-900 transition-colors">FAQ</a>
           </nav>
 
