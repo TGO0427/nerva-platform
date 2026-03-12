@@ -3,8 +3,10 @@ import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { Logger } from "nestjs-pino";
-import helmet from "helmet";
-import compression from "compression";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const helmet = require("helmet");
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const compression = require("compression");
 import { json, urlencoded } from "express";
 import { AppModule } from "./app.module";
 import { SentryExceptionFilter } from "./common/sentry/sentry.filter";
