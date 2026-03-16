@@ -12,6 +12,8 @@ import {
   HttpCode,
   Logger,
   BadRequestException,
+  ParseIntPipe,
+  DefaultValuePipe,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { BillingService } from "./billing.service";
@@ -103,6 +105,35 @@ export class BillingController {
       body.plan,
       body.billingCycle,
     );
+  }
+
+  @Post("retry")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
+  @RequirePermissions("tenant.manage")
+  @ApiOperation({ summary: "Retry a failed payment" })
+  async retryPayment(
+    @TenantId() tenantId: string,
+    @Req() req: Request,
+    @Body() body: { reference: string },
+  ) {
+    if (!body.reference) {
+      throw new BadRequestException("reference is required");
+    }
+    const user = req.user as { email: string };
+    return this.billingService.retryPayment(tenantId, user.email, body.reference);
+  }
+
+  @Get("admin/transactions")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
+  @RequirePermissions("tenant.manage")
+  @ApiOperation({ summary: "Get all transactions across tenants (admin)" })
+  async getAllTransactions(
+    @Query("limit", new DefaultValuePipe(50), ParseIntPipe) limit: number,
+    @Query("offset", new DefaultValuePipe(0), ParseIntPipe) offset: number,
+  ) {
+    return this.billingService.getAllTransactions(limit, offset);
   }
 
   /**

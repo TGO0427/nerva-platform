@@ -98,6 +98,19 @@ export function useVerifyPayment() {
   });
 }
 
+export function useRetryPayment() {
+  const queryClient = useQueryClient();
+  return useMutation<CheckoutResponse, Error, string>({
+    mutationFn: async (reference) => {
+      const { data } = await api.post('/billing/retry', { reference });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['billing'] });
+    },
+  });
+}
+
 export function useChangePlan() {
   const queryClient = useQueryClient();
   return useMutation({

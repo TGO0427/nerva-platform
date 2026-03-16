@@ -3,6 +3,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { Logger } from "nestjs-pino";
+import * as nodeHttps from "https";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const helmet = require("helmet");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -125,8 +126,7 @@ async function bootstrap() {
   if (renderUrl) {
     const interval = 14 * 60 * 1000; // 14 minutes
     setInterval(() => {
-      const http = require("https");
-      http
+      nodeHttps
         .get(`${renderUrl}/health`, () => {})
         .on("error", () => {});
     }, interval);

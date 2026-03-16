@@ -5,11 +5,12 @@ import {
   Logger,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { PLANS, getPlanLimits } from "@nerva/shared";
+import { PLANS, getPlanLimits, formatZar } from "@nerva/shared";
 import type { TenantPlan, BillingCycle } from "@nerva/shared";
 import { BillingRepository } from "./billing.repository";
 import { PaymentRepository } from "./payment.repository";
 import { PaystackService } from "./paystack.service";
+import { EmailService } from "../../common/email/email.service";
 import { randomUUID } from "crypto";
 
 @Injectable()
@@ -21,6 +22,7 @@ export class BillingService {
     private readonly paymentRepository: PaymentRepository,
     private readonly paystackService: PaystackService,
     private readonly configService: ConfigService,
+    private readonly emailService: EmailService,
   ) {}
 
   async getPlans() {
@@ -193,7 +195,52 @@ export class BillingService {
       `Payment verified and plan activated for tenant ${tx.tenantId}: ${tx.plan} (${tx.billingCycle})`,
     );
 
+    // Send payment receipt email
+    this.sendReceiptEmail(tx.paystackReference, tx.plan, tx.billingCycle, tx.amountZar);
+
     return { status: "activated", plan: tx.plan, billingCycle: tx.billingCycle };
+  }
+
+  /**
+   * Send payment receipt email (fire-and-forget)
+   */
+  private async sendReceiptEmail(
+    reference: string,
+    plan: TenantPlan,
+    billingCycle: BillingCycle,
+    amountZar: number,
+  ): Promise<void> {
+    try {
+      const email = await this.paymentRepository.getTransactionEmail(reference);
+      if (!email) return;
+
+      await this.emailService.sendPaymentReceiptEmail(email, {
+        planName: PLANS[plan].name,
+        billingCycle,
+        amountFormatted: formatZar(amountZar),
+        reference,
+        date: new Date().toLocaleDateString("en-ZA"),
+      });
+    } catch (err) {
+      this.logger.warn(`Failed to send receipt email for ${reference}: ${err.message}`);
+    }
+  }
+
+  /**
+   * Send payment failed email (fire-and-forget)
+   */
+  private async sendFailedEmail(reference: string, plan: TenantPlan): Promise<void> {
+    try {
+      const email = await this.paymentRepository.getTransactionEmail(reference);
+      if (!email) return;
+
+      await this.emailService.sendPaymentFailedEmail(email, {
+        planName: PLANS[plan].name,
+        reference,
+      });
+    } catch (err) {
+      this.logger.warn(`Failed to send failure email for ${reference}: ${err.message}`);
+    }
   }
 
   /**
@@ -202,21 +249,82 @@ export class BillingService {
   async handleWebhook(event: string, data: Record<string, unknown>) {
     this.logger.log(`PayStack webhook: ${event}`);
 
-    if (event === "charge.success") {
-      const reference = data.reference as string;
-      if (!reference) return;
+    switch (event) {
+      case "charge.success": {
+        const reference = data.reference as string;
+        if (!reference) return;
 
-      const tx = await this.paymentRepository.findByReference(reference);
-      if (!tx || tx.status === "success") return;
+        const tx = await this.paymentRepository.findByReference(reference);
+        if (!tx || tx.status === "success") return; // idempotency
 
-      await this.verifyAndActivate(reference);
+        await this.verifyAndActivate(reference);
+        break;
+      }
+
+      case "charge.failed": {
+        const reference = data.reference as string;
+        if (!reference) return;
+
+        const tx = await this.paymentRepository.findByReference(reference);
+        if (!tx || tx.status !== "pending") return; // idempotency
+
+        await this.paymentRepository.updateStatus(reference, "failed", data);
+        this.logger.warn(`Payment failed for ref ${reference}`);
+        this.sendFailedEmail(reference, tx.plan);
+        break;
+      }
+
+      case "charge.dispute.create":
+      case "charge.dispute.remind":
+      case "charge.dispute.resolve": {
+        this.logger.warn(
+          `Payment dispute (${event}): ${JSON.stringify(data)}`,
+        );
+        break;
+      }
+
+      case "subscription.disable": {
+        this.logger.warn(
+          `Subscription cancelled via PayStack: ${JSON.stringify(data)}`,
+        );
+        break;
+      }
+
+      case "subscription.not_renew": {
+        this.logger.warn(
+          `Subscription not renewed: ${JSON.stringify(data)}`,
+        );
+        break;
+      }
+
+      default:
+        this.logger.log(`Unhandled PayStack event: ${event}`);
+    }
+  }
+
+  /**
+   * Retry a failed payment — creates a new checkout for the same plan
+   */
+  async retryPayment(tenantId: string, email: string, reference: string) {
+    const tx = await this.paymentRepository.findByReference(reference);
+    if (!tx) {
+      throw new NotFoundException("Transaction not found");
+    }
+    if (tx.tenantId !== tenantId) {
+      throw new BadRequestException("Transaction does not belong to this tenant");
+    }
+    if (tx.status === "success") {
+      throw new BadRequestException("Payment already succeeded");
     }
 
-    if (event === "subscription.disable") {
-      this.logger.warn(
-        `Subscription cancelled via PayStack: ${JSON.stringify(data)}`,
-      );
-    }
+    return this.initializeCheckout(tenantId, email, tx.plan, tx.billingCycle);
+  }
+
+  /**
+   * Get all transactions across tenants (admin)
+   */
+  async getAllTransactions(limit = 50, offset = 0) {
+    return this.paymentRepository.findAll(limit, offset);
   }
 
   /**

@@ -12,6 +12,7 @@ import {
   useInitiateCheckout,
   useVerifyPayment,
   usePaymentHistory,
+  useRetryPayment,
 } from '@/lib/queries/billing';
 import { PLANS, formatZar } from '@nerva/shared';
 import type { TenantPlan, BillingCycle } from '@nerva/shared';
@@ -26,6 +27,7 @@ export default function BillingPage() {
   const { data: history } = usePaymentHistory();
   const checkout = useInitiateCheckout();
   const verifyPayment = useVerifyPayment();
+  const retryPayment = useRetryPayment();
 
   const [selectedPlan, setSelectedPlan] = useState<TenantPlan | null>(null);
   const [selectedCycle, setSelectedCycle] = useState<BillingCycle>('monthly');
@@ -77,6 +79,15 @@ export default function BillingPage() {
     }
   };
 
+  const handleRetry = async (reference: string) => {
+    try {
+      const result = await retryPayment.mutateAsync(reference);
+      window.location.href = result.authorizationUrl;
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
   const usersPercent = current.maxUsers > 0
     ? Math.min(100, Math.round((current.usage.userCount / current.maxUsers) * 100))
     : 0;
@@ -111,8 +122,21 @@ export default function BillingPage() {
       )}
       {verifyStatus === 'failed' && (
         <div className="rounded-lg p-4 mb-6 bg-red-50 border border-red-200">
-          <div className="text-sm font-medium text-red-800">
-            Payment verification failed. Please contact support if you were charged.
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium text-red-800">
+              Payment verification failed. Please contact support if you were charged.
+            </div>
+            {paymentRef && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleRetry(paymentRef)}
+                disabled={retryPayment.isPending}
+                isLoading={retryPayment.isPending}
+              >
+                Retry
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -281,7 +305,8 @@ export default function BillingPage() {
                     <th className="text-left py-2 pr-4 font-medium text-slate-500">Plan</th>
                     <th className="text-left py-2 pr-4 font-medium text-slate-500">Cycle</th>
                     <th className="text-right py-2 pr-4 font-medium text-slate-500">Amount</th>
-                    <th className="text-left py-2 font-medium text-slate-500">Status</th>
+                    <th className="text-left py-2 pr-4 font-medium text-slate-500">Status</th>
+                    <th className="text-left py-2 font-medium text-slate-500"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -291,10 +316,21 @@ export default function BillingPage() {
                       <td className="py-2 pr-4 capitalize">{tx.plan}</td>
                       <td className="py-2 pr-4 capitalize">{tx.billingCycle}</td>
                       <td className="py-2 pr-4 text-right">{formatZar(tx.amountZar)}</td>
-                      <td className="py-2">
-                        <Badge variant={tx.status === 'success' ? 'success' : tx.status === 'pending' ? 'warning' : 'error'}>
+                      <td className="py-2 pr-4">
+                        <Badge variant={tx.status === 'success' ? 'success' : tx.status === 'pending' ? 'warning' : 'danger'}>
                           {tx.status}
                         </Badge>
+                      </td>
+                      <td className="py-2">
+                        {tx.status === 'failed' && (
+                          <button
+                            onClick={() => handleRetry(tx.paystackReference)}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                            disabled={retryPayment.isPending}
+                          >
+                            Retry
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

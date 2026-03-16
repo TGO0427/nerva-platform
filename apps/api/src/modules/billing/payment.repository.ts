@@ -89,6 +89,36 @@ export class PaymentRepository extends BaseRepository {
     );
   }
 
+  async findAll(limit = 50, offset = 0): Promise<{ rows: PaymentTransaction[]; total: number }> {
+    const countRow = await this.queryOne<Record<string, unknown>>(
+      `SELECT COUNT(*)::int AS total FROM payment_transactions`,
+    );
+    const total = (countRow?.total as number) ?? 0;
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT pt.*, t.name AS tenant_name
+       FROM payment_transactions pt
+       JOIN tenants t ON t.id = pt.tenant_id
+       ORDER BY pt.created_at DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    ).then((r) => r.map((row) => ({ ...this.mapTransaction(row), tenantName: row.tenant_name as string })));
+    return { rows, total };
+  }
+
+  async getTransactionEmail(reference: string): Promise<string | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `SELECT u.email
+       FROM payment_transactions pt
+       JOIN tenants t ON t.id = pt.tenant_id
+       JOIN users u ON u.tenant_id = t.id AND u.is_active = true
+       WHERE pt.paystack_reference = $1
+       ORDER BY u.created_at ASC
+       LIMIT 1`,
+      [reference],
+    );
+    return (row?.email as string) ?? null;
+  }
+
   private mapTransaction(row: Record<string, unknown>): PaymentTransaction {
     return {
       id: row.id as string,
