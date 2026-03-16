@@ -119,6 +119,19 @@ async function bootstrap() {
 
   logger.log(`Nerva API running on http://localhost:${port}`);
   logger.log(`Swagger docs: http://localhost:${port}/api/docs`);
+
+  // Keep-alive self-ping to prevent Render free tier from sleeping
+  const renderUrl = process.env.RENDER_EXTERNAL_URL;
+  if (renderUrl) {
+    const interval = 14 * 60 * 1000; // 14 minutes
+    setInterval(() => {
+      const http = require("https");
+      http
+        .get(`${renderUrl}/health`, () => {})
+        .on("error", () => {});
+    }, interval);
+    logger.log(`Keep-alive ping enabled every 14 minutes`);
+  }
 }
 
 bootstrap();
