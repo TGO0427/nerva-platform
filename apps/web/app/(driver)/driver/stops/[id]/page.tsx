@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useDriverStop, useDriverArriveAtStop } from '@/lib/queries';
 import { Badge } from '@/components/ui/badge';
@@ -20,8 +20,10 @@ function getStopStatusVariant(status: string) {
 
 export default function DriverStopDetailPage() {
   const { id: stopId } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const { data: stop, isLoading } = useDriverStop(stopId);
+  const tripId = searchParams.get('tripId');
+  const { data: stop, isLoading, isError, error } = useDriverStop(stopId, tripId);
   const arriveAtStop = useDriverArriveAtStop();
 
   const handleArrive = async () => {
@@ -30,6 +32,22 @@ export default function DriverStopDetailPage() {
 
   if (isLoading) {
     return <div className="flex justify-center py-12"><Spinner size="lg" /></div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="p-4 space-y-4">
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Stop unavailable</h1>
+          <p className="text-sm text-gray-500 mb-4">
+            {error instanceof Error ? error.message : 'Unable to load this stop.'}
+          </p>
+          <Button variant="secondary" onClick={() => router.back()} className="w-full py-3 text-base">
+            Back
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (!stop) {

@@ -80,10 +80,17 @@ export function useDriverTrip(id: string | undefined) {
   });
 }
 
-export function useDriverStop(id: string | undefined) {
+export function useDriverStop(id: string | undefined, tripId?: string | null) {
   return useQuery({
-    queryKey: [DRIVER_KEY, 'stops', id],
+    queryKey: [DRIVER_KEY, 'stops', id, tripId],
     queryFn: async () => {
+      if (tripId) {
+        const response = await api.get<DriverTripDetail>(`/driver/trips/${tripId}`);
+        const stop = response.data.stops.find((tripStop) => tripStop.id === id);
+        if (!stop) throw new Error('Stop not found');
+        return stop;
+      }
+
       const response = await api.get<DriverStop>(`/driver/stops/${id}`);
       return response.data;
     },
