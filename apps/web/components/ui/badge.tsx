@@ -9,7 +9,7 @@ interface BadgeProps {
 }
 
 const variants: Record<BadgeVariant, string> = {
-  default: 'bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200',
+  default: 'bg-surface-secondary text-text-secondary ring-1 ring-inset ring-surface-border',
   success: 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-200',
   warning: 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200',
   danger: 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-200',

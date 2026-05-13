@@ -12,8 +12,8 @@ interface CardProps {
 
 export function Card({ children, className, hover = false, alert = false }: CardProps) {
   const baseClass = cn(
-    'bg-white rounded-2xl shadow-sm border',
-    alert ? 'border-red-200' : 'border-slate-200',
+    'bg-surface-card dark:bg-surface-dark-card rounded-lg shadow-sm border',
+    alert ? 'border-danger' : 'border-surface-border dark:border-surface-dark-border',
     className
   );
 
@@ -58,7 +58,7 @@ interface CardTitleProps {
 
 export function CardTitle({ children, className }: CardTitleProps) {
   return (
-    <h3 className={cn('text-lg font-semibold text-slate-900', className)}>
+    <h3 className={cn('text-lg font-semibold text-text-primary dark:text-text-dark-primary', className)}>
       {children}
     </h3>
   );
@@ -71,7 +71,7 @@ interface CardDescriptionProps {
 
 export function CardDescription({ children, className }: CardDescriptionProps) {
   return (
-    <p className={cn('text-sm text-slate-500 mt-1', className)}>
+    <p className={cn('text-sm text-text-muted dark:text-text-dark-muted mt-1', className)}>
       {children}
     </p>
   );

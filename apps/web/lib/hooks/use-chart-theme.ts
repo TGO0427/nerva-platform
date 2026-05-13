@@ -15,11 +15,11 @@ interface ChartTheme {
 }
 
 const lightTheme: ChartTheme = {
-  grid: '#e2e8f0',
-  axis: '#cbd5e1',
-  tick: '#94a3b8',
+  grid: '#e5e9f2',
+  axis: '#e5e9f2',
+  tick: '#64748b',
   tooltipBg: '#ffffff',
-  tooltipBorder: '#e2e8f0',
+  tooltipBorder: '#e5e9f2',
   tooltipText: '#334155',
   tooltipShadow: '0 4px 12px rgba(0,0,0,0.08)',
   dotFill: '#ffffff',
@@ -27,12 +27,12 @@ const lightTheme: ChartTheme = {
 };
 
 const darkTheme: ChartTheme = {
-  grid: '#334155',
+  grid: '#475569',
   axis: '#475569',
   tick: '#94a3b8',
   tooltipBg: '#1e293b',
   tooltipBorder: '#475569',
-  tooltipText: '#e2e8f0',
+  tooltipText: '#f1f5f9',
   tooltipShadow: '0 4px 12px rgba(0,0,0,0.3)',
   dotFill: '#1e293b',
   activeDotStroke: '#1e293b',

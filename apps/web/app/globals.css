@@ -3,15 +3,27 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 250, 250, 250;
-  --background-end-rgb: 255, 255, 255;
+  --foreground-rgb: 15, 23, 42; /* #0f172a primary text */
+  --background-start-rgb: 245, 247, 251; /* #f5f7fb app bg */
+  --background-end-rgb: 245, 247, 251;
 
   /* Surface tokens */
-  --surface-bg: 248 250 252;      /* slate-50 */
-  --surface-card: 255 255 255;    /* white */
-  --surface-border: 226 232 240;  /* slate-200 */
-  --surface-hover: 241 245 249;   /* slate-100 */
+  --surface-bg: 245, 247, 251;      /* #f5f7fb app background */
+  --surface-card: 255, 255, 255;    /* #ffffff surface/card */
+  --surface-border: 229, 233, 242;  /* #e5e9f2 border */
+  --surface-hover: 240, 243, 249;   /* #f0f3f9 secondary surface */
+}
+
+.dark {
+  --foreground-rgb: 241, 245, 249; /* #f1f5f9 dark text */
+  --background-start-rgb: 15, 23, 42; /* #0f172a dark bg */
+  --background-end-rgb: 15, 23, 42;
+
+  /* Dark surface tokens */
+  --surface-bg: 15, 23, 42;         /* #0f172a dark background */
+  --surface-card: 30, 41, 59;       /* #1e293b dark surface */
+  --surface-border: 71, 85, 105;    /* #475569 dark border */
+  --surface-hover: 51, 65, 85;      /* #334155 dark secondary surface */
 }
 
 body {
@@ -26,11 +38,11 @@ body {
   }
 
   .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 dark:bg-primary-dark dark:hover:bg-primary-600;
   }
 
   .btn-secondary {
-    @apply btn bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500;
+    @apply btn bg-surface-secondary text-text-primary hover:bg-surface-border focus:ring-surface-border dark:bg-surface-dark-secondary dark:text-text-dark-primary dark:hover:bg-surface-dark-border;
   }
 
   .btn-danger {
@@ -38,11 +50,11 @@ body {
   }
 
   .input {
-    @apply block w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500;
+    @apply block w-full rounded-md border border-surface-border bg-surface-card px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-surface-dark-border dark:bg-surface-dark-card dark:text-text-dark-primary dark:placeholder-text-dark-muted;
   }
 
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+    @apply bg-surface-card rounded-lg shadow-sm border border-surface-border p-6 dark:bg-surface-dark-card dark:border-surface-dark-border;
   }
 
   .badge {
@@ -68,16 +80,16 @@ body {
 
 /* ── Dark mode ─────────────────────────────────────────────────────────────── */
 .dark {
-  --foreground-rgb: 226, 232, 240;
-  --surface-bg: 15 23 42;          /* slate-900 */
-  --surface-card: 30 41 59;        /* slate-800 */
-  --surface-border: 51 65 85;      /* slate-700 */
-  --surface-hover: 51 65 85;       /* slate-700 */
+  --foreground-rgb: 241, 245, 249;
+  --surface-bg: 15 23 42;          /* #0f172a */
+  --surface-card: 30 41 59;        /* #1e293b */
+  --surface-border: 71 85 105;     /* #475569 */
+  --surface-hover: 51 65 85;       /* #334155 */
 }
 
 .dark body,
 html.dark body {
-  color: rgb(226 232 240);
+  color: rgb(241 245 249);
   background: rgb(15 23 42);
 }
 
@@ -85,7 +97,7 @@ html.dark body {
 .dark .card,
 .dark .bg-white {
   background-color: rgb(30 41 59) !important;
-  border-color: rgb(51 65 85) !important;
+  border-color: rgb(71 85 105) !important;
 }
 
 .dark .bg-surface {
@@ -120,7 +132,7 @@ html.dark body {
 /* ── Text ────────────────────────────────────────────────────────────────── */
 .dark .text-slate-900,
 .dark .text-gray-900 {
-  color: rgb(226 232 240) !important;
+  color: rgb(241 245 249) !important;
 }
 
 .dark .text-slate-700,
@@ -130,7 +142,7 @@ html.dark body {
 
 .dark .text-slate-800,
 .dark .text-gray-800 {
-  color: rgb(226 232 240) !important;
+  color: rgb(241 245 249) !important;
 }
 
 .dark .text-slate-600,
@@ -151,7 +163,7 @@ html.dark body {
 /* ── Borders ─────────────────────────────────────────────────────────────── */
 .dark .border-gray-200,
 .dark .border-slate-200 {
-  border-color: rgb(51 65 85) !important;
+  border-color: rgb(71 85 105) !important;
 }
 
 .dark .border-gray-50,
@@ -271,10 +283,10 @@ html.dark body {
 }
 
 .dark .bg-primary-50 {
-  background-color: rgb(12 74 110 / 0.3) !important;
+  background-color: rgb(20 83 45 / 0.28) !important;
 }
 .dark .bg-primary-100 {
-  background-color: rgb(12 74 110 / 0.4) !important;
+  background-color: rgb(20 83 45 / 0.4) !important;
 }
 
 .dark .bg-emerald-100 { background-color: rgb(6 78 59 / 0.4) !important; }

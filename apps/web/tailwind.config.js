@@ -9,28 +9,50 @@ module.exports = {
     extend: {
       colors: {
         surface: {
-          DEFAULT: '#f8fafc',  // slate-50 (app bg)
-          card: '#ffffff',
-          hover: '#f1f5f9',    // slate-100 (row hover)
-          border: '#e2e8f0',   // slate-200
+          DEFAULT: '#f5f7fb',  // app background
+          card: '#ffffff',     // surface/card
+          secondary: '#f0f3f9', // secondary surface
+          border: '#e5e9f2',    // border
+          dark: {
+            DEFAULT: '#0f172a',  // dark background
+            card: '#1e293b',     // dark surface
+            secondary: '#334155', // dark secondary surface
+            border: '#475569',    // dark border
+          },
+        },
+        text: {
+          primary: '#0f172a',    // primary text
+          secondary: '#334155',  // secondary text
+          muted: '#64748b',      // muted text
+          dark: {
+            primary: '#f1f5f9',  // dark text
+            secondary: '#94a3b8', // dark secondary text
+            muted: '#94a3b8',    // dark muted text
+          },
         },
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
+          50: '#E8F5E9',
+          100: '#dcfce7',
+          200: '#bbf7d0',
+          300: '#86efac',
+          400: '#66BB6A',
+          500: '#4FB84F',     // brand accent green
+          600: '#4FB84F',     // primary action
+          700: '#3E9B3E',     // accent hover
+          800: '#166534',
+          900: '#14532d',
+          950: '#052e16',
+          hover: '#3E9B3E',      // accent hover
+          tint: '#E8F5E9',       // accent tint
+          sidebar: '#064e3b',    // sidebar background
+          active: '#34d399',     // sidebar active highlight
+          subtitle: '#6ee7b7',   // sidebar subtitle green
+          dark: '#66BB6A',       // dark accent
         },
-      },
-      backgroundColor: {
-        'dark-surface': '#0f172a',
-        'dark-card': '#1e293b',
+        success: '#10b981',
+        warning: '#f59e0b',
+        danger: '#ef4444',
+        info: '#3b82f6',
       },
       keyframes: {
         'slide-in': {

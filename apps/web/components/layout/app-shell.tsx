@@ -13,7 +13,7 @@ export function AppShell({ children }: AppShellProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="h-screen overflow-hidden bg-surface">
+    <div className="h-screen overflow-hidden bg-surface dark:bg-surface-dark">
       <div className="flex">
         <Sidebar
           isOpen={isSidebarOpen}
@@ -28,7 +28,7 @@ export function AppShell({ children }: AppShellProps) {
             <Header onMenuClick={() => setIsSidebarOpen(true)} />
           </div>
 
-          <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+          <main className="flex-1 overflow-y-auto p-4 lg:p-6 text-text-primary dark:text-text-dark-primary">
             {children}
           </main>
         </div>

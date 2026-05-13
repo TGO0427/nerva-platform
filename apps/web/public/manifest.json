@@ -4,8 +4,8 @@
   "description": "Nerva delivery driver app",
   "start_url": "/driver",
   "display": "standalone",
-  "background_color": "#111827",
-  "theme_color": "#111827",
+  "background_color": "#f5f7fb",
+  "theme_color": "#064e3b",
   "orientation": "portrait",
   "icons": [
     {

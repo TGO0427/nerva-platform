@@ -194,7 +194,7 @@ export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-slate-950 to-slate-900 transform transition-transform duration-200 ease-in-out lg:hidden print:hidden',
+          'fixed inset-y-0 left-0 z-50 w-64 bg-primary-sidebar transform transition-transform duration-200 ease-in-out lg:hidden print:hidden',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -215,7 +215,7 @@ export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
       <motion.aside
         animate={{ width: collapsed ? 72 : 256 }}
         transition={springs.snappy}
-        className="hidden lg:block h-screen shrink-0 overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900 print:!hidden"
+        className="hidden lg:block h-screen shrink-0 overflow-hidden bg-primary-sidebar print:!hidden"
       >
         <SidebarContent
           collapsed={collapsed}
@@ -397,21 +397,21 @@ function SidebarContent({
               collapsed ? 'justify-center px-2 py-2.5' : cn('px-3 py-2', opts.showStar && 'pr-7'),
               isActive
                 ? 'text-white'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                : 'text-primary-subtitle/80 hover:text-white hover:bg-white/10'
             )}
           >
             {isActive && opts.useLayoutId ? (
               <motion.div
                 layoutId="navActiveIndicator"
-                className="absolute inset-0 bg-white/[0.08] rounded-md border-l-[3px] border-emerald-400"
+                className="absolute inset-0 bg-white/10 rounded-md border-l-[3px] border-primary-active"
                 transition={springs.snappy}
               />
             ) : isActive ? (
-              <div className="absolute inset-0 bg-white/[0.08] rounded-md border-l-[3px] border-emerald-400" />
+              <div className="absolute inset-0 bg-white/10 rounded-md border-l-[3px] border-primary-active" />
             ) : null}
             <span className={cn(
               'relative h-5 w-5 shrink-0',
-              isActive && 'text-emerald-400',
+              isActive && 'text-primary-active',
               !collapsed && 'mr-3'
             )}>
               {item.icon}
@@ -440,7 +440,7 @@ function SidebarContent({
               'absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded transition-opacity z-10',
               isFav
                 ? 'opacity-100 text-amber-400 hover:text-amber-300'
-                : 'opacity-0 group-hover/nav:opacity-100 text-slate-500 hover:text-slate-300'
+                : 'opacity-0 group-hover/nav:opacity-100 text-primary-subtitle/60 hover:text-primary-subtitle'
             )}
             title={isFav ? 'Remove from favorites' : 'Add to favorites'}
           >
@@ -469,7 +469,7 @@ function SidebarContent({
       {!collapsed && (
         <div className="px-3 pt-3 pb-1">
           <div className="relative">
-            <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
+            <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-subtitle/70 pointer-events-none" />
             <input
               ref={searchInputRef}
               type="text"
@@ -482,7 +482,7 @@ function SidebarContent({
                   searchInputRef.current?.blur();
                 }
               }}
-              className="w-full rounded-md bg-white/5 py-1.5 pl-8 pr-3 text-sm text-slate-300 placeholder:text-slate-600 outline-none focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-colors"
+              className="w-full rounded-md bg-white/10 py-1.5 pl-8 pr-3 text-sm text-white placeholder:text-primary-subtitle/60 outline-none focus:bg-white/15 focus:ring-1 focus:ring-primary-active/60 transition-colors"
             />
           </div>
         </div>
@@ -496,7 +496,7 @@ function SidebarContent({
               key={action.href}
               href={action.href}
               onClick={onClose}
-              className="bg-white/5 hover:bg-white/10 text-slate-400 text-[11px] rounded-md px-2 py-1 transition-colors"
+              className="bg-white/10 hover:bg-white/15 text-primary-subtitle text-[11px] rounded-md px-2 py-1 transition-colors"
             >
               {action.label}
             </Link>
@@ -529,20 +529,20 @@ function SidebarContent({
                       'relative flex items-center text-sm font-medium rounded-md transition-colors px-3 py-2',
                       isActive
                         ? 'text-white'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        : 'text-primary-subtitle/80 hover:text-white hover:bg-white/10'
                     )}
                   >
                     {isActive && (
-                      <div className="absolute inset-0 bg-white/[0.08] rounded-md border-l-[3px] border-emerald-400" />
+                      <div className="absolute inset-0 bg-white/10 rounded-md border-l-[3px] border-primary-active" />
                     )}
-                    <span className={cn('relative h-5 w-5 shrink-0 mr-3', isActive && 'text-emerald-400')}>
+                    <span className={cn('relative h-5 w-5 shrink-0 mr-3', isActive && 'text-primary-active')}>
                       {item.icon}
                     </span>
                     <span className="relative whitespace-nowrap flex-1">{item.name}</span>
                     <span className={cn(
                       'relative text-[10px] ml-2',
                       item.groupName === 'Action'
-                        ? 'text-emerald-500/70 bg-emerald-500/10 rounded px-1.5 py-0.5'
+                        ? 'text-primary-active bg-white/10 rounded px-1.5 py-0.5'
                         : 'text-slate-600'
                     )}>
                       {item.groupName}
@@ -587,13 +587,13 @@ function SidebarContent({
                     <>
                       {showDivider && <div className="border-t border-white/5 mx-1 mb-1.5" />}
                       {isOverview ? (
-                        <h3 className="px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                        <h3 className="px-3 text-[11px] font-semibold text-primary-subtitle/70 uppercase tracking-wider mb-1.5">
                           {group.name}
                         </h3>
                       ) : (
                         <button
                           onClick={() => toggleGroup(group.name)}
-                          className="flex items-center justify-between w-full px-3 py-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wider hover:text-slate-400 transition-colors mb-0.5"
+                          className="flex items-center justify-between w-full px-3 py-1 text-[11px] font-semibold text-primary-subtitle/70 uppercase tracking-wider hover:text-primary-subtitle transition-colors mb-0.5"
                         >
                           <span>{group.name}</span>
                           <ChevronDownIcon
@@ -703,7 +703,7 @@ function SidebarFooter({
         <div className="flex flex-col items-center gap-1.5">
           {user && (
             <div
-              className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-semibold text-slate-300 uppercase"
+              className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-semibold text-white uppercase"
               title={user.displayName}
             >
               {user.displayName.charAt(0)}
@@ -712,7 +712,7 @@ function SidebarFooter({
           {hasAdminAccess && (
             <Link
               href="/settings"
-              className="p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
+              className="p-2 text-primary-subtitle/70 hover:text-white hover:bg-white/10 rounded-md transition-colors"
               title="Settings"
             >
               <span className="h-5 w-5 block"><CogIcon /></span>
@@ -720,7 +720,7 @@ function SidebarFooter({
           )}
           <button
             onClick={onToggleCollapse}
-            className="p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
+            className="p-2 text-primary-subtitle/70 hover:text-white hover:bg-white/10 rounded-md transition-colors"
             title="Expand sidebar"
           >
             <span className="h-5 w-5 block"><ChevronRightIcon /></span>
@@ -776,20 +776,20 @@ function SidebarFooter({
       {/* Quick Stats */}
       {stats && (
         <div className="px-4 py-3 border-b border-white/10">
-          <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Quick Stats</h4>
+          <h4 className="text-[10px] font-semibold text-primary-subtitle/70 uppercase tracking-wider mb-2">Quick Stats</h4>
           <div className="space-y-1">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">Pending Orders</span>
+              <span className="text-primary-subtitle/80">Pending Orders</span>
               <span className="text-slate-200 font-medium">{stats.pendingOrders}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">Low Stock</span>
+              <span className="text-primary-subtitle/80">Low Stock</span>
               <span className={cn('font-medium', stats.lowStockItems > 0 ? 'text-amber-400' : 'text-slate-200')}>
                 {stats.lowStockItems}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">Late Orders</span>
+              <span className="text-primary-subtitle/80">Late Orders</span>
               <span className={cn('font-medium', stats.lateOrders > 0 ? 'text-red-400' : 'text-slate-200')}>
                 {stats.lateOrders}
               </span>
@@ -804,7 +804,7 @@ function SidebarFooter({
           .filter((item) => item.show !== false)
           .map((item) => {
             const content = (
-              <div className="flex items-center gap-3 px-3 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer">
+              <div className="flex items-center gap-3 px-3 py-1.5 text-sm text-primary-subtitle/80 hover:text-white hover:bg-white/10 rounded-md transition-colors cursor-pointer">
                 <span className="h-4 w-4 shrink-0">{item.icon}</span>
                 <span>{item.label}</span>
               </div>
@@ -829,7 +829,7 @@ function SidebarFooter({
       <div className="px-2 pb-2">
         <button
           onClick={onToggleCollapse}
-          className="flex items-center justify-center w-full p-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-md transition-colors"
+          className="flex items-center justify-center w-full p-2 text-primary-subtitle/70 hover:text-white hover:bg-white/10 rounded-md transition-colors"
           title="Collapse sidebar"
         >
           <span className="h-5 w-5 block"><ChevronLeftIcon /></span>

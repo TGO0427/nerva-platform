@@ -92,12 +92,12 @@ export function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-6">
+    <header className="h-16 bg-surface-card dark:bg-surface-dark-card border-b border-surface-border dark:border-surface-dark-border flex items-center justify-between px-4 lg:px-6">
       {/* Left side - Menu button (mobile) */}
       <div className="flex items-center">
         <button
           type="button"
-          className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-700"
+          className="lg:hidden p-2 -ml-2 text-text-muted hover:text-text-secondary dark:text-text-dark-muted dark:hover:text-text-dark-primary"
           onClick={onMenuClick}
         >
           <span className="sr-only">Open menu</span>
@@ -117,18 +117,18 @@ export function Header({ onMenuClick }: HeaderProps) {
           <div className="relative hidden sm:block" ref={siteMenuRef}>
             <button
               type="button"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-surface-border hover:bg-surface-secondary dark:border-surface-dark-border dark:hover:bg-surface-dark-secondary transition-colors"
               onClick={() => setIsSiteMenuOpen(!isSiteMenuOpen)}
             >
               <SiteIcon />
               <div className="text-left">
-                <p className="text-xs text-slate-500 leading-none">Site</p>
-                <p className="text-sm font-medium text-slate-700 leading-tight">
+                <p className="text-xs text-text-muted dark:text-text-dark-muted leading-none">Site</p>
+                <p className="text-sm font-medium text-text-secondary dark:text-text-dark-primary leading-tight">
                   {currentSite?.name || 'Select site'}
                 </p>
               </div>
               <svg
-                className={cn('h-3.5 w-3.5 text-slate-400 transition-transform', isSiteMenuOpen && 'rotate-180')}
+                className={cn('h-3.5 w-3.5 text-text-muted dark:text-text-dark-muted transition-transform', isSiteMenuOpen && 'rotate-180')}
                 fill="none" viewBox="0 0 24 24" stroke="currentColor"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -136,23 +136,23 @@ export function Header({ onMenuClick }: HeaderProps) {
             </button>
 
             {isSiteMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-slate-200 py-1 z-50">
-                <div className="px-3 py-2 border-b border-slate-100">
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Switch site</p>
+              <div className="absolute right-0 mt-2 w-56 bg-surface-card dark:bg-surface-dark-card rounded-md shadow-lg border border-surface-border dark:border-surface-dark-border py-1 z-50">
+                <div className="px-3 py-2 border-b border-surface-border dark:border-surface-dark-border">
+                  <p className="text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase tracking-wider">Switch site</p>
                 </div>
                 {sites.filter(s => s.isActive).map((site) => (
                   <button
                     key={site.id}
                     type="button"
                     className={cn(
-                      'w-full px-3 py-2 text-left text-sm hover:bg-slate-50 flex items-center justify-between',
+                      'w-full px-3 py-2 text-left text-sm hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary flex items-center justify-between',
                       site.id === currentSiteId && 'bg-primary-50 text-primary-700'
                     )}
                     onClick={() => handleSiteChange(site.id)}
                   >
                     <div>
                       <p className="font-medium">{site.name}</p>
-                      {site.code && <p className="text-xs text-slate-500">{site.code}</p>}
+                      {site.code && <p className="text-xs text-text-muted dark:text-text-dark-muted">{site.code}</p>}
                     </div>
                     {site.id === currentSiteId && (
                       <svg className="h-4 w-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -170,7 +170,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         <div className="relative" ref={notificationsRef}>
           <button
             type="button"
-            className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+            className="relative p-2 text-text-muted hover:text-text-secondary hover:bg-surface-secondary dark:text-text-dark-muted dark:hover:text-text-dark-primary dark:hover:bg-surface-dark-secondary rounded-md transition-colors"
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
           >
             <span className="sr-only">View notifications</span>
@@ -184,9 +184,9 @@ export function Header({ onMenuClick }: HeaderProps) {
 
           {/* Notifications dropdown */}
           {isNotificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg border border-slate-200 z-50">
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="font-medium text-slate-900">Notifications</h3>
+            <div className="absolute right-0 mt-2 w-80 bg-surface-card dark:bg-surface-dark-card rounded-md shadow-lg border border-surface-border dark:border-surface-dark-border z-50">
+              <div className="px-4 py-3 border-b border-surface-border dark:border-surface-dark-border flex items-center justify-between">
+                <h3 className="font-medium text-text-primary dark:text-text-dark-primary">Notifications</h3>
                 {unreadCount && unreadCount > 0 && (
                   <button
                     type="button"
@@ -204,8 +204,8 @@ export function Header({ onMenuClick }: HeaderProps) {
                       key={notification.id}
                       type="button"
                       className={cn(
-                        'w-full px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-100 last:border-0',
-                        !notification.isRead && 'bg-blue-50'
+                        'w-full px-4 py-3 text-left hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary border-b border-surface-border dark:border-surface-dark-border last:border-0',
+                        !notification.isRead && 'bg-primary-50 dark:bg-primary-900/20'
                       )}
                       onClick={() => handleNotificationClick(notification)}
                     >
@@ -215,25 +215,25 @@ export function Header({ onMenuClick }: HeaderProps) {
                           <p className={cn('text-sm', !notification.isRead && 'font-medium')}>
                             {notification.title}
                           </p>
-                          <p className="text-xs text-slate-500 truncate">{notification.message}</p>
-                          <p className="text-xs text-slate-400 mt-1">
+                          <p className="text-xs text-text-muted dark:text-text-dark-muted truncate">{notification.message}</p>
+                          <p className="text-xs text-text-muted dark:text-text-dark-muted mt-1">
                             {formatTimeAgo(notification.createdAt)}
                           </p>
                         </div>
                         {!notification.isRead && (
-                          <span className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0 mt-2" />
+                          <span className="h-2 w-2 bg-primary-500 rounded-full flex-shrink-0 mt-2" />
                         )}
                       </div>
                     </button>
                   ))
                 ) : (
-                  <div className="px-4 py-8 text-center text-slate-500">
+                  <div className="px-4 py-8 text-center text-text-muted dark:text-text-dark-muted">
                     <BellOffIcon />
                     <p className="mt-2 text-sm">No notifications</p>
                   </div>
                 )}
               </div>
-              <div className="px-4 py-2 border-t border-slate-100">
+              <div className="px-4 py-2 border-t border-surface-border dark:border-surface-dark-border">
                 <Link
                   href="/notifications"
                   className="text-sm text-primary-600 hover:underline"
@@ -250,7 +250,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         <div className="relative" ref={userMenuRef}>
           <button
             type="button"
-            className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-2 p-2 rounded-md hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors"
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
           >
             <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
@@ -259,16 +259,16 @@ export function Header({ onMenuClick }: HeaderProps) {
               </span>
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-slate-700">
+              <p className="text-sm font-medium text-text-secondary dark:text-text-dark-primary">
                 {user?.displayName || 'User'}
               </p>
-              <p className="text-xs text-slate-500 truncate max-w-[120px]">
+              <p className="text-xs text-text-muted dark:text-text-dark-muted truncate max-w-[120px]">
                 {user?.email}
               </p>
             </div>
             <svg
               className={cn(
-                'h-4 w-4 text-slate-500 transition-transform',
+                'h-4 w-4 text-text-muted dark:text-text-dark-muted transition-transform',
                 isUserMenuOpen && 'rotate-180'
               )}
               fill="none"
@@ -281,14 +281,14 @@ export function Header({ onMenuClick }: HeaderProps) {
 
           {/* Dropdown menu */}
           {isUserMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-slate-200 py-1 z-50">
-              <div className="px-4 py-2 border-b border-slate-100 sm:hidden">
-                <p className="text-sm font-medium text-slate-700">{user?.displayName}</p>
-                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+            <div className="absolute right-0 mt-2 w-48 bg-surface-card dark:bg-surface-dark-card rounded-md shadow-lg border border-surface-border dark:border-surface-dark-border py-1 z-50">
+              <div className="px-4 py-2 border-b border-surface-border dark:border-surface-dark-border sm:hidden">
+                <p className="text-sm font-medium text-text-secondary dark:text-text-dark-primary">{user?.displayName}</p>
+                <p className="text-xs text-text-muted dark:text-text-dark-muted truncate">{user?.email}</p>
               </div>
               <button
                 type="button"
-                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                className="w-full px-4 py-2 text-left text-sm text-text-secondary dark:text-text-dark-primary hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary"
                 onClick={() => {
                   setIsUserMenuOpen(false);
                   router.push('/settings/profile');
@@ -344,7 +344,7 @@ function BellOffIcon() {
 
 function SiteIcon() {
   return (
-    <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <svg className="h-4 w-4 text-text-muted dark:text-text-dark-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
     </svg>
   );
@@ -357,7 +357,7 @@ function NotificationIcon({ type }: { type: string }) {
     ERROR: 'text-red-500',
     SUCCESS: 'text-green-500',
   };
-  const color = colors[type as keyof typeof colors] || 'text-slate-500';
+  const color = colors[type as keyof typeof colors] || 'text-text-muted dark:text-text-dark-muted';
 
   return (
     <div className={`h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center ${color}`}>
