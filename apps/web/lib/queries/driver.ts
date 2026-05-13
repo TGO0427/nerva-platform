@@ -26,11 +26,19 @@ export interface DriverStop {
   sequence: number;
   customerId: string | null;
   customerName: string | null;
+  shipmentId: string | null;
+  shipmentNo: string | null;
   addressLine1: string;
   city: string | null;
+  gpsLat: number | null;
+  gpsLng: number | null;
   status: string;
+  notes: string | null;
+  failureReason: string | null;
+  eta: string | null;
   arrivedAt: string | null;
   completedAt: string | null;
+  createdAt: string;
 }
 
 export interface DriverTripDetail {
@@ -72,6 +80,17 @@ export function useDriverTrip(id: string | undefined) {
   });
 }
 
+export function useDriverStop(id: string | undefined) {
+  return useQuery({
+    queryKey: [DRIVER_KEY, 'stops', id],
+    queryFn: async () => {
+      const response = await api.get<DriverStop>(`/driver/stops/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+}
+
 export function useDriverStartTrip() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -102,7 +121,7 @@ export function useDriverArriveAtStop() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (stopId: string) => {
-      const response = await api.post<any>(`/driver/stops/${stopId}/arrive`);
+      const response = await api.post<DriverStop>(`/driver/stops/${stopId}/arrive`);
       return response.data;
     },
     onSuccess: () => {
@@ -124,7 +143,7 @@ export function useDeliverStop() {
       notes?: string;
     }) => {
       const { stopId, ...body } = data;
-      const response = await api.post<any>(`/driver/stops/${stopId}/deliver`, body);
+      const response = await api.post<DriverPod>(`/driver/stops/${stopId}/deliver`, body);
       return response.data;
     },
     onSuccess: () => {
@@ -145,7 +164,7 @@ export function useDriverFailStop() {
       gpsLng?: number;
     }) => {
       const { stopId, ...body } = data;
-      const response = await api.post<any>(`/driver/stops/${stopId}/fail`, body);
+      const response = await api.post<DriverPod>(`/driver/stops/${stopId}/fail`, body);
       return response.data;
     },
     onSuccess: () => {

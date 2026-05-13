@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useDriverTrips } from '@/lib/queries';
+import { DriverTrip, useDriverTrips } from '@/lib/queries';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -22,9 +22,9 @@ export default function DriverTripsPage() {
     return <div className="flex justify-center py-12"><Spinner size="lg" /></div>;
   }
 
-  const active = trips?.filter((t: any) => t.status === 'IN_PROGRESS') || [];
-  const upcoming = trips?.filter((t: any) => ['PLANNED', 'ASSIGNED', 'LOADING'].includes(t.status)) || [];
-  const completed = trips?.filter((t: any) => ['COMPLETE', 'CANCELLED'].includes(t.status)) || [];
+  const active = trips?.filter((trip) => trip.status === 'IN_PROGRESS') || [];
+  const upcoming = trips?.filter((trip) => ['PLANNED', 'ASSIGNED', 'LOADING'].includes(trip.status)) || [];
+  const completed = trips?.filter((trip) => ['COMPLETE', 'CANCELLED'].includes(trip.status)) || [];
 
   return (
     <div className="p-4 space-y-6">
@@ -38,19 +38,19 @@ export default function DriverTripsPage() {
 
       {active.length > 0 && (
         <Section title="Active">
-          {active.map((trip: any) => <TripCard key={trip.id} trip={trip} />)}
+          {active.map((trip) => <TripCard key={trip.id} trip={trip} />)}
         </Section>
       )}
 
       {upcoming.length > 0 && (
         <Section title="Upcoming">
-          {upcoming.map((trip: any) => <TripCard key={trip.id} trip={trip} />)}
+          {upcoming.map((trip) => <TripCard key={trip.id} trip={trip} />)}
         </Section>
       )}
 
       {completed.length > 0 && (
         <Section title="Completed">
-          {completed.map((trip: any) => <TripCard key={trip.id} trip={trip} />)}
+          {completed.map((trip) => <TripCard key={trip.id} trip={trip} />)}
         </Section>
       )}
     </div>
@@ -66,7 +66,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function TripCard({ trip }: { trip: any }) {
+function TripCard({ trip }: { trip: DriverTrip }) {
   return (
     <Link href={`/driver/trips/${trip.id}`}>
       <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 active:bg-gray-50">

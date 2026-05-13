@@ -81,6 +81,13 @@ export class DriverController {
     return this.service.updateStopStatus(stopId, "ARRIVED");
   }
 
+  @Get("stops/:id")
+  @RequirePermissions("driver.trips.read")
+  @ApiOperation({ summary: "Get stop detail" })
+  async getStop(@Param("id", UuidValidationPipe) stopId: string) {
+    return this.service.getStop(stopId);
+  }
+
   @Post("stops/:id/deliver")
   @RequirePermissions("driver.pod.capture")
   @ApiOperation({ summary: "Deliver at stop with POD" })

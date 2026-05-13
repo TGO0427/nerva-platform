@@ -9,9 +9,9 @@ export default function DriverProfilePage() {
   const { user, logout } = useAuth();
   const { data: trips } = useDriverTrips();
 
-  const completedToday = trips?.filter((t: any) => t.status === 'COMPLETE').length || 0;
-  const activeTrips = trips?.filter((t: any) => t.status === 'IN_PROGRESS').length || 0;
-  const totalStops = trips?.reduce((sum: number, t: any) => sum + (t.totalStops || 0), 0) || 0;
+  const completedToday = trips?.filter((trip) => trip.status === 'COMPLETE').length || 0;
+  const activeTrips = trips?.filter((trip) => trip.status === 'IN_PROGRESS').length || 0;
+  const totalStops = trips?.reduce((sum, trip) => sum + (trip.totalStops || 0), 0) || 0;
 
   return (
     <div className="p-4 space-y-4">

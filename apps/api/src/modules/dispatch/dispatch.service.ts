@@ -191,6 +191,12 @@ export class DispatchService {
     return { trip, stops };
   }
 
+  async getStop(id: string): Promise<DispatchStop> {
+    const stop = await this.repository.findStopById(id);
+    if (!stop) throw new NotFoundException("Stop not found");
+    return stop;
+  }
+
   async listTrips(
     tenantId: string,
     filters: {

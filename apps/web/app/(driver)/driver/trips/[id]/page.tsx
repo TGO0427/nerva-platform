@@ -76,7 +76,7 @@ export default function DriverTripDetailPage() {
       {/* Stops list */}
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Stops</h2>
-        {stops.map((stop: any) => (
+        {stops.map((stop) => (
           <Link key={stop.id} href={`/driver/stops/${stop.id}`}>
             <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 active:bg-gray-50 mb-3">
               <div className="flex items-start justify-between">
