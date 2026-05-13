@@ -31,6 +31,7 @@ export interface SalesOrderDetail extends SalesOrder {
 export interface SalesOrderLineWithItem extends SalesOrderLine {
   itemSku?: string;
   itemDescription?: string;
+  unitPrice: number | null;
 }
 
 interface OrderFilters {
