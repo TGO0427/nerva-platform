@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import type { MouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -108,7 +109,7 @@ export default function QualityPage() {
         <Link
           href={`/manufacturing/work-orders/${row.workOrderId}`}
           className="text-blue-600 hover:underline"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e: MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
         >
           {row.workOrderNo}
         </Link>

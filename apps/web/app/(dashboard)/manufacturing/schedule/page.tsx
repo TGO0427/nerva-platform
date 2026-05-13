@@ -296,7 +296,7 @@ export default function SchedulePage() {
         />
       )}
 
-      <style jsx>{`
+      <style>{`
         @keyframes slideInRight {
           from {
             transform: translateX(100%);
