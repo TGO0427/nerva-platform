@@ -134,7 +134,7 @@ export default function SalesOrdersPage() {
       sortable: true,
       render: (row) => new Date(row.createdAt).toLocaleDateString(),
     },
-  ], []);
+  ], [copy]);
 
   // Column visibility
   const {

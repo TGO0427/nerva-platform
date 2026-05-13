@@ -301,24 +301,6 @@ export function GlobalSearch() {
     search();
   }, [debouncedQuery, queryMode, filteredCommands]);
 
-  // Keyboard navigation
-  const displayResults = query.length < 2 && queryMode !== 'command' ? recentItems : results;
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex(i => Math.min(i + 1, displayResults.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex(i => Math.max(i - 1, 0));
-    } else if (e.key === 'Enter' && displayResults[selectedIndex]) {
-      e.preventDefault();
-      handleResultClick(displayResults[selectedIndex]);
-    } else if (e.key === 'Escape') {
-      setIsOpen(false);
-    }
-  }, [displayResults, selectedIndex]);
-
   // Global keyboard shortcut (Cmd/Ctrl + K)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -343,7 +325,7 @@ export function GlobalSearch() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleResultClick = (result: SearchResult) => {
+  const handleResultClick = useCallback((result: SearchResult) => {
     // Save to recent items (except commands)
     if (result.type !== 'command' && result.type !== 'recent') {
       saveRecentItem(result);
@@ -351,7 +333,25 @@ export function GlobalSearch() {
     router.push(result.href);
     setIsOpen(false);
     setQuery('');
-  };
+  }, [router]);
+
+  // Keyboard navigation
+  const displayResults = query.length < 2 && queryMode !== 'command' ? recentItems : results;
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(i => Math.min(i + 1, displayResults.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(i => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter' && displayResults[selectedIndex]) {
+      e.preventDefault();
+      handleResultClick(displayResults[selectedIndex]);
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+    }
+  }, [displayResults, handleResultClick, selectedIndex]);
 
   // Get placeholder based on mode
   const getPlaceholder = () => {

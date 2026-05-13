@@ -96,7 +96,10 @@ export default function AdjustmentsPage() {
     }
   };
 
-  const warehouseMap = new Map(warehouses?.map(w => [w.id, w.name]) || []);
+  const warehouseMap = useMemo(
+    () => new Map(warehouses?.map(w => [w.id, w.name]) || []),
+    [warehouses]
+  );
 
   const allColumns: Column<Adjustment>[] = useMemo(() => [
     {

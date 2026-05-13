@@ -43,7 +43,7 @@ export default function NewWorkOrderPage() {
     generateNumber.mutateAsync().then((num) => {
       setFormData((prev) => ({ ...prev, workOrderNo: num }));
     });
-  }, []);
+  }, [generateNumber]);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => {

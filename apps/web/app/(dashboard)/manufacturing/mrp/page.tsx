@@ -16,7 +16,7 @@ export default function MrpPage() {
   const [activeTab, setActiveTab] = useState<TabView>('by-item');
   const { data, isLoading, error } = useMrpRequirements();
 
-  const itemSummary = data?.itemSummary ?? [];
+  const itemSummary = useMemo(() => data?.itemSummary ?? [], [data?.itemSummary]);
   const workOrderDemand = data?.workOrderDemand ?? [];
 
   const shortageItems = useMemo(

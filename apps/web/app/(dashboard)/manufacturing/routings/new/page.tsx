@@ -170,7 +170,7 @@ export default function NewRoutingPage() {
           {operations.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
               <p>No operations added yet.</p>
-              <p className="text-sm">Click "Add Operation" to add steps to this routing.</p>
+              <p className="text-sm">Click &quot;Add Operation&quot; to add steps to this routing.</p>
             </div>
           ) : (
             <div className="space-y-4">

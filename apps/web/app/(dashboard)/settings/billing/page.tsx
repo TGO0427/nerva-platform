@@ -47,7 +47,7 @@ export default function BillingPage() {
         },
       });
     }
-  }, [paymentRef]);
+  }, [paymentRef, verifyPayment, verifyStatus]);
 
   if (isLoading) {
     return (
@@ -349,7 +349,7 @@ export default function BillingPage() {
               Confirm Plan Change
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-              Switch to <strong>{PLANS[selectedPlan].name}</strong> plan? You'll be redirected to PayStack to complete payment.
+              Switch to <strong>{PLANS[selectedPlan].name}</strong> plan? You&apos;ll be redirected to PayStack to complete payment.
             </p>
 
             <div className="rounded-lg bg-slate-50 dark:bg-slate-800 p-4 mb-4">

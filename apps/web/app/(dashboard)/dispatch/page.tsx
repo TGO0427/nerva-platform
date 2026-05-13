@@ -171,7 +171,7 @@ export default function DispatchPage() {
   }, [refetchTrips, refetchShipments, addToast]);
 
   // Quick action handlers
-  const handleQuickStart = async (trip: Trip, e: React.MouseEvent) => {
+  const handleQuickStart = useCallback(async (trip: Trip, e: React.MouseEvent) => {
     e.stopPropagation();
     const confirmed = await confirm({
       title: 'Start Trip',
@@ -186,9 +186,9 @@ export default function DispatchPage() {
         addToast('Failed to start trip', 'error');
       }
     }
-  };
+  }, [addToast, confirm, startTrip]);
 
-  const handleQuickComplete = async (trip: Trip, e: React.MouseEvent) => {
+  const handleQuickComplete = useCallback(async (trip: Trip, e: React.MouseEvent) => {
     e.stopPropagation();
     const confirmed = await confirm({
       title: 'Complete Trip',
@@ -222,7 +222,7 @@ export default function DispatchPage() {
         }
       }
     }
-  };
+  }, [addToast, completeTrip, confirm]);
 
   // Export trips to CSV
   const handleExportTrips = useCallback(() => {
@@ -352,7 +352,7 @@ export default function DispatchPage() {
         </div>
       ),
     },
-  ], []);
+  ], [copy, handleQuickComplete, handleQuickStart, router]);
 
   const {
     visibleKeys,
@@ -904,7 +904,7 @@ export default function DispatchPage() {
               <PackageIcon className="mx-auto h-12 w-12 text-slate-400 mb-3" />
               <h3 className="text-lg font-medium text-slate-900">No shipments ready for dispatch</h3>
               <p className="text-slate-500 mt-1">
-                Shipments will appear here when marked as "Ready for Dispatch" in the fulfilment module
+                Shipments will appear here when marked as &quot;Ready for Dispatch&quot; in the fulfilment module
               </p>
               <Link href="/fulfilment">
                 <Button variant="secondary" className="mt-4">

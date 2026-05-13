@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useDeliverStop } from '@/lib/queries';
 import { useUpload } from '@/lib/hooks/use-upload';
@@ -167,7 +168,14 @@ export default function DriverDeliverPage() {
           <div className="flex gap-2 mt-2 flex-wrap">
             {photos.map((p, i) => (
               <div key={i} className="relative">
-                <img src={URL.createObjectURL(p)} alt="" className="w-16 h-16 rounded object-cover" />
+                <Image
+                  src={URL.createObjectURL(p)}
+                  alt=""
+                  width={64}
+                  height={64}
+                  unoptimized
+                  className="w-16 h-16 rounded object-cover"
+                />
                 <button
                   onClick={() => setPhotos(photos.filter((_, j) => j !== i))}
                   className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"

@@ -200,7 +200,7 @@ export default function SecurityPage() {
 
                 <div className="bg-slate-50 rounded-lg p-4">
                   <p className="text-xs text-slate-500 mb-1">
-                    Can't scan? Enter this key manually:
+                    Can&apos;t scan? Enter this key manually:
                   </p>
                   <code className="text-sm font-mono font-medium text-slate-900 break-all select-all">
                     {manualSecret}

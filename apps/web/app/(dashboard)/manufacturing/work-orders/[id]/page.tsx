@@ -143,7 +143,7 @@ export default function WorkOrderDetailPage() {
       <div className="p-6">
         <div className="text-center py-12">
           <h2 className="text-lg font-semibold text-slate-900">Work order not found</h2>
-          <p className="mt-2 text-slate-500">The work order you're looking for doesn't exist.</p>
+          <p className="mt-2 text-slate-500">The work order you&apos;re looking for doesn&apos;t exist.</p>
           <Link href="/manufacturing/work-orders">
             <Button className="mt-4">Back to Work Orders</Button>
           </Link>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -44,10 +44,10 @@ export default function WarehousesPage() {
   const [newCode, setNewCode] = useState('');
   const [newSiteId, setNewSiteId] = useState('');
 
-  const getSiteName = (siteId: string) => {
+  const getSiteName = useCallback((siteId: string) => {
     const site = sites?.find(s => s.id === siteId);
     return site?.name || 'Unknown';
-  };
+  }, [sites]);
 
   const tableData: WarehouseWithSite[] = useMemo(() => {
     let filtered = (warehouses || []).map(w => ({
@@ -71,7 +71,7 @@ export default function WarehousesPage() {
     }
 
     return filtered;
-  }, [warehouses, sites, search, statusFilter]);
+  }, [warehouses, getSiteName, search, statusFilter]);
 
   const {
     selectedIds,
@@ -101,7 +101,7 @@ export default function WarehousesPage() {
     }
   };
 
-  const handleToggleActive = async (e: React.MouseEvent, id: string, currentlyActive: boolean, name: string) => {
+  const handleToggleActive = useCallback(async (e: React.MouseEvent, id: string, currentlyActive: boolean, name: string) => {
     e.stopPropagation();
     const action = currentlyActive ? 'deactivate' : 'activate';
     const confirmed = await confirm({
@@ -117,7 +117,7 @@ export default function WarehousesPage() {
     } catch {
       addToast(`Failed to ${action} warehouse`, 'error');
     }
-  };
+  }, [addToast, confirm, updateWarehouse]);
 
   const handleRowClick = (row: WarehouseWithSite) => {
     router.push(`/master-data/warehouses/${row.id}`);
@@ -188,7 +188,7 @@ export default function WarehousesPage() {
         </Button>
       ),
     },
-  ], []);
+  ], [handleToggleActive]);
 
   const {
     visibleKeys,

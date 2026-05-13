@@ -182,7 +182,7 @@ export default function NewBomPage() {
           {lines.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
               <p>No components added yet.</p>
-              <p className="text-sm">Click "Add Component" to add materials to this BOM.</p>
+              <p className="text-sm">Click &quot;Add Component&quot; to add materials to this BOM.</p>
             </div>
           ) : (
             <div className="space-y-4">

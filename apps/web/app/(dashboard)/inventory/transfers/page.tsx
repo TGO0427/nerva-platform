@@ -240,7 +240,7 @@ export default function StockTransfersPage() {
               <li>Choose the destination warehouse and bin where you want to move the stock</li>
               <li>Enter the quantity to transfer</li>
               <li>Optionally specify a batch number if tracking batches</li>
-              <li>Click "Execute Transfer" to complete the movement</li>
+              <li>Click &quot;Execute Transfer&quot; to complete the movement</li>
             </ol>
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <p className="text-sm text-blue-700">

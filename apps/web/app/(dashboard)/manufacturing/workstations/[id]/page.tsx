@@ -55,7 +55,7 @@ export default function WorkstationDetailPage() {
       <div className="p-6">
         <div className="text-center py-12">
           <h2 className="text-lg font-semibold text-slate-900">Workstation not found</h2>
-          <p className="mt-2 text-slate-500">The workstation you're looking for doesn't exist.</p>
+          <p className="mt-2 text-slate-500">The workstation you&apos;re looking for doesn&apos;t exist.</p>
           <Link href="/manufacturing/workstations">
             <Button className="mt-4">Back to Workstations</Button>
           </Link>

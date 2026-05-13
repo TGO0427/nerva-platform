@@ -77,7 +77,7 @@ export default function CustomerPortalDashboard() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
         <p className="text-slate-500 mt-1">
-          Overview of {customer?.name}'s account
+          Overview of {customer?.name}&apos;s account
         </p>
       </div>
 

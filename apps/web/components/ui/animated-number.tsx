@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 
 interface AnimatedNumberProps {
@@ -29,6 +29,33 @@ export function AnimatedNumber({
   const [hasAnimated, setHasAnimated] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const elementRef = useRef<HTMLSpanElement>(null);
+
+  const animateValue = useCallback((start: number, end: number, animDuration: number) => {
+    const startTime = performance.now();
+    const diff = end - start;
+    const multiplier = decimals !== undefined ? Math.pow(10, decimals) : 1;
+
+    const step = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / animDuration, 1);
+
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const rawValue = start + diff * eased;
+      // Round to the correct number of decimal places
+      const current = decimals !== undefined
+        ? Math.round(rawValue * multiplier) / multiplier
+        : Math.round(rawValue);
+
+      setDisplayValue(current);
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    };
+
+    requestAnimationFrame(step);
+  }, [decimals]);
 
   useEffect(() => {
     // Only animate once per mount, and respect reduced motion preference
@@ -59,7 +86,7 @@ export function AnimatedNumber({
     }
 
     return () => observer.disconnect();
-  }, [value, duration, delay, hasAnimated, prefersReducedMotion]);
+  }, [animateValue, value, duration, delay, hasAnimated, prefersReducedMotion]);
 
   // Update value if it changes after initial animation
   useEffect(() => {
@@ -67,33 +94,6 @@ export function AnimatedNumber({
       setDisplayValue(value);
     }
   }, [value, hasAnimated]);
-
-  const animateValue = (start: number, end: number, animDuration: number) => {
-    const startTime = performance.now();
-    const diff = end - start;
-    const multiplier = decimals !== undefined ? Math.pow(10, decimals) : 1;
-
-    const step = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / animDuration, 1);
-
-      // Ease out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const rawValue = start + diff * eased;
-      // Round to the correct number of decimal places
-      const current = decimals !== undefined
-        ? Math.round(rawValue * multiplier) / multiplier
-        : Math.round(rawValue);
-
-      setDisplayValue(current);
-
-      if (progress < 1) {
-        requestAnimationFrame(step);
-      }
-    };
-
-    requestAnimationFrame(step);
-  };
 
   return (
     <span ref={elementRef} className={className}>

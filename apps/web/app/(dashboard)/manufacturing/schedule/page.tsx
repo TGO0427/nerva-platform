@@ -54,7 +54,7 @@ export default function SchedulePage() {
     limit: 200,
   });
 
-  const allWorkOrders = data?.data ?? [];
+  const allWorkOrders = useMemo(() => data?.data ?? [], [data?.data]);
 
   // Filter to only those with planned dates and not completed/cancelled
   const scheduledOrders: GanttWorkOrder[] = useMemo(

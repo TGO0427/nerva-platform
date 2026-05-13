@@ -33,8 +33,14 @@ export default function GrnListPage() {
   const { data, isLoading } = useGrns({ ...params, status: status || undefined });
   const { data: warehouses } = useWarehouses();
   const { data: suppliersData } = useSuppliers({ page: 1, limit: 100 });
-  const warehouseMap = new Map(warehouses?.map(w => [w.id, w.name]) || []);
-  const supplierMap = new Map(suppliersData?.data?.map(s => [s.id, s.name]) || []);
+  const warehouseMap = useMemo(
+    () => new Map(warehouses?.map(w => [w.id, w.name]) || []),
+    [warehouses]
+  );
+  const supplierMap = useMemo(
+    () => new Map(suppliersData?.data?.map(s => [s.id, s.name]) || []),
+    [suppliersData?.data]
+  );
 
   const tableData = data?.data || [];
 

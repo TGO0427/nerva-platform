@@ -41,7 +41,7 @@ export default function BomDetailPage() {
       <div className="p-6">
         <div className="text-center py-12">
           <h2 className="text-lg font-semibold text-slate-900">BOM not found</h2>
-          <p className="mt-2 text-slate-500">The BOM you're looking for doesn't exist.</p>
+          <p className="mt-2 text-slate-500">The BOM you&apos;re looking for doesn&apos;t exist.</p>
           <Link href="/manufacturing/boms">
             <Button className="mt-4">Back to BOMs</Button>
           </Link>
