@@ -297,11 +297,15 @@ export default function SalesOrderDetailPage() {
     );
   }
 
-  const totalOrdered = order.lines?.reduce((sum, l) => sum + l.qtyOrdered, 0) || 0;
-  const totalAllocated = order.lines?.reduce((sum, l) => sum + l.qtyAllocated, 0) || 0;
-  const totalPicked = order.lines?.reduce((sum, l) => sum + l.qtyPicked, 0) || 0;
-  const totalShipped = order.lines?.reduce((sum, l) => sum + l.qtyShipped, 0) || 0;
-  const totalValue = order.lines?.reduce((sum, l) => sum + ((l.unitPrice || 0) * l.qtyOrdered), 0) || 0;
+  const lines: SalesOrderLineWithItem[] = order.lines ?? [];
+  const totalOrdered = lines.reduce((sum: number, line: SalesOrderLineWithItem) => sum + line.qtyOrdered, 0);
+  const totalAllocated = lines.reduce((sum: number, line: SalesOrderLineWithItem) => sum + line.qtyAllocated, 0);
+  const totalPicked = lines.reduce((sum: number, line: SalesOrderLineWithItem) => sum + line.qtyPicked, 0);
+  const totalShipped = lines.reduce((sum: number, line: SalesOrderLineWithItem) => sum + line.qtyShipped, 0);
+  const totalValue = lines.reduce(
+    (sum: number, line: SalesOrderLineWithItem) => sum + ((line.unitPrice || 0) * line.qtyOrdered),
+    0
+  );
 
   const canConfirm = order.status === 'DRAFT';
   const canAllocate = order.status === 'CONFIRMED';
