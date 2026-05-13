@@ -34,15 +34,32 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT '33333333-3333-3333-3333-333333333301', id FROM permissions
 ON CONFLICT DO NOTHING;
 
+-- Assign driver app permissions to Driver role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT '33333333-3333-3333-3333-333333333304', id
+FROM permissions
+WHERE code IN (
+  'driver.trips.read',
+  'driver.trips.start',
+  'driver.trips.complete',
+  'driver.stops.update',
+  'driver.pod.capture',
+  'driver.upload'
+)
+ON CONFLICT DO NOTHING;
+
 -- ================
--- Users (password is 'demo123' hashed with bcrypt)
+-- Users (demo password is 'demo1234', hashed with Argon2)
 -- ================
-INSERT INTO users (id, tenant_id, email, display_name, password_hash) VALUES
-  ('44444444-4444-4444-4444-444444444401', '11111111-1111-1111-1111-111111111111', 'admin@demo.com', 'Admin User', '$2b$10$rQEY7BXM6kNGqQx7c.FzXOoLXGP8rGJQz3QFzPQlFPXBFGPXBFGPX'),
-  ('44444444-4444-4444-4444-444444444402', '11111111-1111-1111-1111-111111111111', 'warehouse@demo.com', 'Warehouse Manager', '$2b$10$rQEY7BXM6kNGqQx7c.FzXOoLXGP8rGJQz3QFzPQlFPXBFGPXBFGPX'),
-  ('44444444-4444-4444-4444-444444444403', '11111111-1111-1111-1111-111111111111', 'picker@demo.com', 'John Picker', '$2b$10$rQEY7BXM6kNGqQx7c.FzXOoLXGP8rGJQz3QFzPQlFPXBFGPXBFGPX'),
-  ('44444444-4444-4444-4444-444444444404', '11111111-1111-1111-1111-111111111111', 'driver@demo.com', 'Mike Driver', '$2b$10$rQEY7BXM6kNGqQx7c.FzXOoLXGP8rGJQz3QFzPQlFPXBFGPXBFGPX')
-ON CONFLICT (tenant_id, email) DO NOTHING;
+INSERT INTO users (id, tenant_id, email, display_name, password_hash, user_type) VALUES
+  ('44444444-4444-4444-4444-444444444401', '11111111-1111-1111-1111-111111111111', 'admin@demo.com', 'Admin User', '$argon2id$v=19$m=65536,t=3,p=4$4Lzf8UZz2VWZPE4Drhu9Gw$U3QspW5wRcvDRjWhPaBXZ6q9cLYRect2ndxuoxWRLW8', 'internal'),
+  ('44444444-4444-4444-4444-444444444402', '11111111-1111-1111-1111-111111111111', 'warehouse@demo.com', 'Warehouse Manager', '$argon2id$v=19$m=65536,t=3,p=4$4Lzf8UZz2VWZPE4Drhu9Gw$U3QspW5wRcvDRjWhPaBXZ6q9cLYRect2ndxuoxWRLW8', 'internal'),
+  ('44444444-4444-4444-4444-444444444403', '11111111-1111-1111-1111-111111111111', 'picker@demo.com', 'John Picker', '$argon2id$v=19$m=65536,t=3,p=4$4Lzf8UZz2VWZPE4Drhu9Gw$U3QspW5wRcvDRjWhPaBXZ6q9cLYRect2ndxuoxWRLW8', 'internal'),
+  ('44444444-4444-4444-4444-444444444404', '11111111-1111-1111-1111-111111111111', 'driver@demo.com', 'Mike Driver', '$argon2id$v=19$m=65536,t=3,p=4$4Lzf8UZz2VWZPE4Drhu9Gw$U3QspW5wRcvDRjWhPaBXZ6q9cLYRect2ndxuoxWRLW8', 'driver')
+ON CONFLICT (tenant_id, email) DO UPDATE SET
+  display_name = EXCLUDED.display_name,
+  password_hash = EXCLUDED.password_hash,
+  user_type = EXCLUDED.user_type;
 
 -- Assign roles to users
 INSERT INTO user_roles (user_id, role_id) VALUES
@@ -274,6 +291,11 @@ INSERT INTO drivers (id, tenant_id, site_id, user_id, name, phone, license_no) V
   ('11111111-dddd-dddd-dddd-dddddddddd02', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222201', null, 'Sarah Wheels', '+27 82 333 4444', 'DL789012'),
   ('11111111-dddd-dddd-dddd-dddddddddd03', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222203', null, 'John Roads', '+27 82 555 6666', 'DL345678')
 ON CONFLICT DO NOTHING;
+
+UPDATE drivers
+SET user_id = '44444444-4444-4444-4444-444444444404'
+WHERE tenant_id = '11111111-1111-1111-1111-111111111111'
+  AND name = 'Mike Driver';
 
 -- ================
 -- Dispatch Trips
