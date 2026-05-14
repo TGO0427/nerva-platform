@@ -13,6 +13,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
+import { formatCompactCurrency, formatCurrency, formatNumber, formatQuantity } from '@/lib/format';
 
 export default function SalesReportContent() {
   const ct = useChartTheme();
@@ -86,25 +87,25 @@ export default function SalesReportContent() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           title="Total Orders"
-          value={report?.summary.totalOrders ?? 0}
+          value={formatNumber(report?.summary.totalOrders ?? 0)}
           icon={<OrderIcon />}
           iconColor="blue"
         />
         <StatCard
           title="Total Sales"
-          value={`R ${(report?.summary.totalValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
+          value={formatCurrency(report?.summary.totalValue ?? 0)}
           icon={<CurrencyIcon />}
           iconColor="green"
         />
         <StatCard
           title="Avg Order Value"
-          value={`R ${(report?.summary.avgOrderValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
+          value={formatCurrency(report?.summary.avgOrderValue ?? 0)}
           icon={<TrendIcon />}
           iconColor="purple"
         />
         <StatCard
           title="Unique Customers"
-          value={report?.summary.uniqueCustomers ?? 0}
+          value={formatNumber(report?.summary.uniqueCustomers ?? 0)}
           icon={<UsersIcon />}
           iconColor="orange"
         />
@@ -128,7 +129,7 @@ export default function SalesReportContent() {
               <YAxis
                 yAxisId="value"
                 tick={{ fontSize: 12, fill: ct.tick }}
-                tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
+                tickFormatter={(v: number) => formatCompactCurrency(v)}
                 axisLine={false}
                 tickLine={false}
               />
@@ -142,8 +143,8 @@ export default function SalesReportContent() {
               <Tooltip
                 contentStyle={tooltipStyle(ct)}
                 formatter={(value: unknown, name?: string) => {
-                  if (name === 'Sales') return [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, name];
-                  return [Number(value).toLocaleString(), name ?? ''];
+                  if (name === 'Sales') return [formatCurrency(value as number), name];
+                  return [formatNumber(value as number), name ?? ''];
                 }}
               />
               <Legend
@@ -203,9 +204,9 @@ export default function SalesReportContent() {
                             {customer.name}
                           </Link>
                         </td>
-                        <td className="px-4 py-2 text-sm text-right">{customer.orderCount}</td>
+                        <td className="px-4 py-2 text-sm text-right">{formatNumber(customer.orderCount)}</td>
                         <td className="px-4 py-2 text-sm text-right font-medium">
-                          R {customer.totalValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                          {formatCurrency(customer.totalValue)}
                         </td>
                       </tr>
                     ))}
@@ -243,9 +244,9 @@ export default function SalesReportContent() {
                           </Link>
                           <p className="text-xs text-slate-500">{item.description}</p>
                         </td>
-                        <td className="px-4 py-2 text-sm text-right">{item.qtySold.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-sm text-right">{formatQuantity(item.qtySold)}</td>
                         <td className="px-4 py-2 text-sm text-right font-medium">
-                          R {item.totalValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                          {formatCurrency(item.totalValue)}
                         </td>
                       </tr>
                     ))}
