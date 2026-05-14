@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { ExportActions } from '@/components/ui/export-actions';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +32,7 @@ import {
   AllocatedOrder,
   ShippableOrder,
 } from '@/lib/queries/fulfilment';
+import { exportToCSV, formatDateForExport, generateExportFilename } from '@/lib/utils/export';
 import { formatDate, formatNumber } from '@/lib/format';
 
 const WAVE_STATUS_OPTIONS = [
@@ -304,6 +306,45 @@ export default function FulfilmentPage() {
     }
   };
 
+  const handleExportAllocatedOrders = () => {
+    const exportColumns = [
+      { key: 'orderNo', header: 'Order No.' },
+      { key: 'customerName', header: 'Customer', getValue: (row: AllocatedOrder) => row.customerName || row.customerId?.slice(0, 8) || '' },
+      { key: 'priority', header: 'Priority', getValue: (row: AllocatedOrder) => (row.priority <= 3 ? 'High' : row.priority <= 5 ? 'Medium' : 'Low') },
+      { key: 'status', header: 'Status' },
+      { key: 'createdAt', header: 'Order Date', getValue: (row: AllocatedOrder) => formatDateForExport(row.createdAt) },
+    ];
+
+    exportToCSV(allocatedOrders || [], exportColumns, generateExportFilename('allocated-orders'));
+  };
+
+  const handleExportPickWaves = () => {
+    const exportColumns = [
+      { key: 'waveNo', header: 'Wave No.' },
+      { key: 'status', header: 'Status' },
+      { key: 'warehouseId', header: 'Warehouse ID' },
+      { key: 'createdAt', header: 'Created', getValue: (row: PickWave) => formatDateForExport(row.createdAt) },
+      { key: 'updatedAt', header: 'Updated', getValue: (row: PickWave) => formatDateForExport(row.updatedAt) },
+    ];
+
+    exportToCSV(wavesData?.data || [], exportColumns, generateExportFilename('pick-waves'));
+  };
+
+  const handleExportShipments = () => {
+    const exportColumns = [
+      { key: 'shipmentNo', header: 'Shipment No.' },
+      { key: 'status', header: 'Status', getValue: (row: Shipment) => row.status?.replace(/_/g, ' ') },
+      { key: 'orderNo', header: 'Order', getValue: (row: Shipment) => row.orderNo || row.salesOrderId.slice(0, 8) },
+      { key: 'carrier', header: 'Carrier' },
+      { key: 'trackingNo', header: 'Tracking No.' },
+      { key: 'totalWeightKg', header: 'Weight Kg' },
+      { key: 'totalCbm', header: 'CBM' },
+      { key: 'createdAt', header: 'Created', getValue: (row: Shipment) => formatDateForExport(row.createdAt) },
+    ];
+
+    exportToCSV(shipmentsData?.data || [], exportColumns, generateExportFilename('shipments'));
+  };
+
   // Calculate stats
   const readyToPick = allocatedOrders?.length || 0;
   const activeWaves = wavesData?.data?.filter(w => w.status === 'IN_PROGRESS').length || 0;
@@ -463,15 +504,20 @@ export default function FulfilmentPage() {
               <Spinner size="lg" />
             </div>
           ) : allocatedOrders && allocatedOrders.length > 0 ? (
-            <DataTable
-              columns={allocatedOrderColumns}
-              data={allocatedOrders}
-              keyField="id"
-              emptyState={{
-                title: 'No allocated orders',
-                description: 'Orders will appear here when stock is allocated',
-              }}
-            />
+            <>
+              <div className="mb-4 flex justify-end print:hidden">
+                <ExportActions onExport={handleExportAllocatedOrders} />
+              </div>
+              <DataTable
+                columns={allocatedOrderColumns}
+                data={allocatedOrders}
+                keyField="id"
+                emptyState={{
+                  title: 'No allocated orders',
+                  description: 'Orders will appear here when stock is allocated',
+                }}
+              />
+            </>
           ) : (
             <EmptyState
               variant="dashed"
@@ -490,7 +536,7 @@ export default function FulfilmentPage() {
 
       {activeTab === 'pick-waves' && (
         <>
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
             <Select
               value={waveStatus}
               onChange={(e) => {
@@ -500,6 +546,8 @@ export default function FulfilmentPage() {
               options={WAVE_STATUS_OPTIONS}
               className="max-w-xs"
             />
+            <div className="flex-1" />
+            <ExportActions onExport={handleExportPickWaves} />
           </div>
 
           <DataTable
@@ -550,6 +598,7 @@ export default function FulfilmentPage() {
               className="max-w-xs"
             />
             <div className="flex-1" />
+            <ExportActions onExport={handleExportShipments} />
             <Button onClick={() => setShowNewShipmentForm(!showNewShipmentForm)}>
               <PlusIcon />
               New Shipment

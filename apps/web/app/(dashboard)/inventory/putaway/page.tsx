@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ExportActions } from '@/components/ui/export-actions';
 import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
@@ -20,6 +21,7 @@ import {
 } from '@/lib/queries/inventory';
 import { useWarehouses, useBins } from '@/lib/queries/warehouses';
 import { useUsers } from '@/lib/queries/settings';
+import { exportToCSV, formatDateForExport, generateExportFilename } from '@/lib/utils/export';
 import type { Bin } from '@nerva/shared';
 
 const STATUS_TABS = [
@@ -237,6 +239,23 @@ export default function PutawayPage() {
     setPage(1);
   };
 
+  const handleExport = () => {
+    const exportColumns = [
+      { key: 'itemSku', header: 'SKU' },
+      { key: 'itemDescription', header: 'Description' },
+      { key: 'fromBinCode', header: 'From Bin' },
+      { key: 'toBinCode', header: 'To Bin' },
+      { key: 'qty', header: 'Qty' },
+      { key: 'batchNo', header: 'Batch No.' },
+      { key: 'status', header: 'Status' },
+      { key: 'assignedToName', header: 'Assigned To', getValue: (row: PutawayTaskDetail) => row.assignedToName || '' },
+      { key: 'createdAt', header: 'Created', getValue: (row: PutawayTaskDetail) => formatDateForExport(row.createdAt) },
+      { key: 'completedAt', header: 'Completed', getValue: (row: PutawayTaskDetail) => formatDateForExport(row.completedAt) },
+    ];
+
+    exportToCSV(data?.data || [], exportColumns, generateExportFilename('putaway-tasks'));
+  };
+
   return (
     <div className="space-y-6">
       <Breadcrumbs />
@@ -285,6 +304,7 @@ export default function PutawayPage() {
           currentValues={{ statusFilter, warehouseFilter }}
           onApply={handleApplySavedView}
         />
+        <ExportActions onExport={handleExport} />
       </div>
 
       <Card>
