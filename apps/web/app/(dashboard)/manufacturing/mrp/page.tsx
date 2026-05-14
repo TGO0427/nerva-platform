@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useMrpRequirements } from '@/lib/queries';
+import { formatNumber, formatQuantity } from '@/lib/format';
 
 type TabView = 'by-item' | 'by-work-order';
 
@@ -97,20 +98,20 @@ export default function MrpPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title="Total Items with Demand"
-          value={itemSummary.length}
+          value={formatNumber(itemSummary.length)}
           icon={<PackageIcon />}
           iconColor="blue"
         />
         <StatCard
           title="Items with Shortages"
-          value={shortageItems.length}
+          value={formatNumber(shortageItems.length)}
           icon={<AlertIcon />}
           iconColor="red"
           alert={shortageItems.length > 0}
         />
         <StatCard
           title="Total Shortage Qty"
-          value={totalShortageQty}
+          value={formatQuantity(totalShortageQty)}
           icon={<TrendDownIcon />}
           iconColor="yellow"
           alert={totalShortageQty > 0}
@@ -177,13 +178,13 @@ export default function MrpPage() {
                       >
                         <td className="py-3 px-4 font-medium text-slate-900">{item.itemSku}</td>
                         <td className="py-3 px-4 text-slate-600">{item.itemDescription}</td>
-                        <td className="py-3 px-4 text-right">{item.totalDemand.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-right">{item.totalOutstanding.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-right">{item.availableStock.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right">{formatQuantity(item.totalDemand)}</td>
+                        <td className="py-3 px-4 text-right">{formatQuantity(item.totalOutstanding)}</td>
+                        <td className="py-3 px-4 text-right">{formatQuantity(item.availableStock)}</td>
                         <td className={`py-3 px-4 text-right font-medium ${
                           item.netShortage > 0 ? 'text-red-600' : 'text-slate-900'
                         }`}>
-                          {item.netShortage > 0 ? `-${item.netShortage.toLocaleString()}` : item.netShortage.toLocaleString()}
+                          {item.netShortage > 0 ? `-${formatQuantity(item.netShortage)}` : formatQuantity(item.netShortage)}
                         </td>
                       </tr>
                     ))
@@ -235,14 +236,14 @@ export default function MrpPage() {
                           </Badge>
                         </td>
                         <td className="py-3 px-4 text-slate-900">{wo.itemSku}</td>
-                        <td className="py-3 px-4 text-right">{wo.qtyRequired.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-right">{wo.qtyIssued.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-right">{wo.qtyOutstanding.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-right">{wo.availableStock.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right">{formatQuantity(wo.qtyRequired)}</td>
+                        <td className="py-3 px-4 text-right">{formatQuantity(wo.qtyIssued)}</td>
+                        <td className="py-3 px-4 text-right">{formatQuantity(wo.qtyOutstanding)}</td>
+                        <td className="py-3 px-4 text-right">{formatQuantity(wo.availableStock)}</td>
                         <td className={`py-3 px-4 text-right font-medium ${
                           wo.shortage > 0 ? 'text-red-600' : 'text-slate-900'
                         }`}>
-                          {wo.shortage > 0 ? `-${wo.shortage.toLocaleString()}` : wo.shortage.toLocaleString()}
+                          {wo.shortage > 0 ? `-${formatQuantity(wo.shortage)}` : formatQuantity(wo.shortage)}
                         </td>
                       </tr>
                     ))
