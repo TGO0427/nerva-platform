@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useInventoryReport } from '@/lib/queries';
 import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
+import { formatNumber, formatPercent, formatQuantity } from '@/lib/format';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -73,32 +74,32 @@ export default function InventoryReportContent() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <StatCard
           title="Total Items"
-          value={report?.summary.totalItems ?? 0}
+          value={formatNumber(report?.summary.totalItems ?? 0)}
           icon={<BoxIcon />}
           iconColor="blue"
         />
         <StatCard
           title="Total Quantity"
-          value={(report?.summary.totalQty ?? 0).toLocaleString()}
+          value={formatQuantity(report?.summary.totalQty ?? 0)}
           icon={<StackIcon />}
           iconColor="green"
         />
         <StatCard
           title="Warehouses"
-          value={report?.byWarehouse?.length ?? 0}
+          value={formatNumber(report?.byWarehouse?.length ?? 0)}
           icon={<CurrencyIcon />}
           iconColor="purple"
         />
         <StatCard
           title="Low Stock"
-          value={report?.summary.lowStockCount ?? 0}
+          value={formatNumber(report?.summary.lowStockCount ?? 0)}
           icon={<AlertIcon />}
           iconColor="green"
           alert={!!report?.summary.lowStockCount}
         />
         <StatCard
           title="Expiring Soon"
-          value={report?.summary.expiringCount ?? 0}
+          value={formatNumber(report?.summary.expiringCount ?? 0)}
           icon={<ClockIcon />}
           iconColor={report?.summary.expiringCount ? 'orange' : 'green'}
         />
@@ -113,13 +114,13 @@ export default function InventoryReportContent() {
                 <XAxis dataKey="name" axisLine={{ stroke: ct.axis }} tickLine={false} tick={{ fontSize: 12, fill: ct.tick }} />
                 <YAxis
                   tick={{ fontSize: 12, fill: ct.tick }}
-                  tickFormatter={(v: number) => v.toLocaleString()}
+                  tickFormatter={(v: number) => formatQuantity(v)}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle(ct)}
-                  formatter={(value: unknown) => [Number(value).toLocaleString(), 'Qty']}
+                  formatter={(value: unknown) => [formatQuantity(value as number), 'Qty']}
                 />
                 <Line type="natural" dataKey="totalQty" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 5, fill: ct.dotFill, stroke: '#8b5cf6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#8b5cf6', stroke: ct.activeDotStroke, strokeWidth: 2 }} name="Stock Qty" />
               </LineChart>
@@ -146,7 +147,7 @@ export default function InventoryReportContent() {
                 </Pie>
                 <Tooltip
                   contentStyle={tooltipStyle(ct)}
-                  formatter={(value: unknown) => [Number(value).toLocaleString(), 'Qty']}
+                  formatter={(value: unknown) => [formatQuantity(value as number), 'Qty']}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -181,8 +182,8 @@ export default function InventoryReportContent() {
                         <td className="px-4 py-3 text-sm font-medium">
                           {wh.code ? `${wh.code} - ` : ''}{wh.name}
                         </td>
-                        <td className="px-4 py-3 text-sm text-right">{wh.itemCount}</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium">{wh.totalQty.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-sm text-right">{formatNumber(wh.itemCount)}</td>
+                        <td className="px-4 py-3 text-sm text-right font-medium">{formatQuantity(wh.totalQty)}</td>
                         <td className="px-4 py-3 text-sm text-right">
                           <div className="flex items-center justify-end gap-2">
                             <div className="w-20 bg-slate-200 rounded-full h-2">
@@ -191,7 +192,7 @@ export default function InventoryReportContent() {
                                 style={{ width: `${Math.min(percentOfTotal, 100)}%` }}
                               />
                             </div>
-                            <span className="w-12 text-right">{percentOfTotal.toFixed(1)}%</span>
+                            <span className="w-12 text-right">{formatPercent(percentOfTotal)}</span>
                           </div>
                         </td>
                       </tr>
@@ -238,9 +239,9 @@ export default function InventoryReportContent() {
                         </td>
                         <td className="px-4 py-2 text-sm text-slate-600">{item.warehouseName}</td>
                         <td className="px-4 py-2 text-sm text-right">
-                          <Badge variant="danger">{item.qtyOnHand}</Badge>
+                          <Badge variant="danger">{formatQuantity(item.qtyOnHand)}</Badge>
                         </td>
-                        <td className="px-4 py-2 text-sm text-right text-slate-500">{item.reorderPoint}</td>
+                        <td className="px-4 py-2 text-sm text-right text-slate-500">{formatQuantity(item.reorderPoint)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -289,7 +290,7 @@ export default function InventoryReportContent() {
                             <p className="text-xs text-slate-500 truncate max-w-[200px]">{item.description}</p>
                           </td>
                           <td className="px-4 py-2 text-sm text-slate-600">{item.batchNumber || '-'}</td>
-                          <td className="px-4 py-2 text-sm text-right">{item.qtyOnHand}</td>
+                          <td className="px-4 py-2 text-sm text-right">{formatQuantity(item.qtyOnHand)}</td>
                           <td className="px-4 py-2 text-sm">
                             {item.expiryDate && (
                               <Badge variant={daysUntil && daysUntil < 7 ? 'danger' : 'warning'}>
