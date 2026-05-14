@@ -50,21 +50,35 @@ const SHIPMENT_STATUS_OPTIONS = [
 
 type Tab = 'allocated-orders' | 'pick-waves' | 'shipments';
 
+const TAB_VALUES: Tab[] = ['allocated-orders', 'pick-waves', 'shipments'];
+const WAVE_STATUS_VALUES = WAVE_STATUS_OPTIONS.map((option) => option.value).filter(Boolean);
+const SHIPMENT_STATUS_VALUES = SHIPMENT_STATUS_OPTIONS.map((option) => option.value).filter(Boolean);
+
 export default function FulfilmentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('allocated-orders');
-
-  // Handle URL query params for tab
-  useEffect(() => {
-    const tabParam = searchParams.get('tab') as Tab | null;
-    if (tabParam && ['allocated-orders', 'pick-waves', 'shipments'].includes(tabParam)) {
-      setActiveTab(tabParam);
-    }
-  }, [searchParams]);
   const [waveStatus, setWaveStatus] = useState('');
   const [shipmentStatus, setShipmentStatus] = useState('');
+
+  // Handle URL query params for actionable work queue links.
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    const statusParam = searchParams.get('status');
+
+    if (tabParam && TAB_VALUES.includes(tabParam as Tab)) {
+      setActiveTab(tabParam as Tab);
+    }
+
+    if (statusParam && WAVE_STATUS_VALUES.includes(statusParam)) {
+      setWaveStatus(statusParam);
+    }
+
+    if (statusParam && SHIPMENT_STATUS_VALUES.includes(statusParam)) {
+      setShipmentStatus(statusParam);
+    }
+  }, [searchParams]);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [error, setError] = useState('');
   const [showNewShipmentForm, setShowNewShipmentForm] = useState(false);
@@ -351,7 +365,7 @@ export default function FulfilmentPage() {
             Allocated Orders
             {allocatedOrders && allocatedOrders.length > 0 && (
               <span className="bg-orange-100 text-orange-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                {allocatedOrders.length}
+                {formatNumber(allocatedOrders.length)}
               </span>
             )}
           </button>
@@ -460,7 +474,10 @@ export default function FulfilmentPage() {
           <div className="mb-4">
             <Select
               value={waveStatus}
-              onChange={(e) => setWaveStatus(e.target.value)}
+              onChange={(e) => {
+                setWaveStatus(e.target.value);
+                setPage(1);
+              }}
               options={WAVE_STATUS_OPTIONS}
               className="max-w-xs"
             />
@@ -495,7 +512,10 @@ export default function FulfilmentPage() {
           <div className="flex flex-wrap items-center gap-4 mb-4">
             <Select
               value={shipmentStatus}
-              onChange={(e) => setShipmentStatus(e.target.value)}
+              onChange={(e) => {
+                setShipmentStatus(e.target.value);
+                setPage(1);
+              }}
               options={SHIPMENT_STATUS_OPTIONS}
               className="max-w-xs"
             />

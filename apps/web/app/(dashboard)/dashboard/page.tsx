@@ -193,7 +193,7 @@ export default function DashboardPage() {
               subtitle={(stats?.openReturns ?? 0) > 0 ? 'Awaiting processing' : 'All clear'}
               icon={<ReturnIcon />}
               iconColor="yellow"
-              href="/returns"
+              href="/returns?status=OPEN"
             />
             <StatCard
               title="Late Orders"
@@ -440,7 +440,7 @@ function ExceptionQueue({ stats }: { stats: DashboardStats }) {
       title: 'Dispatch Cycle',
       description: 'Average fulfilment time',
       value: stats.avgDispatchCycleHours,
-      href: '/fulfilment',
+      href: '/fulfilment?tab=shipments&status=READY_FOR_DISPATCH',
       tone: stats.avgDispatchCycleHours <= 12 ? 'success' : 'warning',
       suffix: 'h',
     },
