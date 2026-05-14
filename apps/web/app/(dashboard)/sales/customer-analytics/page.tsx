@@ -21,6 +21,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
+import { formatCompactCurrency, formatCurrency, formatDate, formatNumber, formatPercent } from '@/lib/format';
 
 export default function CustomerAnalyticsPage() {
   const [startDate, setStartDate] = useState(() => {
@@ -120,28 +121,28 @@ export default function CustomerAnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           title="Total Customers"
-          value={summary?.totalCustomers ?? 0}
-          subtitle={`${summary?.activeCustomers ?? 0} active`}
+          value={formatNumber(summary?.totalCustomers ?? 0)}
+          subtitle={`${formatNumber(summary?.activeCustomers ?? 0)} active`}
           icon={<UsersIcon />}
           iconColor="blue"
         />
         <StatCard
           title="Total Sales Value"
-          value={`R ${(summary?.totalSalesValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
-          subtitle={`Avg: R ${(summary?.avgOrderValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
+          value={formatCurrency(summary?.totalSalesValue ?? 0)}
+          subtitle={`Avg: ${formatCurrency(summary?.avgOrderValue ?? 0)}`}
           icon={<CurrencyIcon />}
           iconColor="green"
         />
         <StatCard
           title="Total Orders"
-          value={summary?.totalOrders ?? 0}
+          value={formatNumber(summary?.totalOrders ?? 0)}
           subtitle="All time"
           icon={<ClipboardIcon />}
           iconColor="purple"
         />
         <StatCard
           title="Pending Orders"
-          value={summary?.pendingOrders ?? 0}
+          value={formatNumber(summary?.pendingOrders ?? 0)}
           subtitle="Awaiting fulfilment"
           icon={<ClockIcon />}
           iconColor="orange"
@@ -169,11 +170,11 @@ export default function CustomerAnalyticsPage() {
                       >
                         {customer.name}
                       </Link>
-                      <p className="text-xs text-slate-500">{customer.orderCount} orders</p>
+                      <p className="text-xs text-slate-500">{formatNumber(customer.orderCount)} orders</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold text-slate-900">
-                        R {customer.totalValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                        {formatCurrency(customer.totalValue)}
                       </p>
                     </div>
                   </div>
@@ -209,10 +210,10 @@ export default function CustomerAnalyticsPage() {
                     </div>
                     <div className="flex justify-between items-center mt-1">
                       <p className="text-xs text-slate-400">
-                        {new Date(order.createdAt).toLocaleDateString()}
+                        {formatDate(order.createdAt)}
                       </p>
                       <p className="text-xs font-medium text-slate-700">
-                        R {order.totalAmount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                        {formatCurrency(order.totalAmount)}
                       </p>
                     </div>
                   </div>
@@ -232,8 +233,8 @@ export default function CustomerAnalyticsPage() {
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={trendData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
                 <XAxis dataKey="month" axisLine={{ stroke: ct.axis }} tickLine={false} tick={{ fontSize: 12, fill: ct.tick }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
-                <YAxis tick={{ fontSize: 12, fill: ct.tick }} tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={tooltipStyle(ct)} formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Sales Value']} />
+                <YAxis tick={{ fontSize: 12, fill: ct.tick }} tickFormatter={(v: number) => formatCompactCurrency(v)} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle(ct)} formatter={(value: unknown) => [formatCurrency(value as number), 'Sales Value']} />
                 <Line type="natural" dataKey="value" stroke="#10b981" strokeWidth={2.5} dot={{ r: 5, fill: ct.dotFill, stroke: '#10b981', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#10b981', stroke: ct.activeDotStroke, strokeWidth: 2 }} name="Sales Value" />
               </LineChart>
             </ResponsiveContainer>
@@ -273,7 +274,7 @@ export default function CustomerAnalyticsPage() {
                   paddingAngle={3}
                   dataKey="totalValue"
                   nameKey="name"
-                  label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${((props.percent ?? 0) * 100).toFixed(0)}%)`}
+                  label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${formatPercent((props.percent ?? 0) * 100, 0)})`}
                 >
                   {summary.topCustomersBySales.map((_, index) => (
                     <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
@@ -281,7 +282,7 @@ export default function CustomerAnalyticsPage() {
                 </Pie>
                 <Tooltip
                   contentStyle={tooltipStyle(ct)}
-                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Revenue']}
+                  formatter={(value: unknown) => [formatCurrency(value as number), 'Revenue']}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -363,32 +364,30 @@ export default function CustomerAnalyticsPage() {
                           </Link>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
-                          {customer.totalOrders}
+                          {formatNumber(customer.totalOrders)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
-                          R {customer.totalOrderValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                          {formatCurrency(customer.totalOrderValue)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
-                          R {customer.avgOrderValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                          {formatCurrency(customer.avgOrderValue)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
                           {customer.shippedOrders > 0 ? (
-                            <span className="text-green-600">{customer.shippedOrders}</span>
+                            <span className="text-green-600">{formatNumber(customer.shippedOrders)}</span>
                           ) : (
                             <span className="text-slate-400">-</span>
                           )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
                           {customer.cancelledOrders > 0 ? (
-                            <span className="text-red-600">{customer.cancelledOrders}</span>
+                            <span className="text-red-600">{formatNumber(customer.cancelledOrders)}</span>
                           ) : (
                             <span className="text-slate-400">-</span>
                           )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
-                          {customer.lastOrderDate
-                            ? new Date(customer.lastOrderDate).toLocaleDateString()
-                            : '-'}
+                          {formatDate(customer.lastOrderDate)}
                         </td>
                       </tr>
                     ))}

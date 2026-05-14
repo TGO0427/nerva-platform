@@ -17,6 +17,7 @@ import { usePurchaseOrders, usePurchaseOrderStats, useImportPurchaseOrders, useQ
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport, formatCurrencyForExport } from '@/lib/utils/export';
 import { purchaseOrderImportConfig } from '@/lib/config/csv-import';
+import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
 import type { PurchaseOrder, PurchaseOrderStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -91,18 +92,18 @@ export default function PurchaseOrdersPage() {
       key: 'orderDate',
       header: 'Order Date',
       sortable: true,
-      render: (row) => new Date(row.orderDate).toLocaleDateString(),
+      render: (row) => formatDate(row.orderDate),
     },
     {
       key: 'expectedDate',
       header: 'Expected Date',
-      render: (row) => row.expectedDate ? new Date(row.expectedDate).toLocaleDateString() : '-',
+      render: (row) => formatDate(row.expectedDate),
     },
     {
       key: 'lineCount',
       header: 'Lines',
       width: '80px',
-      render: (row) => row.lineCount || 0,
+      render: (row) => formatNumber(row.lineCount || 0),
     },
     {
       key: 'totalAmount',
@@ -110,7 +111,7 @@ export default function PurchaseOrdersPage() {
       className: 'text-right',
       render: (row) => (
         <span className="font-medium">
-          R {row.totalAmount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+          {formatCurrency(row.totalAmount)}
         </span>
       ),
     },
@@ -173,25 +174,25 @@ export default function PurchaseOrdersPage() {
       stats={[
         {
           title: 'Total POs',
-          value: totalPOs,
+          value: formatNumber(totalPOs),
           icon: <ClipboardIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Draft',
-          value: draftPOs,
+          value: formatNumber(draftPOs),
           icon: <DraftIcon />,
           iconColor: 'blue',
         },
         {
           title: 'Pending Receipt',
-          value: pendingPOs,
+          value: formatNumber(pendingPOs),
           icon: <TruckIcon />,
           iconColor: 'yellow',
         },
         {
           title: 'Received',
-          value: receivedPOs,
+          value: formatNumber(receivedPOs),
           icon: <CheckIcon />,
           iconColor: 'green',
         },

@@ -22,6 +22,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
+import { formatCompactCurrency, formatCurrency, formatDate, formatNumber, formatPercent } from '@/lib/format';
 
 export default function SupplierAnalyticsPage() {
   const [startDate, setStartDate] = useState(() => {
@@ -131,28 +132,28 @@ export default function SupplierAnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           title="Total Suppliers"
-          value={summary?.totalSuppliers ?? 0}
-          subtitle={`${summary?.activeSuppliers ?? 0} active`}
+          value={formatNumber(summary?.totalSuppliers ?? 0)}
+          subtitle={`${formatNumber(summary?.activeSuppliers ?? 0)} active`}
           icon={<BuildingIcon />}
           iconColor="blue"
         />
         <StatCard
           title="Total PO Value"
-          value={`R ${(summary?.totalPOValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
-          subtitle={`Avg: R ${(summary?.avgPOValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
+          value={formatCurrency(summary?.totalPOValue ?? 0)}
+          subtitle={`Avg: ${formatCurrency(summary?.avgPOValue ?? 0)}`}
           icon={<CurrencyIcon />}
           iconColor="green"
         />
         <StatCard
           title="Open NCRs"
-          value={summary?.openNCRs ?? 0}
+          value={formatNumber(summary?.openNCRs ?? 0)}
           subtitle="Requires attention"
           icon={<AlertIcon />}
           iconColor="red"
         />
         <StatCard
           title="Active Contracts"
-          value={summary?.activeContracts ?? 0}
+          value={formatNumber(summary?.activeContracts ?? 0)}
           subtitle="Currently in effect"
           icon={<DocumentIcon />}
           iconColor="purple"
@@ -180,11 +181,11 @@ export default function SupplierAnalyticsPage() {
                       >
                         {supplier.name}
                       </Link>
-                      <p className="text-xs text-slate-500">{supplier.poCount} purchase orders</p>
+                      <p className="text-xs text-slate-500">{formatNumber(supplier.poCount)} purchase orders</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold text-slate-900">
-                        R {supplier.totalValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                        {formatCurrency(supplier.totalValue)}
                       </p>
                     </div>
                   </div>
@@ -214,7 +215,7 @@ export default function SupplierAnalyticsPage() {
                       <NcrStatusBadge status={ncr.status} />
                     </div>
                     <p className="text-xs text-slate-400 mt-1">
-                      {new Date(ncr.createdAt).toLocaleDateString()}
+                      {formatDate(ncr.createdAt)}
                     </p>
                   </div>
                 ))}
@@ -248,8 +249,8 @@ export default function SupplierAnalyticsPage() {
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={poData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
                 <XAxis dataKey="month" axisLine={{ stroke: ct.axis }} tickLine={false} tick={{ fontSize: 12, fill: ct.tick }} tickFormatter={(v: string) => { const [y, m] = v.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m, 10) - 1] + ' ' + y.slice(2); }} />
-                <YAxis tick={{ fontSize: 12, fill: ct.tick }} tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={tooltipStyle(ct)} formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'PO Value']} />
+                <YAxis tick={{ fontSize: 12, fill: ct.tick }} tickFormatter={(v: number) => formatCompactCurrency(v)} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle(ct)} formatter={(value: unknown) => [formatCurrency(value as number), 'PO Value']} />
                 <Line type="natural" dataKey="value" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 5, fill: ct.dotFill, stroke: '#3b82f6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#3b82f6', stroke: ct.activeDotStroke, strokeWidth: 2 }} name="PO Value" />
               </LineChart>
             </ResponsiveContainer>
@@ -289,7 +290,7 @@ export default function SupplierAnalyticsPage() {
                   paddingAngle={3}
                   dataKey="totalValue"
                   nameKey="name"
-                  label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${((props.percent ?? 0) * 100).toFixed(0)}%)`}
+                  label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${formatPercent((props.percent ?? 0) * 100, 0)})`}
                 >
                   {summary.topSuppliersByPO.map((_, index) => (
                     <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
@@ -297,7 +298,7 @@ export default function SupplierAnalyticsPage() {
                 </Pie>
                 <Tooltip
                   contentStyle={tooltipStyle(ct)}
-                  formatter={(value: unknown) => [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, 'Spend']}
+                  formatter={(value: unknown) => [formatCurrency(value as number), 'Spend']}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -379,18 +380,18 @@ export default function SupplierAnalyticsPage() {
                           </Link>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
-                          {supplier.totalPOs}
+                          {formatNumber(supplier.totalPOs)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
-                          R {supplier.totalPOValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                          {formatCurrency(supplier.totalPOValue)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
-                          R {supplier.avgPOValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                          {formatCurrency(supplier.avgPOValue)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
                           {supplier.totalNCRs > 0 ? (
                             <span className={supplier.openNCRs > 0 ? 'text-red-600 font-medium' : 'text-slate-900'}>
-                              {supplier.openNCRs} open / {supplier.totalNCRs} total
+                              {formatNumber(supplier.openNCRs)} open / {formatNumber(supplier.totalNCRs)} total
                             </span>
                           ) : (
                             <span className="text-slate-400">-</span>
@@ -401,15 +402,13 @@ export default function SupplierAnalyticsPage() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-center">
                           {supplier.activeContracts > 0 ? (
-                            <Badge variant="success">{supplier.activeContracts}</Badge>
+                            <Badge variant="success">{formatNumber(supplier.activeContracts)}</Badge>
                           ) : (
                             <span className="text-slate-400">-</span>
                           )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
-                          {supplier.lastPODate
-                            ? new Date(supplier.lastPODate).toLocaleDateString()
-                            : '-'}
+                          {formatDate(supplier.lastPODate)}
                         </td>
                       </tr>
                     ))}
@@ -493,7 +492,7 @@ function NcrRateBadge({ rate }: { rate: number }) {
   if (numRate === 0) return <span className="text-slate-400">-</span>;
 
   const variant = numRate > 10 ? 'danger' : numRate > 5 ? 'warning' : 'success';
-  return <Badge variant={variant}>{numRate.toFixed(1)}%</Badge>;
+  return <Badge variant={variant}>{formatPercent(numRate)}</Badge>;
 }
 
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#ec4899', '#f97316'];
