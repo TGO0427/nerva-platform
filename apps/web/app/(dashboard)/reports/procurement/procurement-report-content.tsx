@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { useProcurementReport } from '@/lib/queries';
 import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
+import { formatCompactCurrency, formatCurrency, formatNumber, formatPercent } from '@/lib/format';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -88,25 +89,25 @@ export default function ProcurementReportContent() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           title="Total POs"
-          value={report?.summary.totalPOs ?? 0}
+          value={formatNumber(report?.summary.totalPOs ?? 0)}
           icon={<OrderIcon />}
           iconColor="blue"
         />
         <StatCard
           title="Total Value"
-          value={`R ${(report?.summary.totalValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
+          value={formatCurrency(report?.summary.totalValue ?? 0)}
           icon={<CurrencyIcon />}
           iconColor="green"
         />
         <StatCard
           title="Avg PO Value"
-          value={`R ${(report?.summary.avgPOValue ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}
+          value={formatCurrency(report?.summary.avgPOValue ?? 0)}
           icon={<TrendIcon />}
           iconColor="purple"
         />
         <StatCard
           title="Suppliers Used"
-          value={report?.summary.uniqueSuppliers ?? 0}
+          value={formatNumber(report?.summary.uniqueSuppliers ?? 0)}
           icon={<BuildingIcon />}
           iconColor="orange"
         />
@@ -131,7 +132,7 @@ export default function ProcurementReportContent() {
                 <YAxis
                   yAxisId="value"
                   tick={{ fontSize: 12, fill: ct.tick }}
-                  tickFormatter={(v: number) => `R ${(v / 1000).toFixed(0)}k`}
+                  tickFormatter={(v: number) => formatCompactCurrency(v)}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -139,8 +140,8 @@ export default function ProcurementReportContent() {
                 <Tooltip
                   contentStyle={tooltipStyle(ct)}
                   formatter={(value: unknown, name?: string) => {
-                    if (name === 'PO Value') return [`R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`, name];
-                    return [Number(value).toLocaleString(), name ?? ''];
+                    if (name === 'PO Value') return [formatCurrency(value as number), name];
+                    return [formatNumber(value as number), name ?? ''];
                   }}
                 />
                 <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ paddingTop: 16, fontSize: 13 }} />
@@ -206,9 +207,9 @@ export default function ProcurementReportContent() {
                             {supplier.code ? `${supplier.code} - ` : ''}{supplier.name}
                           </Link>
                         </td>
-                        <td className="px-4 py-2 text-sm text-right">{supplier.poCount}</td>
+                        <td className="px-4 py-2 text-sm text-right">{formatNumber(supplier.poCount)}</td>
                         <td className="px-4 py-2 text-sm text-right font-medium">
-                          R {supplier.totalValue.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                          {formatCurrency(supplier.totalValue)}
                         </td>
                       </tr>
                     ))}
@@ -237,7 +238,7 @@ export default function ProcurementReportContent() {
                     <div key={status.status} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <StatusBadge status={status.status} />
-                        <span className="text-sm text-slate-600">{status.count} orders</span>
+                        <span className="text-sm text-slate-600">{formatNumber(status.count)} orders</span>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="w-32 bg-slate-200 rounded-full h-2">
@@ -247,7 +248,7 @@ export default function ProcurementReportContent() {
                           />
                         </div>
                         <span className="text-sm font-medium w-24 text-right">
-                          R {status.value.toLocaleString('en-ZA', { minimumFractionDigits: 0 })}
+                          {formatCurrency(status.value, 'ZAR')}
                         </span>
                       </div>
                     </div>
@@ -265,21 +266,19 @@ export default function ProcurementReportContent() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
         <StatCard
           title="Pending"
-          value={report?.summary.pendingPOs ?? 0}
+          value={formatNumber(report?.summary.pendingPOs ?? 0)}
           icon={<ClockIcon />}
           iconColor="yellow"
         />
         <StatCard
           title="Received"
-          value={report?.summary.receivedPOs ?? 0}
+          value={formatNumber(report?.summary.receivedPOs ?? 0)}
           icon={<CheckIcon />}
           iconColor="green"
         />
         <StatCard
           title="Receive Rate"
-          value={`${report?.summary.totalPOs
-            ? ((report.summary.receivedPOs / report.summary.totalPOs) * 100).toFixed(1)
-            : 0}%`}
+          value={formatPercent(report?.summary.totalPOs ? (report.summary.receivedPOs / report.summary.totalPOs) * 100 : 0)}
           icon={<TrendIcon />}
           iconColor="blue"
         />

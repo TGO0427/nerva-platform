@@ -43,6 +43,19 @@ export function formatCurrency(value: FormatInput, currency = 'ZAR', fallback = 
   );
 }
 
+export function formatCompactCurrency(value: FormatInput, currency = 'ZAR', fallback = '-'): string {
+  return formatNumber(
+    value,
+    {
+      style: 'currency',
+      currency,
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    },
+    fallback
+  );
+}
+
 export function formatPercent(value: FormatInput, fractionDigits = 1, fallback = '-'): string {
   if (value === null || value === undefined || value === '') return fallback;
   return formatNumber(
