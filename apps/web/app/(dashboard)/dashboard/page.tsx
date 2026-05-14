@@ -209,7 +209,7 @@ export default function DashboardPage() {
               subtitle={stats?.lowStockItems ? `${formatNumber(stats.lowStockItems)} low stock` : 'Healthy'}
               icon={<WarningIcon />}
               iconColor="purple"
-              href="/inventory/expiry-alerts"
+              href="/inventory/expiry-alerts?status=CRITICAL"
             />
           </div>
         )}
@@ -418,14 +418,14 @@ function ExceptionQueue({ stats }: { stats: DashboardStats }) {
       title: 'Stock Alerts',
       description: `${formatNumber(stats.lowStockItems)} low, ${formatNumber(stats.expiringItems)} expiring`,
       value: stats.lowStockItems + stats.expiringItems,
-      href: '/inventory/expiry-alerts',
+      href: '/inventory/expiry-alerts?status=CRITICAL',
       tone: stats.lowStockItems + stats.expiringItems > 0 ? 'warning' : 'success',
     },
     {
       title: 'Open Returns',
       description: 'Awaiting processing',
       value: stats.openReturns,
-      href: '/returns',
+      href: '/returns?status=OPEN',
       tone: stats.openReturns > 0 ? 'warning' : 'success',
     },
     {

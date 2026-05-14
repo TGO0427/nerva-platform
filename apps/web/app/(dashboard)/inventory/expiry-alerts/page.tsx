@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -21,10 +22,14 @@ import {
 import { useWarehouses } from '@/lib/queries';
 import { useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDate, formatNumber, formatQuantity } from '@/lib/format';
 
 type FilterStatus = 'all' | 'EXPIRED' | 'CRITICAL' | 'WARNING';
 
+const FILTER_STATUS_VALUES: FilterStatus[] = ['all', 'EXPIRED', 'CRITICAL', 'WARNING'];
+
 export default function ExpiryAlertsPage() {
+  const searchParams = useSearchParams();
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [daysAhead, setDaysAhead] = useState<number>(30);
   const [warehouseId, setWarehouseId] = useState<string>('');
@@ -39,6 +44,13 @@ export default function ExpiryAlertsPage() {
     warehouseId || undefined
   );
   const { data: warehouses } = useWarehouses();
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam && FILTER_STATUS_VALUES.includes(statusParam as FilterStatus)) {
+      setFilterStatus(statusParam as FilterStatus);
+    }
+  }, [searchParams]);
 
   // Combine and filter data based on status
   const allStock = [
@@ -96,7 +108,7 @@ export default function ExpiryAlertsPage() {
       key: 'expiryDate',
       header: 'Expiry Date',
       sortable: true,
-      render: (row) => new Date(row.expiryDate).toLocaleDateString(),
+      render: (row) => formatDate(row.expiryDate),
     },
     {
       key: 'daysUntilExpiry',
@@ -115,8 +127,8 @@ export default function ExpiryAlertsPage() {
           }
         >
           {row.daysUntilExpiry <= 0
-            ? `${Math.abs(row.daysUntilExpiry)} days ago`
-            : `${row.daysUntilExpiry} days`}
+            ? `${formatNumber(Math.abs(row.daysUntilExpiry))} days ago`
+            : `${formatNumber(row.daysUntilExpiry)} days`}
         </span>
       ),
     },
@@ -124,7 +136,7 @@ export default function ExpiryAlertsPage() {
       key: 'qtyOnHand',
       header: 'Qty On Hand',
       sortable: true,
-      render: (row) => row.qtyOnHand.toLocaleString(),
+      render: (row) => formatQuantity(row.qtyOnHand),
     },
     {
       key: 'expiryStatus',
@@ -199,7 +211,7 @@ export default function ExpiryAlertsPage() {
         >
           <StatCard
             title="Expired"
-            value={summary?.expired || 0}
+            value={formatNumber(summary?.expired || 0)}
             icon={<ExpiredIcon />}
             iconColor="red"
           />
@@ -213,7 +225,7 @@ export default function ExpiryAlertsPage() {
         >
           <StatCard
             title="Critical (7 days)"
-            value={summary?.critical || 0}
+            value={formatNumber(summary?.critical || 0)}
             icon={<CriticalIcon />}
             iconColor="orange"
           />
@@ -227,7 +239,7 @@ export default function ExpiryAlertsPage() {
         >
           <StatCard
             title="Warning (30 days)"
-            value={summary?.warning || 0}
+            value={formatNumber(summary?.warning || 0)}
             icon={<WarningIcon />}
             iconColor="yellow"
           />

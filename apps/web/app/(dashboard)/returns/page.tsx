@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDate, formatNumber } from '@/lib/format';
 import type { RmaStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -32,14 +33,26 @@ const STATUS_OPTIONS = [
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
+const STATUS_VALUES = STATUS_OPTIONS
+  .map((option) => option.value)
+  .filter(Boolean) as RmaStatus[];
+
 export default function ReturnsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
   const { confirm } = useConfirm();
   const cancelRma = useCancelRma();
   const [status, setStatus] = useState<RmaStatus | ''>('');
   const [search, setSearch] = useState('');
   const { params, setPage } = useQueryParams();
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam && STATUS_VALUES.includes(statusParam as RmaStatus)) {
+      setStatus(statusParam as RmaStatus);
+    }
+  }, [searchParams]);
 
   const { data, isLoading } = useRmas({
     ...params,
@@ -103,7 +116,7 @@ export default function ReturnsPage() {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], []);
 
@@ -159,26 +172,26 @@ export default function ReturnsPage() {
       stats={[
         {
           title: 'Open RMAs',
-          value: openRmas,
+          value: formatNumber(openRmas),
           icon: <FolderOpenIcon />,
           iconColor: 'blue',
         },
         {
           title: 'Awaiting Inspection',
-          value: awaitingInspection,
+          value: formatNumber(awaitingInspection),
           icon: <SearchIcon />,
           iconColor: 'yellow',
         },
         {
           title: 'Credit Pending',
-          value: pendingCredit,
+          value: formatNumber(pendingCredit),
           icon: <CreditLgIcon />,
           iconColor: 'orange',
           alert: pendingCredit > 0,
         },
         {
           title: 'Total RMAs',
-          value: totalRmas,
+          value: formatNumber(totalRmas),
           icon: <RefreshIcon />,
           iconColor: 'gray',
         },
