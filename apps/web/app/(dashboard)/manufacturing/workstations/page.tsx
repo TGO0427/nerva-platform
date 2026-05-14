@@ -17,6 +17,7 @@ import { useWorkstations, useImportWorkstations, useQueryParams } from '@/lib/qu
 import { workstationImportConfig } from '@/lib/config/csv-import';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename } from '@/lib/utils/export';
+import { formatCurrency, formatNumber, formatQuantity } from '@/lib/format';
 import type { Workstation, WorkstationStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -85,13 +86,13 @@ export default function WorkstationsPage() {
       key: 'capacityPerHour',
       header: 'Capacity/Hr',
       width: '100px',
-      render: (row) => row.capacityPerHour?.toLocaleString() || '-',
+      render: (row) => formatQuantity(row.capacityPerHour),
     },
     {
       key: 'costPerHour',
       header: 'Cost/Hr',
       width: '100px',
-      render: (row) => row.costPerHour ? `R ${Number(row.costPerHour).toFixed(2)}` : '-',
+      render: (row) => formatCurrency(row.costPerHour),
     },
     {
       key: 'description',
@@ -153,19 +154,19 @@ export default function WorkstationsPage() {
       stats={[
         {
           title: 'Total',
-          value: totalWorkstations,
+          value: formatNumber(totalWorkstations),
           icon: <FactoryIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Active',
-          value: activeCount,
+          value: formatNumber(activeCount),
           icon: <CheckIcon />,
           iconColor: 'green',
         },
         {
           title: 'Maintenance',
-          value: maintenanceCount,
+          value: formatNumber(maintenanceCount),
           icon: <WrenchIcon />,
           iconColor: 'yellow',
         },
