@@ -12,6 +12,8 @@ interface AnimatedNumberProps {
   className?: string;
 }
 
+const DEFAULT_LOCALE = 'en-ZA';
+
 export function AnimatedNumber({
   value,
   duration = 500,
@@ -22,8 +24,8 @@ export function AnimatedNumber({
 }: AnimatedNumberProps) {
   const defaultFormat = (v: number) =>
     decimals !== undefined
-      ? v.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
-      : v.toLocaleString();
+      ? v.toLocaleString(DEFAULT_LOCALE, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+      : v.toLocaleString(DEFAULT_LOCALE);
   const format = formatFn || defaultFormat;
   const [displayValue, setDisplayValue] = useState(0);
   const [hasAnimated, setHasAnimated] = useState(false);

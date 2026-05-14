@@ -63,30 +63,33 @@ export function StatCard({
   const content = (
     <div
       className={cn(
-        'rounded-md border border-slate-200/70 border-b-[3px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-2.5',
-        'hover:shadow-md hover:-translate-y-0.5 transition-all',
+        'relative min-h-[106px] rounded-md border border-slate-200/70 border-b-[3px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-2.5',
+        href && 'hover:shadow-md hover:-translate-y-0.5 transition-all',
         alert ? 'border-b-red-500 bg-gradient-to-br from-red-50/60 to-white' : cn(borderColors[iconColor], bgTints[iconColor]),
         href && 'cursor-pointer',
         className,
       )}
     >
+      {alert && (
+        <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-500" aria-hidden="true" />
+      )}
       {icon && (
         <div className="mb-1.5">
           <IconBadge icon={icon} color={alert ? 'red' : iconColor} size="sm" />
         </div>
       )}
-      <p className="text-lg font-bold text-slate-900">
+      <p className="truncate text-lg font-bold text-slate-900" title={String(value)}>
         {isNumeric ? (
           <AnimatedNumber value={value} duration={400} />
         ) : (
           value
         )}
       </p>
-      <p className="text-[10.5px] font-medium text-slate-500 uppercase tracking-wider mt-0.5">{title}</p>
+      <p className="mt-0.5 truncate text-[10.5px] font-medium uppercase tracking-wider text-slate-500" title={title}>{title}</p>
       {showEmpty ? (
-        <p className="text-[10.5px] text-slate-400 mt-0.5">{emptyHint}</p>
+        <p className="mt-0.5 truncate text-[10.5px] text-slate-400" title={emptyHint}>{emptyHint}</p>
       ) : subtitle ? (
-        <p className={cn('text-[10.5px] mt-0.5', subtitleColors[subtitleType])}>
+        <p className={cn('mt-0.5 truncate text-[10.5px]', subtitleColors[subtitleType])} title={subtitle}>
           {subtitle}
         </p>
       ) : null}

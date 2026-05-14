@@ -13,6 +13,7 @@ export interface Column<T> {
   width?: string;
   render?: (row: T) => React.ReactNode;
   className?: string;
+  align?: 'left' | 'center' | 'right';
 }
 
 export interface PaginationMeta {
@@ -43,6 +44,8 @@ interface DataTableProps<T> {
   className?: string;
   /** When 'embedded', skips container styling (for use inside Card wrapper) */
   variant?: 'default' | 'embedded';
+  /** Controls row padding for dense operational screens */
+  density?: 'comfortable' | 'compact';
   /** Enable row selection with checkboxes */
   selectable?: boolean;
   /** Currently selected row IDs */
@@ -71,6 +74,7 @@ export function DataTable<T extends object>({
   emptyState,
   className,
   variant = 'default',
+  density = 'comfortable',
   selectable = false,
   selectedIds,
   onSelectionChange,
@@ -86,6 +90,8 @@ export function DataTable<T extends object>({
   const isRowSelected = (row: T): boolean => selectedIds?.has(getRowId(row)) ?? false;
   const [localSortKey, setLocalSortKey] = useState<string | undefined>(sortKey);
   const [localSortOrder, setLocalSortOrder] = useState<'asc' | 'desc'>(sortOrder || 'asc');
+  const headerPadding = density === 'compact' ? 'px-4 py-2' : 'px-6 py-3';
+  const cellPadding = density === 'compact' ? 'px-4 py-2.5' : 'px-6 py-4';
 
   const handleSort = (key: string) => {
     const newOrder = localSortKey === key && localSortOrder === 'asc' ? 'desc' : 'asc';
@@ -128,6 +134,25 @@ export function DataTable<T extends object>({
     return String(value);
   };
 
+  const getColumnAlign = (column: Column<T>) => {
+    if (column.align) return column.align;
+    if (column.className?.includes('text-right')) return 'right';
+    if (column.className?.includes('text-center')) return 'center';
+    return 'left';
+  };
+
+  const getAlignClass = (align: 'left' | 'center' | 'right') => {
+    if (align === 'right') return 'text-right';
+    if (align === 'center') return 'text-center';
+    return 'text-left';
+  };
+
+  const getHeaderContentClass = (align: 'left' | 'center' | 'right') => {
+    if (align === 'right') return 'justify-end';
+    if (align === 'center') return 'justify-center';
+    return 'justify-start';
+  };
+
   if (isLoading) {
     return (
       <div className={containerClass}>
@@ -168,27 +193,37 @@ export function DataTable<T extends object>({
                 </th>
               )}
               {columns.map((column) => (
-                <th
-                  key={column.key}
-                  scope="col"
-                  style={{ width: column.width }}
-                  className={cn(
-                    'px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider',
-                    column.sortable && 'cursor-pointer hover:bg-slate-100 select-none',
-                    column.className
-                  )}
-                  onClick={() => column.sortable && handleSort(column.key)}
-                >
-                  <div className="flex items-center gap-1">
-                    {column.header}
-                    {column.sortable && (
-                      <SortIcon
-                        active={localSortKey === column.key}
-                        order={localSortKey === column.key ? localSortOrder : undefined}
-                      />
-                    )}
-                  </div>
-                </th>
+                (() => {
+                  const align = getColumnAlign(column);
+                  const sortDirection = localSortKey === column.key ? localSortOrder : undefined;
+
+                  return (
+                    <th
+                      key={column.key}
+                      scope="col"
+                      aria-sort={column.sortable && sortDirection ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
+                      style={{ width: column.width }}
+                      className={cn(
+                        headerPadding,
+                        'text-xs font-medium uppercase tracking-wider text-slate-500',
+                        getAlignClass(align),
+                        column.sortable && 'cursor-pointer select-none hover:bg-slate-100',
+                        column.className
+                      )}
+                      onClick={() => column.sortable && handleSort(column.key)}
+                    >
+                      <div className={cn('flex items-center gap-1', getHeaderContentClass(align))}>
+                        {column.header}
+                        {column.sortable && (
+                          <SortIcon
+                            active={localSortKey === column.key}
+                            order={sortDirection}
+                          />
+                        )}
+                      </div>
+                    </th>
+                  );
+                })()
               ))}
             </tr>
           </thead>
@@ -218,7 +253,9 @@ export function DataTable<T extends object>({
                   <td
                     key={column.key}
                     className={cn(
-                      'px-6 py-4 whitespace-nowrap text-sm text-slate-900',
+                      cellPadding,
+                      'whitespace-nowrap text-sm text-slate-900',
+                      getAlignClass(getColumnAlign(column)),
                       column.className
                     )}
                   >
