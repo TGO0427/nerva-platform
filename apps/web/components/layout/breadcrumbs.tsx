@@ -10,6 +10,7 @@ interface BreadcrumbItem {
 
 const pathLabels: Record<string, string> = {
   dashboard: 'Dashboard',
+  exceptions: 'Exceptions',
   inventory: 'Inventory',
   sales: 'Sales Orders',
   fulfilment: 'Fulfilment',

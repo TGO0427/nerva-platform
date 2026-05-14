@@ -23,7 +23,6 @@ import type { PieLabelRenderProps } from 'recharts';
 import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
 import { useOnboarding } from '@/lib/hooks/use-onboarding';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format';
-import type { DashboardStats } from '@/lib/queries';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: '#94a3b8',
@@ -65,6 +64,18 @@ export default function DashboardPage() {
   const { showBanner, dismissBanner } = useOnboarding();
 
   const weeklySalesDisplay = formatCurrency((stats?.weeklySalesValue ?? 0) / 100);
+  const activeExceptionTotal =
+    (stats?.lateOrders ?? 0) +
+    (stats?.stuckPickWaves ?? 0) +
+    (stats?.readyDispatchShipments ?? 0) +
+    (stats?.overdueGrns ?? 0) +
+    (stats?.pendingPutawayTasks ?? 0) +
+    (stats?.lowStockItems ?? 0) +
+    (stats?.expiringItems ?? 0) +
+    (stats?.pendingApprovals ?? 0) +
+    (stats?.overdueInvoices ?? 0) +
+    (stats?.openReturns ?? 0) +
+    (stats?.openCycleCounts ?? 0);
 
   const quickActions = [
     {
@@ -196,26 +207,14 @@ export default function DashboardPage() {
               href="/returns?status=OPEN"
             />
             <StatCard
-              title="Late Orders"
-              value={formatNumber(stats?.lateOrders ?? 0)}
-              subtitle={(stats?.lateOrders ?? 0) > 0 ? 'Past ship date' : 'On track'}
-              icon={<ClockIcon />}
-              iconColor="red"
-              href="/sales?late=true"
-            />
-            <StatCard
-              title="Stock Alerts"
-              value={formatNumber((stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0))}
-              subtitle={stats?.lowStockItems ? `${formatNumber(stats.lowStockItems)} low stock` : 'Healthy'}
+              title="Exceptions"
+              value={formatNumber(activeExceptionTotal)}
+              subtitle={activeExceptionTotal > 0 ? 'Needs attention' : 'All clear'}
               icon={<WarningIcon />}
-              iconColor="purple"
-              href="/inventory/expiry-alerts?status=CRITICAL"
+              iconColor={activeExceptionTotal > 0 ? 'red' : 'green'}
+              href="/exceptions"
             />
           </div>
-        )}
-
-        {!statsLoading && stats && (
-          <ExceptionQueue stats={stats} />
         )}
       </div>
 
@@ -405,146 +404,6 @@ export default function DashboardPage() {
   );
 }
 
-function ExceptionQueue({ stats }: { stats: DashboardStats }) {
-  const queues = [
-    {
-      title: 'Late Orders',
-      description: 'Past requested ship date',
-      value: stats.lateOrders,
-      href: '/sales?late=true',
-      tone: stats.lateOrders > 0 ? 'danger' : 'success',
-      group: 'Sales',
-    },
-    {
-      title: 'Stuck Pick Waves',
-      description: 'Open more than 24 hours',
-      value: stats.stuckPickWaves ?? 0,
-      href: '/fulfilment?tab=pick-waves&status=IN_PROGRESS',
-      tone: (stats.stuckPickWaves ?? 0) > 0 ? 'danger' : 'success',
-      group: 'Fulfilment',
-    },
-    {
-      title: 'Ready to Dispatch',
-      description: 'Shipments waiting for trips',
-      value: stats.readyDispatchShipments ?? 0,
-      href: '/dispatch?tab=ready-shipments',
-      tone: (stats.readyDispatchShipments ?? 0) > 0 ? 'warning' : 'success',
-      group: 'Dispatch',
-    },
-    {
-      title: 'Overdue GRNs',
-      description: 'Receipts open more than 2 days',
-      value: stats.overdueGrns ?? 0,
-      href: '/inventory/grn?status=OPEN',
-      tone: (stats.overdueGrns ?? 0) > 0 ? 'danger' : 'success',
-      group: 'Inventory',
-    },
-    {
-      title: 'Pending Putaway',
-      description: 'Tasks waiting in receiving',
-      value: stats.pendingPutawayTasks ?? 0,
-      href: '/inventory/putaway?status=PENDING',
-      tone: (stats.pendingPutawayTasks ?? 0) > 0 ? 'warning' : 'success',
-      group: 'Inventory',
-    },
-    {
-      title: 'Stock Alerts',
-      description: `${formatNumber(stats.lowStockItems)} low, ${formatNumber(stats.expiringItems)} expiring`,
-      value: stats.lowStockItems + stats.expiringItems,
-      href: '/inventory/expiry-alerts?status=CRITICAL',
-      tone: stats.lowStockItems + stats.expiringItems > 0 ? 'warning' : 'success',
-      group: 'Inventory',
-    },
-    {
-      title: 'Pending Approvals',
-      description: 'Adjustments, transfers, counts, BOMs',
-      value: stats.pendingApprovals ?? 0,
-      href: '/inventory/adjustments?status=SUBMITTED',
-      tone: (stats.pendingApprovals ?? 0) > 0 ? 'warning' : 'success',
-      group: 'Approvals',
-    },
-    {
-      title: 'Overdue Invoices',
-      description: 'Past due and unpaid',
-      value: stats.overdueInvoices ?? 0,
-      href: '/finance/invoices?status=OVERDUE',
-      tone: (stats.overdueInvoices ?? 0) > 0 ? 'danger' : 'success',
-      group: 'Finance',
-    },
-    {
-      title: 'Open Returns',
-      description: 'Awaiting processing',
-      value: stats.openReturns,
-      href: '/returns?status=OPEN',
-      tone: stats.openReturns > 0 ? 'warning' : 'success',
-      group: 'Returns',
-    },
-    {
-      title: 'Open Cycle Counts',
-      description: 'Counting in progress',
-      value: stats.openCycleCounts,
-      href: '/inventory/cycle-counts?status=OPEN',
-      tone: stats.openCycleCounts > 0 ? 'warning' : 'success',
-      group: 'Inventory',
-    },
-  ];
-
-  const activeQueueCount = queues.filter((queue) => queue.value > 0).length;
-
-  return (
-    <div className="mb-6 rounded-2xl border border-slate-200/70 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-800">Exception Queues</h2>
-          <p className="text-xs text-slate-500">
-            {activeQueueCount > 0
-              ? `${formatNumber(activeQueueCount)} queue${activeQueueCount === 1 ? '' : 's'} need attention`
-              : 'No active exceptions right now'}
-          </p>
-        </div>
-        <Link href="/notifications" className="text-xs font-medium text-primary-600 hover:underline">
-          View notifications
-        </Link>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5">
-        {queues.map((queue) => (
-          <Link
-            key={queue.title}
-            href={queue.href}
-            className="group flex min-h-[92px] items-center justify-between gap-3 border-b border-r border-slate-100 px-4 py-3 transition-colors hover:bg-slate-50"
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className={`h-2 w-2 rounded-full ${getQueueDotClass(queue.tone)}`} />
-                <span className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
-                  {queue.title}
-                </span>
-              </div>
-              <p className="mt-1 truncate text-xs text-slate-500">{queue.description}</p>
-              <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-slate-400">{queue.group}</p>
-            </div>
-            <span className={`shrink-0 text-lg font-bold ${getQueueTextClass(queue.tone)}`}>
-              {formatNumber(queue.value)}
-            </span>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function getQueueDotClass(tone: string) {
-  if (tone === 'danger') return 'bg-red-500';
-  if (tone === 'warning') return 'bg-amber-500';
-  return 'bg-emerald-500';
-}
-
-function getQueueTextClass(tone: string) {
-  if (tone === 'danger') return 'text-red-600';
-  if (tone === 'warning') return 'text-amber-600';
-  return 'text-emerald-600';
-}
-
 // --- Chart card wrapper ---
 function ChartCard({
   title,
@@ -639,14 +498,6 @@ function ReturnIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }

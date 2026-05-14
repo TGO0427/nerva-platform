@@ -33,6 +33,7 @@ const COMMANDS: SearchResult[] = [
   { type: 'command', id: 'new-bom', title: 'Create BOM', subtitle: 'New bill of materials', href: '/manufacturing/boms/new', icon: 'plus' },
   // Navigation
   { type: 'command', id: 'dashboard', title: 'Go to Dashboard', subtitle: 'Overview & KPIs', href: '/dashboard', icon: 'home' },
+  { type: 'command', id: 'exceptions', title: 'Go to Exceptions', subtitle: 'Operational queues & alerts', href: '/exceptions', icon: 'nav' },
   { type: 'command', id: 'sales', title: 'Go to Sales', subtitle: 'Sales orders', href: '/sales', icon: 'nav' },
   { type: 'command', id: 'dispatch', title: 'Go to Dispatch', subtitle: 'Manage delivery trips', href: '/dispatch', icon: 'truck' },
   { type: 'command', id: 'fulfilment', title: 'Go to Fulfilment', subtitle: 'Picking & packing', href: '/fulfilment', icon: 'clipboard' },

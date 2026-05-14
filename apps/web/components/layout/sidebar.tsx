@@ -29,6 +29,7 @@ const searchSynonyms: Record<string, string[]> = {
   '/inventory/ibts': ['IBT', 'inter-branch', 'bin transfer', 'stock transfer'],
   '/inventory/cycle-counts': ['stock take', 'physical count'],
   '/inventory/adjustments': ['stock adjustment'],
+  '/exceptions': ['exception', 'exceptions', 'issues', 'alerts', 'operational queues'],
   '/manufacturing/quality': ['NCR', 'non-conformance', 'holds'],
   '/procurement/purchase-orders': ['PO'],
   '/fulfilment': ['pick', 'wave'],
@@ -41,6 +42,7 @@ const navigation: NavGroup[] = [
     name: 'Overview',
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: <HomeIcon /> },
+      { name: 'Exceptions', href: '/exceptions', icon: <AlertIcon /> },
     ],
   },
   {
@@ -907,6 +909,14 @@ function HomeIcon() {
   return (
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+    </svg>
+  );
+}
+
+function AlertIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 3h.008v.008H12v-.008zM2.697 16.126c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
     </svg>
   );
 }
