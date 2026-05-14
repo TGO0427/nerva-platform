@@ -167,6 +167,7 @@ export default function AdjustmentsPage() {
   const draftCount = tableData.filter(a => a.status === 'DRAFT').length;
   const submittedCount = tableData.filter(a => a.status === 'SUBMITTED').length;
   const postedCount = tableData.filter(a => a.status === 'POSTED').length;
+  const hasActiveFilters = Boolean(statusFilter || search);
 
   return (
     <ListPageTemplate
@@ -307,9 +308,23 @@ export default function AdjustmentsPage() {
         emptyState={{
           icon: <AdjustmentIcon />,
           title: 'No adjustments found',
-          description: statusFilter || search
-            ? 'No adjustments match the selected filters'
-            : 'Create a new adjustment to get started',
+          description: hasActiveFilters
+            ? 'No adjustments match the current search or filters.'
+            : 'Create a new adjustment to get started.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatusFilter('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
+            <Button onClick={() => setShowCreateForm(true)}>New Adjustment</Button>
+          ),
         }}
       />
 

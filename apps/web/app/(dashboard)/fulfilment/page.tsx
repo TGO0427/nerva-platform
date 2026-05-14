@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Alert } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
 import { PageShell, MetricGrid } from '@/components/ui/motion';
@@ -458,13 +459,17 @@ export default function FulfilmentPage() {
               }}
             />
           ) : (
-            <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
-              <CheckCircleIcon className="mx-auto h-12 w-12 text-green-400 mb-3" />
-              <h3 className="text-lg font-medium text-slate-900">All caught up!</h3>
-              <p className="text-slate-500 mt-1">
-                No orders waiting for picking. Allocate stock to orders in the Sales module.
-              </p>
-            </div>
+            <EmptyState
+              variant="dashed"
+              icon={<CheckCircleIcon className="h-12 w-12" />}
+              title="All caught up"
+              description="No orders are waiting for picking. Allocate stock to orders in the Sales module."
+              action={
+                <Button variant="secondary" onClick={() => router.push('/sales')}>
+                  View Sales Orders
+                </Button>
+              }
+            />
           )}
         </>
       )}
@@ -500,8 +505,19 @@ export default function FulfilmentPage() {
               icon: <WaveIconLg />,
               title: 'No pick waves found',
               description: waveStatus
-                ? 'No waves match the selected filter'
+                ? 'No pick waves match the current filters.'
                 : 'Create a pick wave from allocated orders',
+              action: waveStatus ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setWaveStatus('');
+                    setPage(1);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              ) : undefined,
             }}
           />
         </>
@@ -596,8 +612,19 @@ export default function FulfilmentPage() {
               icon: <ShipIconLg />,
               title: 'No shipments found',
               description: shipmentStatus
-                ? 'No shipments match the selected filter'
-                : 'Shipments will appear here after packing',
+                ? 'No shipments match the current filters.'
+                : 'Shipments will appear here after packing.',
+              action: shipmentStatus ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShipmentStatus('');
+                    setPage(1);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              ) : undefined,
             }}
           />
         </>

@@ -154,6 +154,7 @@ export default function ReturnsPage() {
   const awaitingInspection = tableData.filter(r => ['RECEIVED', 'INSPECTING'].includes(r.status)).length;
   const pendingCredit = tableData.filter(r => ['CREDIT_PENDING'].includes(r.status)).length;
   const totalRmas = data?.meta?.total || 0;
+  const hasActiveFilters = Boolean(search || status);
 
   return (
     <ListPageTemplate
@@ -287,10 +288,21 @@ export default function ReturnsPage() {
         emptyState={{
           icon: <ReturnIcon />,
           title: 'No RMAs found',
-          description: status
-            ? 'No RMAs match the selected filter'
-            : 'Create an RMA to process customer returns',
-          action: undefined,
+          description: hasActiveFilters
+            ? 'No RMAs match the current search or filters.'
+            : 'RMAs will appear here when customers return goods.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatus('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : undefined,
         }}
       />
     </ListPageTemplate>

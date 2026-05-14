@@ -238,8 +238,21 @@ export default function ProductionLedgerPage() {
           icon: <EmptyLedgerIcon />,
           title: 'No ledger entries found',
           description: entryType || startDate || endDate
-            ? 'No entries match the selected filters'
-            : 'Production ledger entries will appear here as work orders are processed',
+            ? 'No ledger entries match the current filters.'
+            : 'Production ledger entries will appear here as work orders are processed.',
+          action: entryType || startDate || endDate ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setEntryType('');
+                setStartDate('');
+                setEndDate('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : undefined,
         }}
       />
     </ListPageTemplate>

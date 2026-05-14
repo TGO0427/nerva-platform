@@ -177,6 +177,7 @@ export default function BomsPage() {
   const draftCount = tableData.filter(b => b.status === 'DRAFT').length;
   const pendingCount = tableData.filter(b => b.status === 'PENDING_APPROVAL').length;
   const approvedCount = tableData.filter(b => b.status === 'APPROVED').length;
+  const hasActiveFilters = Boolean(status || search);
 
   return (
     <ListPageTemplate
@@ -289,8 +290,21 @@ export default function BomsPage() {
         emptyState={{
           icon: <BomIcon />,
           title: 'No BOMs found',
-          description: status ? 'No BOMs match the selected filter' : 'Create your first Bill of Materials',
-          action: !status && (
+          description: hasActiveFilters
+            ? 'No BOMs match the current search or filters.'
+            : 'Create your first Bill of Materials.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatus('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
             <Link href="/manufacturing/boms/new">
               <Button>Create BOM</Button>
             </Link>

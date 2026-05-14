@@ -179,6 +179,7 @@ export default function InvoicesPage() {
     addToast(`${count} invoice(s) cancelled`, 'success');
     clearSelection();
   };
+  const hasActiveFilters = Boolean(status || search);
 
   return (
     <ListPageTemplate
@@ -278,9 +279,21 @@ export default function InvoicesPage() {
         emptyState={{
           icon: <InvoiceIcon />,
           title: 'No invoices found',
-          description: status || search
-            ? 'No invoices match the selected filters'
-            : 'Invoices will appear here once created from sales orders',
+          description: hasActiveFilters
+            ? 'No invoices match the current search or filters.'
+            : 'Invoices will appear here once created from sales orders.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatus('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : undefined,
         }}
       />
     </ListPageTemplate>

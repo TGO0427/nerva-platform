@@ -132,6 +132,7 @@ export default function WorkstationsPage() {
   const totalWorkstations = data?.meta?.total || 0;
   const activeCount = tableData.filter(w => w.status === 'ACTIVE').length;
   const maintenanceCount = tableData.filter(w => w.status === 'MAINTENANCE').length;
+  const hasActiveFilters = Boolean(status || search);
 
   return (
     <ListPageTemplate
@@ -232,8 +233,21 @@ export default function WorkstationsPage() {
         emptyState={{
           icon: <WorkstationIcon />,
           title: 'No workstations found',
-          description: status ? 'No workstations match the selected filter' : 'Create your first workstation',
-          action: !status && (
+          description: hasActiveFilters
+            ? 'No workstations match the current search or filters.'
+            : 'Create your first workstation.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatus('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
             <Link href="/manufacturing/workstations/new">
               <Button>Create Workstation</Button>
             </Link>

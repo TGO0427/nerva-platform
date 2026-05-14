@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/lib/format';
 import { SkeletonTable } from './skeleton';
 import { EmptyState } from './empty-state';
 
@@ -37,6 +38,7 @@ interface DataTableProps<T> {
     title: string;
     description?: string;
     action?: React.ReactNode;
+    variant?: 'default' | 'dashed' | 'compact';
   };
   className?: string;
   /** When 'embedded', skips container styling (for use inside Card wrapper) */
@@ -134,10 +136,14 @@ export function DataTable<T extends object>({
     );
   }
 
-  if (data.length === 0 && emptyState) {
+  if (data.length === 0) {
     return (
       <div className={containerClass}>
-        <EmptyState {...emptyState} />
+        <EmptyState
+          title="No records found"
+          description="Try changing the filters or search terms."
+          {...emptyState}
+        />
       </div>
     );
   }
@@ -300,9 +306,9 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
       <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-slate-700">
-            Showing <span className="font-medium">{start}</span> to{' '}
-            <span className="font-medium">{end}</span> of{' '}
-            <span className="font-medium">{total}</span> results
+            Showing <span className="font-medium">{formatNumber(start)}</span> to{' '}
+            <span className="font-medium">{formatNumber(end)}</span> of{' '}
+            <span className="font-medium">{formatNumber(total)}</span> results
           </p>
         </div>
         <div>
@@ -366,7 +372,7 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
           Previous
         </button>
         <span className="text-sm text-slate-700 self-center">
-          Page {page} of {totalPages}
+          Page {formatNumber(page)} of {formatNumber(totalPages)}
         </span>
         <button
           onClick={() => onPageChange?.(page + 1)}

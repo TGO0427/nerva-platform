@@ -161,6 +161,7 @@ export default function QualityPage() {
   const openCount = tableData.filter(nc => nc.status === 'OPEN').length;
   const reviewCount = tableData.filter(nc => nc.status === 'UNDER_REVIEW').length;
   const criticalCount = tableData.filter(nc => nc.severity === 'CRITICAL').length;
+  const hasActiveFilters = Boolean(status || severity || search);
 
   return (
     <ListPageTemplate
@@ -253,10 +254,22 @@ export default function QualityPage() {
         emptyState={{
           icon: <QualityIcon />,
           title: 'No non-conformances found',
-          description: status || severity || search
-            ? 'No results match the selected filters'
-            : 'Create your first non-conformance report',
-          action: !status && !severity && !search && (
+          description: hasActiveFilters
+            ? 'No non-conformances match the current search or filters.'
+            : 'Create your first non-conformance report.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatus('');
+                setSeverity('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
             <Link href="/manufacturing/quality/new">
               <Button>Create NC Report</Button>
             </Link>

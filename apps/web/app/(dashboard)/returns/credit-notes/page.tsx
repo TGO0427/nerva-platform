@@ -14,6 +14,7 @@ import { ListPageTemplate } from '@/components/templates';
 import { useCreditNotes, useQueryParams, CreditNote } from '@/lib/queries';
 import { useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport, formatCurrencyForExport } from '@/lib/utils/export';
+import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -84,7 +85,7 @@ export default function CreditNotesPage() {
       className: 'text-right',
       render: (row) => (
         <span className="font-medium">
-          {row.currency} {Number(row.amount).toFixed(2)}
+          {formatCurrency(row.amount, row.currency)}
         </span>
       ),
     },
@@ -92,7 +93,7 @@ export default function CreditNotesPage() {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], []);
 
@@ -125,6 +126,7 @@ export default function CreditNotesPage() {
   const pendingApproval = allData.filter(c => c.status === 'PENDING_APPROVAL').length;
   const approved = allData.filter(c => c.status === 'APPROVED').length;
   const totalAmount = allData.reduce((sum, c) => sum + Number(c.amount), 0);
+  const hasActiveFilters = Boolean(status || search);
 
   return (
     <ListPageTemplate
@@ -141,25 +143,25 @@ export default function CreditNotesPage() {
       stats={[
         {
           title: 'Pending Approval',
-          value: pendingApproval,
+          value: formatNumber(pendingApproval),
           icon: <ClockIcon />,
           iconColor: 'yellow',
         },
         {
           title: 'Approved',
-          value: approved,
+          value: formatNumber(approved),
           icon: <CheckIcon />,
           iconColor: 'green',
         },
         {
           title: 'Total Value',
-          value: `R ${totalAmount.toFixed(2)}`,
+          value: formatCurrency(totalAmount),
           icon: <CurrencyIcon />,
           iconColor: 'blue',
         },
         {
           title: 'Total Credit Notes',
-          value: data?.meta?.total || 0,
+          value: formatNumber(data?.meta?.total || 0),
           icon: <CreditLgIcon />,
           iconColor: 'purple',
         },
@@ -210,9 +212,25 @@ export default function CreditNotesPage() {
         emptyState={{
           icon: <CreditIcon />,
           title: 'No credit notes found',
-          description: status || search
-            ? 'No credit notes match the selected filters'
-            : 'Credit notes are created from completed RMAs',
+          description: hasActiveFilters
+            ? 'No credit notes match the current search or filters.'
+            : 'Credit notes are created from completed RMAs.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatus('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
+            <Link href="/returns">
+              <Button variant="secondary">View RMAs</Button>
+            </Link>
+          ),
         }}
       />
     </ListPageTemplate>

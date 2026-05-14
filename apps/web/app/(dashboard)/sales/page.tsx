@@ -169,6 +169,7 @@ export default function SalesOrdersPage() {
   const openOrders = stats?.open ?? 0;
   const inFulfilment = stats?.inFulfilment ?? 0;
   const shippedCount = stats?.shipped ?? 0;
+  const hasActiveFilters = Boolean(search || status || lateOnly);
 
   return (
     <ListPageTemplate
@@ -286,8 +287,22 @@ export default function SalesOrdersPage() {
         emptyState={{
           icon: <OrderIcon />,
           title: 'No orders found',
-          description: status ? 'No orders match the selected filter' : 'Create your first sales order to get started',
-          action: !status && (
+          description: hasActiveFilters
+            ? 'No orders match the current search or filters.'
+            : 'Create your first sales order to get started.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatus('');
+                setLateOnly(false);
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
             <Link href="/sales/new">
               <Button>Create Order</Button>
             </Link>

@@ -157,6 +157,7 @@ export default function InventoryPage() {
   const expiredCount = expiryAlerts?.expired || 0;
   const criticalCount = expiryAlerts?.critical || 0;
   const totalStockRows = stockData?.meta?.total || 0;
+  const hasActiveFilters = Boolean(params.search);
 
   return (
     <ListPageTemplate
@@ -275,9 +276,24 @@ export default function InventoryPage() {
         emptyState={{
           icon: <BoxIcon />,
           title: 'No stock found',
-          description: params.search
-            ? 'No stock records match your search criteria'
-            : 'No stock has been received yet',
+          description: hasActiveFilters
+            ? 'No stock records match your search criteria.'
+            : 'No stock has been received yet.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setPage(1);
+              }}
+            >
+              Clear Search
+            </Button>
+          ) : (
+            <Link href="/inventory/grn">
+              <Button>Receive Stock</Button>
+            </Link>
+          ),
         }}
       />
     </ListPageTemplate>

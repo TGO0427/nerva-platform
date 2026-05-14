@@ -352,9 +352,19 @@ export default function WarehousesPage() {
           icon: <WarehouseIconLarge />,
           title: 'No warehouses found',
           description: search || statusFilter
-            ? 'No warehouses match the selected filters'
-            : 'Create a warehouse to manage storage locations',
-          action: !search && !statusFilter && (
+            ? 'No warehouses match the current search or filters.'
+            : 'Create a warehouse to manage storage locations.',
+          action: search || statusFilter ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatusFilter('');
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
             <Button onClick={() => setShowCreateForm(true)}>Add Warehouse</Button>
           ),
         }}

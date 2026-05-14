@@ -152,6 +152,7 @@ export default function PurchaseOrdersPage() {
   const draftPOs = stats?.draft ?? 0;
   const pendingPOs = stats?.pendingReceipt ?? 0;
   const receivedPOs = stats?.received ?? 0;
+  const hasActiveFilters = Boolean(params.search || statusFilter);
 
   return (
     <ListPageTemplate
@@ -259,10 +260,21 @@ export default function PurchaseOrdersPage() {
         emptyState={{
           icon: <ShoppingCartIcon />,
           title: 'No purchase orders yet',
-          description: statusFilter
-            ? 'No orders match the selected filter'
-            : 'Create your first purchase order to get started',
-          action: !statusFilter && (
+          description: hasActiveFilters
+            ? 'No purchase orders match the current search or filters.'
+            : 'Create your first purchase order to get started.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatusFilter('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
             <Link href="/procurement/purchase-orders/new">
               <Button>Create Purchase Order</Button>
             </Link>

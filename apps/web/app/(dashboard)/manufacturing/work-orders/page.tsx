@@ -171,6 +171,7 @@ export default function WorkOrdersPage() {
   const draftCount = tableData.filter(o => o.status === 'DRAFT').length;
   const inProgressCount = tableData.filter(o => o.status === 'IN_PROGRESS').length;
   const completedCount = tableData.filter(o => o.status === 'COMPLETED').length;
+  const hasActiveFilters = Boolean(status || search);
 
   return (
     <ListPageTemplate
@@ -277,8 +278,21 @@ export default function WorkOrdersPage() {
         emptyState={{
           icon: <WorkOrderIcon />,
           title: 'No work orders found',
-          description: status ? 'No work orders match the selected filter' : 'Create your first work order to start production',
-          action: !status && (
+          description: hasActiveFilters
+            ? 'No work orders match the current search or filters.'
+            : 'Create your first work order to start production.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatus('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
             <Link href="/manufacturing/work-orders/new">
               <Button>Create Work Order</Button>
             </Link>

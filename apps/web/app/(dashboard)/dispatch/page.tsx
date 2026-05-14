@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert } from '@/components/ui/alert';
@@ -720,9 +721,26 @@ export default function DispatchPage() {
             emptyState={{
               icon: <TruckIcon />,
               title: 'No trips found',
-              description: status || date
-                ? 'No trips match the selected filters'
-                : 'Create a trip from ready shipments to get started',
+              description: status || date || search
+                ? 'No trips match the current search or filters.'
+                : 'Create a trip from ready shipments to get started.',
+              action: status || date || search ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setStatus('');
+                    setDate('');
+                    setSearch('');
+                    setPage(1);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              ) : (
+                <Button onClick={() => setActiveTab('ready-shipments')}>
+                  View Ready Shipments
+                </Button>
+              ),
             }}
           />
         </>
@@ -900,18 +918,17 @@ export default function DispatchPage() {
               }}
             />
           ) : (
-            <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
-              <PackageIcon className="mx-auto h-12 w-12 text-slate-400 mb-3" />
-              <h3 className="text-lg font-medium text-slate-900">No shipments ready for dispatch</h3>
-              <p className="text-slate-500 mt-1">
-                Shipments will appear here when marked as &quot;Ready for Dispatch&quot; in the fulfilment module
-              </p>
-              <Link href="/fulfilment">
-                <Button variant="secondary" className="mt-4">
-                  Go to Fulfilment
-                </Button>
-              </Link>
-            </div>
+            <EmptyState
+              variant="dashed"
+              icon={<PackageIcon className="h-12 w-12" />}
+              title="No shipments ready for dispatch"
+              description="Shipments will appear here when marked as Ready for Dispatch in the fulfilment module."
+              action={
+                <Link href="/fulfilment">
+                  <Button variant="secondary">Go to Fulfilment</Button>
+                </Link>
+              }
+            />
           )}
         </>
       )}

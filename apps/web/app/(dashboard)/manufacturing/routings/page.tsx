@@ -138,6 +138,7 @@ export default function RoutingsPage() {
   const totalRoutings = data?.meta?.total || 0;
   const draftCount = tableData.filter(r => r.status === 'DRAFT').length;
   const approvedCount = tableData.filter(r => r.status === 'APPROVED').length;
+  const hasActiveFilters = Boolean(status || search);
 
   return (
     <ListPageTemplate
@@ -238,8 +239,21 @@ export default function RoutingsPage() {
         emptyState={{
           icon: <RoutingIcon />,
           title: 'No routings found',
-          description: status ? 'No routings match the selected filter' : 'Create your first routing',
-          action: !status && (
+          description: hasActiveFilters
+            ? 'No routings match the current search or filters.'
+            : 'Create your first routing.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatus('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
             <Link href="/manufacturing/routings/new">
               <Button>Create Routing</Button>
             </Link>

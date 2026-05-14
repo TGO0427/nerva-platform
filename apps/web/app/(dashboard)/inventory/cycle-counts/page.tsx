@@ -139,6 +139,7 @@ export default function CycleCountsPage() {
   const totalCounts = data?.meta?.total || 0;
   const openCount = tableData.filter(cc => cc.status === 'OPEN').length;
   const inProgressCount = tableData.filter(cc => cc.status === 'IN_PROGRESS').length;
+  const hasActiveFilters = Boolean(statusFilter || search);
 
   return (
     <ListPageTemplate
@@ -249,8 +250,21 @@ export default function CycleCountsPage() {
         emptyState={{
           icon: <CycleCountIcon />,
           title: 'No cycle counts found',
-          description: statusFilter ? 'No cycle counts match the selected filter' : 'Create a new cycle count to start counting inventory.',
-          action: !statusFilter && (
+          description: hasActiveFilters
+            ? 'No cycle counts match the current search or filters.'
+            : 'Create a new cycle count to start counting inventory.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatusFilter('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
             <Button onClick={() => setShowCreateForm(true)}>New Cycle Count</Button>
           ),
         }}

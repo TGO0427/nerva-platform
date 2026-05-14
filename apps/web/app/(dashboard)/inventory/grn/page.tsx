@@ -127,6 +127,7 @@ export default function GrnListPage() {
   const partialGrns = tableData.filter(g => g.status === 'PARTIAL').length;
   const pendingPutaway = tableData.filter(g => g.status === 'PUTAWAY_PENDING').length;
   const totalGrns = data?.meta?.total || 0;
+  const hasActiveFilters = Boolean(status);
 
   return (
     <ListPageTemplate
@@ -224,8 +225,20 @@ export default function GrnListPage() {
         emptyState={{
           icon: <ReceiveIcon />,
           title: 'No GRNs found',
-          description: status ? 'No GRNs match the selected filter' : 'Create your first GRN to start receiving stock',
-          action: !status && (
+          description: hasActiveFilters
+            ? 'No GRNs match the current filters.'
+            : 'Create your first GRN to start receiving stock.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setStatus('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
             <Link href="/inventory/grn/new">
               <Button>Create GRN</Button>
             </Link>

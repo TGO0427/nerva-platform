@@ -176,6 +176,7 @@ export default function IbtListPage() {
   const draftCount = tableData.filter((o) => o.status === 'DRAFT').length;
   const inTransitCount = tableData.filter((o) => o.status === 'IN_TRANSIT').length;
   const receivedCount = tableData.filter((o) => o.status === 'RECEIVED').length;
+  const hasActiveFilters = Boolean(status || search);
 
   return (
     <ListPageTemplate
@@ -318,8 +319,21 @@ export default function IbtListPage() {
         emptyState={{
           icon: <TransferEmptyIcon />,
           title: 'No transfers found',
-          description: status ? 'No transfers match the selected filter' : 'Create your first inter-branch transfer',
-          action: !status && (
+          description: hasActiveFilters
+            ? 'No transfers match the current search or filters.'
+            : 'Create your first inter-branch transfer.',
+          action: hasActiveFilters ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatus('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          ) : (
             <Button onClick={() => setShowCreate(true)}>Create Transfer</Button>
           ),
         }}
