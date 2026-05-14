@@ -10,6 +10,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
+import { formatCurrency, formatDate, formatNumber, formatQuantity } from '@/lib/format';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { EntityHistory } from '@/components/ui/entity-history';
@@ -67,6 +68,7 @@ export default function SalesOrderDetailPage() {
       key: 'qtyOrdered',
       header: 'Ordered',
       className: 'text-right',
+      render: (row) => formatQuantity(row.qtyOrdered),
     },
     {
       key: 'qtyAllocated',
@@ -74,7 +76,7 @@ export default function SalesOrderDetailPage() {
       className: 'text-right',
       render: (row) => (
         <span className={row.qtyAllocated >= row.qtyOrdered ? 'text-green-600' : 'text-orange-600'}>
-          {row.qtyAllocated}
+          {formatQuantity(row.qtyAllocated)}
         </span>
       ),
     },
@@ -84,7 +86,7 @@ export default function SalesOrderDetailPage() {
       className: 'text-right',
       render: (row) => (
         <span className={row.qtyPicked >= row.qtyOrdered ? 'text-green-600' : ''}>
-          {row.qtyPicked}
+          {formatQuantity(row.qtyPicked)}
         </span>
       ),
     },
@@ -94,7 +96,7 @@ export default function SalesOrderDetailPage() {
       className: 'text-right',
       render: (row) => (
         <span className={row.qtyShipped >= row.qtyOrdered ? 'text-green-600' : ''}>
-          {row.qtyShipped}
+          {formatQuantity(row.qtyShipped)}
         </span>
       ),
     },
@@ -102,7 +104,7 @@ export default function SalesOrderDetailPage() {
       key: 'unitPrice',
       header: 'Unit Price',
       className: 'text-right',
-      render: (row) => row.unitPrice ? `R ${Number(row.unitPrice).toFixed(2)}` : '-',
+      render: (row) => formatCurrency(row.unitPrice),
     },
   ];
 
@@ -138,7 +140,7 @@ export default function SalesOrderDetailPage() {
     {
       key: 'createdAt',
       header: 'Created',
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ];
 
@@ -333,7 +335,7 @@ export default function SalesOrderDetailPage() {
             <Badge variant={getPriorityVariant(order.priority)}>{getPriorityLabel(order.priority)}</Badge>
           </div>
           <p className="text-slate-500 mt-1">
-            Created {new Date(order.createdAt).toLocaleDateString()}
+            Created {formatDate(order.createdAt)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -398,14 +400,14 @@ export default function SalesOrderDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">{totalOrdered}</div>
+            <div className="text-2xl font-bold text-slate-900">{formatQuantity(totalOrdered)}</div>
             <p className="text-sm text-slate-500">Qty Ordered</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className={`text-2xl font-bold ${totalAllocated >= totalOrdered ? 'text-green-600' : 'text-orange-600'}`}>
-              {totalAllocated}
+              {formatQuantity(totalAllocated)}
             </div>
             <p className="text-sm text-slate-500">Qty Allocated</p>
           </CardContent>
@@ -413,7 +415,7 @@ export default function SalesOrderDetailPage() {
         <Card>
           <CardContent className="pt-6">
             <div className={`text-2xl font-bold ${totalPicked >= totalOrdered ? 'text-green-600' : 'text-blue-600'}`}>
-              {totalPicked}
+              {formatQuantity(totalPicked)}
             </div>
             <p className="text-sm text-slate-500">Qty Picked</p>
           </CardContent>
@@ -421,14 +423,14 @@ export default function SalesOrderDetailPage() {
         <Card>
           <CardContent className="pt-6">
             <div className={`text-2xl font-bold ${totalShipped >= totalOrdered ? 'text-green-600' : 'text-slate-900'}`}>
-              {totalShipped}
+              {formatQuantity(totalShipped)}
             </div>
             <p className="text-sm text-slate-500">Qty Shipped</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">R {totalValue.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-slate-900">{formatCurrency(totalValue)}</div>
             <p className="text-sm text-slate-500">Order Value</p>
           </CardContent>
         </Card>
@@ -457,9 +459,7 @@ export default function SalesOrderDetailPage() {
               <div>
                 <dt className="text-slate-500">Requested Ship Date</dt>
                 <dd className="font-medium">
-                  {order.requestedShipDate
-                    ? new Date(order.requestedShipDate).toLocaleDateString()
-                    : '-'}
+                  {formatDate(order.requestedShipDate)}
                 </dd>
               </div>
               <div>
@@ -468,7 +468,7 @@ export default function SalesOrderDetailPage() {
               </div>
               <div>
                 <dt className="text-slate-500">Line Items</dt>
-                <dd className="font-medium">{order.lines?.length || 0}</dd>
+                <dd className="font-medium">{formatNumber(order.lines?.length || 0)}</dd>
               </div>
             </dl>
           </CardContent>
@@ -561,7 +561,7 @@ function ProgressBar({ label, current, total }: { label: string; current: number
       <div className="flex justify-between mb-1">
         <span className="text-sm text-slate-600">{label}</span>
         <span className={`text-sm font-medium ${isComplete ? 'text-green-600' : 'text-slate-900'}`}>
-          {current}/{total} ({percent}%)
+          {formatQuantity(current)}/{formatQuantity(total)} ({percent}%)
         </span>
       </div>
       <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
