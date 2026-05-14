@@ -9,6 +9,8 @@ export interface DashboardStats {
   shippedOrders: number;
   activePickWaves: number;
   pendingPickTasks: number;
+  stuckPickWaves: number;
+  readyDispatchShipments: number;
   openReturns: number;
   lowStockItems: number;
   expiringItems: number;
@@ -24,7 +26,11 @@ export interface DashboardStats {
   podCompletionPercent: number;
   avgDispatchCycleHours: number;
   pendingGrns: number;
+  overdueGrns: number;
+  pendingPutawayTasks: number;
   openCycleCounts: number;
+  overdueInvoices: number;
+  pendingApprovals: number;
 }
 
 export interface RecentActivity {

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ExportActions } from '@/components/ui/export-actions';
@@ -29,6 +29,7 @@ const STATUS_OPTIONS = [
 
 export default function GrnListPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState('');
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useGrns({ ...params, status: status || undefined });
@@ -44,6 +45,14 @@ export default function GrnListPage() {
   );
 
   const tableData = data?.data || [];
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam && STATUS_OPTIONS.some((option) => option.value === statusParam)) {
+      setStatus(statusParam);
+      setPage(1);
+    }
+  }, [searchParams, setPage]);
 
   // Row selection
   const {

@@ -2749,10 +2749,15 @@ export class MasterDataRepository extends BaseRepository {
         (SELECT COUNT(*) FROM sales_orders WHERE tenant_id = $1 AND status = 'ALLOCATED') as allocated_orders,
         (SELECT COUNT(*) FROM sales_orders WHERE tenant_id = $1 AND status = 'SHIPPED') as shipped_orders,
         -- Pick Waves & Fulfilment
-        (SELECT COUNT(*) FROM pick_waves WHERE tenant_id = $1 AND status IN ('PENDING', 'IN_PROGRESS')) as active_pick_waves,
+        (SELECT COUNT(*) FROM pick_waves WHERE tenant_id = $1 AND status IN ('OPEN', 'IN_PROGRESS')) as active_pick_waves,
         (SELECT COUNT(*) FROM pick_tasks WHERE tenant_id = $1 AND status = 'PENDING') as pending_pick_tasks,
+        (SELECT COUNT(*) FROM pick_waves
+         WHERE tenant_id = $1 AND status IN ('OPEN', 'IN_PROGRESS')
+         AND created_at < NOW() - INTERVAL '1 day') as stuck_pick_waves,
+        (SELECT COUNT(*) FROM shipments
+         WHERE tenant_id = $1 AND status = 'READY_FOR_DISPATCH') as ready_dispatch_shipments,
         -- Returns
-        (SELECT COUNT(*) FROM rmas WHERE tenant_id = $1 AND status IN ('PENDING', 'RECEIVED')) as open_returns,
+        (SELECT COUNT(*) FROM rmas WHERE tenant_id = $1 AND status NOT IN ('CLOSED', 'CANCELLED')) as open_returns,
         -- Inventory Alerts
         (SELECT COUNT(*) FROM (
           SELECT item_id FROM stock_snapshot WHERE tenant_id = $1
@@ -2816,8 +2821,23 @@ export class MasterDataRepository extends BaseRepository {
 
         -- Pending GRNs (open or partial)
         (SELECT COUNT(*) FROM grns WHERE tenant_id = $1 AND status IN ('OPEN', 'PARTIAL')) as pending_grns,
+        (SELECT COUNT(*) FROM grns
+         WHERE tenant_id = $1 AND status IN ('OPEN', 'PARTIAL', 'RECEIVED', 'PUTAWAY_PENDING')
+         AND created_at < NOW() - INTERVAL '2 days') as overdue_grns,
+        (SELECT COUNT(*) FROM putaway_tasks
+         WHERE tenant_id = $1 AND status IN ('PENDING', 'ASSIGNED')) as pending_putaway_tasks,
         -- Open Cycle Counts
-        (SELECT COUNT(*) FROM cycle_counts WHERE tenant_id = $1 AND status IN ('OPEN', 'IN_PROGRESS')) as open_cycle_counts
+        (SELECT COUNT(*) FROM cycle_counts WHERE tenant_id = $1 AND status IN ('OPEN', 'IN_PROGRESS')) as open_cycle_counts,
+        (SELECT COUNT(*) FROM invoices
+         WHERE tenant_id = $1 AND status IN ('SENT', 'PARTIALLY_PAID', 'OVERDUE')
+         AND due_date IS NOT NULL AND due_date < CURRENT_DATE) as overdue_invoices,
+        (
+          (SELECT COUNT(*) FROM adjustments WHERE tenant_id = $1 AND status = 'SUBMITTED') +
+          (SELECT COUNT(*) FROM ibts WHERE tenant_id = $1 AND status = 'PENDING_APPROVAL') +
+          (SELECT COUNT(*) FROM cycle_counts WHERE tenant_id = $1 AND status = 'PENDING_APPROVAL') +
+          (SELECT COUNT(*) FROM bom_headers WHERE tenant_id = $1 AND status = 'PENDING_APPROVAL') +
+          (SELECT COUNT(*) FROM credit_notes_draft WHERE tenant_id = $1 AND status IN ('SUBMITTED', 'PENDING_APPROVAL'))
+        ) as pending_approvals
       `,
       [tenantId],
     );
@@ -2880,6 +2900,14 @@ export class MasterDataRepository extends BaseRepository {
         (result?.pending_pick_tasks as string) || "0",
         10,
       ),
+      stuckPickWaves: parseInt(
+        (result?.stuck_pick_waves as string) || "0",
+        10,
+      ),
+      readyDispatchShipments: parseInt(
+        (result?.ready_dispatch_shipments as string) || "0",
+        10,
+      ),
       openReturns: parseInt((result?.open_returns as string) || "0", 10),
       lowStockItems: parseInt((result?.low_stock_items as string) || "0", 10),
       expiringItems: parseInt((result?.expiring_items as string) || "0", 10),
@@ -2904,8 +2932,21 @@ export class MasterDataRepository extends BaseRepository {
       podCompletionPercent,
       avgDispatchCycleHours,
       pendingGrns: parseInt((result?.pending_grns as string) || "0", 10),
+      overdueGrns: parseInt((result?.overdue_grns as string) || "0", 10),
+      pendingPutawayTasks: parseInt(
+        (result?.pending_putaway_tasks as string) || "0",
+        10,
+      ),
       openCycleCounts: parseInt(
         (result?.open_cycle_counts as string) || "0",
+        10,
+      ),
+      overdueInvoices: parseInt(
+        (result?.overdue_invoices as string) || "0",
+        10,
+      ),
+      pendingApprovals: parseInt(
+        (result?.pending_approvals as string) || "0",
         10,
       ),
     };
@@ -3937,6 +3978,8 @@ export interface DashboardStats {
   shippedOrders: number;
   activePickWaves: number;
   pendingPickTasks: number;
+  stuckPickWaves: number;
+  readyDispatchShipments: number;
   openReturns: number;
   lowStockItems: number;
   expiringItems: number;
@@ -3952,7 +3995,11 @@ export interface DashboardStats {
   podCompletionPercent: number;
   avgDispatchCycleHours: number;
   pendingGrns: number;
+  overdueGrns: number;
+  pendingPutawayTasks: number;
   openCycleCounts: number;
+  overdueInvoices: number;
+  pendingApprovals: number;
 }
 
 export interface RecentActivity {

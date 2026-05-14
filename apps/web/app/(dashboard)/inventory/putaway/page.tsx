@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,7 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger'
 
 export default function PutawayPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('');
@@ -44,6 +45,14 @@ export default function PutawayPage() {
   const [assignUserId, setAssignUserId] = useState('');
   const [completeBinId, setCompleteBinId] = useState('');
   const limit = 25;
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam && STATUS_TABS.some((tab) => tab.value === statusParam)) {
+      setStatusFilter(statusParam);
+      setPage(1);
+    }
+  }, [searchParams]);
 
   const { data, isLoading } = usePutawayTasks({
     page,

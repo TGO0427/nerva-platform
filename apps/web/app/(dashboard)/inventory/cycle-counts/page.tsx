@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +41,7 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger'
 
 export default function CycleCountsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
   const { params, setPage } = useQueryParams({ page: 1, limit: 25 });
   const [statusFilter, setStatusFilter] = useState('');
@@ -54,6 +55,14 @@ export default function CycleCountsPage() {
   const createCycleCount = useCreateCycleCount();
 
   const tableData = data?.data || [];
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam && STATUS_OPTIONS.some((option) => option.value === statusParam)) {
+      setStatusFilter(statusParam);
+      setPage(1);
+    }
+  }, [searchParams, setPage]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

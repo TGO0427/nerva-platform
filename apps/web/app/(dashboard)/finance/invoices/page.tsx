@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ExportActions } from '@/components/ui/export-actions';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
@@ -31,6 +31,7 @@ const STATUS_OPTIONS = [
 
 export default function InvoicesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
   const { confirm } = useConfirm();
   const cancelInvoice = useCancelInvoice();
@@ -47,6 +48,14 @@ export default function InvoicesPage() {
   const { data: stats } = useInvoiceStats();
 
   const tableData = data?.data || [];
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam && STATUS_OPTIONS.some((option) => option.value === statusParam)) {
+      setStatus(statusParam);
+      setPage(1);
+    }
+  }, [searchParams, setPage]);
 
   const {
     selectedIds,

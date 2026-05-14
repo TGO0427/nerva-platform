@@ -413,6 +413,39 @@ function ExceptionQueue({ stats }: { stats: DashboardStats }) {
       value: stats.lateOrders,
       href: '/sales?late=true',
       tone: stats.lateOrders > 0 ? 'danger' : 'success',
+      group: 'Sales',
+    },
+    {
+      title: 'Stuck Pick Waves',
+      description: 'Open more than 24 hours',
+      value: stats.stuckPickWaves ?? 0,
+      href: '/fulfilment?tab=pick-waves&status=IN_PROGRESS',
+      tone: (stats.stuckPickWaves ?? 0) > 0 ? 'danger' : 'success',
+      group: 'Fulfilment',
+    },
+    {
+      title: 'Ready to Dispatch',
+      description: 'Shipments waiting for trips',
+      value: stats.readyDispatchShipments ?? 0,
+      href: '/dispatch?tab=ready-shipments',
+      tone: (stats.readyDispatchShipments ?? 0) > 0 ? 'warning' : 'success',
+      group: 'Dispatch',
+    },
+    {
+      title: 'Overdue GRNs',
+      description: 'Receipts open more than 2 days',
+      value: stats.overdueGrns ?? 0,
+      href: '/inventory/grn?status=OPEN',
+      tone: (stats.overdueGrns ?? 0) > 0 ? 'danger' : 'success',
+      group: 'Inventory',
+    },
+    {
+      title: 'Pending Putaway',
+      description: 'Tasks waiting in receiving',
+      value: stats.pendingPutawayTasks ?? 0,
+      href: '/inventory/putaway?status=PENDING',
+      tone: (stats.pendingPutawayTasks ?? 0) > 0 ? 'warning' : 'success',
+      group: 'Inventory',
     },
     {
       title: 'Stock Alerts',
@@ -420,6 +453,23 @@ function ExceptionQueue({ stats }: { stats: DashboardStats }) {
       value: stats.lowStockItems + stats.expiringItems,
       href: '/inventory/expiry-alerts?status=CRITICAL',
       tone: stats.lowStockItems + stats.expiringItems > 0 ? 'warning' : 'success',
+      group: 'Inventory',
+    },
+    {
+      title: 'Pending Approvals',
+      description: 'Adjustments, transfers, counts, BOMs',
+      value: stats.pendingApprovals ?? 0,
+      href: '/inventory/adjustments?status=SUBMITTED',
+      tone: (stats.pendingApprovals ?? 0) > 0 ? 'warning' : 'success',
+      group: 'Approvals',
+    },
+    {
+      title: 'Overdue Invoices',
+      description: 'Past due and unpaid',
+      value: stats.overdueInvoices ?? 0,
+      href: '/finance/invoices?status=OVERDUE',
+      tone: (stats.overdueInvoices ?? 0) > 0 ? 'danger' : 'success',
+      group: 'Finance',
     },
     {
       title: 'Open Returns',
@@ -427,42 +477,41 @@ function ExceptionQueue({ stats }: { stats: DashboardStats }) {
       value: stats.openReturns,
       href: '/returns?status=OPEN',
       tone: stats.openReturns > 0 ? 'warning' : 'success',
+      group: 'Returns',
     },
     {
-      title: 'POD Completion',
-      description: 'Delivery proof captured',
-      value: stats.podCompletionPercent,
-      href: '/dispatch',
-      tone: stats.podCompletionPercent >= 90 ? 'success' : 'warning',
-      suffix: '%',
-    },
-    {
-      title: 'Dispatch Cycle',
-      description: 'Average fulfilment time',
-      value: stats.avgDispatchCycleHours,
-      href: '/fulfilment?tab=shipments&status=READY_FOR_DISPATCH',
-      tone: stats.avgDispatchCycleHours <= 12 ? 'success' : 'warning',
-      suffix: 'h',
+      title: 'Open Cycle Counts',
+      description: 'Counting in progress',
+      value: stats.openCycleCounts,
+      href: '/inventory/cycle-counts?status=OPEN',
+      tone: stats.openCycleCounts > 0 ? 'warning' : 'success',
+      group: 'Inventory',
     },
   ];
+
+  const activeQueueCount = queues.filter((queue) => queue.value > 0).length;
 
   return (
     <div className="mb-6 rounded-2xl border border-slate-200/70 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
         <div>
           <h2 className="text-sm font-semibold text-slate-800">Exception Queues</h2>
-          <p className="text-xs text-slate-500">Operational issues that need attention</p>
+          <p className="text-xs text-slate-500">
+            {activeQueueCount > 0
+              ? `${formatNumber(activeQueueCount)} queue${activeQueueCount === 1 ? '' : 's'} need attention`
+              : 'No active exceptions right now'}
+          </p>
         </div>
         <Link href="/notifications" className="text-xs font-medium text-primary-600 hover:underline">
           View notifications
         </Link>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5">
         {queues.map((queue) => (
           <Link
             key={queue.title}
             href={queue.href}
-            className="group flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-slate-50"
+            className="group flex min-h-[92px] items-center justify-between gap-3 border-b border-r border-slate-100 px-4 py-3 transition-colors hover:bg-slate-50"
           >
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -472,21 +521,16 @@ function ExceptionQueue({ stats }: { stats: DashboardStats }) {
                 </span>
               </div>
               <p className="mt-1 truncate text-xs text-slate-500">{queue.description}</p>
+              <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-slate-400">{queue.group}</p>
             </div>
             <span className={`shrink-0 text-lg font-bold ${getQueueTextClass(queue.tone)}`}>
-              {formatExceptionValue(queue.value, queue.suffix)}
+              {formatNumber(queue.value)}
             </span>
           </Link>
         ))}
       </div>
     </div>
   );
-}
-
-function formatExceptionValue(value: number, suffix?: string) {
-  if (suffix === '%') return formatPercent(value, 0);
-  if (suffix === 'h') return `${formatNumber(value, { maximumFractionDigits: 1 })}h`;
-  return formatNumber(value);
 }
 
 function getQueueDotClass(tone: string) {
