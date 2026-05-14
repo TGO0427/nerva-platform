@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { GanttChart, GanttWorkOrder } from '@/components/manufacturing/gantt-chart';
 import { useWorkOrders, useRescheduleWorkOrder } from '@/lib/queries';
+import { formatDate, formatPercent, formatQuantity } from '@/lib/format';
 import type { WorkOrder } from '@nerva/shared';
 
 type ViewMode = 'week' | 'month';
@@ -232,28 +233,24 @@ export default function SchedulePage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="text-sm text-slate-500">Qty Ordered</span>
-                <p className="font-medium">{selectedWo.qtyOrdered.toLocaleString()}</p>
+                <p className="font-medium">{formatQuantity(selectedWo.qtyOrdered)}</p>
               </div>
               <div>
                 <span className="text-sm text-slate-500">Qty Completed</span>
-                <p className="font-medium">{selectedWo.qtyCompleted.toLocaleString()}</p>
+                <p className="font-medium">{formatQuantity(selectedWo.qtyCompleted)}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="text-sm text-slate-500">Planned Start</span>
                 <p className="font-medium">
-                  {selectedWo.plannedStart
-                    ? new Date(selectedWo.plannedStart).toLocaleDateString()
-                    : '-'}
+                  {formatDate(selectedWo.plannedStart)}
                 </p>
               </div>
               <div>
                 <span className="text-sm text-slate-500">Planned End</span>
                 <p className="font-medium">
-                  {selectedWo.plannedEnd
-                    ? new Date(selectedWo.plannedEnd).toLocaleDateString()
-                    : '-'}
+                  {formatDate(selectedWo.plannedEnd)}
                 </p>
               </div>
             </div>
@@ -275,8 +272,8 @@ export default function SchedulePage() {
               </div>
               <p className="text-xs text-slate-500 mt-1">
                 {selectedWo.qtyOrdered > 0
-                  ? `${Math.round((selectedWo.qtyCompleted / selectedWo.qtyOrdered) * 100)}%`
-                  : '0%'}
+                  ? formatPercent(Math.round((selectedWo.qtyCompleted / selectedWo.qtyOrdered) * 100), 0)
+                  : formatPercent(0, 0)}
               </p>
             </div>
             <div className="pt-4 border-t border-slate-200">

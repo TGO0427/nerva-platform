@@ -15,6 +15,7 @@ import { ListPageTemplate } from '@/components/templates';
 import { useNonConformances, useQueryParams } from '@/lib/queries';
 import { useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDate, formatNumber, formatQuantity } from '@/lib/format';
 import type { NonConformance, NonConformanceStatus, NcSeverity } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -125,13 +126,13 @@ export default function QualityPage() {
       header: 'Qty Affected',
       className: 'text-right',
       width: '110px',
-      render: (row) => row.qtyAffected.toLocaleString(),
+      render: (row) => formatQuantity(row.qtyAffected),
     },
     {
       key: 'createdAt',
       header: 'Date',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], []);
 
@@ -176,25 +177,25 @@ export default function QualityPage() {
       stats={[
         {
           title: 'Total NCs',
-          value: totalCount,
+          value: formatNumber(totalCount),
           icon: <ClipboardIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Open',
-          value: openCount,
+          value: formatNumber(openCount),
           icon: <AlertCircleIcon />,
           iconColor: 'blue',
         },
         {
           title: 'Under Review',
-          value: reviewCount,
+          value: formatNumber(reviewCount),
           icon: <SearchIcon />,
           iconColor: 'yellow',
         },
         {
           title: 'Critical',
-          value: criticalCount,
+          value: formatNumber(criticalCount),
           icon: <ExclamationIcon />,
           iconColor: 'red',
           alert: criticalCount > 0,

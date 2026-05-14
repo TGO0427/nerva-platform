@@ -12,6 +12,7 @@ import { ListPageTemplate } from '@/components/templates';
 import { useProductionLedger, useQueryParams } from '@/lib/queries';
 import { useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDateTime, formatNumber, formatQuantity } from '@/lib/format';
 import type { ProductionLedgerEntry } from '@nerva/shared';
 
 type LedgerEntryWithMeta = ProductionLedgerEntry & {
@@ -51,7 +52,7 @@ export default function ProductionLedgerPage() {
       key: 'createdAt',
       header: 'Date/Time',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleString(),
+      render: (row) => formatDateTime(row.createdAt),
     },
     {
       key: 'entryType',
@@ -88,7 +89,7 @@ export default function ProductionLedgerPage() {
       width: '100px',
       render: (row) => (
         <span className={row.qty < 0 ? 'text-red-600' : 'text-green-600'}>
-          {row.qty > 0 ? '+' : ''}{row.qty.toLocaleString()} {row.uom}
+          {row.qty > 0 ? '+' : ''}{formatQuantity(row.qty)} {row.uom}
         </span>
       ),
     },
@@ -157,25 +158,25 @@ export default function ProductionLedgerPage() {
       stats={[
         {
           title: 'Total Entries',
-          value: data?.meta?.total || 0,
+          value: formatNumber(data?.meta?.total || 0),
           icon: <LedgerIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Material Issues',
-          value: materialIssues,
+          value: formatNumber(materialIssues),
           icon: <ArrowDownIcon />,
           iconColor: 'red',
         },
         {
           title: 'Production Output',
-          value: productionOutputs,
+          value: formatNumber(productionOutputs),
           icon: <ArrowUpIcon />,
           iconColor: 'green',
         },
         {
           title: 'Scrap',
-          value: scrapEntries,
+          value: formatNumber(scrapEntries),
           icon: <TrashIcon />,
           iconColor: 'yellow',
         },

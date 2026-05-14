@@ -10,6 +10,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { PageShell } from '@/components/ui/motion';
 import { PageHeader } from '@/components/ui/page-header';
 import { useBoms, useBomExplosion } from '@/lib/queries/manufacturing';
+import { formatNumber, formatPercent, formatQuantity } from '@/lib/format';
 import type { BomExplodedLine } from '@nerva/shared';
 
 export default function BomCalculatorPage() {
@@ -29,19 +30,19 @@ export default function BomCalculatorPage() {
   const ingredientColumns: Column<BomExplodedLine>[] = useMemo(() => [
     { key: 'itemSku', header: 'Code', render: (row) => row.itemSku || '-' },
     { key: 'itemDescription', header: 'Description', render: (row) => row.itemDescription || '-' },
-    { key: 'qtyPer', header: 'Qty/kg', width: '90px', render: (row) => row.qtyPer.toFixed(4) },
-    { key: 'scaledQty', header: 'Scaled Qty', width: '100px', render: (row) => row.scaledQty.toFixed(3) },
-    { key: 'bomPct', header: 'BOM %', width: '80px', render: (row) => row.bomPct.toFixed(1) + '%' },
-    { key: 'scrapPct', header: 'Scrap %', width: '80px', render: (row) => row.scrapPct.toFixed(1) + '%' },
+    { key: 'qtyPer', header: 'Qty/kg', width: '90px', render: (row) => formatNumber(row.qtyPer, { minimumFractionDigits: 4, maximumFractionDigits: 4 }) },
+    { key: 'scaledQty', header: 'Scaled Qty', width: '100px', render: (row) => formatNumber(row.scaledQty, { minimumFractionDigits: 3, maximumFractionDigits: 3 }) },
+    { key: 'bomPct', header: 'BOM %', width: '80px', render: (row) => formatPercent(row.bomPct) },
+    { key: 'scrapPct', header: 'Scrap %', width: '80px', render: (row) => formatPercent(row.scrapPct) },
   ], []);
 
   const packagingColumns: Column<BomExplodedLine>[] = useMemo(() => [
     { key: 'itemSku', header: 'Code', render: (row) => row.itemSku || '-' },
     { key: 'itemDescription', header: 'Description', render: (row) => row.itemDescription || '-' },
-    { key: 'qtyPer', header: 'Qty/kg', width: '90px', render: (row) => row.qtyPer.toFixed(4) },
+    { key: 'qtyPer', header: 'Qty/kg', width: '90px', render: (row) => formatNumber(row.qtyPer, { minimumFractionDigits: 4, maximumFractionDigits: 4 }) },
     { key: 'scaledQty', header: 'Scaled Qty', width: '100px', render: (row) => Math.ceil(row.scaledQty).toString() },
-    { key: 'bomPct', header: 'BOM %', width: '80px', render: (row) => row.bomPct.toFixed(1) + '%' },
-    { key: 'scrapPct', header: 'Scrap %', width: '80px', render: (row) => row.scrapPct.toFixed(1) + '%' },
+    { key: 'bomPct', header: 'BOM %', width: '80px', render: (row) => formatPercent(row.bomPct) },
+    { key: 'scrapPct', header: 'Scrap %', width: '80px', render: (row) => formatPercent(row.scrapPct) },
   ], []);
 
   const selectedBom = boms.find(b => b.id === selectedBomId);
@@ -105,9 +106,9 @@ export default function BomCalculatorPage() {
 
         {selectedBom && qty > 0 && (
           <div className="mt-4 flex gap-4 text-sm text-slate-600">
-            <span>Base Qty: <strong>{selectedBom.baseQty} {selectedBom.uom}</strong></span>
+            <span>Base Qty: <strong>{formatQuantity(selectedBom.baseQty)} {selectedBom.uom}</strong></span>
             {explosion && (
-              <span>Scale Factor: <strong>{explosion.scaleFactor.toFixed(4)}</strong></span>
+              <span>Scale Factor: <strong>{formatNumber(explosion.scaleFactor, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</strong></span>
             )}
           </div>
         )}
@@ -139,7 +140,7 @@ export default function BomCalculatorPage() {
             />
             {explosion.ingredients.length > 0 && (
               <div className="px-4 py-2 border-t bg-slate-50 text-sm font-medium text-slate-700 text-right">
-                Total Ingredient Qty: {explosion.totals.ingredientQty.toFixed(3)}
+                Total Ingredient Qty: {formatNumber(explosion.totals.ingredientQty, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
               </div>
             )}
           </Card>
@@ -164,7 +165,7 @@ export default function BomCalculatorPage() {
             />
             {explosion.packaging.length > 0 && (
               <div className="px-4 py-2 border-t bg-slate-50 text-sm font-medium text-slate-700 text-right">
-                Total Packaging Qty: {explosion.totals.packagingQty.toFixed(0)}
+                Total Packaging Qty: {formatNumber(explosion.totals.packagingQty, { maximumFractionDigits: 0 })}
               </div>
             )}
           </Card>

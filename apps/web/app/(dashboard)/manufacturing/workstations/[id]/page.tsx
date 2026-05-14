@@ -16,6 +16,7 @@ import {
   useUpdateWorkstation,
   useDeleteWorkstation,
 } from '@/lib/queries/manufacturing';
+import { formatCurrency, formatDateTime, formatQuantity } from '@/lib/format';
 import type { WorkstationStatus, WorkstationType } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -154,13 +155,13 @@ export default function WorkstationDetailPage() {
             <Card className="p-4">
               <div className="text-sm text-slate-500">Capacity/Hour</div>
               <div className="mt-1 text-lg font-semibold">
-                {workstation.capacityPerHour?.toLocaleString() || '-'}
+                {formatQuantity(workstation.capacityPerHour)}
               </div>
             </Card>
             <Card className="p-4">
               <div className="text-sm text-slate-500">Cost/Hour</div>
               <div className="mt-1 text-lg font-semibold">
-                {workstation.costPerHour ? `R ${Number(workstation.costPerHour).toFixed(2)}` : '-'}
+                {formatCurrency(workstation.costPerHour)}
               </div>
             </Card>
           </div>
@@ -263,11 +264,11 @@ export default function WorkstationDetailPage() {
                   </div>
                   <div>
                     <div className="text-sm text-slate-500">Created</div>
-                    <div className="mt-1">{new Date(workstation.createdAt).toLocaleString()}</div>
+                    <div className="mt-1">{formatDateTime(workstation.createdAt)}</div>
                   </div>
                   <div>
                     <div className="text-sm text-slate-500">Updated</div>
-                    <div className="mt-1">{new Date(workstation.updatedAt).toLocaleString()}</div>
+                    <div className="mt-1">{formatDateTime(workstation.updatedAt)}</div>
                   </div>
                   {workstation.description && (
                     <div className="col-span-full">

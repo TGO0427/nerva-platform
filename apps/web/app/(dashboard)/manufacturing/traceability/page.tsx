@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useBatchTrace, useForwardTrace, useBackwardTrace, useRecentBatches } from '@/lib/queries';
+import { formatDate, formatQuantity } from '@/lib/format';
 
 export default function BatchTraceabilityPage() {
   const [batchInput, setBatchInput] = useState('');
@@ -170,11 +171,11 @@ export default function BatchTraceabilityPage() {
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase font-medium">Qty Ordered</p>
-                    <p className="text-sm text-slate-800 font-medium">{trace.workOrder.qtyOrdered}</p>
+                    <p className="text-sm text-slate-800 font-medium">{formatQuantity(trace.workOrder.qtyOrdered)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 uppercase font-medium">Qty Completed</p>
-                    <p className="text-sm text-slate-800 font-medium">{trace.workOrder.qtyCompleted}</p>
+                    <p className="text-sm text-slate-800 font-medium">{formatQuantity(trace.workOrder.qtyCompleted)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -211,9 +212,9 @@ export default function BatchTraceabilityPage() {
                           <tr key={`mat-${i}`} className="hover:bg-slate-50">
                             <td className="px-3 py-2 text-sm text-slate-800">{m.itemSku}</td>
                             <td className="px-3 py-2 text-sm text-slate-600">{m.batchNo || '-'}</td>
-                            <td className="px-3 py-2 text-sm text-right">{m.qty}</td>
+                            <td className="px-3 py-2 text-sm text-right">{formatQuantity(m.qty)}</td>
                             <td className="px-3 py-2 text-sm text-right text-slate-500">
-                              {new Date(m.createdAt).toLocaleDateString('en-ZA')}
+                              {formatDate(m.createdAt)}
                             </td>
                           </tr>
                         ))}
@@ -248,9 +249,9 @@ export default function BatchTraceabilityPage() {
                           <tr key={`out-${i}`} className="hover:bg-slate-50">
                             <td className="px-3 py-2 text-sm text-slate-800">{o.itemSku}</td>
                             <td className="px-3 py-2 text-sm text-slate-600">{o.batchNo || '-'}</td>
-                            <td className="px-3 py-2 text-sm text-right">{o.qty}</td>
+                            <td className="px-3 py-2 text-sm text-right">{formatQuantity(o.qty)}</td>
                             <td className="px-3 py-2 text-sm text-right text-slate-500">
-                              {new Date(o.createdAt).toLocaleDateString('en-ZA')}
+                              {formatDate(o.createdAt)}
                             </td>
                           </tr>
                         ))}
@@ -286,10 +287,10 @@ export default function BatchTraceabilityPage() {
                           <tr key={`scrap-${i}`} className="hover:bg-slate-50">
                             <td className="px-3 py-2 text-sm text-slate-800">{s.itemSku}</td>
                             <td className="px-3 py-2 text-sm text-slate-600">{s.batchNo || '-'}</td>
-                            <td className="px-3 py-2 text-sm text-right">{s.qty}</td>
+                            <td className="px-3 py-2 text-sm text-right">{formatQuantity(s.qty)}</td>
                             <td className="px-3 py-2 text-sm text-slate-600">{s.reasonCode || '-'}</td>
                             <td className="px-3 py-2 text-sm text-right text-slate-500">
-                              {new Date(s.createdAt).toLocaleDateString('en-ZA')}
+                              {formatDate(s.createdAt)}
                             </td>
                           </tr>
                         ))}
@@ -359,7 +360,7 @@ export default function BatchTraceabilityPage() {
                               </td>
                               <td className="px-4 py-2 text-sm text-slate-700">{wo.itemSku}</td>
                               <td className="px-4 py-2 text-sm text-slate-600">{wo.finishedBatchNo || '-'}</td>
-                              <td className="px-4 py-2 text-sm text-right font-medium">{wo.qtyConsumed}</td>
+                              <td className="px-4 py-2 text-sm text-right font-medium">{formatQuantity(wo.qtyConsumed)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -398,7 +399,7 @@ export default function BatchTraceabilityPage() {
                               <td className="px-4 py-2 text-sm font-medium text-slate-800">{m.itemSku}</td>
                               <td className="px-4 py-2 text-sm text-slate-600">{m.itemDescription}</td>
                               <td className="px-4 py-2 text-sm text-slate-600">{m.batchNo || '-'}</td>
-                              <td className="px-4 py-2 text-sm text-right font-medium">{m.qty}</td>
+                              <td className="px-4 py-2 text-sm text-right font-medium">{formatQuantity(m.qty)}</td>
                             </tr>
                           ))}
                         </tbody>

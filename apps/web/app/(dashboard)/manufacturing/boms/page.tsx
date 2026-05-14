@@ -17,6 +17,7 @@ import { useBoms, useImportBoms, useQueryParams } from '@/lib/queries';
 import { bomImportConfig } from '@/lib/config/csv-import';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDate, formatNumber, formatQuantity } from '@/lib/format';
 import type { BomHeader, BomStatus } from '@nerva/shared';
 
 type BomWithMeta = BomHeader & { itemSku?: string; itemDescription?: string; lineCount?: number };
@@ -88,33 +89,29 @@ export default function BomsPage() {
       key: 'lineCount',
       header: 'Components',
       width: '100px',
-      render: (row) => row.lineCount || 0,
+      render: (row) => formatNumber(row.lineCount || 0),
     },
     {
       key: 'baseQty',
       header: 'Base Qty',
       width: '100px',
-      render: (row) => `${row.baseQty} ${row.uom}`,
+      render: (row) => `${formatQuantity(row.baseQty)} ${row.uom}`,
     },
     {
       key: 'effectiveFrom',
       header: 'Effective From',
-      render: (row) => row.effectiveFrom
-        ? new Date(row.effectiveFrom).toLocaleDateString()
-        : '-',
+      render: (row) => formatDate(row.effectiveFrom),
     },
     {
       key: 'effectiveTo',
       header: 'Effective To',
-      render: (row) => row.effectiveTo
-        ? new Date(row.effectiveTo).toLocaleDateString()
-        : '-',
+      render: (row) => formatDate(row.effectiveTo),
     },
     {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], []);
 
@@ -202,25 +199,25 @@ export default function BomsPage() {
       stats={[
         {
           title: 'Total BOMs',
-          value: totalBoms,
+          value: formatNumber(totalBoms),
           icon: <ListIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Draft',
-          value: draftCount,
+          value: formatNumber(draftCount),
           icon: <PencilIcon />,
           iconColor: 'blue',
         },
         {
           title: 'Pending Approval',
-          value: pendingCount,
+          value: formatNumber(pendingCount),
           icon: <ClockIcon />,
           iconColor: 'yellow',
         },
         {
           title: 'Approved',
-          value: approvedCount,
+          value: formatNumber(approvedCount),
           icon: <CheckIcon />,
           iconColor: 'green',
         },

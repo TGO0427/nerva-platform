@@ -16,6 +16,7 @@ import {
   useResolveNonConformance,
   useCloseNonConformance,
 } from '@/lib/queries';
+import { formatDate, formatDateTime, formatQuantity } from '@/lib/format';
 import type { NonConformanceStatus, NcSeverity, NcDisposition } from '@nerva/shared';
 
 const DISPOSITION_OPTIONS: { value: NcDisposition; label: string }[] = [
@@ -222,7 +223,7 @@ export default function NcDetailPage() {
             </div>
             <div>
               <Label>Date Reported</Label>
-              <p className="mt-1 text-slate-900">{new Date(nc.createdAt).toLocaleDateString()}</p>
+              <p className="mt-1 text-slate-900">{formatDate(nc.createdAt)}</p>
             </div>
             <div>
               <Label>Work Order</Label>
@@ -250,7 +251,7 @@ export default function NcDetailPage() {
             </div>
             <div>
               <Label>Qty Affected</Label>
-              <p className="mt-1 text-slate-900 font-medium">{nc.qtyAffected.toLocaleString()}</p>
+              <p className="mt-1 text-slate-900 font-medium">{formatQuantity(nc.qtyAffected)}</p>
             </div>
             <div className="col-span-full">
               <Label>Description</Label>
@@ -265,7 +266,7 @@ export default function NcDetailPage() {
                 <div>
                   <Label>Resolved At</Label>
                   <p className="mt-1 text-slate-900">
-                    {nc.resolvedAt ? new Date(nc.resolvedAt).toLocaleString() : '-'}
+                    {formatDateTime(nc.resolvedAt)}
                   </p>
                 </div>
               </>

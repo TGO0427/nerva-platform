@@ -30,6 +30,7 @@ import {
 import { useBins } from '@/lib/queries/warehouses';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { formatDate, formatDateTime, formatPercent, formatQuantity } from '@/lib/format';
 import type { WorkOrderStatus, WorkOrderOperation, WorkOrderMaterial } from '@nerva/shared';
 
 type OperationWithMeta = WorkOrderOperation & { workstationCode?: string; workstationName?: string; assignedUserName?: string };
@@ -267,7 +268,7 @@ export default function WorkOrderDetailPage() {
       key: 'qtyCompleted',
       header: 'Completed',
       width: '100px',
-      render: (row) => row.qtyCompleted?.toLocaleString() || '0',
+      render: (row) => formatQuantity(row.qtyCompleted ?? 0),
     },
     {
       key: 'assignedUserName',
@@ -314,13 +315,13 @@ export default function WorkOrderDetailPage() {
       key: 'qtyRequired',
       header: 'Required',
       width: '100px',
-      render: (row) => row.qtyRequired.toLocaleString(),
+      render: (row) => formatQuantity(row.qtyRequired),
     },
     {
       key: 'qtyIssued',
       header: 'Issued',
       width: '100px',
-      render: (row) => row.qtyIssued.toLocaleString(),
+      render: (row) => formatQuantity(row.qtyIssued),
     },
     {
       key: 'remaining',
@@ -330,7 +331,7 @@ export default function WorkOrderDetailPage() {
         const remaining = row.qtyRequired - row.qtyIssued + row.qtyReturned;
         return (
           <span className={remaining > 0 ? 'text-amber-600' : 'text-green-600'}>
-            {remaining.toLocaleString()}
+            {formatQuantity(remaining)}
           </span>
         );
       },
@@ -457,13 +458,13 @@ export default function WorkOrderDetailPage() {
                     style={{ width: `${Math.min(progressPercentage, 100)}%` }}
                   />
                 </div>
-                <span className="text-sm font-medium">{progressPercentage}%</span>
+                <span className="text-sm font-medium">{formatPercent(progressPercentage, 0)}</span>
               </div>
             </Card>
             <Card className="p-4">
               <div className="text-sm text-slate-500">Quantity</div>
               <div className="mt-1 text-lg font-semibold">
-                {workOrder.qtyCompleted.toLocaleString()} / {workOrder.qtyOrdered.toLocaleString()}
+                {formatQuantity(workOrder.qtyCompleted)} / {formatQuantity(workOrder.qtyOrdered)}
               </div>
             </Card>
           </div>
@@ -524,25 +525,25 @@ export default function WorkOrderDetailPage() {
               <div>
                 <div className="text-sm text-slate-500">Planned Start</div>
                 <div className="mt-1">
-                  {workOrder.plannedStart ? new Date(workOrder.plannedStart).toLocaleDateString() : '-'}
+                  {formatDate(workOrder.plannedStart)}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-slate-500">Planned End</div>
                 <div className="mt-1">
-                  {workOrder.plannedEnd ? new Date(workOrder.plannedEnd).toLocaleDateString() : '-'}
+                  {formatDate(workOrder.plannedEnd)}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-slate-500">Actual Start</div>
                 <div className="mt-1">
-                  {workOrder.actualStart ? new Date(workOrder.actualStart).toLocaleString() : '-'}
+                  {formatDateTime(workOrder.actualStart)}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-slate-500">Actual End</div>
                 <div className="mt-1">
-                  {workOrder.actualEnd ? new Date(workOrder.actualEnd).toLocaleString() : '-'}
+                  {formatDateTime(workOrder.actualEnd)}
                 </div>
               </div>
               {workOrder.notes && (

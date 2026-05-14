@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { PageShell } from '@/components/ui/motion';
 import { PageHeader } from '@/components/ui/page-header';
 import { useBoms, useCompareBoms } from '@/lib/queries/manufacturing';
+import { formatNumber, formatPercent, formatQuantity } from '@/lib/format';
 
 export default function CompareBomPage() {
   const [bom1Id, setBom1Id] = useState('');
@@ -86,21 +87,21 @@ export default function CompareBomPage() {
             <Card className="p-4 bg-green-50 border-green-200">
               <div className="text-sm text-green-600 font-medium">Added</div>
               <div className="mt-1 text-2xl font-bold text-green-700">
-                {added.length}
+                {formatNumber(added.length)}
               </div>
               <div className="text-sm text-green-600">components</div>
             </Card>
             <Card className="p-4 bg-red-50 border-red-200">
               <div className="text-sm text-red-600 font-medium">Removed</div>
               <div className="mt-1 text-2xl font-bold text-red-700">
-                {removed.length}
+                {formatNumber(removed.length)}
               </div>
               <div className="text-sm text-red-600">components</div>
             </Card>
             <Card className="p-4 bg-yellow-50 border-yellow-200">
               <div className="text-sm text-yellow-600 font-medium">Changed</div>
               <div className="mt-1 text-2xl font-bold text-yellow-700">
-                {changed.length}
+                {formatNumber(changed.length)}
               </div>
               <div className="text-sm text-yellow-600">components</div>
             </Card>
@@ -120,7 +121,7 @@ export default function CompareBomPage() {
                       <div className="font-medium">{item.itemId.slice(0, 8)}</div>
                     </div>
                     <div className="text-right">
-                      <Badge variant="success">+ {item.qtyPer} {item.uom}</Badge>
+                      <Badge variant="success">+ {formatQuantity(item.qtyPer)} {item.uom}</Badge>
                     </div>
                   </div>
                 ))}
@@ -142,7 +143,7 @@ export default function CompareBomPage() {
                       <div className="font-medium">{item.itemId.slice(0, 8)}</div>
                     </div>
                     <div className="text-right">
-                      <Badge variant="danger">- {item.qtyPer} {item.uom}</Badge>
+                      <Badge variant="danger">- {formatQuantity(item.qtyPer)} {item.uom}</Badge>
                     </div>
                   </div>
                 ))}
@@ -169,23 +170,23 @@ export default function CompareBomPage() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="bg-slate-50 p-3 rounded">
                         <div className="text-slate-500 mb-1">Before</div>
-                        <div>Qty: {item.left.qtyPer} {item.left.uom}</div>
+                        <div>Qty: {formatQuantity(item.left.qtyPer)} {item.left.uom}</div>
                         {item.left.scrapPct !== undefined && (
-                          <div>Scrap: {item.left.scrapPct}%</div>
+                          <div>Scrap: {formatPercent(item.left.scrapPct)}</div>
                         )}
                       </div>
                       <div className="bg-yellow-50 p-3 rounded">
                         <div className="text-slate-500 mb-1">After</div>
                         <div className="flex items-center gap-2">
-                          Qty: {item.right.qtyPer} {item.right.uom}
+                          Qty: {formatQuantity(item.right.qtyPer)} {item.right.uom}
                           {item.left.qtyPer !== item.right.qtyPer && (
                             <span className={item.right.qtyPer > item.left.qtyPer ? 'text-green-600' : 'text-red-600'}>
-                              ({item.right.qtyPer > item.left.qtyPer ? '+' : ''}{(item.right.qtyPer - item.left.qtyPer).toFixed(4)})
+                              ({item.right.qtyPer > item.left.qtyPer ? '+' : ''}{formatNumber(item.right.qtyPer - item.left.qtyPer, { minimumFractionDigits: 4, maximumFractionDigits: 4 })})
                             </span>
                           )}
                         </div>
                         {item.right.scrapPct !== undefined && (
-                          <div>Scrap: {item.right.scrapPct}%</div>
+                          <div>Scrap: {formatPercent(item.right.scrapPct)}</div>
                         )}
                       </div>
                     </div>

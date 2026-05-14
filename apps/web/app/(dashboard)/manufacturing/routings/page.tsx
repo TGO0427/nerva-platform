@@ -17,6 +17,7 @@ import { useRoutings, useImportRoutings, useQueryParams } from '@/lib/queries';
 import { routingImportConfig } from '@/lib/config/csv-import';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDate, formatNumber } from '@/lib/format';
 import type { Routing, RoutingStatus } from '@nerva/shared';
 
 type RoutingWithMeta = Routing & { itemSku?: string; itemDescription?: string; operationCount?: number };
@@ -85,27 +86,23 @@ export default function RoutingsPage() {
       key: 'operationCount',
       header: 'Operations',
       width: '100px',
-      render: (row) => row.operationCount || 0,
+      render: (row) => formatNumber(row.operationCount || 0),
     },
     {
       key: 'effectiveFrom',
       header: 'Effective From',
-      render: (row) => row.effectiveFrom
-        ? new Date(row.effectiveFrom).toLocaleDateString()
-        : '-',
+      render: (row) => formatDate(row.effectiveFrom),
     },
     {
       key: 'effectiveTo',
       header: 'Effective To',
-      render: (row) => row.effectiveTo
-        ? new Date(row.effectiveTo).toLocaleDateString()
-        : '-',
+      render: (row) => formatDate(row.effectiveTo),
     },
     {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], []);
 
@@ -163,19 +160,19 @@ export default function RoutingsPage() {
       stats={[
         {
           title: 'Total Routings',
-          value: totalRoutings,
+          value: formatNumber(totalRoutings),
           icon: <RouteIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Draft',
-          value: draftCount,
+          value: formatNumber(draftCount),
           icon: <PencilIcon />,
           iconColor: 'blue',
         },
         {
           title: 'Approved',
-          value: approvedCount,
+          value: formatNumber(approvedCount),
           icon: <CheckIcon />,
           iconColor: 'green',
         },

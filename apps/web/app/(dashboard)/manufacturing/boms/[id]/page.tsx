@@ -19,6 +19,7 @@ import {
   useCreateBomVersion,
   useDeleteBom,
 } from '@/lib/queries/manufacturing';
+import { formatDate, formatDateTime, formatNumber, formatPercent, formatQuantity } from '@/lib/format';
 import type { BomStatus, BomLine } from '@nerva/shared';
 
 type BomLineWithMeta = BomLine & { itemSku?: string; itemDescription?: string };
@@ -139,13 +140,13 @@ export default function BomDetailPage() {
       key: 'qtyPer',
       header: 'Qty Per',
       width: '100px',
-      render: (row) => `${row.qtyPer} ${row.uom}`,
+      render: (row) => `${formatQuantity(row.qtyPer)} ${row.uom}`,
     },
     {
       key: 'scrapPct',
       header: 'Scrap %',
       width: '80px',
-      render: (row) => row.scrapPct ? `${row.scrapPct}%` : '-',
+      render: (row) => formatPercent(row.scrapPct),
     },
     {
       key: 'category',
@@ -239,13 +240,13 @@ export default function BomDetailPage() {
             <Card className="p-4">
               <div className="text-sm text-slate-500">Base Quantity</div>
               <div className="mt-1 text-lg font-semibold">
-                {bom.baseQty} {bom.uom}
+                {formatQuantity(bom.baseQty)} {bom.uom}
               </div>
             </Card>
             <Card className="p-4">
               <div className="text-sm text-slate-500">Components</div>
               <div className="mt-1 text-lg font-semibold">
-                {bom.lines?.length || 0}
+                {formatNumber(bom.lines?.length || 0)}
               </div>
             </Card>
           </div>
@@ -265,20 +266,20 @@ export default function BomDetailPage() {
               <div>
                 <div className="text-sm text-slate-500">Effective From</div>
                 <div className="mt-1">
-                  {bom.effectiveFrom ? new Date(bom.effectiveFrom).toLocaleDateString() : 'Not set'}
+                  {formatDate(bom.effectiveFrom, 'Not set')}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-slate-500">Effective To</div>
                 <div className="mt-1">
-                  {bom.effectiveTo ? new Date(bom.effectiveTo).toLocaleDateString() : 'Not set'}
+                  {formatDate(bom.effectiveTo, 'Not set')}
                 </div>
               </div>
               {bom.approvedBy && (
                 <div>
                   <div className="text-sm text-slate-500">Approved At</div>
                   <div className="mt-1">
-                    {bom.approvedAt ? new Date(bom.approvedAt).toLocaleString() : '-'}
+                    {formatDateTime(bom.approvedAt)}
                   </div>
                 </div>
               )}

@@ -15,6 +15,7 @@ import {
   useApproveRouting,
   useObsoleteRouting,
 } from '@/lib/queries/manufacturing';
+import { formatDate, formatNumber, formatPercent } from '@/lib/format';
 import type { RoutingStatus, RoutingOperation } from '@nerva/shared';
 
 type OperationWithMeta = RoutingOperation & { workstationCode?: string; workstationName?: string };
@@ -117,25 +118,25 @@ export default function RoutingDetailPage() {
       key: 'setupTimeMins',
       header: 'Setup (min)',
       width: '100px',
-      render: (row) => row.setupTimeMins || 0,
+      render: (row) => formatNumber(row.setupTimeMins || 0),
     },
     {
       key: 'runTimeMins',
       header: 'Run (min)',
       width: '100px',
-      render: (row) => row.runTimeMins,
+      render: (row) => formatNumber(row.runTimeMins),
     },
     {
       key: 'queueTimeMins',
       header: 'Queue (min)',
       width: '100px',
-      render: (row) => row.queueTimeMins || 0,
+      render: (row) => formatNumber(row.queueTimeMins || 0),
     },
     {
       key: 'overlapPct',
       header: 'Overlap %',
       width: '90px',
-      render: (row) => row.overlapPct ? `${row.overlapPct}%` : '-',
+      render: (row) => formatPercent(row.overlapPct),
     },
     {
       key: 'isSubcontracted',
@@ -206,13 +207,13 @@ export default function RoutingDetailPage() {
             <Card className="p-4">
               <div className="text-sm text-slate-500">Operations</div>
               <div className="mt-1 text-lg font-semibold">
-                {routing.operations?.length || 0}
+                {formatNumber(routing.operations?.length || 0)}
               </div>
             </Card>
             <Card className="p-4">
               <div className="text-sm text-slate-500">Total Time</div>
               <div className="mt-1 text-lg font-semibold">
-                {totalTime} min
+                {formatNumber(totalTime)} min
               </div>
             </Card>
           </div>
@@ -232,13 +233,13 @@ export default function RoutingDetailPage() {
               <div>
                 <div className="text-sm text-slate-500">Effective From</div>
                 <div className="mt-1">
-                  {routing.effectiveFrom ? new Date(routing.effectiveFrom).toLocaleDateString() : 'Not set'}
+                  {formatDate(routing.effectiveFrom, 'Not set')}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-slate-500">Effective To</div>
                 <div className="mt-1">
-                  {routing.effectiveTo ? new Date(routing.effectiveTo).toLocaleDateString() : 'Not set'}
+                  {formatDate(routing.effectiveTo, 'Not set')}
                 </div>
               </div>
             </div>
@@ -255,19 +256,19 @@ export default function RoutingDetailPage() {
             <h3 className="text-lg font-medium mb-4">Time Summary</h3>
             <div className="grid grid-cols-4 gap-4">
               <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{totalSetupTime}</div>
+                <div className="text-2xl font-bold text-blue-600">{formatNumber(totalSetupTime)}</div>
                 <div className="text-sm text-slate-500">Setup (min)</div>
               </div>
               <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{totalRunTime}</div>
+                <div className="text-2xl font-bold text-green-600">{formatNumber(totalRunTime)}</div>
                 <div className="text-sm text-slate-500">Run (min)</div>
               </div>
               <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                <div className="text-2xl font-bold text-yellow-600">{totalQueueTime}</div>
+                <div className="text-2xl font-bold text-yellow-600">{formatNumber(totalQueueTime)}</div>
                 <div className="text-sm text-slate-500">Queue (min)</div>
               </div>
               <div className="text-center p-3 bg-slate-50 rounded-lg">
-                <div className="text-2xl font-bold text-slate-700">{totalTime}</div>
+                <div className="text-2xl font-bold text-slate-700">{formatNumber(totalTime)}</div>
                 <div className="text-sm text-slate-500">Total (min)</div>
               </div>
             </div>

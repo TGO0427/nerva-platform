@@ -17,6 +17,7 @@ import { useWorkOrders, useImportWorkOrders, useQueryParams } from '@/lib/querie
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import { workOrderImportConfig } from '@/lib/config/csv-import';
+import { formatDate, formatNumber, formatQuantity } from '@/lib/format';
 import type { WorkOrder, WorkOrderStatus } from '@nerva/shared';
 
 type WorkOrderWithMeta = WorkOrder & { itemSku?: string; itemDescription?: string; warehouseName?: string };
@@ -93,7 +94,7 @@ export default function WorkOrdersPage() {
       key: 'qtyOrdered',
       header: 'Qty Ordered',
       width: '100px',
-      render: (row) => row.qtyOrdered.toLocaleString(),
+      render: (row) => formatQuantity(row.qtyOrdered),
     },
     {
       key: 'qtyCompleted',
@@ -101,7 +102,7 @@ export default function WorkOrdersPage() {
       width: '100px',
       render: (row) => (
         <span className={row.qtyCompleted >= row.qtyOrdered ? 'text-green-600' : ''}>
-          {row.qtyCompleted.toLocaleString()}
+          {formatQuantity(row.qtyCompleted)}
         </span>
       ),
     },
@@ -118,9 +119,7 @@ export default function WorkOrdersPage() {
     {
       key: 'plannedStart',
       header: 'Planned Start',
-      render: (row) => row.plannedStart
-        ? new Date(row.plannedStart).toLocaleDateString()
-        : '-',
+      render: (row) => formatDate(row.plannedStart),
     },
     {
       key: 'warehouseName',
@@ -131,7 +130,7 @@ export default function WorkOrdersPage() {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], []);
 
@@ -194,25 +193,25 @@ export default function WorkOrdersPage() {
       stats={[
         {
           title: 'Total Orders',
-          value: totalOrders,
+          value: formatNumber(totalOrders),
           icon: <ClipboardIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Draft',
-          value: draftCount,
+          value: formatNumber(draftCount),
           icon: <PencilIcon />,
           iconColor: 'blue',
         },
         {
           title: 'In Progress',
-          value: inProgressCount,
+          value: formatNumber(inProgressCount),
           icon: <PlayIcon />,
           iconColor: 'yellow',
         },
         {
           title: 'Completed',
-          value: completedCount,
+          value: formatNumber(completedCount),
           icon: <CheckIcon />,
           iconColor: 'green',
         },

@@ -13,6 +13,7 @@ import {
   useRecordOutput,
 } from '@/lib/queries';
 import { useBins } from '@/lib/queries/warehouses';
+import { formatNumber, formatPercent, formatQuantity } from '@/lib/format';
 import type { WorkOrderOperationStatus } from '@nerva/shared';
 
 // ---------------------------------------------------------------------------
@@ -70,7 +71,7 @@ export default function ShopFloorPage() {
         <div className="p-4 border-b border-slate-200 bg-white">
           <h1 className="text-xl font-bold text-slate-900">Active Work Orders</h1>
           <p className="text-sm text-slate-500 mt-1">
-            {activeOrders.length} order{activeOrders.length !== 1 ? 's' : ''} on floor
+            {formatNumber(activeOrders.length)} order{activeOrders.length !== 1 ? 's' : ''} on floor
           </p>
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -113,9 +114,9 @@ export default function ShopFloorPage() {
                   <div className="mt-3">
                     <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
                       <span>
-                        {wo.qtyCompleted.toLocaleString()} / {wo.qtyOrdered.toLocaleString()}
+                        {formatQuantity(wo.qtyCompleted)} / {formatQuantity(wo.qtyOrdered)}
                       </span>
-                      <span>{pct}%</span>
+                      <span>{formatPercent(pct, 0)}</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
                       <div
@@ -246,7 +247,7 @@ function WorkOrderDetail({
         <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-slate-700">Production Progress</span>
-            <span className="text-2xl font-bold text-slate-900">{pct}%</span>
+            <span className="text-2xl font-bold text-slate-900">{formatPercent(pct, 0)}</span>
           </div>
           <div className="w-full bg-slate-200 rounded-full h-4">
             <div
@@ -258,10 +259,10 @@ function WorkOrderDetail({
           </div>
           <div className="flex items-center justify-between mt-2 text-sm text-slate-500">
             <span>
-              {workOrder.qtyCompleted.toLocaleString()} completed
+              {formatQuantity(workOrder.qtyCompleted)} completed
             </span>
             <span>
-              {workOrder.qtyOrdered.toLocaleString()} ordered
+              {formatQuantity(workOrder.qtyOrdered)} ordered
             </span>
           </div>
         </div>
@@ -349,7 +350,7 @@ function WorkOrderDetail({
                         {mat.itemSku || mat.itemId?.slice(0, 8)}
                       </span>
                       <span className={`text-sm font-semibold ${textColor}`}>
-                        {issued.toLocaleString()} / {required.toLocaleString()}
+                        {formatQuantity(issued)} / {formatQuantity(required)}
                       </span>
                     </div>
                     {mat.itemDescription && (
@@ -736,7 +737,7 @@ function IssueMaterialModal({
             {pendingMaterials.map((m: any) => (
               <option key={m.id} value={m.id}>
                 {m.itemSku || m.itemId?.slice(0, 8)} &mdash; need{' '}
-                {(m.qtyRequired - m.qtyIssued + (m.qtyReturned || 0)).toLocaleString()}
+                {formatQuantity(m.qtyRequired - m.qtyIssued + (m.qtyReturned || 0))}
               </option>
             ))}
           </select>
