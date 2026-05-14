@@ -23,6 +23,7 @@ import type { PieLabelRenderProps } from 'recharts';
 import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
 import { useOnboarding } from '@/lib/hooks/use-onboarding';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format';
+import type { DashboardStats } from '@/lib/queries';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: '#94a3b8',
@@ -212,6 +213,10 @@ export default function DashboardPage() {
             />
           </div>
         )}
+
+        {!statsLoading && stats && (
+          <ExceptionQueue stats={stats} />
+        )}
       </div>
 
       {/* Scrollable content */}
@@ -398,6 +403,102 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+}
+
+function ExceptionQueue({ stats }: { stats: DashboardStats }) {
+  const queues = [
+    {
+      title: 'Late Orders',
+      description: 'Past requested ship date',
+      value: stats.lateOrders,
+      href: '/sales?late=true',
+      tone: stats.lateOrders > 0 ? 'danger' : 'success',
+    },
+    {
+      title: 'Stock Alerts',
+      description: `${formatNumber(stats.lowStockItems)} low, ${formatNumber(stats.expiringItems)} expiring`,
+      value: stats.lowStockItems + stats.expiringItems,
+      href: '/inventory/expiry-alerts',
+      tone: stats.lowStockItems + stats.expiringItems > 0 ? 'warning' : 'success',
+    },
+    {
+      title: 'Open Returns',
+      description: 'Awaiting processing',
+      value: stats.openReturns,
+      href: '/returns',
+      tone: stats.openReturns > 0 ? 'warning' : 'success',
+    },
+    {
+      title: 'POD Completion',
+      description: 'Delivery proof captured',
+      value: stats.podCompletionPercent,
+      href: '/dispatch',
+      tone: stats.podCompletionPercent >= 90 ? 'success' : 'warning',
+      suffix: '%',
+    },
+    {
+      title: 'Dispatch Cycle',
+      description: 'Average fulfilment time',
+      value: stats.avgDispatchCycleHours,
+      href: '/fulfilment',
+      tone: stats.avgDispatchCycleHours <= 12 ? 'success' : 'warning',
+      suffix: 'h',
+    },
+  ];
+
+  return (
+    <div className="mb-6 rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-800">Exception Queues</h2>
+          <p className="text-xs text-slate-500">Operational issues that need attention</p>
+        </div>
+        <Link href="/notifications" className="text-xs font-medium text-primary-600 hover:underline">
+          View notifications
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+        {queues.map((queue) => (
+          <Link
+            key={queue.title}
+            href={queue.href}
+            className="group flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-slate-50"
+          >
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className={`h-2 w-2 rounded-full ${getQueueDotClass(queue.tone)}`} />
+                <span className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
+                  {queue.title}
+                </span>
+              </div>
+              <p className="mt-1 truncate text-xs text-slate-500">{queue.description}</p>
+            </div>
+            <span className={`shrink-0 text-lg font-bold ${getQueueTextClass(queue.tone)}`}>
+              {formatExceptionValue(queue.value, queue.suffix)}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function formatExceptionValue(value: number, suffix?: string) {
+  if (suffix === '%') return formatPercent(value, 0);
+  if (suffix === 'h') return `${formatNumber(value, { maximumFractionDigits: 1 })}h`;
+  return formatNumber(value);
+}
+
+function getQueueDotClass(tone: string) {
+  if (tone === 'danger') return 'bg-red-500';
+  if (tone === 'warning') return 'bg-amber-500';
+  return 'bg-emerald-500';
+}
+
+function getQueueTextClass(tone: string) {
+  if (tone === 'danger') return 'text-red-600';
+  if (tone === 'warning') return 'text-amber-600';
+  return 'text-emerald-600';
 }
 
 // --- Chart card wrapper ---
