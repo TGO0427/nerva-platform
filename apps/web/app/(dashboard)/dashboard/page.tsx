@@ -22,6 +22,7 @@ import {
 import type { PieLabelRenderProps } from 'recharts';
 import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
 import { useOnboarding } from '@/lib/hooks/use-onboarding';
+import { formatCurrency, formatNumber, formatPercent } from '@/lib/format';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: '#94a3b8',
@@ -62,7 +63,7 @@ export default function DashboardPage() {
   const { data: topCustomers } = useTopCustomers();
   const { showBanner, dismissBanner } = useOnboarding();
 
-  const weeklySalesDisplay = `R ${((stats?.weeklySalesValue ?? 0) / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const weeklySalesDisplay = formatCurrency((stats?.weeklySalesValue ?? 0) / 100);
 
   const quickActions = [
     {
@@ -163,8 +164,8 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
             <StatCard
               title="Pending Orders"
-              value={stats?.pendingOrders ?? 0}
-              subtitle={stats?.allocatedOrders ? `${stats.allocatedOrders} allocated` : undefined}
+              value={formatNumber(stats?.pendingOrders ?? 0)}
+              subtitle={stats?.allocatedOrders ? `${formatNumber(stats.allocatedOrders)} allocated` : undefined}
               icon={<ClipboardIcon />}
               iconColor="blue"
               href="/sales"
@@ -179,15 +180,15 @@ export default function DashboardPage() {
             />
             <StatCard
               title="Trips Active"
-              value={stats?.tripsInProgress ?? 0}
-              subtitle={stats?.tripsCompletedToday ? `${stats.tripsCompletedToday} done today` : undefined}
+              value={formatNumber(stats?.tripsInProgress ?? 0)}
+              subtitle={stats?.tripsCompletedToday ? `${formatNumber(stats.tripsCompletedToday)} done today` : undefined}
               icon={<TruckIcon />}
               iconColor="blue"
               href="/dispatch"
             />
             <StatCard
               title="Open Returns"
-              value={stats?.openReturns ?? 0}
+              value={formatNumber(stats?.openReturns ?? 0)}
               subtitle={(stats?.openReturns ?? 0) > 0 ? 'Awaiting processing' : 'All clear'}
               icon={<ReturnIcon />}
               iconColor="yellow"
@@ -195,7 +196,7 @@ export default function DashboardPage() {
             />
             <StatCard
               title="Late Orders"
-              value={stats?.lateOrders ?? 0}
+              value={formatNumber(stats?.lateOrders ?? 0)}
               subtitle={(stats?.lateOrders ?? 0) > 0 ? 'Past ship date' : 'On track'}
               icon={<ClockIcon />}
               iconColor="red"
@@ -203,8 +204,8 @@ export default function DashboardPage() {
             />
             <StatCard
               title="Stock Alerts"
-              value={(stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0)}
-              subtitle={stats?.lowStockItems ? `${stats.lowStockItems} low stock` : 'Healthy'}
+              value={formatNumber((stats?.lowStockItems ?? 0) + (stats?.expiringItems ?? 0))}
+              subtitle={stats?.lowStockItems ? `${formatNumber(stats.lowStockItems)} low stock` : 'Healthy'}
               icon={<WarningIcon />}
               iconColor="purple"
               href="/inventory/expiry-alerts"
@@ -296,7 +297,7 @@ export default function DashboardPage() {
                   <div key={c.name}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-slate-700 truncate mr-2">{c.name}</span>
-                      <span className="text-sm font-semibold text-slate-900">{c.orders}</span>
+                      <span className="text-sm font-semibold text-slate-900">{formatNumber(c.orders)}</span>
                     </div>
                     <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div
@@ -322,25 +323,25 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <MetricCard
               label="OTIF"
-              value={`${stats?.otifPercent ?? 0}%`}
+              value={formatPercent(stats?.otifPercent ?? 0)}
               sub="On-time in-full"
               good={(stats?.otifPercent ?? 0) >= 90}
             />
             <MetricCard
               label="POD Rate"
-              value={`${stats?.podCompletionPercent ?? 0}%`}
+              value={formatPercent(stats?.podCompletionPercent ?? 0)}
               sub="Delivery proof"
               good={(stats?.podCompletionPercent ?? 0) >= 90}
             />
             <MetricCard
               label="Returns"
-              value={`${Number(stats?.returnsRate ?? 0).toFixed(1)}%`}
+              value={formatPercent(stats?.returnsRate ?? 0)}
               sub="Return ratio"
               good={Number(stats?.returnsRate ?? 0) <= 3}
             />
             <MetricCard
               label="Cycle Time"
-              value={`${Number(stats?.avgDispatchCycleHours ?? 0).toFixed(1)}h`}
+              value={`${formatNumber(stats?.avgDispatchCycleHours ?? 0, { maximumFractionDigits: 1 })}h`}
               sub="Avg dispatch"
               good={Number(stats?.avgDispatchCycleHours ?? 0) <= 12}
             />
@@ -545,4 +546,3 @@ function InventoryIcon() {
     </svg>
   );
 }
-
