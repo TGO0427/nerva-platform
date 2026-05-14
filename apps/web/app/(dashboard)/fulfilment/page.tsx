@@ -29,6 +29,7 @@ import {
   AllocatedOrder,
   ShippableOrder,
 } from '@/lib/queries/fulfilment';
+import { formatDate, formatNumber } from '@/lib/format';
 
 const WAVE_STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -183,7 +184,7 @@ export default function FulfilmentPage() {
       key: 'createdAt',
       header: 'Order Date',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ];
 
@@ -213,7 +214,7 @@ export default function FulfilmentPage() {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ];
 
@@ -255,7 +256,7 @@ export default function FulfilmentPage() {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ];
 
@@ -305,32 +306,32 @@ export default function FulfilmentPage() {
       <MetricGrid className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <StatCard
           title="Ready to Pick"
-          value={readyToPick}
+          value={formatNumber(readyToPick)}
           icon={<ClipboardListIcon />}
           iconColor="orange"
           alert={readyToPick > 0}
         />
         <StatCard
           title="Active Waves"
-          value={activeWaves}
+          value={formatNumber(activeWaves)}
           icon={<PlayIcon />}
           iconColor="blue"
         />
         <StatCard
           title="Open Waves"
-          value={openWaves}
+          value={formatNumber(openWaves)}
           icon={<WaveIcon />}
           iconColor="yellow"
         />
         <StatCard
           title="Ready to Ship"
-          value={readyToShip}
+          value={formatNumber(readyToShip)}
           icon={<BoxIcon />}
           iconColor="purple"
         />
         <StatCard
           title="Shipped Today"
-          value={shippedToday}
+          value={formatNumber(shippedToday)}
           icon={<ShipIcon />}
           iconColor="green"
         />

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
+import { formatDateTime, formatNumber } from '@/lib/format';
 import {
   useNotifications,
   useMarkNotificationAsRead,
@@ -134,7 +135,7 @@ export default function NotificationsPage() {
       {data?.meta && (data.meta.totalPages ?? 1) > 1 && (
         <div className="flex items-center justify-between mt-6">
           <p className="text-sm text-slate-500">
-            Page {page} of {data.meta.totalPages ?? 1} ({data.meta.total ?? 0} total)
+            Page {formatNumber(page)} of {formatNumber(data.meta.totalPages ?? 1)} ({formatNumber(data.meta.total ?? 0)} total)
           </p>
           <div className="flex gap-2">
             <Button
@@ -158,17 +159,6 @@ export default function NotificationsPage() {
       )}
     </div>
   );
-}
-
-function formatDateTime(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleString('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function CategoryBadge({ category }: { category: string }) {

@@ -18,6 +18,7 @@ import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { useCopy } from '@/lib/hooks/use-copy';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import { salesOrderImportConfig } from '@/lib/config/csv-import';
+import { formatDate, formatNumber } from '@/lib/format';
 import type { SalesOrderStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -124,15 +125,13 @@ export default function SalesOrdersPage() {
     {
       key: 'requestedShipDate',
       header: 'Ship Date',
-      render: (row) => row.requestedShipDate
-        ? new Date(row.requestedShipDate).toLocaleDateString()
-        : '-',
+      render: (row) => formatDate(row.requestedShipDate),
     },
     {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], [copy]);
 
@@ -192,25 +191,25 @@ export default function SalesOrdersPage() {
       stats={[
         {
           title: 'Total Orders',
-          value: totalOrders,
+          value: formatNumber(totalOrders),
           icon: <ClipboardIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Open Orders',
-          value: openOrders,
+          value: formatNumber(openOrders),
           icon: <FolderIcon />,
           iconColor: 'blue',
         },
         {
           title: 'In Fulfilment',
-          value: inFulfilment,
+          value: formatNumber(inFulfilment),
           icon: <BoxIcon />,
           iconColor: 'yellow',
         },
         {
           title: 'Shipped',
-          value: shippedCount,
+          value: formatNumber(shippedCount),
           icon: <TruckIcon />,
           iconColor: 'green',
         },
