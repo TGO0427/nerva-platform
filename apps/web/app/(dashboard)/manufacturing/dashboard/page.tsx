@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import type { PieLabelRenderProps } from 'recharts';
 import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
+import { formatDate, formatNumber, formatPercent, formatQuantity } from '@/lib/format';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: '#94a3b8',
@@ -47,25 +48,25 @@ export default function ProductionDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Active Work Orders"
-          value={dashboard?.activeWorkOrders ?? 0}
+          value={formatNumber(dashboard?.activeWorkOrders ?? 0)}
           icon={<ClipboardIcon />}
           iconColor="blue"
         />
         <StatCard
           title="Today's Output"
-          value={dashboard?.todayOutput ?? 0}
+          value={formatQuantity(dashboard?.todayOutput ?? 0)}
           icon={<OutputIcon />}
           iconColor="green"
         />
         <StatCard
           title="Yield Rate"
-          value={`${(dashboard?.yieldRate ?? 0).toFixed(1)}%`}
+          value={formatPercent(dashboard?.yieldRate ?? 0)}
           icon={<YieldIcon />}
           iconColor="purple"
         />
         <StatCard
           title="Workstation Utilization"
-          value={`${(dashboard?.workstationUtilization ?? 0).toFixed(1)}%`}
+          value={formatPercent(dashboard?.workstationUtilization ?? 0)}
           icon={<FactoryIcon />}
           iconColor="orange"
         />
@@ -87,7 +88,7 @@ export default function ProductionDashboardPage() {
                   paddingAngle={3}
                   dataKey="count"
                   nameKey="status"
-                  label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${props.value ?? 0})`}
+                  label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${formatNumber(props.value as number)})`}
                 >
                   {dashboard.statusDistribution.map((entry, index) => (
                     <Cell
@@ -118,8 +119,15 @@ export default function ProductionDashboardPage() {
                     return `${d.getDate()}/${d.getMonth() + 1}`;
                   }}
                 />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: ct.tick }} />
-                <Tooltip contentStyle={tooltipStyle(ct)} />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 12, fill: ct.tick }}
+                  tickFormatter={(v: number) => formatQuantity(v)}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle(ct)}
+                  formatter={(value: unknown, name?: string) => [formatQuantity(value as number), name ?? '']}
+                />
                 <Legend wrapperStyle={{ fontSize: 13 }} />
                 <Line type="monotone" dataKey="output" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Output" />
                 <Line type="monotone" dataKey="scrap" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} name="Scrap" />
@@ -140,14 +148,21 @@ export default function ProductionDashboardPage() {
                 margin={{ top: 5, right: 20, left: 80, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
-                <XAxis type="number" tick={{ fontSize: 12, fill: ct.tick }} />
+                <XAxis
+                  type="number"
+                  tick={{ fontSize: 12, fill: ct.tick }}
+                  tickFormatter={(v: number) => formatQuantity(v)}
+                />
                 <YAxis
                   type="category"
                   dataKey="itemSku"
                   tick={{ fontSize: 11, fill: ct.tick }}
                   width={75}
                 />
-                <Tooltip contentStyle={tooltipStyle(ct)} />
+                <Tooltip
+                  contentStyle={tooltipStyle(ct)}
+                  formatter={(value: unknown, name?: string) => [formatQuantity(value as number), name ?? '']}
+                />
                 <Bar dataKey="totalOutput" fill="#3b82f6" radius={[0, 4, 4, 0]} name="Output" />
               </BarChart>
             </ResponsiveContainer>
@@ -173,8 +188,8 @@ export default function ProductionDashboardPage() {
                 <tbody className="divide-y divide-slate-200">
                   {dashboard.activeOrders.map((order) => {
                     const progress = order.qtyOrdered > 0
-                      ? (order.qtyCompleted / order.qtyOrdered * 100).toFixed(0)
-                      : '0';
+                      ? (order.qtyCompleted / order.qtyOrdered) * 100
+                      : 0;
                     return (
                       <tr key={order.id} className="hover:bg-slate-50">
                         <td className="px-3 py-2 text-sm">
@@ -197,11 +212,9 @@ export default function ProductionDashboardPage() {
                             {order.status.replace('_', ' ')}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-sm text-right font-medium">{progress}%</td>
+                        <td className="px-3 py-2 text-sm text-right font-medium">{formatPercent(progress, 0)}</td>
                         <td className="px-3 py-2 text-sm text-right text-slate-500">
-                          {order.plannedEnd
-                            ? new Date(order.plannedEnd).toLocaleDateString('en-ZA')
-                            : '-'}
+                          {formatDate(order.plannedEnd)}
                         </td>
                       </tr>
                     );
