@@ -25,12 +25,9 @@ import {
   InvoiceLine,
   InvoicePayment,
 } from '@/lib/queries';
+import { formatCurrency, formatDate, formatNumber, formatPercent, formatQuantity } from '@/lib/format';
 
 type InvoiceStatus = 'DRAFT' | 'SENT' | 'PAID' | 'PARTIALLY_PAID' | 'OVERDUE' | 'CANCELLED' | 'VOID';
-
-function formatCurrency(amount: number): string {
-  return `R ${amount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`;
-}
 
 function getStatusVariant(status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' {
   switch (status) {
@@ -238,7 +235,7 @@ export default function InvoiceDetailPage() {
           <CardContent className="pt-4">
             <div className="text-sm text-slate-500">Invoice Date</div>
             <div className="font-medium">
-              {new Date(invoice.invoiceDate).toLocaleDateString()}
+              {formatDate(invoice.invoiceDate)}
             </div>
           </CardContent>
         </Card>
@@ -248,7 +245,7 @@ export default function InvoiceDetailPage() {
             <div className="font-medium">
               {invoice.dueDate ? (
                 <span className="flex items-center gap-2">
-                  {new Date(invoice.dueDate).toLocaleDateString()}
+                  {formatDate(invoice.dueDate)}
                   {overdue && (
                     <span className="text-xs font-semibold text-red-600 uppercase">Overdue</span>
                   )}
@@ -299,7 +296,7 @@ export default function InvoiceDetailPage() {
                   {invoice.lines.map((line: InvoiceLine, index: number) => (
                     <tr key={line.id}>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
-                        {index + 1}
+                        {formatNumber(index + 1)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
                         {line.sku || '-'}
@@ -308,13 +305,13 @@ export default function InvoiceDetailPage() {
                         {line.description || line.itemDescription || '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
-                        {line.qty}
+                        {formatQuantity(line.qty)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
                         {formatCurrency(line.unitPrice)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
-                        {line.discountPct > 0 ? `${line.discountPct}%` : '-'}
+                        {line.discountPct > 0 ? formatPercent(line.discountPct, 0) : '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900 text-right">
                         {formatCurrency(line.lineTotal)}
@@ -407,7 +404,7 @@ export default function InvoiceDetailPage() {
                       {invoice.payments.map((payment: InvoicePayment) => (
                         <tr key={payment.id}>
                           <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                            {new Date(payment.paymentDate).toLocaleDateString()}
+                            {formatDate(payment.paymentDate)}
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-green-600 text-right">
                             {formatCurrency(payment.amount)}

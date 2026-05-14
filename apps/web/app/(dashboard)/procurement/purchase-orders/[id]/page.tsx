@@ -26,6 +26,7 @@ import {
   useDeletePurchaseOrder,
   useItems,
 } from '@/lib/queries';
+import { formatCurrency, formatDate, formatQuantity } from '@/lib/format';
 import type { PurchaseOrderStatus, PurchaseOrderLine } from '@nerva/shared';
 
 export default function PurchaseOrderDetailPage() {
@@ -122,14 +123,14 @@ export default function PurchaseOrderDetailPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="text-sm text-slate-500">Order Date</div>
-            <div className="font-medium">{new Date(po.orderDate).toLocaleDateString()}</div>
+            <div className="font-medium">{formatDate(po.orderDate)}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="text-sm text-slate-500">Expected Date</div>
             <div className="font-medium">
-              {po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : '-'}
+              {formatDate(po.expectedDate)}
             </div>
           </CardContent>
         </Card>
@@ -143,7 +144,7 @@ export default function PurchaseOrderDetailPage() {
           <CardContent className="pt-4">
             <div className="text-sm text-slate-500">Total Amount</div>
             <div className="font-medium text-lg">
-              R {po.totalAmount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+              {formatCurrency(po.totalAmount)}
             </div>
           </CardContent>
         </Card>
@@ -198,7 +199,7 @@ export default function PurchaseOrderDetailPage() {
                       Subtotal:
                     </td>
                     <td className="px-4 py-3 text-right font-medium">
-                      R {po.subtotal.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                      {formatCurrency(po.subtotal)}
                     </td>
                     {po.status === 'DRAFT' && <td />}
                   </tr>
@@ -207,7 +208,7 @@ export default function PurchaseOrderDetailPage() {
                       VAT (15%):
                     </td>
                     <td className="px-4 py-3 text-right font-medium">
-                      R {po.taxAmount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                      {formatCurrency(po.taxAmount)}
                     </td>
                     {po.status === 'DRAFT' && <td />}
                   </tr>
@@ -216,7 +217,7 @@ export default function PurchaseOrderDetailPage() {
                       Total:
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-lg">
-                      R {po.totalAmount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                      {formatCurrency(po.totalAmount)}
                     </td>
                     {po.status === 'DRAFT' && <td />}
                   </tr>
@@ -509,16 +510,16 @@ function OrderLineRow({
         {line.itemDescription}
       </td>
       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
-        {line.qtyOrdered}
+        {formatQuantity(line.qtyOrdered)}
       </td>
       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
-        {line.qtyReceived}
+        {formatQuantity(line.qtyReceived)}
       </td>
       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
-        {line.unitCost ? `R ${Number(line.unitCost).toFixed(2)}` : '-'}
+        {formatCurrency(line.unitCost)}
       </td>
       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900 text-right">
-        {line.lineTotal ? `R ${Number(line.lineTotal).toFixed(2)}` : '-'}
+        {formatCurrency(line.lineTotal)}
       </td>
       {editable && (
         <td className="px-4 py-3 whitespace-nowrap text-right">

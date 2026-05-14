@@ -16,6 +16,7 @@ import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { exportToCSV, generateExportFilename, formatDateForExport, formatCurrencyForExport } from '@/lib/utils/export';
+import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -27,10 +28,6 @@ const STATUS_OPTIONS = [
   { value: 'CANCELLED', label: 'Cancelled' },
   { value: 'VOID', label: 'Void' },
 ];
-
-function formatAmount(amount: number): string {
-  return `R ${amount.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`;
-}
 
 export default function InvoicesPage() {
   const router = useRouter();
@@ -104,28 +101,27 @@ export default function InvoicesPage() {
       header: 'Amount',
       className: 'text-right',
       render: (row) => (
-        <span className="font-medium">{formatAmount(row.totalAmount)}</span>
+        <span className="font-medium">{formatCurrency(row.totalAmount)}</span>
       ),
     },
     {
       key: 'dueDate',
       header: 'Due Date',
-      render: (row) =>
-        row.dueDate ? new Date(row.dueDate).toLocaleDateString() : '-',
+      render: (row) => formatDate(row.dueDate),
     },
     {
       key: 'amountPaid',
       header: 'Paid',
       className: 'text-right',
       render: (row) => (
-        <span>{formatAmount(row.amountPaid)}</span>
+        <span>{formatCurrency(row.amountPaid)}</span>
       ),
     },
     {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], []);
 
@@ -191,15 +187,15 @@ export default function InvoicesPage() {
       stats={[
         {
           title: 'Outstanding',
-          value: safeStats.outstandingCount,
-          subtitle: formatAmount(safeStats.outstandingAmount),
+          value: formatNumber(safeStats.outstandingCount),
+          subtitle: formatCurrency(safeStats.outstandingAmount),
           icon: <InvoiceSmIcon />,
           iconColor: 'blue',
         },
         {
           title: 'Overdue',
-          value: safeStats.overdueCount,
-          subtitle: formatAmount(safeStats.overdueAmount),
+          value: formatNumber(safeStats.overdueCount),
+          subtitle: formatCurrency(safeStats.overdueAmount),
           subtitleType: 'negative',
           icon: <AlertIcon />,
           iconColor: 'red',
@@ -207,13 +203,13 @@ export default function InvoicesPage() {
         },
         {
           title: 'Paid This Month',
-          value: formatAmount(safeStats.paidThisMonth),
+          value: formatCurrency(safeStats.paidThisMonth),
           icon: <CheckIcon />,
           iconColor: 'green',
         },
         {
           title: 'Total This Month',
-          value: formatAmount(safeStats.totalThisMonth),
+          value: formatCurrency(safeStats.totalThisMonth),
           icon: <ChartIcon />,
           iconColor: 'purple',
         },
