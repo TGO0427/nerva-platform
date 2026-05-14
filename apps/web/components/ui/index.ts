@@ -17,6 +17,7 @@ export * from './modal';
 export * from './motion';
 export * from './page-header';
 export * from './select';
+export * from './saved-filter-views';
 export * from './skeleton';
 export * from './spinner';
 export * from './stat-card';

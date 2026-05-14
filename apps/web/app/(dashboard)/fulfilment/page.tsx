@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { Alert } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
 import { PageShell, MetricGrid } from '@/components/ui/motion';
@@ -309,6 +310,13 @@ export default function FulfilmentPage() {
   const openWaves = wavesData?.data?.filter(w => w.status === 'OPEN').length || 0;
   const readyToShip = shipmentsData?.data?.filter(s => s.status === 'READY_FOR_DISPATCH').length || 0;
   const shippedToday = shipmentsData?.data?.filter(s => s.status === 'SHIPPED').length || 0;
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    const nextTab = String(values.activeTab ?? 'allocated-orders') as Tab;
+    setActiveTab(TAB_VALUES.includes(nextTab) ? nextTab : 'allocated-orders');
+    setWaveStatus(String(values.waveStatus ?? ''));
+    setShipmentStatus(String(values.shipmentStatus ?? ''));
+    setPage(1);
+  };
 
   return (
     <PageShell>
@@ -353,7 +361,7 @@ export default function FulfilmentPage() {
       </MetricGrid>
 
       {/* Tabs */}
-      <div className="border-b border-slate-200 mb-4">
+      <div className="mb-4 flex flex-col gap-3 border-b border-slate-200 pb-2 lg:flex-row lg:items-end lg:justify-between">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('allocated-orders')}
@@ -391,6 +399,12 @@ export default function FulfilmentPage() {
             Shipments
           </button>
         </nav>
+        <SavedFilterViews
+          storageKey="fulfilment"
+          currentValues={{ activeTab, waveStatus, shipmentStatus }}
+          onApply={handleApplySavedView}
+          className="pb-1"
+        />
       </div>
 
       {activeTab === 'allocated-orders' && (

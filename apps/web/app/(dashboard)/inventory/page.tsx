@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { useQueryParams, useWarehouses } from '@/lib/queries';
 import { useStockSnapshots, useExpiryAlertsSummary, StockSnapshot } from '@/lib/queries/inventory';
@@ -158,6 +159,10 @@ export default function InventoryPage() {
   const criticalCount = expiryAlerts?.critical || 0;
   const totalStockRows = stockData?.meta?.total || 0;
   const hasActiveFilters = Boolean(params.search);
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setSearch(String(values.search ?? ''));
+    setPage(1);
+  };
 
   return (
     <ListPageTemplate
@@ -233,6 +238,11 @@ export default function InventoryPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="inventory-stock"
+            currentValues={{ search: params.search || '' }}
+            onApply={handleApplySavedView}
+          />
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}

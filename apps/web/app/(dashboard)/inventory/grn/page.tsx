@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { useGrns, useQueryParams, useSuppliers, Grn } from '@/lib/queries';
 import { useWarehouses } from '@/lib/queries/warehouses';
@@ -137,6 +138,10 @@ export default function GrnListPage() {
   const pendingPutaway = tableData.filter(g => g.status === 'PUTAWAY_PENDING').length;
   const totalGrns = data?.meta?.total || 0;
   const hasActiveFilters = Boolean(status);
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setStatus(String(values.status ?? ''));
+    setPage(1);
+  };
 
   return (
     <ListPageTemplate
@@ -191,6 +196,11 @@ export default function GrnListPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="grn"
+            currentValues={{ status }}
+            onApply={handleApplySavedView}
+          />
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}

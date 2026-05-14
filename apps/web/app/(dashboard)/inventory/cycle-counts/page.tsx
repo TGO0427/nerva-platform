@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { useToast } from '@/components/ui/toast';
 import {
@@ -149,6 +150,11 @@ export default function CycleCountsPage() {
   const openCount = tableData.filter(cc => cc.status === 'OPEN').length;
   const inProgressCount = tableData.filter(cc => cc.status === 'IN_PROGRESS').length;
   const hasActiveFilters = Boolean(statusFilter || search);
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setSearch(String(values.search ?? ''));
+    setStatusFilter(String(values.statusFilter ?? ''));
+    setPage(1);
+  };
 
   return (
     <ListPageTemplate
@@ -197,6 +203,11 @@ export default function CycleCountsPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="cycle-counts"
+            currentValues={{ search, statusFilter }}
+            onApply={handleApplySavedView}
+          />
           <ExportActions onExport={handleExport} />
           <ColumnToggle
             columns={allColumns}

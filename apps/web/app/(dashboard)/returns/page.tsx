@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { useRmas, useCancelRma, useQueryParams, Rma } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
@@ -155,6 +156,11 @@ export default function ReturnsPage() {
   const pendingCredit = tableData.filter(r => ['CREDIT_PENDING'].includes(r.status)).length;
   const totalRmas = data?.meta?.total || 0;
   const hasActiveFilters = Boolean(search || status);
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setSearch(String(values.search ?? ''));
+    setStatus((values.status ?? '') as RmaStatus | '');
+    setPage(1);
+  };
 
   return (
     <ListPageTemplate
@@ -216,6 +222,11 @@ export default function ReturnsPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="returns"
+            currentValues={{ search, status }}
+            onApply={handleApplySavedView}
+          />
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}

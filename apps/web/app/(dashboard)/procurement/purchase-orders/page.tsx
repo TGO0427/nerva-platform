@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { usePurchaseOrders, usePurchaseOrderStats, useImportPurchaseOrders, useQueryParams } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
@@ -153,6 +154,11 @@ export default function PurchaseOrdersPage() {
   const pendingPOs = stats?.pendingReceipt ?? 0;
   const receivedPOs = stats?.received ?? 0;
   const hasActiveFilters = Boolean(params.search || statusFilter);
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setSearch(String(values.search ?? ''));
+    setStatusFilter(String(values.statusFilter ?? ''));
+    setPage(1);
+  };
 
   return (
     <ListPageTemplate
@@ -217,6 +223,11 @@ export default function PurchaseOrdersPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="purchase-orders"
+            currentValues={{ search: params.search || '', statusFilter }}
+            onApply={handleApplySavedView}
+          />
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}

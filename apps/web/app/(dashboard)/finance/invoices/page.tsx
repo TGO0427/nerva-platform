@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { ColumnToggle } from '@/components/ui/column-toggle';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { useInvoices, useInvoiceStats, useCancelInvoice, useQueryParams, Invoice } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
@@ -189,6 +190,11 @@ export default function InvoicesPage() {
     clearSelection();
   };
   const hasActiveFilters = Boolean(status || search);
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setSearch(String(values.search ?? ''));
+    setStatus(String(values.status ?? ''));
+    setPage(1);
+  };
 
   return (
     <ListPageTemplate
@@ -242,6 +248,11 @@ export default function InvoicesPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="invoices"
+            currentValues={{ search, status }}
+            onApply={handleApplySavedView}
+          />
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}

@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { useOrders, useSalesOrderStats, useImportSalesOrders, useQueryParams, SalesOrderWithCustomer } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
@@ -170,6 +171,12 @@ export default function SalesOrdersPage() {
   const inFulfilment = stats?.inFulfilment ?? 0;
   const shippedCount = stats?.shipped ?? 0;
   const hasActiveFilters = Boolean(search || status || lateOnly);
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setSearch(String(values.search ?? ''));
+    setStatus((values.status ?? '') as SalesOrderStatus | '');
+    setLateOnly(Boolean(values.lateOnly));
+    setPage(1);
+  };
 
   return (
     <ListPageTemplate
@@ -244,6 +251,11 @@ export default function SalesOrdersPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="sales-orders"
+            currentValues={{ search, status, lateOnly }}
+            onApply={handleApplySavedView}
+          />
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}

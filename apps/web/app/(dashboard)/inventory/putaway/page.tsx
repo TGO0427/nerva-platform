@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { useToast } from '@/components/ui/toast';
@@ -230,6 +231,11 @@ export default function PutawayPage() {
   ];
 
   const totalPages = data ? Math.ceil(data.total / limit) : 0;
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setStatusFilter(String(values.statusFilter ?? ''));
+    setWarehouseFilter(String(values.warehouseFilter ?? ''));
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6">
@@ -274,6 +280,11 @@ export default function PutawayPage() {
             ]}
           />
         </div>
+        <SavedFilterViews
+          storageKey="putaway"
+          currentValues={{ statusFilter, warehouseFilter }}
+          onApply={handleApplySavedView}
+        />
       </div>
 
       <Card>

@@ -11,6 +11,7 @@ import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { useToast } from '@/components/ui/toast';
 import { useAdjustments, useCreateAdjustment, useImportAdjustments } from '@/lib/queries/inventory';
@@ -177,6 +178,11 @@ export default function AdjustmentsPage() {
   const submittedCount = tableData.filter(a => a.status === 'SUBMITTED').length;
   const postedCount = tableData.filter(a => a.status === 'POSTED').length;
   const hasActiveFilters = Boolean(statusFilter || search);
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setSearch(String(values.search ?? ''));
+    setStatusFilter(String(values.statusFilter ?? ''));
+    setPage(1);
+  };
 
   return (
     <ListPageTemplate
@@ -237,6 +243,11 @@ export default function AdjustmentsPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="adjustments"
+            currentValues={{ search, statusFilter }}
+            onApply={handleApplySavedView}
+          />
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}
