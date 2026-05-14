@@ -18,6 +18,7 @@ import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDate, formatNumber } from '@/lib/format';
 import type { Warehouse } from '@nerva/shared';
 
 type WarehouseWithSite = Warehouse & { siteName?: string };
@@ -172,7 +173,7 @@ export default function WarehousesPage() {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
     {
       key: 'actions',
@@ -218,19 +219,19 @@ export default function WarehousesPage() {
       stats={[
         {
           title: 'Total',
-          value: totalCount,
+          value: formatNumber(totalCount),
           icon: <WarehouseSmIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Active',
-          value: activeCount,
+          value: formatNumber(activeCount),
           icon: <CheckCircleIcon />,
           iconColor: 'green',
         },
         {
           title: 'Inactive',
-          value: inactiveCount,
+          value: formatNumber(inactiveCount),
           icon: <XCircleIcon />,
           iconColor: 'red',
           alert: inactiveCount > 0,

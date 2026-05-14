@@ -16,6 +16,7 @@ import { useItems, useImportItems, useQueryParams } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import { itemImportConfig } from '@/lib/config/csv-import';
+import { formatDate, formatNumber, formatQuantity } from '@/lib/format';
 import type { Item } from '@nerva/shared';
 
 export default function ItemsPage() {
@@ -67,7 +68,7 @@ export default function ItemsPage() {
       key: 'weightKg',
       header: 'Weight (kg)',
       width: '120px',
-      render: (row) => row.weightKg ? Number(row.weightKg).toFixed(2) : '-',
+      render: (row) => formatQuantity(row.weightKg),
     },
     {
       key: 'isActive',
@@ -84,7 +85,7 @@ export default function ItemsPage() {
       header: 'Created',
       sortable: true,
       width: '120px',
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], []);
 
@@ -109,7 +110,7 @@ export default function ItemsPage() {
       { key: 'sku', header: 'SKU' },
       { key: 'description', header: 'Description' },
       { key: 'uom', header: 'UOM' },
-      { key: 'weightKg', header: 'Weight (kg)', getValue: (row: Item) => row.weightKg ? Number(row.weightKg).toFixed(2) : '' },
+      { key: 'weightKg', header: 'Weight (kg)', getValue: (row: Item) => formatQuantity(row.weightKg, '') },
       { key: 'isActive', header: 'Status', getValue: (row: Item) => row.isActive ? 'Active' : 'Inactive' },
       { key: 'createdAt', header: 'Created', getValue: (row: Item) => formatDateForExport(row.createdAt) },
     ];
@@ -136,19 +137,19 @@ export default function ItemsPage() {
       stats={[
         {
           title: 'Total Items',
-          value: totalItems,
+          value: formatNumber(totalItems),
           icon: <BoxSmIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Active',
-          value: activeItems,
+          value: formatNumber(activeItems),
           icon: <CheckCircleIcon />,
           iconColor: 'green',
         },
         {
           title: 'Inactive',
-          value: inactiveItems,
+          value: formatNumber(inactiveItems),
           icon: <XCircleIcon />,
           iconColor: 'red',
         },

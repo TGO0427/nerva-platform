@@ -16,6 +16,7 @@ import { useCustomers, useImportCustomers, useQueryParams } from '@/lib/queries'
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import { customerImportConfig } from '@/lib/config/csv-import';
+import { formatDate, formatNumber } from '@/lib/format';
 import type { Customer } from '@nerva/shared';
 
 export default function CustomersPage() {
@@ -85,7 +86,7 @@ export default function CustomersPage() {
       header: 'Created',
       sortable: true,
       width: '120px',
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], []);
 
@@ -137,19 +138,19 @@ export default function CustomersPage() {
       stats={[
         {
           title: 'Total Customers',
-          value: totalCustomers,
+          value: formatNumber(totalCustomers),
           icon: <UsersSmIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Active',
-          value: activeCustomers,
+          value: formatNumber(activeCustomers),
           icon: <CheckCircleIcon />,
           iconColor: 'green',
         },
         {
           title: 'Inactive',
-          value: inactiveCustomers,
+          value: formatNumber(inactiveCustomers),
           icon: <XCircleIcon />,
           iconColor: 'red',
         },
