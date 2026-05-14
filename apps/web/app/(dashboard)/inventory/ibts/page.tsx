@@ -18,6 +18,7 @@ import { useIbts, useCreateIbt, useQueryParams, type IbtDetail } from '@/lib/que
 import { useAllWarehouses } from '@/lib/queries/warehouses';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDate, formatNumber } from '@/lib/format';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -114,13 +115,13 @@ export default function IbtListPage() {
       key: 'lineCount',
       header: 'Lines',
       width: '80px',
-      render: (row) => row.lineCount ?? 0,
+      render: (row) => formatNumber(row.lineCount ?? 0),
     },
     {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], []);
 
@@ -187,10 +188,10 @@ export default function IbtListPage() {
         </Button>
       }
       stats={[
-        { title: 'Total', value: totalIbts, icon: <TransferIcon />, iconColor: 'gray' },
-        { title: 'Draft', value: draftCount, icon: <DraftIcon />, iconColor: 'blue' },
-        { title: 'In Transit', value: inTransitCount, icon: <TruckIcon />, iconColor: 'yellow' },
-        { title: 'Received', value: receivedCount, icon: <CheckIcon />, iconColor: 'green' },
+        { title: 'Total', value: formatNumber(totalIbts), icon: <TransferIcon />, iconColor: 'gray' },
+        { title: 'Draft', value: formatNumber(draftCount), icon: <DraftIcon />, iconColor: 'blue' },
+        { title: 'In Transit', value: formatNumber(inTransitCount), icon: <TruckIcon />, iconColor: 'yellow' },
+        { title: 'Received', value: formatNumber(receivedCount), icon: <CheckIcon />, iconColor: 'green' },
       ]}
       filters={
         <div className="flex gap-2">
@@ -202,7 +203,10 @@ export default function IbtListPage() {
           />
           <Select
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
             options={STATUS_OPTIONS}
             className="max-w-xs"
           />

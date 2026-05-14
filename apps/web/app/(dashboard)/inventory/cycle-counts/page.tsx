@@ -21,6 +21,7 @@ import { useWarehouses } from '@/lib/queries/warehouses';
 import { useQueryParams } from '@/lib/queries';
 import { useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDate, formatNumber } from '@/lib/format';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -109,14 +110,14 @@ export default function CycleCountsPage() {
     {
       key: 'lineCount',
       header: 'Lines',
-      render: (cc) => cc.lineCount ?? 0,
+      render: (cc) => formatNumber(cc.lineCount ?? 0),
     },
     {
       key: 'varianceCount',
       header: 'Variances',
       render: (cc) => (
         <span className={cc.varianceCount ? 'text-red-600 font-medium' : ''}>
-          {cc.varianceCount ?? 0}
+          {formatNumber(cc.varianceCount ?? 0)}
         </span>
       ),
     },
@@ -124,7 +125,7 @@ export default function CycleCountsPage() {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (cc) => new Date(cc.createdAt).toLocaleDateString(),
+      render: (cc) => formatDate(cc.createdAt),
     },
   ], []);
 
@@ -151,19 +152,19 @@ export default function CycleCountsPage() {
       stats={[
         {
           title: 'Total',
-          value: totalCounts,
+          value: formatNumber(totalCounts),
           icon: <ClipboardIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Open',
-          value: openCount,
+          value: formatNumber(openCount),
           icon: <FolderOpenIcon />,
           iconColor: 'blue',
         },
         {
           title: 'In Progress',
-          value: inProgressCount,
+          value: formatNumber(inProgressCount),
           icon: <PlayIcon />,
           iconColor: 'yellow',
         },

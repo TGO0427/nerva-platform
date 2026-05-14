@@ -19,6 +19,7 @@ import { useQueryParams } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import { adjustmentImportConfig } from '@/lib/config/csv-import';
+import { formatDate, formatNumber } from '@/lib/format';
 import type { Adjustment } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -135,7 +136,7 @@ export default function AdjustmentsPage() {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (adj) => new Date(adj.createdAt).toLocaleDateString(),
+      render: (adj) => formatDate(adj.createdAt),
     },
   ], [warehouseMap]);
 
@@ -185,25 +186,25 @@ export default function AdjustmentsPage() {
       stats={[
         {
           title: 'Total',
-          value: totalAdjustments,
+          value: formatNumber(totalAdjustments),
           icon: <ClipboardIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Draft',
-          value: draftCount,
+          value: formatNumber(draftCount),
           icon: <PencilIcon />,
           iconColor: 'blue',
         },
         {
           title: 'Submitted',
-          value: submittedCount,
+          value: formatNumber(submittedCount),
           icon: <ClockIcon />,
           iconColor: 'yellow',
         },
         {
           title: 'Posted',
-          value: postedCount,
+          value: formatNumber(postedCount),
           icon: <CheckIcon />,
           iconColor: 'green',
         },
