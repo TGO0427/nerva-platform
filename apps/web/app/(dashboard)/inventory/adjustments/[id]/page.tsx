@@ -24,6 +24,7 @@ import {
 } from '@/lib/queries/inventory';
 import { useWarehouses, useBins } from '@/lib/queries/warehouses';
 import { useItems } from '@/lib/queries';
+import { formatDate, formatDateTime, formatNumber, formatQuantity } from '@/lib/format';
 import type { AdjustmentLine } from '@nerva/shared';
 
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
@@ -261,7 +262,7 @@ export default function AdjustmentDetailPage() {
           <CardContent className="p-4">
             <p className="text-sm text-slate-500">Created</p>
             <p className="text-lg font-semibold">
-              {new Date(adjustment.createdAt).toLocaleDateString()}
+              {formatDate(adjustment.createdAt)}
             </p>
           </CardContent>
         </Card>
@@ -271,7 +272,7 @@ export default function AdjustmentDetailPage() {
             <p className={`text-lg font-semibold ${
               totalDelta > 0 ? 'text-green-600' : totalDelta < 0 ? 'text-red-600' : 'text-slate-900'
             }`}>
-              {totalDelta > 0 ? '+' : ''}{totalDelta}
+              {totalDelta > 0 ? '+' : ''}{formatQuantity(totalDelta)}
             </p>
           </CardContent>
         </Card>
@@ -290,7 +291,7 @@ export default function AdjustmentDetailPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Adjustment Lines ({lines?.length || 0})</CardTitle>
+            <CardTitle>Adjustment Lines ({formatNumber(lines?.length || 0)})</CardTitle>
             {isDraft && (
               <Button
                 variant="secondary"
@@ -389,12 +390,12 @@ export default function AdjustmentDetailPage() {
                         </td>
                         <td className="py-3 px-4">{bin?.code || line.binId}</td>
                         <td className="py-3 px-4">{line.batchNo || '-'}</td>
-                        <td className="py-3 px-4 text-right">{line.qtyBefore}</td>
-                        <td className="py-3 px-4 text-right">{line.qtyAfter}</td>
+                        <td className="py-3 px-4 text-right">{formatQuantity(line.qtyBefore)}</td>
+                        <td className="py-3 px-4 text-right">{formatQuantity(line.qtyAfter)}</td>
                         <td className={`py-3 px-4 text-right font-medium ${
                           line.qtyDelta > 0 ? 'text-green-600' : line.qtyDelta < 0 ? 'text-red-600' : 'text-slate-500'
                         }`}>
-                          {line.qtyDelta > 0 ? '+' : ''}{line.qtyDelta}
+                          {line.qtyDelta > 0 ? '+' : ''}{formatQuantity(line.qtyDelta)}
                         </td>
                         {isDraft && (
                           <td className="py-3 px-4 text-right">
@@ -451,7 +452,7 @@ export default function AdjustmentDetailPage() {
           <CardContent className="p-4">
             <p className="text-sm text-slate-500">Approved</p>
             <p className="text-sm mt-1">
-              {adjustment.approvedAt && new Date(adjustment.approvedAt).toLocaleString()}
+              {formatDateTime(adjustment.approvedAt)}
             </p>
           </CardContent>
         </Card>

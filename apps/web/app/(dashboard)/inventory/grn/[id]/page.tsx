@@ -21,6 +21,7 @@ import {
   GrnLine,
   PutawayTaskDetail,
 } from '@/lib/queries';
+import { formatDate, formatNumber, formatPercent, formatQuantity } from '@/lib/format';
 
 export default function GrnDetailPage() {
   const params = useParams();
@@ -55,6 +56,7 @@ export default function GrnDetailPage() {
       key: 'qtyExpected',
       header: 'Expected',
       className: 'text-right',
+      render: (row) => formatQuantity(row.qtyExpected),
     },
     {
       key: 'qtyReceived',
@@ -62,7 +64,7 @@ export default function GrnDetailPage() {
       className: 'text-right',
       render: (row) => (
         <span className={row.qtyReceived >= row.qtyExpected ? 'text-green-600' : 'text-orange-600'}>
-          {row.qtyReceived}
+          {formatQuantity(row.qtyReceived)}
         </span>
       ),
     },
@@ -104,7 +106,7 @@ export default function GrnDetailPage() {
           <span className="text-slate-400">Not set</span>
         ),
     },
-    { key: 'qty', header: 'Qty' },
+    { key: 'qty', header: 'Qty', render: (t) => formatQuantity(t.qty) },
     {
       key: 'status',
       header: 'Status',
@@ -183,7 +185,7 @@ export default function GrnDetailPage() {
             <Badge variant={getStatusVariant(grn.status)}>{grn.status}</Badge>
           </div>
           <p className="text-slate-500 mt-1">
-            Created {new Date(grn.createdAt).toLocaleDateString()}
+            Created {formatDate(grn.createdAt)}
           </p>
         </div>
         <div className="flex gap-2">
@@ -243,25 +245,25 @@ export default function GrnDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">{totalExpected}</div>
+            <div className="text-2xl font-bold text-slate-900">{formatQuantity(totalExpected)}</div>
             <p className="text-sm text-slate-500">Expected Qty</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">{totalReceived}</div>
+            <div className="text-2xl font-bold text-green-600">{formatQuantity(totalReceived)}</div>
             <p className="text-sm text-slate-500">Received Qty</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">{lines?.length || 0}</div>
+            <div className="text-2xl font-bold text-slate-900">{formatNumber(lines?.length || 0)}</div>
             <p className="text-sm text-slate-500">Line Items</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-primary-600">{progress}%</div>
+            <div className="text-2xl font-bold text-primary-600">{formatPercent(progress, 0)}</div>
             <p className="text-sm text-slate-500">Progress</p>
             <div className="mt-2 h-2 bg-slate-200 rounded-full overflow-hidden">
               <div
@@ -312,7 +314,7 @@ export default function GrnDetailPage() {
               <CardTitle>Putaway Tasks</CardTitle>
               {putawayTasks && (
                 <p className="text-sm text-slate-500">
-                  {putawayTasks.filter((t) => t.status === 'COMPLETE').length} / {putawayTasks.length} completed
+                  {formatNumber(putawayTasks.filter((t) => t.status === 'COMPLETE').length)} / {formatNumber(putawayTasks.length)} completed
                 </p>
               )}
             </div>

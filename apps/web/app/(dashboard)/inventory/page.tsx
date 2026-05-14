@@ -15,6 +15,7 @@ import { useQueryParams, useWarehouses } from '@/lib/queries';
 import { useStockSnapshots, useExpiryAlertsSummary, StockSnapshot } from '@/lib/queries/inventory';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDate, formatNumber, formatQuantity } from '@/lib/format';
 
 // Extended type with id for table selection
 interface StockRow extends StockSnapshot {
@@ -78,7 +79,7 @@ export default function InventoryPage() {
         const isCritical = daysUntil >= 0 && daysUntil <= 7;
         return (
           <span className={isExpired ? 'text-red-600 font-medium' : isCritical ? 'text-orange-600' : ''}>
-            {date.toLocaleDateString()}
+            {formatDate(row.expiryDate)}
           </span>
         );
       },
@@ -96,7 +97,7 @@ export default function InventoryPage() {
       header: 'On Hand',
       width: '100px',
       render: (row) => (
-        <span className="font-medium">{row.qtyOnHand}</span>
+        <span className="font-medium">{formatQuantity(row.qtyOnHand)}</span>
       ),
     },
     {
@@ -105,7 +106,7 @@ export default function InventoryPage() {
       width: '100px',
       render: (row) => (
         <span className={row.qtyReserved > 0 ? 'text-orange-600' : 'text-slate-400'}>
-          {row.qtyReserved}
+          {formatQuantity(row.qtyReserved)}
         </span>
       ),
     },
@@ -115,7 +116,7 @@ export default function InventoryPage() {
       width: '100px',
       render: (row) => (
         <span className={row.qtyAvailable > 0 ? 'text-green-600 font-medium' : 'text-slate-400'}>
-          {row.qtyAvailable}
+          {formatQuantity(row.qtyAvailable)}
         </span>
       ),
     },
@@ -169,7 +170,7 @@ export default function InventoryPage() {
               Expiry Alerts
               {expiredCount > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full">
-                  {expiredCount}
+                  {formatNumber(expiredCount)}
                 </span>
               )}
             </Button>
@@ -191,20 +192,20 @@ export default function InventoryPage() {
       stats={[
         {
           title: 'Warehouses',
-          value: warehouses?.length || 0,
+          value: formatNumber(warehouses?.length || 0),
           icon: <WarehouseIcon />,
           iconColor: 'gray',
         },
         {
           title: 'Stock Records',
-          value: totalStockRows,
+          value: formatNumber(totalStockRows),
           icon: <ItemsIcon />,
           iconColor: 'blue',
         },
         {
           title: 'Expiry Alerts',
-          value: expiredCount,
-          subtitle: criticalCount > 0 ? `+${criticalCount} critical` : undefined,
+          value: formatNumber(expiredCount),
+          subtitle: criticalCount > 0 ? `+${formatNumber(criticalCount)} critical` : undefined,
           subtitleType: 'negative',
           icon: <ExpiryLgIcon />,
           iconColor: expiredCount > 0 ? 'red' : 'gray',

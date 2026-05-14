@@ -12,6 +12,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { useGrn, useGrnLines, useReceiveGrnLine, useItems, GrnLine } from '@/lib/queries';
 import { useBins } from '@/lib/queries/warehouses';
+import { formatDate, formatNumber, formatQuantity } from '@/lib/format';
 
 export default function GrnReceivePage() {
   const params = useParams();
@@ -84,6 +85,7 @@ export default function GrnReceivePage() {
       key: 'qtyReceived',
       header: 'Qty',
       className: 'text-right',
+      render: (row) => formatQuantity(row.qtyReceived),
     },
     {
       key: 'batchNo',
@@ -93,7 +95,7 @@ export default function GrnReceivePage() {
     {
       key: 'expiryDate',
       header: 'Expiry Date',
-      render: (row) => row.expiryDate ? new Date(row.expiryDate).toLocaleDateString() : '-',
+      render: (row) => formatDate(row.expiryDate),
     },
     {
       key: 'binCode',
@@ -235,7 +237,7 @@ export default function GrnReceivePage() {
         {/* Received Items List */}
         <Card>
           <CardHeader>
-            <CardTitle>Received Items ({lines?.length || 0})</CardTitle>
+            <CardTitle>Received Items ({formatNumber(lines?.length || 0)})</CardTitle>
           </CardHeader>
           <CardContent>
             <DataTable

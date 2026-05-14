@@ -15,6 +15,7 @@ import { useGrns, useQueryParams, useSuppliers, Grn } from '@/lib/queries';
 import { useWarehouses } from '@/lib/queries/warehouses';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDate, formatNumber } from '@/lib/format';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -90,7 +91,7 @@ export default function GrnListPage() {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], [warehouseMap, supplierMap]);
 
@@ -142,26 +143,26 @@ export default function GrnListPage() {
       stats={[
         {
           title: 'Open GRNs',
-          value: openGrns,
+          value: formatNumber(openGrns),
           icon: <FolderOpenIcon />,
           iconColor: 'blue',
         },
         {
           title: 'Partial Received',
-          value: partialGrns,
+          value: formatNumber(partialGrns),
           icon: <PartialIcon />,
           iconColor: 'yellow',
         },
         {
           title: 'Pending Putaway',
-          value: pendingPutaway,
+          value: formatNumber(pendingPutaway),
           icon: <PutawayIcon />,
           iconColor: 'orange',
           alert: pendingPutaway > 0,
         },
         {
           title: 'Total GRNs',
-          value: totalGrns,
+          value: formatNumber(totalGrns),
           icon: <ReceiveSmIcon />,
           iconColor: 'gray',
         },
@@ -170,7 +171,10 @@ export default function GrnListPage() {
       filters={
         <Select
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setPage(1);
+          }}
           options={STATUS_OPTIONS}
           className="max-w-xs"
         />

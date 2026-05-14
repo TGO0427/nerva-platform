@@ -25,6 +25,7 @@ import {
   PickTask,
 } from '@/lib/queries';
 import { api } from '@/lib/api';
+import { formatDate, formatNumber, formatPercent, formatQuantity } from '@/lib/format';
 
 export default function PickWaveDetailPage() {
   const params = useParams();
@@ -132,6 +133,7 @@ export default function PickWaveDetailPage() {
       key: 'qtyToPick',
       header: 'To Pick',
       className: 'text-right',
+      render: (row) => formatQuantity(row.qtyToPick),
     },
     {
       key: 'qtyPicked',
@@ -139,7 +141,7 @@ export default function PickWaveDetailPage() {
       className: 'text-right',
       render: (row) => (
         <span className={row.qtyPicked >= row.qtyToPick ? 'text-green-600' : 'text-orange-600'}>
-          {row.qtyPicked}
+          {formatQuantity(row.qtyPicked)}
         </span>
       ),
     },
@@ -305,7 +307,7 @@ export default function PickWaveDetailPage() {
             <Badge variant={getWaveStatusVariant(wave.status)}>{wave.status}</Badge>
           </div>
           <p className="text-slate-500 mt-1">
-            Created {new Date(wave.createdAt).toLocaleDateString()}
+            Created {formatDate(wave.createdAt)}
           </p>
         </div>
         <div className="flex gap-2">
@@ -350,31 +352,31 @@ export default function PickWaveDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">{totalTasks}</div>
+            <div className="text-2xl font-bold text-slate-900">{formatNumber(totalTasks)}</div>
             <p className="text-sm text-slate-500">Total Tasks</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">{inProgressTasks}</div>
+            <div className="text-2xl font-bold text-blue-600">{formatNumber(inProgressTasks)}</div>
             <p className="text-sm text-slate-500">In Progress</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">{completedTasks}</div>
+            <div className="text-2xl font-bold text-green-600">{formatNumber(completedTasks)}</div>
             <p className="text-sm text-slate-500">Completed</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">{totalPicked}/{totalToPick}</div>
+            <div className="text-2xl font-bold text-slate-900">{formatQuantity(totalPicked)}/{formatQuantity(totalToPick)}</div>
             <p className="text-sm text-slate-500">Qty Picked</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-primary-600">{progress}%</div>
+            <div className="text-2xl font-bold text-primary-600">{formatPercent(progress, 0)}</div>
             <p className="text-sm text-slate-500">Progress</p>
             <div className="mt-2 h-2 bg-slate-200 rounded-full overflow-hidden">
               <div
@@ -435,7 +437,7 @@ export default function PickWaveDetailPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Quantity Picked (max {pickModalTask.qtyToPick})
+                    Quantity Picked (max {formatQuantity(pickModalTask.qtyToPick)})
                   </label>
                   <Input
                     type="number"

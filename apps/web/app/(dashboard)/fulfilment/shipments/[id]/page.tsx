@@ -23,6 +23,7 @@ import { api } from '@/lib/api';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
+import { formatDate, formatDateTime, formatQuantity } from '@/lib/format';
 import type { ShipmentLine } from '@/lib/queries/fulfilment';
 
 const shipmentLineColumns: Column<ShipmentLine>[] = [
@@ -39,7 +40,7 @@ const shipmentLineColumns: Column<ShipmentLine>[] = [
     key: 'qty',
     header: 'Qty',
     className: 'text-right',
-    render: (row) => row.qty.toLocaleString(),
+    render: (row) => formatQuantity(row.qty),
   },
   {
     key: 'batchNo',
@@ -199,7 +200,7 @@ export default function ShipmentDetailPage() {
             </Badge>
           </div>
           <p className="text-slate-500 mt-1">
-            Created {new Date(shipment.createdAt).toLocaleDateString()}
+            Created {formatDate(shipment.createdAt)}
           </p>
         </div>
         <div className="flex gap-2">
@@ -323,11 +324,11 @@ export default function ShipmentDetailPage() {
               </div>
               <div>
                 <dt className="text-slate-500">Total Weight</dt>
-                <dd className="font-medium">{shipment.totalWeightKg} kg</dd>
+                <dd className="font-medium">{formatQuantity(shipment.totalWeightKg)} kg</dd>
               </div>
               <div>
                 <dt className="text-slate-500">Total Volume</dt>
-                <dd className="font-medium">{shipment.totalCbm} m³</dd>
+                <dd className="font-medium">{formatQuantity(shipment.totalCbm)} m³</dd>
               </div>
             </dl>
           </CardContent>
@@ -354,7 +355,7 @@ export default function ShipmentDetailPage() {
               <div>
                 <dt className="text-slate-500">Last Updated</dt>
                 <dd className="font-medium">
-                  {new Date(shipment.updatedAt).toLocaleString()}
+                  {formatDateTime(shipment.updatedAt)}
                 </dd>
               </div>
             </dl>
@@ -492,4 +493,3 @@ function CheckCircleIcon() {
     </svg>
   );
 }
-

@@ -21,6 +21,7 @@ import {
   ShipmentLine,
 } from '@/lib/queries';
 import { api } from '@/lib/api';
+import { formatNumber, formatQuantity } from '@/lib/format';
 
 export default function PackingStationPage() {
   const router = useRouter();
@@ -117,7 +118,7 @@ export default function PackingStationPage() {
       className: 'text-center',
       width: '80px',
       render: (row) => (
-        <span className="text-lg font-bold">{row.qty}</span>
+        <span className="text-lg font-bold">{formatQuantity(row.qty)}</span>
       ),
     },
     {
@@ -182,7 +183,7 @@ export default function PackingStationPage() {
                         Order: {shipment.orderNo || shipment.salesOrderId.slice(0, 8)}
                       </div>
                       <div className="text-sm text-slate-500">
-                        Weight: {shipment.totalWeightKg ? Number(shipment.totalWeightKg).toFixed(2) : 0} kg
+                        Weight: {formatQuantity(shipment.totalWeightKg)} kg
                       </div>
                     </button>
                   ))}
@@ -234,19 +235,19 @@ export default function PackingStationPage() {
                 <CardContent>
                   <div className="grid grid-cols-4 gap-4 text-center">
                     <div className="p-3 bg-slate-50 rounded-lg">
-                      <div className="text-2xl font-bold text-slate-900">{totalItems}</div>
+                      <div className="text-2xl font-bold text-slate-900">{formatQuantity(totalItems)}</div>
                       <div className="text-sm text-slate-500">Total Items</div>
                     </div>
                     <div className="p-3 bg-slate-50 rounded-lg">
-                      <div className="text-2xl font-bold text-slate-900">{shipmentLines?.length || 0}</div>
+                      <div className="text-2xl font-bold text-slate-900">{formatNumber(shipmentLines?.length || 0)}</div>
                       <div className="text-sm text-slate-500">Line Items</div>
                     </div>
                     <div className="p-3 bg-slate-50 rounded-lg">
-                      <div className="text-2xl font-bold text-slate-900">{selectedShipment.totalWeightKg ? Number(selectedShipment.totalWeightKg).toFixed(1) : 0}</div>
+                      <div className="text-2xl font-bold text-slate-900">{formatQuantity(selectedShipment.totalWeightKg)}</div>
                       <div className="text-sm text-slate-500">Weight (kg)</div>
                     </div>
                     <div className="p-3 bg-slate-50 rounded-lg">
-                      <div className="text-2xl font-bold text-slate-900">{selectedShipment.totalCbm ? Number(selectedShipment.totalCbm).toFixed(2) : 0}</div>
+                      <div className="text-2xl font-bold text-slate-900">{formatQuantity(selectedShipment.totalCbm)}</div>
                       <div className="text-sm text-slate-500">Volume (m³)</div>
                     </div>
                   </div>

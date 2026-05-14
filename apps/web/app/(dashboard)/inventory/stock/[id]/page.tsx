@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
 import { useItem, useStockOnHand, useLedgerHistory, useQueryParams, StockSnapshot, LedgerEntry } from '@/lib/queries';
+import { formatDate, formatDateTime, formatQuantity } from '@/lib/format';
 
 export default function StockDetailPage() {
   const params = useParams();
@@ -54,9 +55,9 @@ export default function StockDetailPage() {
             isCritical ? 'text-orange-600 font-medium' :
             isWarning ? 'text-yellow-600' : ''
           }>
-            {expiry.toLocaleDateString()}
+            {formatDate(row.expiryDate)}
             {isExpired && ' (Expired)'}
-            {isCritical && !isExpired && ` (${daysUntil}d)`}
+            {isCritical && !isExpired && ` (${formatQuantity(daysUntil)}d)`}
           </span>
         );
       },
@@ -66,7 +67,7 @@ export default function StockDetailPage() {
       header: 'On Hand',
       className: 'text-right',
       render: (row) => (
-        <span className="font-medium">{row.qtyOnHand}</span>
+        <span className="font-medium">{formatQuantity(row.qtyOnHand)}</span>
       ),
     },
     {
@@ -74,7 +75,7 @@ export default function StockDetailPage() {
       header: 'Reserved',
       className: 'text-right',
       render: (row) => (
-        <span className="text-orange-600">{row.qtyReserved}</span>
+        <span className="text-orange-600">{formatQuantity(row.qtyReserved)}</span>
       ),
     },
     {
@@ -82,7 +83,7 @@ export default function StockDetailPage() {
       header: 'Available',
       className: 'text-right',
       render: (row) => (
-        <span className="font-medium text-green-600">{row.qtyAvailable}</span>
+        <span className="font-medium text-green-600">{formatQuantity(row.qtyAvailable)}</span>
       ),
     },
   ];
@@ -91,7 +92,7 @@ export default function StockDetailPage() {
     {
       key: 'createdAt',
       header: 'Date',
-      render: (row) => new Date(row.createdAt).toLocaleString(),
+      render: (row) => formatDateTime(row.createdAt),
     },
     {
       key: 'reason',
@@ -108,7 +109,7 @@ export default function StockDetailPage() {
       className: 'text-right',
       render: (row) => (
         <span className={row.qtyChange >= 0 ? 'text-green-600' : 'text-red-600'}>
-          {row.qtyChange >= 0 ? '+' : ''}{row.qtyChange}
+          {row.qtyChange >= 0 ? '+' : ''}{formatQuantity(row.qtyChange)}
         </span>
       ),
     },
@@ -116,6 +117,7 @@ export default function StockDetailPage() {
       key: 'qtyAfter',
       header: 'Balance',
       className: 'text-right',
+      render: (row) => formatQuantity(row.qtyAfter),
     },
     {
       key: 'batchNo',
@@ -167,19 +169,19 @@ export default function StockDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-3xl font-bold text-slate-900">{totalOnHand}</div>
+            <div className="text-3xl font-bold text-slate-900">{formatQuantity(totalOnHand)}</div>
             <p className="text-sm text-slate-500">Total On Hand</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-3xl font-bold text-orange-600">{totalReserved}</div>
+            <div className="text-3xl font-bold text-orange-600">{formatQuantity(totalReserved)}</div>
             <p className="text-sm text-slate-500">Reserved</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-3xl font-bold text-green-600">{totalAvailable}</div>
+            <div className="text-3xl font-bold text-green-600">{formatQuantity(totalAvailable)}</div>
             <p className="text-sm text-slate-500">Available</p>
           </CardContent>
         </Card>

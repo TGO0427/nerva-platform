@@ -18,6 +18,7 @@ import {
 } from '@/lib/queries/inventory';
 import { useWarehouses, useBins } from '@/lib/queries/warehouses';
 import { useUsers } from '@/lib/queries/settings';
+import { formatDateTime, formatQuantity } from '@/lib/format';
 import type { Bin } from '@nerva/shared';
 
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
@@ -148,7 +149,7 @@ export default function PutawayDetailPage() {
         },
         {
           title: 'Quantity',
-          value: task.qty,
+          value: formatQuantity(task.qty),
           icon: <QtyIcon />,
           iconColor: 'blue',
         },
@@ -239,7 +240,7 @@ export default function PutawayDetailPage() {
                 </div>
                 <div>
                   <div className="text-sm text-slate-500">Quantity</div>
-                  <div className="mt-1 font-medium">{task.qty}</div>
+                  <div className="mt-1 font-medium">{formatQuantity(task.qty)}</div>
                 </div>
                 <div>
                   <div className="text-sm text-slate-500">Batch No</div>
@@ -260,7 +261,7 @@ export default function PutawayDetailPage() {
                 {(task as any).completedAt && (
                   <div>
                     <div className="text-sm text-slate-500">Completed At</div>
-                    <div className="mt-1">{new Date((task as any).completedAt).toLocaleString()}</div>
+                    <div className="mt-1">{formatDateTime((task as any).completedAt)}</div>
                   </div>
                 )}
                 {task.grnId && (

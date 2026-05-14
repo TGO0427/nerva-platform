@@ -27,6 +27,7 @@ import {
 } from '@/lib/queries/ibt';
 import { useItems } from '@/lib/queries';
 import { useBins } from '@/lib/queries/warehouses';
+import { formatDate, formatNumber, formatQuantity } from '@/lib/format';
 import type { Bin } from '@nerva/shared';
 
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
@@ -236,8 +237,8 @@ export default function IbtDetailPage() {
   const totalReceived = lines?.reduce((sum, l) => sum + l.qtyReceived, 0) || 0;
 
   const progressLabel = ibt?.status === 'RECEIVED' || ibt?.status === 'IN_TRANSIT'
-    ? `${totalReceived} / ${totalRequested} received`
-    : `${totalShipped} / ${totalRequested} shipped`;
+    ? `${formatQuantity(totalReceived)} / ${formatQuantity(totalRequested)} received`
+    : `${formatQuantity(totalShipped)} / ${formatQuantity(totalRequested)} shipped`;
 
   const progressPct = totalRequested > 0
     ? Math.round(((ibt?.status === 'RECEIVED' || ibt?.status === 'IN_TRANSIT' ? totalReceived : totalShipped) / totalRequested) * 100)
@@ -260,7 +261,7 @@ export default function IbtDetailPage() {
       header: 'From Bin',
       render: (row) => row.fromBinCode ? <span className="font-mono text-sm">{row.fromBinCode}</span> : <span className="text-slate-400">Not set</span>,
     },
-    { key: 'qtyRequested', header: 'Qty Requested' },
+    { key: 'qtyRequested', header: 'Qty Requested', render: (row) => formatQuantity(row.qtyRequested) },
     { key: 'batchNo', header: 'Batch', render: (row) => row.batchNo || '-' },
     ...(ibt?.status === 'DRAFT'
       ? [{
@@ -291,7 +292,7 @@ export default function IbtDetailPage() {
       header: 'From Bin',
       render: (row) => row.fromBinCode ? <span className="font-mono text-sm">{row.fromBinCode}</span> : '-',
     },
-    { key: 'qtyRequested', header: 'Requested' },
+    { key: 'qtyRequested', header: 'Requested', render: (row) => formatQuantity(row.qtyRequested) },
     {
       key: 'qtyShipped',
       header: 'Qty to Ship',
@@ -320,7 +321,7 @@ export default function IbtDetailPage() {
         </div>
       ),
     },
-    { key: 'qtyShipped', header: 'Shipped' },
+    { key: 'qtyShipped', header: 'Shipped', render: (row) => formatQuantity(row.qtyShipped) },
     {
       key: 'qtyReceived',
       header: 'Qty to Receive',
@@ -373,9 +374,9 @@ export default function IbtDetailPage() {
       header: 'To Bin',
       render: (row) => row.toBinCode ? <span className="font-mono text-sm">{row.toBinCode}</span> : '-',
     },
-    { key: 'qtyRequested', header: 'Requested' },
-    { key: 'qtyShipped', header: 'Shipped' },
-    { key: 'qtyReceived', header: 'Received' },
+    { key: 'qtyRequested', header: 'Requested', render: (row) => formatQuantity(row.qtyRequested) },
+    { key: 'qtyShipped', header: 'Shipped', render: (row) => formatQuantity(row.qtyShipped) },
+    { key: 'qtyReceived', header: 'Received', render: (row) => formatQuantity(row.qtyReceived) },
     { key: 'batchNo', header: 'Batch', render: (row) => row.batchNo || '-' },
   ];
 
@@ -401,7 +402,7 @@ export default function IbtDetailPage() {
             <Badge variant={statusVariant[ibt.status] || 'default'}>
               {statusLabel[ibt.status] || ibt.status}
             </Badge>
-            <Badge variant="default">{ibt.lineCount} lines</Badge>
+            <Badge variant="default">{formatNumber(ibt.lineCount)} lines</Badge>
           </div>
         )
       }
@@ -460,7 +461,7 @@ export default function IbtDetailPage() {
         },
         {
           title: 'Lines',
-          value: ibt.lineCount,
+          value: formatNumber(ibt.lineCount),
           icon: <LinesIcon />,
           iconColor: 'blue',
         },
@@ -493,7 +494,7 @@ export default function IbtDetailPage() {
                 </div>
                 <div>
                   <div className="text-sm text-slate-500">Created</div>
-                  <div className="mt-1">{new Date(ibt.createdAt).toLocaleDateString()}</div>
+                  <div className="mt-1">{formatDate(ibt.createdAt)}</div>
                 </div>
                 {ibt.approvedByName && (
                   <div>
@@ -504,19 +505,19 @@ export default function IbtDetailPage() {
                 {(ibt as any).approvedAt && (
                   <div>
                     <div className="text-sm text-slate-500">Approved</div>
-                    <div className="mt-1">{new Date((ibt as any).approvedAt).toLocaleDateString()}</div>
+                    <div className="mt-1">{formatDate((ibt as any).approvedAt)}</div>
                   </div>
                 )}
                 {(ibt as any).shippedAt && (
                   <div>
                     <div className="text-sm text-slate-500">Shipped</div>
-                    <div className="mt-1">{new Date((ibt as any).shippedAt).toLocaleDateString()}</div>
+                    <div className="mt-1">{formatDate((ibt as any).shippedAt)}</div>
                   </div>
                 )}
                 {(ibt as any).receivedAt && (
                   <div>
                     <div className="text-sm text-slate-500">Received</div>
-                    <div className="mt-1">{new Date((ibt as any).receivedAt).toLocaleDateString()}</div>
+                    <div className="mt-1">{formatDate((ibt as any).receivedAt)}</div>
                   </div>
                 )}
                 {ibt.notes && (
