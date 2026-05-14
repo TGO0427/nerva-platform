@@ -29,7 +29,7 @@ export const useAuth = create<AuthState>()(
 
           localStorage.setItem('accessToken', accessToken);
           localStorage.setItem('refreshToken', refreshToken);
-          localStorage.setItem('tenantId', data.tenantId);
+          localStorage.setItem('tenantId', user.tenantId);
 
           set({
             accessToken,

@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import api from '@/lib/api';
 import { AxiosError } from 'axios';
 
+const TENANT_IDENTIFIER_PATTERN = /^[a-z0-9][a-z0-9_-]{1,31}$/i;
+const TENANT_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default function ForgotPasswordPage() {
   const [tenantId, setTenantId] = useState('');
   const [email, setEmail] = useState('');
@@ -21,10 +24,11 @@ export default function ForgotPasswordPage() {
   const validateForm = (): boolean => {
     const errors: typeof fieldErrors = {};
 
-    if (!tenantId.trim()) {
-      errors.tenantId = 'Tenant ID is required';
-    } else if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId)) {
-      errors.tenantId = 'Invalid Tenant ID format';
+    const tenantIdentifier = tenantId.trim();
+    if (!tenantIdentifier) {
+      errors.tenantId = 'Tenant ID or code is required';
+    } else if (!TENANT_UUID_PATTERN.test(tenantIdentifier) && !TENANT_IDENTIFIER_PATTERN.test(tenantIdentifier)) {
+      errors.tenantId = 'Enter a valid Tenant ID or code';
     }
 
     if (!email.trim()) {
@@ -49,7 +53,7 @@ export default function ForgotPasswordPage() {
 
     try {
       await api.post('/auth/forgot-password', {
-        tenantId,
+        tenantId: tenantId.trim(),
         email,
       });
 
@@ -99,7 +103,7 @@ export default function ForgotPasswordPage() {
         </h2>
 
         <p className="text-sm text-gray-600 text-center">
-          Enter your Tenant ID and email address and we&apos;ll send you a link to reset your password.
+          Enter your tenant code or Tenant ID and we&apos;ll send you a link to reset your password.
         </p>
 
         {error && (
@@ -110,19 +114,19 @@ export default function ForgotPasswordPage() {
 
         <div>
           <Input
-            label="Tenant ID"
+            label="Tenant ID or code"
             type="text"
             value={tenantId}
             onChange={(e) => {
               setTenantId(e.target.value);
               setFieldErrors((prev) => ({ ...prev, tenantId: undefined }));
             }}
-            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            placeholder="DEMO or xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
             error={fieldErrors.tenantId}
             autoComplete="off"
           />
           <p className="mt-1 text-xs text-gray-500">
-            Ask your administrator for your organization&apos;s Tenant ID
+            Use your organization code, like DEMO, or the full Tenant ID.
           </p>
         </div>
 

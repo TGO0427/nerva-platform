@@ -51,6 +51,23 @@ export class AuthService {
     @Inject(DATABASE_POOL) private readonly pool: Pool,
   ) {}
 
+  private async resolveTenantId(identifier: string): Promise<string | null> {
+    const tenant = identifier.trim();
+    if (
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        tenant,
+      )
+    ) {
+      return tenant;
+    }
+
+    const result = await this.pool.query<{ id: string }>(
+      "SELECT id FROM tenants WHERE LOWER(code) = LOWER($1) LIMIT 1",
+      [tenant],
+    );
+    return result.rows[0]?.id ?? null;
+  }
+
   async login(
     dto: LoginDto,
   ): Promise<
@@ -58,7 +75,12 @@ export class AuthService {
     | { mfaRequired: true; mfaToken: string }
     | { emailVerificationRequired: true; email: string }
   > {
-    const user = await this.usersService.findByEmail(dto.tenantId, dto.email);
+    const tenantId = await this.resolveTenantId(dto.tenantId);
+    if (!tenantId) {
+      throw new UnauthorizedException("Invalid credentials");
+    }
+
+    const user = await this.usersService.findByEmail(tenantId, dto.email);
 
     if (!user) {
       throw new UnauthorizedException("Invalid credentials");
@@ -465,7 +487,10 @@ export class AuthService {
     tenantId: string,
     email: string,
   ): Promise<void> {
-    const user = await this.usersService.findByEmail(tenantId, email);
+    const resolvedTenantId = await this.resolveTenantId(tenantId);
+    if (!resolvedTenantId) return;
+
+    const user = await this.usersService.findByEmail(resolvedTenantId, email);
 
     if (!user || !user.isActive) {
       // Don't reveal whether the user exists
@@ -483,7 +508,10 @@ export class AuthService {
     tenantId: string,
     email: string,
   ): Promise<string | null> {
-    const user = await this.usersService.findByEmail(tenantId, email);
+    const resolvedTenantId = await this.resolveTenantId(tenantId);
+    if (!resolvedTenantId) return null;
+
+    const user = await this.usersService.findByEmail(resolvedTenantId, email);
 
     if (!user || !user.isActive) {
       // Don't reveal whether the user exists
@@ -498,7 +526,7 @@ export class AuthService {
       `INSERT INTO password_reset_tokens (user_id, tenant_id, token_hash, expires_at)
        VALUES ($1, $2, $3, $4)
        RETURNING id`,
-      [user.id, tenantId, tokenHash, expiresAt],
+      [user.id, resolvedTenantId, tokenHash, expiresAt],
     );
 
     const tokenId = result.rows[0].id;
@@ -513,7 +541,7 @@ export class AuthService {
     await this.emailService.sendPasswordResetEmail(
       email,
       compositeToken,
-      tenantId,
+      resolvedTenantId,
     );
 
     return compositeToken;

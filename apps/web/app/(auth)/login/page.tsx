@@ -11,6 +11,8 @@ import type { ApiError } from '@nerva/shared';
 import { AxiosError } from 'axios';
 
 const TENANT_STORAGE_KEY = 'nerva_remembered_tenant';
+const TENANT_IDENTIFIER_PATTERN = /^[a-z0-9][a-z0-9_-]{1,31}$/i;
+const TENANT_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -53,10 +55,11 @@ export default function LoginPage() {
   const validateForm = (): boolean => {
     const errors: typeof fieldErrors = {};
 
-    if (!tenantId.trim()) {
-      errors.tenantId = 'Tenant ID is required';
-    } else if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId)) {
-      errors.tenantId = 'Invalid Tenant ID format';
+    const tenantIdentifier = tenantId.trim();
+    if (!tenantIdentifier) {
+      errors.tenantId = 'Tenant ID or code is required';
+    } else if (!TENANT_UUID_PATTERN.test(tenantIdentifier) && !TENANT_IDENTIFIER_PATTERN.test(tenantIdentifier)) {
+      errors.tenantId = 'Enter a valid Tenant ID or code';
     }
 
     if (!email.trim()) {
@@ -84,15 +87,17 @@ export default function LoginPage() {
     }
 
     // Save or clear remembered tenant
+    const tenantIdentifier = tenantId.trim();
+
     if (rememberTenant) {
-      localStorage.setItem(TENANT_STORAGE_KEY, tenantId);
+      localStorage.setItem(TENANT_STORAGE_KEY, tenantIdentifier);
     } else {
       localStorage.removeItem(TENANT_STORAGE_KEY);
     }
 
     try {
       // First, call the login API directly to check for MFA requirement
-      const response = await api.post('/auth/login', { tenantId, email, password });
+      const response = await api.post('/auth/login', { tenantId: tenantIdentifier, email, password });
 
       if (response.data.emailVerificationRequired) {
         setVerificationEmail(response.data.email);
@@ -110,7 +115,7 @@ export default function LoginPage() {
       }
 
       // No MFA — proceed with normal login flow via the store
-      await login({ tenantId, email, password });
+      await login({ tenantId: tenantIdentifier, email, password });
       const user = useAuth.getState().user;
       router.push(getHomeRoute(user?.userType || 'internal'));
     } catch (err) {
@@ -139,7 +144,7 @@ export default function LoginPage() {
 
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('tenantId', tenantId);
+      localStorage.setItem('tenantId', user.tenantId);
 
       // Update auth store
       useAuth.setState({
@@ -322,19 +327,19 @@ export default function LoginPage() {
 
         <div>
           <Input
-            label="Tenant ID"
+            label="Tenant ID or code"
             type="text"
             value={tenantId}
             onChange={(e) => {
               setTenantId(e.target.value);
               setFieldErrors((prev) => ({ ...prev, tenantId: undefined }));
             }}
-            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            placeholder="DEMO or xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
             error={fieldErrors.tenantId}
             autoComplete="off"
           />
           <p className="mt-1 text-xs text-gray-500">
-            Ask your administrator for your organization&apos;s Tenant ID
+            Use your organization code, like DEMO, or the full Tenant ID.
           </p>
         </div>
 
@@ -347,7 +352,7 @@ export default function LoginPage() {
             className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
           />
           <label htmlFor="rememberTenant" className="text-sm text-gray-600">
-            Remember tenant ID on this device
+            Remember tenant on this device
           </label>
         </div>
 
