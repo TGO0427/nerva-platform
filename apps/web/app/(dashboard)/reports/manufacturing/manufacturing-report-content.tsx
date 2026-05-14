@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useManufacturingReport } from '@/lib/queries';
 import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
+import { formatNumber, formatPercent, formatQuantity } from '@/lib/format';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
@@ -133,25 +134,25 @@ export default function ManufacturingReportContent() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           title="Total Output"
-          value={report?.summary.totalOutput ?? 0}
+          value={formatQuantity(report?.summary.totalOutput ?? 0)}
           icon={<OutputIcon />}
           iconColor="green"
         />
         <StatCard
           title="Total Scrap"
-          value={report?.summary.totalScrap ?? 0}
+          value={formatQuantity(report?.summary.totalScrap ?? 0)}
           icon={<ScrapIcon />}
           iconColor="red"
         />
         <StatCard
           title="Yield Rate"
-          value={`${(report?.summary.yieldRate ?? 0).toFixed(1)}%`}
+          value={formatPercent(report?.summary.yieldRate ?? 0)}
           icon={<YieldIcon />}
           iconColor="purple"
         />
         <StatCard
           title="Unique Work Orders"
-          value={report?.summary.uniqueWorkOrders ?? 0}
+          value={formatNumber(report?.summary.uniqueWorkOrders ?? 0)}
           icon={<ClipboardIcon />}
           iconColor="blue"
         />
@@ -176,11 +177,13 @@ export default function ManufacturingReportContent() {
               <YAxis
                 allowDecimals={false}
                 tick={{ fontSize: 12, fill: ct.tick }}
+                tickFormatter={(v: number) => formatQuantity(v)}
                 axisLine={false}
                 tickLine={false}
               />
               <Tooltip
                 contentStyle={tooltipStyle(ct)}
+                formatter={(value: unknown, name?: string) => [formatQuantity(value as number), name ?? '']}
               />
               <Legend
                 verticalAlign="bottom"
@@ -235,11 +238,11 @@ export default function ManufacturingReportContent() {
                     {report.yieldByItem.map((item) => (
                       <tr key={item.itemSku} className="hover:bg-slate-50">
                         <td className="px-4 py-2 text-sm font-medium text-slate-800">{item.itemSku}</td>
-                        <td className="px-4 py-2 text-sm text-right">{item.output.toLocaleString()}</td>
-                        <td className="px-4 py-2 text-sm text-right">{item.scrap.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-sm text-right">{formatQuantity(item.output)}</td>
+                        <td className="px-4 py-2 text-sm text-right">{formatQuantity(item.scrap)}</td>
                         <td className="px-4 py-2 text-sm text-right font-medium">
                           <span className={item.yieldRate >= 95 ? 'text-emerald-600' : item.yieldRate >= 85 ? 'text-amber-600' : 'text-red-600'}>
-                            {item.yieldRate.toFixed(1)}%
+                            {formatPercent(item.yieldRate)}
                           </span>
                         </td>
                       </tr>
@@ -274,9 +277,9 @@ export default function ManufacturingReportContent() {
                     {report.materialConsumption.map((m) => (
                       <tr key={m.itemSku} className="hover:bg-slate-50">
                         <td className="px-4 py-2 text-sm font-medium text-slate-800">{m.itemSku}</td>
-                        <td className="px-4 py-2 text-sm text-right">{m.totalConsumed.toLocaleString()}</td>
-                        <td className="px-4 py-2 text-sm text-right">{m.totalReturned.toLocaleString()}</td>
-                        <td className="px-4 py-2 text-sm text-right font-medium">{m.netConsumed.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-sm text-right">{formatQuantity(m.totalConsumed)}</td>
+                        <td className="px-4 py-2 text-sm text-right">{formatQuantity(m.totalReturned)}</td>
+                        <td className="px-4 py-2 text-sm text-right font-medium">{formatQuantity(m.netConsumed)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -309,9 +312,9 @@ export default function ManufacturingReportContent() {
                     {report.workstationEfficiency.map((ws) => (
                       <tr key={ws.workstationName} className="hover:bg-slate-50">
                         <td className="px-4 py-2 text-sm font-medium text-slate-800">{ws.workstationName}</td>
-                        <td className="px-4 py-2 text-sm text-right">{ws.operationsCompleted.toLocaleString()}</td>
-                        <td className="px-4 py-2 text-sm text-right">{ws.avgRunTime.toFixed(1)}</td>
-                        <td className="px-4 py-2 text-sm text-right font-medium">{ws.totalRunTime.toFixed(1)}</td>
+                        <td className="px-4 py-2 text-sm text-right">{formatNumber(ws.operationsCompleted)}</td>
+                        <td className="px-4 py-2 text-sm text-right">{formatNumber(ws.avgRunTime, { maximumFractionDigits: 1 })}</td>
+                        <td className="px-4 py-2 text-sm text-right font-medium">{formatNumber(ws.totalRunTime, { maximumFractionDigits: 1 })}</td>
                       </tr>
                     ))}
                   </tbody>
