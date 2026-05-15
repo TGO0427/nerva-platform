@@ -31,9 +31,17 @@ const COMMANDS: SearchResult[] = [
   { type: 'command', id: 'new-supplier', title: 'Create Supplier', subtitle: 'Add new supplier', href: '/master-data/suppliers/new', icon: 'plus' },
   { type: 'command', id: 'new-wo', title: 'Create Work Order', subtitle: 'Start production', href: '/manufacturing/work-orders/new', icon: 'plus' },
   { type: 'command', id: 'new-bom', title: 'Create BOM', subtitle: 'New bill of materials', href: '/manufacturing/boms/new', icon: 'plus' },
+  { type: 'command', id: 'new-ncr', title: 'Create NCR', subtitle: 'Log a manufacturing quality issue', href: '/manufacturing/quality/new', icon: 'plus' },
   // Navigation
   { type: 'command', id: 'dashboard', title: 'Go to Dashboard', subtitle: 'Overview & KPIs', href: '/dashboard', icon: 'home' },
   { type: 'command', id: 'exceptions', title: 'Go to Exceptions', subtitle: 'Operational queues & alerts', href: '/exceptions', icon: 'nav' },
+  { type: 'command', id: 'late-orders', title: 'Open Late Orders', subtitle: 'Sales orders past requested ship date', href: '/sales?late=true', icon: 'nav' },
+  { type: 'command', id: 'allocation-failures', title: 'Open Allocation Failures', subtitle: 'Pending sales orders needing allocation review', href: '/sales?status=PENDING', icon: 'nav' },
+  { type: 'command', id: 'low-stock', title: 'Open Low Stock', subtitle: 'Inventory stock alerts', href: '/inventory/expiry-alerts?status=CRITICAL', icon: 'box' },
+  { type: 'command', id: 'overdue-grns', title: 'Open Overdue GRNs', subtitle: 'Receiving documents needing closure', href: '/inventory/grn?status=OPEN', icon: 'nav' },
+  { type: 'command', id: 'stuck-pick-waves', title: 'Open Stuck Pick Waves', subtitle: 'Fulfilment waves open too long', href: '/fulfilment?tab=pick-waves&status=IN_PROGRESS', icon: 'clipboard' },
+  { type: 'command', id: 'open-ncrs', title: 'Open NCRs', subtitle: 'Manufacturing quality exceptions', href: '/manufacturing/quality?status=OPEN', icon: 'nav' },
+  { type: 'command', id: 'pending-approvals', title: 'Open Pending Approvals', subtitle: 'Sensitive operational changes awaiting approval', href: '/inventory/adjustments?status=SUBMITTED', icon: 'nav' },
   { type: 'command', id: 'sales', title: 'Go to Sales', subtitle: 'Sales orders', href: '/sales', icon: 'nav' },
   { type: 'command', id: 'dispatch', title: 'Go to Dispatch', subtitle: 'Manage delivery trips', href: '/dispatch', icon: 'truck' },
   { type: 'command', id: 'fulfilment', title: 'Go to Fulfilment', subtitle: 'Picking & packing', href: '/fulfilment', icon: 'clipboard' },
@@ -51,6 +59,9 @@ const COMMANDS: SearchResult[] = [
   { type: 'command', id: 'notifications', title: 'Go to Notifications', subtitle: 'View all notifications', href: '/notifications', icon: 'nav' },
   { type: 'command', id: 'audit-log', title: 'Go to Audit Log', subtitle: 'Activity audit trail', href: '/settings/audit-log', icon: 'nav' },
   { type: 'command', id: 'privacy', title: 'Go to Privacy & Data', subtitle: 'Export data or delete account', href: '/settings/privacy', icon: 'nav' },
+  { type: 'command', id: 'bulk-pick', title: 'Bulk Pick Waves', subtitle: 'Review picking work by wave', href: '/fulfilment?tab=pick-waves', icon: 'clipboard' },
+  { type: 'command', id: 'bulk-assign-dispatch', title: 'Assign Dispatch Trips', subtitle: 'Assign drivers and release deliveries', href: '/dispatch?tab=trips&status=PLANNED', icon: 'truck' },
+  { type: 'command', id: 'export-invoices', title: 'Export Invoices', subtitle: 'Open invoice list with CSV export', href: '/finance/invoices', icon: 'nav' },
 ];
 
 // Recent items storage key

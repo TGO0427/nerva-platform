@@ -240,9 +240,9 @@ describe("DispatchService", () => {
     it("should throw NotFoundException when trip not found", async () => {
       repository.assignDriver.mockResolvedValue(null);
 
-      await expect(
-        service.assignDriver("missing", "driver-1"),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.assignDriver("missing", "driver-1")).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -305,7 +305,10 @@ describe("DispatchService", () => {
       const completedTrip = { ...mockTrip, status: "COMPLETE" };
       repository.findTripById.mockResolvedValue(inProgressTrip);
       repository.findStopsByTrip.mockResolvedValue([mockStop]); // PENDING
-      repository.updateStopStatus.mockResolvedValue({ ...mockStop, status: "SKIPPED" });
+      repository.updateStopStatus.mockResolvedValue({
+        ...mockStop,
+        status: "SKIPPED",
+      });
       repository.updateTripStatus.mockResolvedValue(completedTrip);
 
       const result = await service.completeTrip("trip-123", true);
@@ -348,12 +351,10 @@ describe("DispatchService", () => {
       const completedTrip = { ...mockTrip, status: "COMPLETE" };
       repository.findTripById.mockResolvedValue(completedTrip);
 
-      await expect(
-        service.cancelTrip("trip-123", "reason"),
-      ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.cancelTrip("trip-123", "reason"),
-      ).rejects.toThrow(
+      await expect(service.cancelTrip("trip-123", "reason")).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.cancelTrip("trip-123", "reason")).rejects.toThrow(
         "Cannot cancel a completed or already cancelled trip",
       );
     });
@@ -362,9 +363,9 @@ describe("DispatchService", () => {
       const cancelledTrip = { ...mockTrip, status: "CANCELLED" };
       repository.findTripById.mockResolvedValue(cancelledTrip);
 
-      await expect(
-        service.cancelTrip("trip-123", "reason"),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.cancelTrip("trip-123", "reason")).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -396,9 +397,9 @@ describe("DispatchService", () => {
       repository.findTripById.mockResolvedValue(inProgressTrip);
       repository.findStopById.mockResolvedValue(null);
 
-      await expect(
-        service.arriveAtStop("trip-123", "missing"),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.arriveAtStop("trip-123", "missing")).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it("should throw when stop does not belong to trip", async () => {

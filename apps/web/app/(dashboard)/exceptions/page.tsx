@@ -246,6 +246,14 @@ function getExceptionQueues(stats: DashboardStats): ExceptionQueue[] {
       group: 'Inventory',
     },
     {
+      title: 'Open NCRs',
+      description: 'Quality issues awaiting disposition',
+      value: stats.openNCRs ?? 0,
+      href: '/manufacturing/quality?status=OPEN',
+      tone: (stats.openNCRs ?? 0) > 0 ? 'warning' : 'success',
+      group: 'Manufacturing',
+    },
+    {
       title: 'Pending Approvals',
       description: 'Adjustments, transfers, counts, BOMs',
       value: stats.pendingApprovals ?? 0,

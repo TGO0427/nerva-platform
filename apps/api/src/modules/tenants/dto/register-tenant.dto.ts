@@ -27,15 +27,23 @@ export class RegisterTenantDto {
   @Matches(/^[A-Z0-9]+$/, {
     message: "tenantCode must be uppercase alphanumeric characters only",
   })
-  @Transform(({ value }) => (typeof value === "string" ? value.toUpperCase() : value))
+  @Transform(({ value }) =>
+    typeof value === "string" ? value.toUpperCase() : value,
+  )
   tenantCode: string;
 
-  @ApiProperty({ description: "Admin user email address", example: "admin@acme.com" })
+  @ApiProperty({
+    description: "Admin user email address",
+    example: "admin@acme.com",
+  })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty({ description: "Admin user display name", example: "John Smith" })
+  @ApiProperty({
+    description: "Admin user display name",
+    example: "John Smith",
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)

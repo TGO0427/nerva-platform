@@ -91,3 +91,19 @@ npx playwright install chromium
 # Start the app first, then:
 pnpm test:e2e
 ```
+
+## Local Windows Build Path
+
+The web app uses Next.js `output: 'standalone'`, which can create symlinks during packaging. On locked-down Windows filesystems this can fail with `EPERM: operation not permitted, symlink ...`.
+
+For local validation on Windows, disable standalone packaging for that one build:
+
+```powershell
+cd apps/web
+.\node_modules\.bin\next.CMD lint
+.\node_modules\.bin\tsc.CMD --noEmit
+$env:NERVA_DISABLE_STANDALONE = '1'
+.\node_modules\.bin\next.CMD build
+```
+
+Leave `NERVA_DISABLE_STANDALONE` unset for Docker, CI, Vercel, and production builds because the Dockerfile copies `.next/standalone`. If you need to verify the exact standalone artifact locally on Windows, use WSL2/Docker or enable Windows Developer Mode/admin symlink privileges.

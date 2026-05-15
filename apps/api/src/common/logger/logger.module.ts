@@ -19,8 +19,7 @@ const isDev = process.env.NODE_ENV !== "production";
             }
           : undefined,
         autoLogging: {
-          ignore: (req: { url?: string }) =>
-            req.url === "/health",
+          ignore: (req: { url?: string }) => req.url === "/health",
         },
         serializers: {
           req: (req: { id: string; method: string; url: string }) => ({

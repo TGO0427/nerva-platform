@@ -97,7 +97,7 @@ describe("AuthService", () => {
       jwtService.sign.mockReturnValue("jwt_token");
       pool.query.mockResolvedValue({ rows: [{ id: "token-id" }] });
 
-      const result = await service.login(loginDto) as any;
+      const result = (await service.login(loginDto)) as any;
 
       expect(result.accessToken).toBe("jwt_token");
       expect(result.refreshToken).toBeDefined();

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as https from "https";
+import { createHmac } from "crypto";
 import type { TenantPlan, BillingCycle } from "@nerva/shared";
 import { PLANS } from "@nerva/shared";
 
@@ -103,15 +104,11 @@ export class PaystackService {
     firstName?: string;
     lastName?: string;
   }): Promise<PaystackCustomerData> {
-    const res = await this.request<PaystackCustomerData>(
-      "POST",
-      "/customer",
-      {
-        email: params.email,
-        first_name: params.firstName,
-        last_name: params.lastName,
-      },
-    );
+    const res = await this.request<PaystackCustomerData>("POST", "/customer", {
+      email: params.email,
+      first_name: params.firstName,
+      last_name: params.lastName,
+    });
     return res.data;
   }
 
@@ -169,9 +166,7 @@ export class PaystackService {
    * Verify webhook signature from PayStack
    */
   verifyWebhookSignature(body: string, signature: string): boolean {
-    const crypto = require("crypto");
-    const hash = crypto
-      .createHmac("sha512", this.secretKey)
+    const hash = createHmac("sha512", this.secretKey)
       .update(body)
       .digest("hex");
     return hash === signature;
@@ -217,10 +212,7 @@ export class PaystackService {
           try {
             const parsed = JSON.parse(responseBody) as PaystackResponse<T>;
             if (!parsed.status) {
-              this.logger.error(
-                `PayStack API error: ${parsed.message}`,
-                path,
-              );
+              this.logger.error(`PayStack API error: ${parsed.message}`, path);
               reject(new Error(`PayStack: ${parsed.message}`));
               return;
             }

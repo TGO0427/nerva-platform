@@ -130,9 +130,7 @@ describe("ReturnsService", () => {
         siteId: "site-123",
         warehouseId: "warehouse-123",
         customerId: "customer-123",
-        lines: [
-          { itemId: "item-123", qtyExpected: 5, reasonCode: "DAMAGED" },
-        ],
+        lines: [{ itemId: "item-123", qtyExpected: 5, reasonCode: "DAMAGED" }],
       });
 
       expect(result).toEqual(mockRma);
@@ -183,9 +181,7 @@ describe("ReturnsService", () => {
       await expect(service.getRma("missing")).rejects.toThrow(
         NotFoundException,
       );
-      await expect(service.getRma("missing")).rejects.toThrow(
-        "RMA not found",
-      );
+      await expect(service.getRma("missing")).rejects.toThrow("RMA not found");
     });
   });
 
@@ -304,18 +300,18 @@ describe("ReturnsService", () => {
       const closedRma = { ...mockRma, status: "CLOSED" };
       repository.findRmaById.mockResolvedValue(closedRma);
 
-      await expect(
-        service.cancelRma("rma-123", "reason"),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.cancelRma("rma-123", "reason")).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it("should throw BadRequestException for already CANCELLED RMA", async () => {
       const cancelledRma = { ...mockRma, status: "CANCELLED" };
       repository.findRmaById.mockResolvedValue(cancelledRma);
 
-      await expect(
-        service.cancelRma("rma-123", "reason"),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.cancelRma("rma-123", "reason")).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -589,9 +585,7 @@ describe("ReturnsService", () => {
       ).rejects.toThrow(BadRequestException);
       await expect(
         service.approveCreditNote("cn-123", "approver-1"),
-      ).rejects.toThrow(
-        "Credit note not found or not in SUBMITTED status",
-      );
+      ).rejects.toThrow("Credit note not found or not in SUBMITTED status");
     });
   });
 
@@ -612,24 +606,22 @@ describe("ReturnsService", () => {
       repository.findRmaById.mockResolvedValue(mockRma);
       repository.getRmaLines.mockResolvedValue([]);
 
-      await expect(
-        service.completeDisposition("rma-123"),
-      ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.completeDisposition("rma-123"),
-      ).rejects.toThrow("RMA has no lines");
+      await expect(service.completeDisposition("rma-123")).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.completeDisposition("rma-123")).rejects.toThrow(
+        "RMA has no lines",
+      );
     });
 
     it("should throw BadRequestException when lines not all disposed", async () => {
       repository.findRmaById.mockResolvedValue(mockRma);
       repository.getRmaLines.mockResolvedValue([mockRmaLine]); // disposition: PENDING
 
-      await expect(
-        service.completeDisposition("rma-123"),
-      ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.completeDisposition("rma-123"),
-      ).rejects.toThrow(
+      await expect(service.completeDisposition("rma-123")).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.completeDisposition("rma-123")).rejects.toThrow(
         "All lines must have a disposition set before completing",
       );
     });

@@ -143,9 +143,7 @@ export class TenantsRepository extends BaseRepository {
     return row ? this.mapSite(row) : null;
   }
 
-  async getTenantsWithStats(): Promise<
-    (Tenant & { userCount: number })[]
-  > {
+  async getTenantsWithStats(): Promise<(Tenant & { userCount: number })[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT t.*,
               COALESCE(uc.cnt, 0) AS user_count
@@ -163,9 +161,7 @@ export class TenantsRepository extends BaseRepository {
     }));
   }
 
-  async getTenantStats(
-    tenantId: string,
-  ): Promise<{
+  async getTenantStats(tenantId: string): Promise<{
     userCount: number;
     itemCount: number;
     warehouseCount: number;

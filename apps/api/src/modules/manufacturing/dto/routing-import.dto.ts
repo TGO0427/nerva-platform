@@ -8,7 +8,6 @@ import {
   ValidateNested,
   ArrayMinSize,
   ArrayMaxSize,
-  IsBoolean,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 

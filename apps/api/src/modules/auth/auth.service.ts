@@ -250,10 +250,7 @@ export class AuthService {
     await this.usersService.disableMfa(userId);
   }
 
-  async verifyMfaLogin(
-    mfaToken: string,
-    code: string,
-  ): Promise<AuthResponse> {
+  async verifyMfaLogin(mfaToken: string, code: string): Promise<AuthResponse> {
     let decoded: { sub: string; tenantId: string; mfaPending?: boolean };
     try {
       decoded = this.jwtService.verify(mfaToken);
@@ -478,9 +475,7 @@ export class AuthService {
 
     await this.usersService.verifyEmail(user.id);
 
-    this.logger.log(
-      `Email verified for user ${user.id} (${user.email})`,
-    );
+    this.logger.log(`Email verified for user ${user.id} (${user.email})`);
   }
 
   async resendVerificationEmail(

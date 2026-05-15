@@ -90,8 +90,9 @@ export class TenantsService {
     }
 
     // Check if email already exists across all tenants
-    const existingEmail =
-      await this.tenantsRepository.findUserByEmailGlobal(dto.email);
+    const existingEmail = await this.tenantsRepository.findUserByEmailGlobal(
+      dto.email,
+    );
     if (existingEmail) {
       throw new ConflictException("Email address is already registered");
     }

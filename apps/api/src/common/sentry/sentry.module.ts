@@ -13,7 +13,8 @@ export class SentryModule implements OnModuleInit {
       return;
     }
 
-    const environment = this.configService.get<string>("NODE_ENV") || "development";
+    const environment =
+      this.configService.get<string>("NODE_ENV") || "development";
     const isProduction = environment === "production";
 
     Sentry.init({

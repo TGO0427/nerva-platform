@@ -110,10 +110,9 @@ export class GdprService {
     });
 
     // Store last export timestamp
-    await this.pool.query(
-      `UPDATE users SET updated_at = NOW() WHERE id = $1`,
-      [userId],
-    );
+    await this.pool.query(`UPDATE users SET updated_at = NOW() WHERE id = $1`, [
+      userId,
+    ]);
 
     return {
       exportedAt: new Date().toISOString(),

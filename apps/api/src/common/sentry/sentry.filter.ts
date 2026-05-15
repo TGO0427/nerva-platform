@@ -9,7 +9,7 @@ import * as Sentry from "@sentry/nestjs";
 
 @Catch()
 export class SentryExceptionFilter implements ExceptionFilter {
-  catch(exception: unknown, host: ArgumentsHost) {
+  catch(exception: unknown, _host: ArgumentsHost) {
     const status =
       exception instanceof HttpException
         ? exception.getStatus()

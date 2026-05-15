@@ -121,7 +121,11 @@ export class BillingController {
       throw new BadRequestException("reference is required");
     }
     const user = req.user as { email: string };
-    return this.billingService.retryPayment(tenantId, user.email, body.reference);
+    return this.billingService.retryPayment(
+      tenantId,
+      user.email,
+      body.reference,
+    );
   }
 
   @Get("admin/transactions")
@@ -148,12 +152,16 @@ export class BillingController {
   ) {
     const rawBody = req.rawBody?.toString() || JSON.stringify(req.body);
 
-    if (!signature || !this.paystackService.verifyWebhookSignature(rawBody, signature)) {
+    if (
+      !signature ||
+      !this.paystackService.verifyWebhookSignature(rawBody, signature)
+    ) {
       this.logger.warn("Invalid PayStack webhook signature");
       throw new BadRequestException("Invalid signature");
     }
 
-    const payload = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const payload =
+      typeof req.body === "string" ? JSON.parse(req.body) : req.body;
     const event = payload.event as string;
     const data = payload.data as Record<string, unknown>;
 

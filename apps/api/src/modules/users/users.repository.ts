@@ -290,17 +290,16 @@ export class UsersRepository extends BaseRepository {
   }
 
   async setMfaSecret(userId: string, secret: string): Promise<void> {
-    await this.execute(
-      "UPDATE users SET mfa_secret = $1 WHERE id = $2",
-      [secret, userId],
-    );
+    await this.execute("UPDATE users SET mfa_secret = $1 WHERE id = $2", [
+      secret,
+      userId,
+    ]);
   }
 
   async enableMfa(userId: string): Promise<void> {
-    await this.execute(
-      "UPDATE users SET mfa_enabled = true WHERE id = $1",
-      [userId],
-    );
+    await this.execute("UPDATE users SET mfa_enabled = true WHERE id = $1", [
+      userId,
+    ]);
   }
 
   async disableMfa(userId: string): Promise<void> {

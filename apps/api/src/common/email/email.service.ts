@@ -66,7 +66,7 @@ export class EmailService {
   async sendPasswordResetEmail(
     to: string,
     resetToken: string,
-    tenantId: string,
+    _tenantId: string,
   ): Promise<void> {
     const resetUrl = `${this.frontendUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
 
@@ -294,7 +294,7 @@ export class EmailService {
   async sendVerificationEmail(
     to: string,
     token: string,
-    tenantId: string,
+    _tenantId: string,
   ): Promise<void> {
     const verifyUrl = `${this.frontendUrl}/verify-email?token=${encodeURIComponent(token)}`;
 

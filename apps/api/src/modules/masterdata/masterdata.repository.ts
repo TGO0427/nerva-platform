@@ -2900,10 +2900,7 @@ export class MasterDataRepository extends BaseRepository {
         (result?.pending_pick_tasks as string) || "0",
         10,
       ),
-      stuckPickWaves: parseInt(
-        (result?.stuck_pick_waves as string) || "0",
-        10,
-      ),
+      stuckPickWaves: parseInt((result?.stuck_pick_waves as string) || "0", 10),
       readyDispatchShipments: parseInt(
         (result?.ready_dispatch_shipments as string) || "0",
         10,

@@ -811,7 +811,7 @@ export class InventoryService {
       qty: line.qtyReceived,
     }));
 
-    const created = await this.putawayRepo.createMany(tasks);
+    await this.putawayRepo.createMany(tasks);
     await this.repository.updateGrnStatus(grnId, "PUTAWAY_PENDING");
 
     return this.putawayRepo.findByGrn(grnId);

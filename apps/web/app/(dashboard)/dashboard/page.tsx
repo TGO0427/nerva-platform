@@ -180,7 +180,7 @@ export default function DashboardPage() {
               subtitle={stats?.allocatedOrders ? `${formatNumber(stats.allocatedOrders)} allocated` : undefined}
               icon={<ClipboardIcon />}
               iconColor="blue"
-              href="/sales"
+              href="/sales?status=PENDING"
             />
             <StatCard
               title="Weekly Sales"
@@ -188,7 +188,7 @@ export default function DashboardPage() {
               icon={<CurrencyIcon />}
               iconColor="green"
               subtitle="Last 7 days"
-              href="/sales"
+              href="/sales?dateRange=last7Days"
             />
             <StatCard
               title="Trips Active"
@@ -196,7 +196,7 @@ export default function DashboardPage() {
               subtitle={stats?.tripsCompletedToday ? `${formatNumber(stats.tripsCompletedToday)} done today` : undefined}
               icon={<TruckIcon />}
               iconColor="blue"
-              href="/dispatch"
+              href="/dispatch?tab=trips&status=IN_PROGRESS"
             />
             <StatCard
               title="Open Returns"

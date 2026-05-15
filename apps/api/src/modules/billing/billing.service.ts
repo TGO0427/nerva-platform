@@ -196,9 +196,18 @@ export class BillingService {
     );
 
     // Send payment receipt email
-    this.sendReceiptEmail(tx.paystackReference, tx.plan, tx.billingCycle, tx.amountZar);
+    this.sendReceiptEmail(
+      tx.paystackReference,
+      tx.plan,
+      tx.billingCycle,
+      tx.amountZar,
+    );
 
-    return { status: "activated", plan: tx.plan, billingCycle: tx.billingCycle };
+    return {
+      status: "activated",
+      plan: tx.plan,
+      billingCycle: tx.billingCycle,
+    };
   }
 
   /**
@@ -222,14 +231,19 @@ export class BillingService {
         date: new Date().toLocaleDateString("en-ZA"),
       });
     } catch (err) {
-      this.logger.warn(`Failed to send receipt email for ${reference}: ${err.message}`);
+      this.logger.warn(
+        `Failed to send receipt email for ${reference}: ${err.message}`,
+      );
     }
   }
 
   /**
    * Send payment failed email (fire-and-forget)
    */
-  private async sendFailedEmail(reference: string, plan: TenantPlan): Promise<void> {
+  private async sendFailedEmail(
+    reference: string,
+    plan: TenantPlan,
+  ): Promise<void> {
     try {
       const email = await this.paymentRepository.getTransactionEmail(reference);
       if (!email) return;
@@ -239,7 +253,9 @@ export class BillingService {
         reference,
       });
     } catch (err) {
-      this.logger.warn(`Failed to send failure email for ${reference}: ${err.message}`);
+      this.logger.warn(
+        `Failed to send failure email for ${reference}: ${err.message}`,
+      );
     }
   }
 
@@ -277,9 +293,7 @@ export class BillingService {
       case "charge.dispute.create":
       case "charge.dispute.remind":
       case "charge.dispute.resolve": {
-        this.logger.warn(
-          `Payment dispute (${event}): ${JSON.stringify(data)}`,
-        );
+        this.logger.warn(`Payment dispute (${event}): ${JSON.stringify(data)}`);
         break;
       }
 
@@ -291,9 +305,7 @@ export class BillingService {
       }
 
       case "subscription.not_renew": {
-        this.logger.warn(
-          `Subscription not renewed: ${JSON.stringify(data)}`,
-        );
+        this.logger.warn(`Subscription not renewed: ${JSON.stringify(data)}`);
         break;
       }
 
@@ -311,7 +323,9 @@ export class BillingService {
       throw new NotFoundException("Transaction not found");
     }
     if (tx.tenantId !== tenantId) {
-      throw new BadRequestException("Transaction does not belong to this tenant");
+      throw new BadRequestException(
+        "Transaction does not belong to this tenant",
+      );
     }
     if (tx.status === "success") {
       throw new BadRequestException("Payment already succeeded");

@@ -42,9 +42,7 @@ export class PaymentRepository extends BaseRepository {
     return this.mapTransaction(row!);
   }
 
-  async findByReference(
-    reference: string,
-  ): Promise<PaymentTransaction | null> {
+  async findByReference(reference: string): Promise<PaymentTransaction | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT * FROM payment_transactions WHERE paystack_reference = $1`,
       [reference],
@@ -69,7 +67,11 @@ export class PaymentRepository extends BaseRepository {
        SET status = $2, paystack_response = $3, updated_at = NOW()
        WHERE paystack_reference = $1
        RETURNING *`,
-      [reference, status, paystackResponse ? JSON.stringify(paystackResponse) : null],
+      [
+        reference,
+        status,
+        paystackResponse ? JSON.stringify(paystackResponse) : null,
+      ],
     );
     return row ? this.mapTransaction(row) : null;
   }
@@ -89,7 +91,10 @@ export class PaymentRepository extends BaseRepository {
     );
   }
 
-  async findAll(limit = 50, offset = 0): Promise<{ rows: PaymentTransaction[]; total: number }> {
+  async findAll(
+    limit = 50,
+    offset = 0,
+  ): Promise<{ rows: PaymentTransaction[]; total: number }> {
     const countRow = await this.queryOne<Record<string, unknown>>(
       `SELECT COUNT(*)::int AS total FROM payment_transactions`,
     );
@@ -101,7 +106,12 @@ export class PaymentRepository extends BaseRepository {
        ORDER BY pt.created_at DESC
        LIMIT $1 OFFSET $2`,
       [limit, offset],
-    ).then((r) => r.map((row) => ({ ...this.mapTransaction(row), tenantName: row.tenant_name as string })));
+    ).then((r) =>
+      r.map((row) => ({
+        ...this.mapTransaction(row),
+        tenantName: row.tenant_name as string,
+      })),
+    );
     return { rows, total };
   }
 

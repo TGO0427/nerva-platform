@@ -3,11 +3,9 @@ import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { Logger } from "nestjs-pino";
+import helmet from "helmet";
+import compression from "compression";
 import * as nodeHttps from "https";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const helmet = require("helmet");
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const compression = require("compression");
 import { json, urlencoded } from "express";
 import { AppModule } from "./app.module";
 import { SentryExceptionFilter } from "./common/sentry/sentry.filter";
@@ -126,9 +124,7 @@ async function bootstrap() {
   if (renderUrl) {
     const interval = 14 * 60 * 1000; // 14 minutes
     setInterval(() => {
-      nodeHttps
-        .get(`${renderUrl}/health`, () => {})
-        .on("error", () => {});
+      nodeHttps.get(`${renderUrl}/health`, () => {}).on("error", () => {});
     }, interval);
     logger.log(`Keep-alive ping enabled every 14 minutes`);
   }

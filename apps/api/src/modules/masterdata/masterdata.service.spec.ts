@@ -225,7 +225,10 @@ describe("MasterDataService", () => {
       const result = await service.getItem(tenantId, "item-123");
 
       expect(result).toEqual(mockItem);
-      expect(repository.findItemById).toHaveBeenCalledWith(tenantId, "item-123");
+      expect(repository.findItemById).toHaveBeenCalledWith(
+        tenantId,
+        "item-123",
+      );
     });
 
     it("should throw NotFoundException when item not found", async () => {
@@ -255,7 +258,10 @@ describe("MasterDataService", () => {
       const result = await service.createItem(createData);
 
       expect(result.sku).toBe("SKU-NEW");
-      expect(repository.findItemBySku).toHaveBeenCalledWith(tenantId, "SKU-NEW");
+      expect(repository.findItemBySku).toHaveBeenCalledWith(
+        tenantId,
+        "SKU-NEW",
+      );
       expect(repository.createItem).toHaveBeenCalledWith(createData);
     });
 
@@ -282,11 +288,9 @@ describe("MasterDataService", () => {
       });
 
       expect(result.description).toBe("Updated");
-      expect(repository.updateItem).toHaveBeenCalledWith(
-        tenantId,
-        "item-123",
-        { description: "Updated" },
-      );
+      expect(repository.updateItem).toHaveBeenCalledWith(tenantId, "item-123", {
+        description: "Updated",
+      });
     });
 
     it("should throw NotFoundException when item not found", async () => {
@@ -349,12 +353,12 @@ describe("MasterDataService", () => {
     it("should throw NotFoundException when customer not found", async () => {
       repository.findCustomerById.mockResolvedValue(null);
 
-      await expect(
-        service.getCustomer(tenantId, "missing"),
-      ).rejects.toThrow(NotFoundException);
-      await expect(
-        service.getCustomer(tenantId, "missing"),
-      ).rejects.toThrow("Customer not found");
+      await expect(service.getCustomer(tenantId, "missing")).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getCustomer(tenantId, "missing")).rejects.toThrow(
+        "Customer not found",
+      );
     });
   });
 
@@ -403,12 +407,12 @@ describe("MasterDataService", () => {
     it("should throw NotFoundException when supplier not found", async () => {
       repository.findSupplierById.mockResolvedValue(null);
 
-      await expect(
-        service.getSupplier(tenantId, "missing"),
-      ).rejects.toThrow(NotFoundException);
-      await expect(
-        service.getSupplier(tenantId, "missing"),
-      ).rejects.toThrow("Supplier not found");
+      await expect(service.getSupplier(tenantId, "missing")).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getSupplier(tenantId, "missing")).rejects.toThrow(
+        "Supplier not found",
+      );
     });
   });
 
@@ -435,9 +439,7 @@ describe("MasterDataService", () => {
       ).rejects.toThrow(BadRequestException);
       await expect(
         service.deleteSupplier(tenantId, "supplier-123"),
-      ).rejects.toThrow(
-        "Cannot delete supplier: has existing purchase orders",
-      );
+      ).rejects.toThrow("Cannot delete supplier: has existing purchase orders");
     });
   });
 
@@ -459,12 +461,12 @@ describe("MasterDataService", () => {
     it("should throw NotFoundException when warehouse not found", async () => {
       repository.findWarehouseById.mockResolvedValue(null);
 
-      await expect(
-        service.getWarehouse(tenantId, "missing"),
-      ).rejects.toThrow(NotFoundException);
-      await expect(
-        service.getWarehouse(tenantId, "missing"),
-      ).rejects.toThrow("Warehouse not found");
+      await expect(service.getWarehouse(tenantId, "missing")).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getWarehouse(tenantId, "missing")).rejects.toThrow(
+        "Warehouse not found",
+      );
     });
   });
 
@@ -491,9 +493,7 @@ describe("MasterDataService", () => {
       ).rejects.toThrow(BadRequestException);
       await expect(
         service.deleteWarehouse(tenantId, "warehouse-123"),
-      ).rejects.toThrow(
-        "Cannot delete warehouse: has existing work orders",
-      );
+      ).rejects.toThrow("Cannot delete warehouse: has existing work orders");
     });
   });
 
@@ -503,7 +503,10 @@ describe("MasterDataService", () => {
     it("should pass tenantId to repository for item operations", async () => {
       repository.findItemById.mockResolvedValue(mockItem);
       await service.getItem(tenantId, "item-123");
-      expect(repository.findItemById).toHaveBeenCalledWith(tenantId, "item-123");
+      expect(repository.findItemById).toHaveBeenCalledWith(
+        tenantId,
+        "item-123",
+      );
     });
 
     it("should pass tenantId to repository for customer operations", async () => {
