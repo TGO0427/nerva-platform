@@ -76,7 +76,15 @@ export default function SalesOrdersPage() {
   });
   const { data: stats } = useSalesOrderStats();
 
-  const tableData = data?.data || [];
+  const tableData = useMemo(() => {
+    const rows = data?.data || [];
+
+    if (statusGroup !== 'pending') {
+      return rows;
+    }
+
+    return rows.filter((row) => row.status === 'DRAFT' || row.status === 'CONFIRMED');
+  }, [data?.data, statusGroup]);
 
   // Row selection
   const {
@@ -182,6 +190,22 @@ export default function SalesOrdersPage() {
   const inFulfilment = stats?.inFulfilment ?? 0;
   const shippedCount = stats?.shipped ?? 0;
   const hasActiveFilters = Boolean(search || status || statusGroup || dateRange || lateOnly);
+  const activeFilterLabels = [
+    statusGroup === 'pending' ? 'Pending: Draft + Confirmed' : null,
+    dateRange === 'last7Days' ? 'Created in last 7 days' : null,
+    lateOnly ? 'Late only' : null,
+  ].filter((label): label is string => Boolean(label));
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatus('');
+    setStatusGroup('');
+    setDateRange('');
+    setLateOnly(false);
+    setPage(1);
+    router.replace('/sales');
+  };
+
   const handleApplySavedView = (values: SavedFilterValues) => {
     setSearch(String(values.search ?? ''));
     setStatus((values.status ?? '') as SalesOrderStatus | '');
@@ -245,7 +269,11 @@ export default function SalesOrdersPage() {
           />
           <Select
             value={status}
-            onChange={(e) => setStatus(e.target.value as SalesOrderStatus | '')}
+            onChange={(e) => {
+              setStatus(e.target.value as SalesOrderStatus | '');
+              setStatusGroup('');
+              setPage(1);
+            }}
             options={STATUS_OPTIONS}
             className="max-w-xs"
           />
@@ -289,6 +317,24 @@ export default function SalesOrdersPage() {
         </BulkActionBar>
       )}
 
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       <DataTable
         columns={visibleColumns}
         data={tableData}
@@ -318,14 +364,7 @@ export default function SalesOrdersPage() {
           action: hasActiveFilters ? (
             <Button
               variant="secondary"
-              onClick={() => {
-                setSearch('');
-                setStatus('');
-                setStatusGroup('');
-                setDateRange('');
-                setLateOnly(false);
-                setPage(1);
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>
