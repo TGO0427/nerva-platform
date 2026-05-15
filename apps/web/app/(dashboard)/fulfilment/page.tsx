@@ -57,6 +57,11 @@ type Tab = 'allocated-orders' | 'pick-waves' | 'shipments';
 const TAB_VALUES: Tab[] = ['allocated-orders', 'pick-waves', 'shipments'];
 const WAVE_STATUS_VALUES = WAVE_STATUS_OPTIONS.map((option) => option.value).filter(Boolean);
 const SHIPMENT_STATUS_VALUES = SHIPMENT_STATUS_OPTIONS.map((option) => option.value).filter(Boolean);
+const TAB_LABELS: Record<Tab, string> = {
+  'allocated-orders': 'Allocated Orders',
+  'pick-waves': 'Pick Waves',
+  shipments: 'Shipments',
+};
 
 export default function FulfilmentPage() {
   const router = useRouter();
@@ -65,6 +70,7 @@ export default function FulfilmentPage() {
   const [activeTab, setActiveTab] = useState<Tab>('allocated-orders');
   const [waveStatus, setWaveStatus] = useState('');
   const [shipmentStatus, setShipmentStatus] = useState('');
+  const { params, setPage } = useQueryParams();
 
   // Handle URL query params for actionable work queue links.
   useEffect(() => {
@@ -73,21 +79,27 @@ export default function FulfilmentPage() {
 
     if (tabParam && TAB_VALUES.includes(tabParam as Tab)) {
       setActiveTab(tabParam as Tab);
+    } else {
+      setActiveTab('allocated-orders');
     }
 
     if (statusParam && WAVE_STATUS_VALUES.includes(statusParam)) {
       setWaveStatus(statusParam);
+    } else {
+      setWaveStatus('');
     }
 
     if (statusParam && SHIPMENT_STATUS_VALUES.includes(statusParam)) {
       setShipmentStatus(statusParam);
+    } else {
+      setShipmentStatus('');
     }
-  }, [searchParams]);
+    setPage(1);
+  }, [searchParams, setPage]);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [error, setError] = useState('');
   const [showNewShipmentForm, setShowNewShipmentForm] = useState(false);
   const [selectedOrderForShipment, setSelectedOrderForShipment] = useState('');
-  const { params, setPage } = useQueryParams();
 
   const { data: wavesData, isLoading: wavesLoading } = usePickWaves({
     ...params,
@@ -351,6 +363,24 @@ export default function FulfilmentPage() {
   const openWaves = wavesData?.data?.filter(w => w.status === 'OPEN').length || 0;
   const readyToShip = shipmentsData?.data?.filter(s => s.status === 'READY_FOR_DISPATCH').length || 0;
   const shippedToday = shipmentsData?.data?.filter(s => s.status === 'SHIPPED').length || 0;
+  const activeFilterLabels = [
+    activeTab !== 'allocated-orders' ? `Tab: ${TAB_LABELS[activeTab]}` : null,
+    activeTab === 'pick-waves' && waveStatus
+      ? `Status: ${WAVE_STATUS_OPTIONS.find((option) => option.value === waveStatus)?.label ?? waveStatus}`
+      : null,
+    activeTab === 'shipments' && shipmentStatus
+      ? `Status: ${SHIPMENT_STATUS_OPTIONS.find((option) => option.value === shipmentStatus)?.label ?? shipmentStatus}`
+      : null,
+  ].filter(Boolean) as string[];
+
+  const clearAllFilters = () => {
+    setActiveTab('allocated-orders');
+    setWaveStatus('');
+    setShipmentStatus('');
+    setPage(1);
+    router.replace('/fulfilment');
+  };
+
   const handleApplySavedView = (values: SavedFilterValues) => {
     const nextTab = String(values.activeTab ?? 'allocated-orders') as Tab;
     setActiveTab(TAB_VALUES.includes(nextTab) ? nextTab : 'allocated-orders');
@@ -374,30 +404,35 @@ export default function FulfilmentPage() {
           icon={<ClipboardListIcon />}
           iconColor="orange"
           alert={readyToPick > 0}
+          href="/fulfilment"
         />
         <StatCard
           title="Active Waves"
           value={formatNumber(activeWaves)}
           icon={<PlayIcon />}
           iconColor="blue"
+          href="/fulfilment?tab=pick-waves&status=IN_PROGRESS"
         />
         <StatCard
           title="Open Waves"
           value={formatNumber(openWaves)}
           icon={<WaveIcon />}
           iconColor="yellow"
+          href="/fulfilment?tab=pick-waves&status=OPEN"
         />
         <StatCard
           title="Ready to Ship"
           value={formatNumber(readyToShip)}
           icon={<BoxIcon />}
           iconColor="purple"
+          href="/fulfilment?tab=shipments&status=READY_FOR_DISPATCH"
         />
         <StatCard
           title="Shipped Today"
           value={formatNumber(shippedToday)}
           icon={<ShipIcon />}
           iconColor="green"
+          href="/fulfilment?tab=shipments&status=SHIPPED"
         />
       </MetricGrid>
 
@@ -447,6 +482,24 @@ export default function FulfilmentPage() {
           className="pb-1"
         />
       </div>
+
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {activeTab === 'allocated-orders' && (
         <>

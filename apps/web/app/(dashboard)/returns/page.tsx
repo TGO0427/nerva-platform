@@ -52,8 +52,11 @@ export default function ReturnsPage() {
     const statusParam = searchParams.get('status');
     if (statusParam && STATUS_VALUES.includes(statusParam as RmaStatus)) {
       setStatus(statusParam as RmaStatus);
+    } else {
+      setStatus('');
     }
-  }, [searchParams]);
+    setPage(1);
+  }, [searchParams, setPage]);
 
   const { data, isLoading } = useRmas({
     ...params,
@@ -156,6 +159,18 @@ export default function ReturnsPage() {
   const pendingCredit = tableData.filter(r => ['CREDIT_PENDING'].includes(r.status)).length;
   const totalRmas = data?.meta?.total || 0;
   const hasActiveFilters = Boolean(search || status);
+  const activeFilterLabels = [
+    status ? `Status: ${STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status}` : null,
+    search ? `Search: ${search}` : null,
+  ].filter(Boolean) as string[];
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatus('');
+    setPage(1);
+    router.replace('/returns');
+  };
+
   const handleApplySavedView = (values: SavedFilterValues) => {
     setSearch(String(values.search ?? ''));
     setStatus((values.status ?? '') as RmaStatus | '');
@@ -209,12 +224,18 @@ export default function ReturnsPage() {
           <Input
             placeholder="Search RMAs..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             className="max-w-xs"
           />
           <Select
             value={status}
-            onChange={(e) => setStatus(e.target.value as RmaStatus | '')}
+            onChange={(e) => {
+              setStatus(e.target.value as RmaStatus | '');
+              setPage(1);
+            }}
             options={STATUS_OPTIONS}
             className="max-w-xs"
           />
@@ -238,6 +259,24 @@ export default function ReturnsPage() {
         </div>
       }
     >
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {selectedCount > 0 && (
         <BulkActionBar
           selectedCount={selectedCount}
@@ -305,11 +344,7 @@ export default function ReturnsPage() {
           action: hasActiveFilters ? (
             <Button
               variant="secondary"
-              onClick={() => {
-                setSearch('');
-                setStatus('');
-                setPage(1);
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>

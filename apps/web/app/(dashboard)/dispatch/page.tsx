@@ -49,6 +49,7 @@ const STATUS_OPTIONS = [
   { value: 'COMPLETE', label: 'Complete' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
+const STATUS_VALUES = STATUS_OPTIONS.map((option) => option.value).filter(Boolean);
 
 type Tab = 'trips' | 'ready-shipments';
 type ViewMode = 'table' | 'board';
@@ -127,14 +128,19 @@ export default function DispatchPage() {
 
     if (tabParam && ['trips', 'ready-shipments'].includes(tabParam)) {
       setActiveTab(tabParam);
+    } else {
+      setActiveTab('trips');
     }
-    if (statusParam) {
+    if (statusParam && STATUS_VALUES.includes(statusParam)) {
       setStatus(statusParam);
+    } else {
+      setStatus('');
     }
     if (viewParam && ['table', 'board'].includes(viewParam)) {
       setViewMode(viewParam);
     }
-  }, [searchParams]);
+    setPage(1);
+  }, [searchParams, setPage]);
 
   const { data: tripsData, isLoading: tripsLoading, refetch: refetchTrips } = useTrips({
     ...params,
@@ -514,6 +520,22 @@ export default function DispatchPage() {
     return selectedTripStops.filter(s => !['DELIVERED'].includes(s.status));
   }, [selectedTripStops]);
 
+  const activeFilterLabels = [
+    activeTab === 'ready-shipments' ? 'Queue: Ready for Dispatch' : null,
+    status ? `Status: ${STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status}` : null,
+    date ? `Date: ${date}` : null,
+    search ? `Search: ${search}` : null,
+  ].filter(Boolean) as string[];
+
+  const clearAllFilters = () => {
+    setActiveTab('trips');
+    setStatus('');
+    setDate('');
+    setSearch('');
+    setPage(1);
+    router.replace('/dispatch');
+  };
+
   return (
     <PageShell>
       <PageHeader
@@ -588,6 +610,24 @@ export default function DispatchPage() {
           iconColor="gray"
         />
       </MetricGrid>
+
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {/* Main content with activity sidebar */}
       <div className="flex gap-6">
