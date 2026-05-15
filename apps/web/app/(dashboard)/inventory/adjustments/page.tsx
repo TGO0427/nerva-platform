@@ -72,8 +72,10 @@ export default function AdjustmentsPage() {
     const statusParam = searchParams.get('status');
     if (statusParam && STATUS_OPTIONS.some((option) => option.value === statusParam)) {
       setStatusFilter(statusParam);
-      setPage(1);
+    } else {
+      setStatusFilter('');
     }
+    setPage(1);
   }, [searchParams, setPage]);
 
   const {
@@ -178,6 +180,18 @@ export default function AdjustmentsPage() {
   const submittedCount = tableData.filter(a => a.status === 'SUBMITTED').length;
   const postedCount = tableData.filter(a => a.status === 'POSTED').length;
   const hasActiveFilters = Boolean(statusFilter || search);
+  const activeFilterLabels = [
+    statusFilter ? `Status: ${STATUS_OPTIONS.find((option) => option.value === statusFilter)?.label ?? statusFilter}` : null,
+    search ? `Search: ${search}` : null,
+  ].filter(Boolean) as string[];
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setPage(1);
+    router.replace('/inventory/adjustments');
+  };
+
   const handleApplySavedView = (values: SavedFilterValues) => {
     setSearch(String(values.search ?? ''));
     setStatusFilter(String(values.statusFilter ?? ''));
@@ -205,24 +219,28 @@ export default function AdjustmentsPage() {
           value: formatNumber(totalAdjustments),
           icon: <ClipboardIcon />,
           iconColor: 'gray',
+          href: '/inventory/adjustments',
         },
         {
           title: 'Draft',
           value: formatNumber(draftCount),
           icon: <PencilIcon />,
           iconColor: 'blue',
+          href: '/inventory/adjustments?status=DRAFT',
         },
         {
           title: 'Submitted',
           value: formatNumber(submittedCount),
           icon: <ClockIcon />,
           iconColor: 'yellow',
+          href: '/inventory/adjustments?status=SUBMITTED',
         },
         {
           title: 'Posted',
           value: formatNumber(postedCount),
           icon: <CheckIcon />,
           iconColor: 'green',
+          href: '/inventory/adjustments?status=POSTED',
         },
       ]}
       filters={
@@ -235,7 +253,10 @@ export default function AdjustmentsPage() {
           />
           <Select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
             options={STATUS_OPTIONS}
             className="max-w-xs"
           />
@@ -259,6 +280,24 @@ export default function AdjustmentsPage() {
         </div>
       }
     >
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {showCreateForm && (
         <div className="mb-4 p-4 rounded-xl border border-primary-200 bg-primary-50">
           <h3 className="font-semibold text-slate-900 mb-3">Create Adjustment</h3>
@@ -334,11 +373,7 @@ export default function AdjustmentsPage() {
           action: hasActiveFilters ? (
             <Button
               variant="secondary"
-              onClick={() => {
-                setSearch('');
-                setStatusFilter('');
-                setPage(1);
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>

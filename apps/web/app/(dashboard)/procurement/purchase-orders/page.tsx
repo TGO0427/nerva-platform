@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ExportActions } from '@/components/ui/export-actions';
 import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
@@ -30,13 +30,19 @@ const STATUS_OPTIONS = [
   { value: 'RECEIVED', label: 'Received' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
+const STATUS_VALUES = STATUS_OPTIONS.map((option) => option.value).filter(Boolean);
+const STATUS_GROUP_OPTIONS = [
+  { value: 'pendingReceipt', label: 'Pending Receipt' },
+];
 
 type PurchaseOrderWithSupplier = PurchaseOrder & { supplierName?: string; lineCount?: number };
 
 export default function PurchaseOrdersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { params, setSearch, setPage } = useQueryParams({ page: 1, limit: 20 });
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [statusGroup, setStatusGroup] = useState('');
   const importMutation = useImportPurchaseOrders();
   const [importOpen, setImportOpen] = useState(false);
 
@@ -47,10 +53,28 @@ export default function PurchaseOrdersPage() {
   const { data, isLoading } = usePurchaseOrders({
     ...params,
     status: statusFilter || undefined,
+    statusGroup: statusGroup || undefined,
   });
   const { data: stats } = usePurchaseOrderStats();
 
   const tableData = data?.data || [];
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    const statusGroupParam = searchParams.get('statusGroup');
+
+    if (statusParam && STATUS_VALUES.includes(statusParam)) {
+      setStatusFilter(statusParam);
+      setStatusGroup('');
+    } else if (statusGroupParam && STATUS_GROUP_OPTIONS.some((option) => option.value === statusGroupParam)) {
+      setStatusFilter('');
+      setStatusGroup(statusGroupParam);
+    } else {
+      setStatusFilter('');
+      setStatusGroup('');
+    }
+    setPage(1);
+  }, [searchParams, setPage]);
 
   // Row selection
   const {
@@ -153,10 +177,26 @@ export default function PurchaseOrdersPage() {
   const draftPOs = stats?.draft ?? 0;
   const pendingPOs = stats?.pendingReceipt ?? 0;
   const receivedPOs = stats?.received ?? 0;
-  const hasActiveFilters = Boolean(params.search || statusFilter);
+  const hasActiveFilters = Boolean(params.search || statusFilter || statusGroup);
+  const activeFilterLabels = [
+    statusFilter ? `Status: ${STATUS_OPTIONS.find((option) => option.value === statusFilter)?.label ?? statusFilter}` : null,
+    statusGroup ? `Status: ${STATUS_GROUP_OPTIONS.find((option) => option.value === statusGroup)?.label ?? statusGroup}` : null,
+    params.search ? `Search: ${params.search}` : null,
+  ].filter(Boolean) as string[];
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setStatusGroup('');
+    setPage(1);
+    router.replace('/procurement/purchase-orders');
+  };
+
   const handleApplySavedView = (values: SavedFilterValues) => {
+    const nextStatus = String(values.statusFilter ?? '');
     setSearch(String(values.search ?? ''));
-    setStatusFilter(String(values.statusFilter ?? ''));
+    setStatusFilter(nextStatus);
+    setStatusGroup(nextStatus ? '' : String(values.statusGroup ?? ''));
     setPage(1);
   };
 
@@ -184,24 +224,28 @@ export default function PurchaseOrdersPage() {
           value: formatNumber(totalPOs),
           icon: <ClipboardIcon />,
           iconColor: 'gray',
+          href: '/procurement/purchase-orders',
         },
         {
           title: 'Draft',
           value: formatNumber(draftPOs),
           icon: <DraftIcon />,
           iconColor: 'blue',
+          href: '/procurement/purchase-orders?status=DRAFT',
         },
         {
           title: 'Pending Receipt',
           value: formatNumber(pendingPOs),
           icon: <TruckIcon />,
           iconColor: 'yellow',
+          href: '/procurement/purchase-orders?statusGroup=pendingReceipt',
         },
         {
           title: 'Received',
           value: formatNumber(receivedPOs),
           icon: <CheckIcon />,
           iconColor: 'green',
+          href: '/procurement/purchase-orders?status=RECEIVED',
         },
       ]}
       statsColumns={4}
@@ -215,7 +259,11 @@ export default function PurchaseOrdersPage() {
           />
           <Select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setStatusGroup('');
+              setPage(1);
+            }}
             options={STATUS_OPTIONS}
             className="max-w-xs"
           />
@@ -225,7 +273,7 @@ export default function PurchaseOrdersPage() {
         <div className="flex gap-2 print:hidden">
           <SavedFilterViews
             storageKey="purchase-orders"
-            currentValues={{ search: params.search || '', statusFilter }}
+            currentValues={{ search: params.search || '', statusFilter, statusGroup }}
             onApply={handleApplySavedView}
           />
           <ColumnToggle
@@ -239,6 +287,24 @@ export default function PurchaseOrdersPage() {
         </div>
       }
     >
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {selectedCount > 0 && (
         <BulkActionBar
           selectedCount={selectedCount}
@@ -277,11 +343,7 @@ export default function PurchaseOrdersPage() {
           action: hasActiveFilters ? (
             <Button
               variant="secondary"
-              onClick={() => {
-                setSearch('');
-                setStatusFilter('');
-                setPage(1);
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>

@@ -776,6 +776,7 @@ export class MasterDataService {
     siteId: string | undefined,
     params: PaginationParams & {
       status?: string;
+      statusGroup?: string;
       supplierId?: string;
       search?: string;
     },
@@ -783,6 +784,7 @@ export class MasterDataService {
     const { page, limit, offset } = normalizePagination(params);
     const filters = {
       status: params.status,
+      statusGroup: params.statusGroup,
       supplierId: params.supplierId,
       search: params.search,
       siteId,

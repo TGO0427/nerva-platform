@@ -56,6 +56,7 @@ export class PurchaseOrdersController {
     @Query("page") page?: number,
     @Query("limit") limit?: number,
     @Query("status") status?: string,
+    @Query("statusGroup") statusGroup?: string,
     @Query("supplierId") supplierId?: string,
     @Query("search") search?: string,
   ) {
@@ -63,6 +64,7 @@ export class PurchaseOrdersController {
       page,
       limit,
       status,
+      statusGroup,
       supplierId,
       search,
     });

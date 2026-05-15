@@ -28,6 +28,7 @@ interface UpdatePurchaseOrderData {
 
 interface POFilters {
   status?: string;
+  statusGroup?: string;
   supplierId?: string;
   search?: string;
 }
@@ -58,6 +59,7 @@ export function usePurchaseOrders(params: QueryParams & POFilters) {
       searchParams.set('limit', String(params.limit));
       if (params.search) searchParams.set('search', params.search);
       if (params.status) searchParams.set('status', params.status);
+      if (params.statusGroup) searchParams.set('statusGroup', params.statusGroup);
       if (params.supplierId) searchParams.set('supplierId', params.supplierId);
 
       const response = await api.get<PaginatedResult<PurchaseOrder>>(

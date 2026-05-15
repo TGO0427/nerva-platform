@@ -1932,6 +1932,7 @@ export class MasterDataRepository extends BaseRepository {
     offset: number,
     filters?: {
       status?: string;
+      statusGroup?: string;
       supplierId?: string;
       search?: string;
       siteId?: string;
@@ -1959,6 +1960,8 @@ export class MasterDataRepository extends BaseRepository {
     if (filters?.status) {
       sql += ` AND po.status = $${paramIdx++}`;
       params.push(filters.status);
+    } else if (filters?.statusGroup === "pendingReceipt") {
+      sql += ` AND po.status IN ('SENT','CONFIRMED','PARTIAL')`;
     }
     if (filters?.supplierId) {
       sql += ` AND po.supplier_id = $${paramIdx++}`;
@@ -1981,6 +1984,7 @@ export class MasterDataRepository extends BaseRepository {
     tenantId: string,
     filters?: {
       status?: string;
+      statusGroup?: string;
       supplierId?: string;
       search?: string;
       siteId?: string;
@@ -2002,6 +2006,8 @@ export class MasterDataRepository extends BaseRepository {
     if (filters?.status) {
       sql += ` AND po.status = $${paramIdx++}`;
       params.push(filters.status);
+    } else if (filters?.statusGroup === "pendingReceipt") {
+      sql += ` AND po.status IN ('SENT','CONFIRMED','PARTIAL')`;
     }
     if (filters?.supplierId) {
       sql += ` AND po.supplier_id = $${paramIdx++}`;
