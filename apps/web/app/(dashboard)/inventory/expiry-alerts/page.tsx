@@ -13,6 +13,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
 import { Select } from '@/components/ui/select';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import {
   useExpiryAlertsSummary,
   useExpiringStock,
@@ -184,6 +185,18 @@ export default function ExpiryAlertsPage() {
     router.replace('/inventory/expiry-alerts');
   };
 
+  const applySavedView = (values: SavedFilterValues) => {
+    const nextStatus = typeof values.filterStatus === 'string' && FILTER_STATUS_VALUES.includes(values.filterStatus as FilterStatus)
+      ? values.filterStatus as FilterStatus
+      : 'all';
+    const nextDaysAhead = Number(values.daysAhead);
+
+    setFilterStatus(nextStatus);
+    setWarehouseId(typeof values.warehouseId === 'string' ? values.warehouseId : '');
+    setDaysAhead(Number.isFinite(nextDaysAhead) && nextDaysAhead > 0 ? nextDaysAhead : 30);
+    setSearch(typeof values.search === 'string' ? values.search : '');
+  };
+
   return (
     <div>
       <Breadcrumbs />
@@ -271,6 +284,11 @@ export default function ExpiryAlertsPage() {
               {filterStatus === 'all' ? 'All Expiring Stock' : `${filterStatus} Stock`}
             </CardTitle>
             <div className="flex gap-2">
+              <SavedFilterViews
+                storageKey="expiry-alerts"
+                currentValues={{ filterStatus, daysAhead, warehouseId, search }}
+                onApply={applySavedView}
+              />
               <Input
                 placeholder="Search SKU, batch, bin..."
                 value={search}

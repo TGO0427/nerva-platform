@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { useNonConformances, useQueryParams } from '@/lib/queries';
 import { useColumnVisibility } from '@/lib/hooks';
@@ -192,6 +193,20 @@ export default function QualityPage() {
     router.replace('/manufacturing/quality');
   };
 
+  const applySavedView = (values: SavedFilterValues) => {
+    const nextStatus = typeof values.status === 'string' && STATUS_OPTIONS.some((option) => option.value === values.status)
+      ? values.status
+      : '';
+    const nextSeverity = typeof values.severity === 'string' && SEVERITY_OPTIONS.some((option) => option.value === values.severity)
+      ? values.severity
+      : '';
+
+    setStatus(nextStatus);
+    setSeverity(nextSeverity);
+    setSearch(typeof values.search === 'string' ? values.search : '');
+    setPage(1);
+  };
+
   return (
     <ListPageTemplate
       title="Quality / Non-Conformances"
@@ -258,6 +273,11 @@ export default function QualityPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="quality-ncs"
+            currentValues={{ search, status, severity }}
+            onApply={applySavedView}
+          />
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}

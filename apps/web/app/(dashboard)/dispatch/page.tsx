@@ -19,6 +19,7 @@ import { PageShell, MetricGrid } from '@/components/ui/motion';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { Drawer, StopsProgress } from '@/components/ui/drawer';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useCopy } from '@/lib/hooks/use-copy';
@@ -524,6 +525,19 @@ export default function DispatchPage() {
     router.replace('/dispatch');
   };
 
+  const applySavedView = (values: SavedFilterValues) => {
+    const nextTab = values.activeTab === 'ready-shipments' ? 'ready-shipments' : 'trips';
+    const nextViewMode = values.viewMode === 'table' ? 'table' : 'board';
+    const nextStatus = typeof values.status === 'string' && STATUS_VALUES.includes(values.status) ? values.status as TripStatus : '';
+
+    setActiveTab(nextTab);
+    setViewMode(nextViewMode);
+    setStatus(nextStatus);
+    setDate(typeof values.date === 'string' ? values.date : '');
+    setSearch(typeof values.search === 'string' ? values.search : '');
+    setPage(1);
+  };
+
   return (
     <PageShell>
       <PageHeader
@@ -655,6 +669,11 @@ export default function DispatchPage() {
               {/* View mode toggle + export - only show on trips tab */}
               {activeTab === 'trips' && (
                 <div className="flex items-center gap-2 print:hidden">
+                  <SavedFilterViews
+                    storageKey="dispatch"
+                    currentValues={{ activeTab, viewMode, status, date, search }}
+                    onApply={applySavedView}
+                  />
                   <ExportActions onExport={handleExportTrips} />
                   <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
                     <button
