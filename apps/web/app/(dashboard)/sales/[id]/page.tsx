@@ -14,6 +14,7 @@ import { formatCurrency, formatDate, formatNumber, formatQuantity } from '@/lib/
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { EntityHistory } from '@/components/ui/entity-history';
+import { RecordDocumentsPanel, RelatedRecordsPanel } from '@/components/ui/record-panels';
 import {
   useOrder,
   useConfirmOrder,
@@ -322,6 +323,26 @@ export default function SalesOrderDetailPage() {
     totalShipped < totalOrdered;
 
   const hasShipments = shipments && shipments.length > 0;
+  const relatedRecords = [
+    {
+      label: order.customer?.name || 'Customer',
+      description: order.customer?.code ? `Customer ${order.customer.code}` : order.customerId,
+      href: `/master-data/customers/${order.customerId}`,
+      badge: 'Customer',
+    },
+    {
+      label: order.warehouse?.name || 'Warehouse',
+      description: order.warehouseId,
+      href: `/master-data/warehouses/${order.warehouseId}`,
+      badge: 'Warehouse',
+    },
+    ...(shipments || []).map((shipment) => ({
+      label: shipment.shipmentNo,
+      description: shipment.carrier || shipment.trackingNo || 'Shipment',
+      href: `/fulfilment/shipments/${shipment.id}`,
+      badge: shipment.status?.replace(/_/g, ' ') || 'Shipment',
+    })),
+  ];
 
   return (
     <div>
@@ -527,6 +548,21 @@ export default function SalesOrderDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Line items */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <RecordDocumentsPanel
+          items={[
+            {
+              label: `Sales order ${order.orderNo}`,
+              description: 'Customer order PDF',
+              onClick: () => downloadPdf(`/sales/orders/${orderId}/pdf`, `SO-${order.orderNo}.pdf`),
+              badge: 'PDF',
+            },
+          ]}
+        />
+        <RelatedRecordsPanel items={relatedRecords} />
+      </div>
 
       {/* Line items */}
       <Card className="mb-6">

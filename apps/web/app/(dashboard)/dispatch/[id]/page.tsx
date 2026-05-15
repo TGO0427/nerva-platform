@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
 import { DownloadIcon } from '@/components/ui/export-actions';
+import { RecordDocumentsPanel, RelatedRecordsPanel } from '@/components/ui/record-panels';
 import { downloadPdf } from '@/lib/utils/export';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
@@ -414,6 +415,36 @@ export default function TripDetailPage() {
   const completedStops = stops?.filter(s => s.status === 'DELIVERED').length || 0;
   const failedStops = stops?.filter(s => ['FAILED', 'SKIPPED'].includes(s.status)).length || 0;
   const pendingStops = stops?.filter(s => ['PENDING', 'EN_ROUTE', 'ARRIVED'].includes(s.status)).length || 0;
+  const relatedShipments = Array.from(
+    new Map(
+      (stops || [])
+        .filter((stop) => stop.shipmentId)
+        .map((stop) => [
+          stop.shipmentId as string,
+          {
+            label: stop.shipmentNo || 'Shipment',
+            description: stop.customerName || stop.addressLine1,
+            href: `/fulfilment/shipments/${stop.shipmentId}`,
+            badge: 'Shipment',
+          },
+        ])
+    ).values()
+  );
+  const relatedCustomers = Array.from(
+    new Map(
+      (stops || [])
+        .filter((stop) => stop.customerId)
+        .map((stop) => [
+          stop.customerId as string,
+          {
+            label: stop.customerName || 'Customer',
+            description: stop.city || stop.addressLine1,
+            href: `/master-data/customers/${stop.customerId}`,
+            badge: 'Customer',
+          },
+        ])
+    ).values()
+  );
 
   return (
     <div>
@@ -593,6 +624,21 @@ export default function TripDetailPage() {
             </CardContent>
           </Card>
         )}
+      </div>
+
+      {/* Stops */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <RecordDocumentsPanel
+          items={[
+            {
+              label: `Manifest ${trip.tripNo}`,
+              description: 'Dispatch trip PDF',
+              onClick: () => downloadPdf(`/dispatch/trips/${tripId}/pdf`, `MANIFEST-${trip.tripNo}.pdf`),
+              badge: 'PDF',
+            },
+          ]}
+        />
+        <RelatedRecordsPanel items={[...relatedShipments, ...relatedCustomers]} />
       </div>
 
       {/* Stops */}

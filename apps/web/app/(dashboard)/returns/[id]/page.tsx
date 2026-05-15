@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
 import { EntityHistory } from '@/components/ui/entity-history';
+import { RecordDocumentsPanel, RelatedRecordsPanel } from '@/components/ui/record-panels';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
 import { useState } from 'react';
@@ -188,6 +189,20 @@ export default function RmaDetailPage() {
   const canCompleteDisposition = rma.status === 'INSPECTING';
   const canClose = ['CREDIT_APPROVED', 'DISPOSITION_COMPLETE'].includes(rma.status);
   const canCancel = !['CLOSED', 'CANCELLED'].includes(rma.status);
+  const relatedRecords = [
+    {
+      label: rma.customerName || 'Customer',
+      description: rma.customerCode ? `Customer ${rma.customerCode}` : rma.customerId,
+      href: `/master-data/customers/${rma.customerId}`,
+      badge: 'Customer',
+    },
+    ...(rma.salesOrderId ? [{
+      label: rma.orderNo || 'Sales order',
+      description: 'Original order',
+      href: `/sales/${rma.salesOrderId}`,
+      badge: 'Sales',
+    }] : []),
+  ];
 
   return (
     <div>
@@ -359,6 +374,21 @@ export default function RmaDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Line items */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <RecordDocumentsPanel
+          items={[
+            {
+              label: `RMA ${rma.rmaNo}`,
+              description: 'Return authorization PDF',
+              onClick: () => downloadPdf(`/returns/rmas/${rmaId}/pdf`, `RMA-${rma.rmaNo}.pdf`),
+              badge: 'PDF',
+            },
+          ]}
+        />
+        <RelatedRecordsPanel items={relatedRecords} />
+      </div>
 
       {/* Line items */}
       <Card className="mb-6">

@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { EntityHistory } from '@/components/ui/entity-history';
+import { RecordDocumentsPanel, RelatedRecordsPanel } from '@/components/ui/record-panels';
 import { downloadPdf } from '@/lib/utils/export';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -77,6 +78,21 @@ export default function PurchaseOrderDetailPage() {
       </div>
     );
   }
+
+  const relatedRecords = [
+    {
+      label: po.supplierName || 'Supplier',
+      description: po.supplierId,
+      href: `/master-data/suppliers/${po.supplierId}`,
+      badge: 'Supplier',
+    },
+    ...(po.shipToWarehouseId ? [{
+      label: po.warehouseName || 'Warehouse',
+      description: 'Ship-to warehouse',
+      href: `/master-data/warehouses/${po.shipToWarehouseId}`,
+      badge: 'Warehouse',
+    }] : []),
+  ];
 
   return (
     <div>
@@ -148,6 +164,21 @@ export default function PurchaseOrderDetailPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Order Lines */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <RecordDocumentsPanel
+          items={[
+            {
+              label: `Purchase order ${po.poNo}`,
+              description: 'Supplier order PDF',
+              onClick: () => downloadPdf(`/purchase-orders/${id}/pdf`, `PO-${po.poNo}.pdf`),
+              badge: 'PDF',
+            },
+          ]}
+        />
+        <RelatedRecordsPanel items={relatedRecords} />
       </div>
 
       {/* Order Lines */}

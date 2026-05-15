@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { EntityHistory } from '@/components/ui/entity-history';
+import { RecordDocumentsPanel, RelatedRecordsPanel } from '@/components/ui/record-panels';
 import { downloadPdf } from '@/lib/utils/export';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -149,6 +150,20 @@ export default function InvoiceDetailPage() {
 
   const balanceDue = invoice.totalAmount - invoice.amountPaid;
   const overdue = isOverdue(invoice.dueDate, invoice.status);
+  const relatedRecords = [
+    {
+      label: invoice.customerName || 'Customer',
+      description: invoice.customerId,
+      href: `/master-data/customers/${invoice.customerId}`,
+      badge: 'Customer',
+    },
+    ...(invoice.salesOrderId ? [{
+      label: invoice.orderNo || 'Sales order',
+      description: 'Source order',
+      href: `/sales/${invoice.salesOrderId}`,
+      badge: 'Sales',
+    }] : []),
+  ];
 
   return (
     <div>
@@ -270,6 +285,21 @@ export default function InvoiceDetailPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Line Items */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <RecordDocumentsPanel
+          items={[
+            {
+              label: `Invoice ${invoice.invoiceNo}`,
+              description: 'Tax invoice PDF',
+              onClick: () => downloadPdf(`/finance/invoices/${id}/pdf`, `INV-${invoice.invoiceNo}.pdf`),
+              badge: 'PDF',
+            },
+          ]}
+        />
+        <RelatedRecordsPanel items={relatedRecords} />
       </div>
 
       {/* Line Items */}
