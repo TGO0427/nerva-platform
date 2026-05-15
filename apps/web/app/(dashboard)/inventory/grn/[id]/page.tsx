@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
+import { EntityHistory } from '@/components/ui/entity-history';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
 import { useToast } from '@/components/ui/toast';
@@ -342,6 +343,10 @@ export default function GrnDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <div className="mt-6">
+        <EntityHistory entityType="Grn" entityId={grnId} />
+      </div>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { EntityHistory } from '@/components/ui/entity-history';
 import { DetailPageTemplate } from '@/components/templates';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -613,6 +614,8 @@ export default function IbtDetailPage() {
               />
             </CardContent>
           </Card>
+
+          <EntityHistory entityType="Ibt" entityId={id} />
         </div>
       )}
     </DetailPageTemplate>

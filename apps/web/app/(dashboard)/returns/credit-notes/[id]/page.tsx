@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { EntityHistory } from '@/components/ui/entity-history';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DownloadIcon } from '@/components/ui/export-actions';
@@ -288,6 +289,10 @@ export default function CreditNoteDetailPage() {
             Back to Credit Notes
           </Button>
         </Link>
+      </div>
+
+      <div className="mt-6">
+        <EntityHistory entityType="CreditNote" entityId={creditNoteId} />
       </div>
     </div>
   );

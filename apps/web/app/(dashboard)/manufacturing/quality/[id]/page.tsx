@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { EntityHistory } from '@/components/ui/entity-history';
 import { useToast } from '@/components/ui/toast';
 import {
   useNonConformance,
@@ -375,6 +376,8 @@ export default function NcDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <EntityHistory entityType="NonConformance" entityId={id} />
     </div>
   );
 }

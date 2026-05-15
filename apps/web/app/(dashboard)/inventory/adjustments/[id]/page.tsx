@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { EntityHistory } from '@/components/ui/entity-history';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
@@ -457,6 +458,8 @@ export default function AdjustmentDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <EntityHistory entityType="Adjustment" entityId={id} />
     </div>
   );
 }
