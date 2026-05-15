@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
 import { EntityHistory } from '@/components/ui/entity-history';
+import { RecordDocumentsPanel, RelatedRecordsPanel } from '@/components/ui/record-panels';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
 import { useToast } from '@/components/ui/toast';
@@ -287,6 +288,38 @@ export default function GrnDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <RecordDocumentsPanel
+          items={[
+            {
+              label: `GRN ${grn.grnNo}`,
+              description: 'Goods received note PDF',
+              onClick: () => downloadPdf(`/receiving/grns/${grnId}/pdf`, `GRN-${grn.grnNo}.pdf`),
+              badge: 'PDF',
+            },
+          ]}
+        />
+        <RelatedRecordsPanel
+          items={[
+            grn.purchaseOrderId ? {
+              label: 'Purchase Order',
+              description: 'Source purchase order for this receipt',
+              href: `/procurement/purchase-orders/${grn.purchaseOrderId}`,
+            } : null,
+            {
+              label: 'Warehouse',
+              description: 'Receiving warehouse',
+              href: `/master-data/warehouses/${grn.warehouseId}`,
+            },
+            grn.status === 'PUTAWAY_PENDING' ? {
+              label: 'Putaway Queue',
+              description: 'Warehouse putaway tasks generated from this GRN',
+              href: '/inventory/putaway',
+            } : null,
+          ].filter((item): item is NonNullable<typeof item> => Boolean(item))}
+        />
+      </div>
 
       {/* Line items */}
       <Card>

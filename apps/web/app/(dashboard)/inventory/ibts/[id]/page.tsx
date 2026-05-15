@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EntityHistory } from '@/components/ui/entity-history';
+import { RecordDocumentsPanel, RelatedRecordsPanel } from '@/components/ui/record-panels';
 import { DetailPageTemplate } from '@/components/templates';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -530,6 +531,24 @@ export default function IbtDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <RecordDocumentsPanel items={[]} />
+            <RelatedRecordsPanel
+              items={[
+                {
+                  label: ibt.fromWarehouseName,
+                  description: 'Source warehouse',
+                  href: `/master-data/warehouses/${ibt.fromWarehouseId}`,
+                },
+                {
+                  label: ibt.toWarehouseName,
+                  description: 'Destination warehouse',
+                  href: `/master-data/warehouses/${ibt.toWarehouseId}`,
+                },
+              ]}
+            />
+          </div>
 
           {/* Lines */}
           <Card>

@@ -16,6 +16,7 @@ export * from './label';
 export * from './modal';
 export * from './motion';
 export * from './page-header';
+export * from './record-panels';
 export * from './select';
 export * from './saved-filter-views';
 export * from './skeleton';

@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { EntityHistory } from '@/components/ui/entity-history';
+import { RecordDocumentsPanel, RelatedRecordsPanel } from '@/components/ui/record-panels';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
@@ -287,6 +288,24 @@ export default function AdjustmentDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RecordDocumentsPanel items={[]} />
+        <RelatedRecordsPanel
+          items={[
+            {
+              label: warehouseName || 'Warehouse',
+              description: 'Warehouse affected by this stock adjustment',
+              href: `/master-data/warehouses/${adjustment.warehouseId}`,
+            },
+            adjustment.cycleCountId ? {
+              label: 'Cycle Count',
+              description: 'Cycle count that generated this adjustment',
+              href: `/inventory/cycle-counts/${adjustment.cycleCountId}`,
+            } : null,
+          ].filter((item): item is NonNullable<typeof item> => Boolean(item))}
+        />
+      </div>
 
       {/* Lines section */}
       <Card>

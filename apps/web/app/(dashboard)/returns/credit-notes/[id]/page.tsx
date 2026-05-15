@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { EntityHistory } from '@/components/ui/entity-history';
+import { RecordDocumentsPanel, RelatedRecordsPanel } from '@/components/ui/record-panels';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DownloadIcon } from '@/components/ui/export-actions';
@@ -281,6 +282,33 @@ export default function CreditNoteDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <RecordDocumentsPanel
+          items={[
+            {
+              label: `Credit Note ${creditNote.creditNoteNo}`,
+              description: 'Credit note PDF',
+              onClick: () => downloadPdf(`/finance/credits/${creditNoteId}/pdf`, `CN-${creditNote.creditNoteNo}.pdf`),
+              badge: 'PDF',
+            },
+          ]}
+        />
+        <RelatedRecordsPanel
+          items={[
+            {
+              label: creditNote.rmaNo || 'RMA',
+              description: 'Return authorization linked to this credit note',
+              href: `/returns/${creditNote.rmaId}`,
+            },
+            {
+              label: creditNote.customerName || 'Customer',
+              description: 'Customer credited by this note',
+              href: `/master-data/customers/${creditNote.customerId}`,
+            },
+          ]}
+        />
+      </div>
 
       <div className="mt-6">
         <Link href="/returns/credit-notes">

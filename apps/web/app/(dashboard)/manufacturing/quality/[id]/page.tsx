@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { EntityHistory } from '@/components/ui/entity-history';
+import { RecordDocumentsPanel, RelatedRecordsPanel } from '@/components/ui/record-panels';
 import { useToast } from '@/components/ui/toast';
 import {
   useNonConformance,
@@ -376,6 +377,24 @@ export default function NcDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RecordDocumentsPanel items={[]} />
+        <RelatedRecordsPanel
+          items={[
+            nc.workOrderId ? {
+              label: nc.workOrderNo || 'Work Order',
+              description: 'Production order where this NCR was raised',
+              href: `/manufacturing/work-orders/${nc.workOrderId}`,
+            } : null,
+            nc.itemId ? {
+              label: nc.itemSku || 'Item',
+              description: nc.itemDescription || 'Affected item',
+              href: `/master-data/items/${nc.itemId}`,
+            } : null,
+          ].filter((item): item is NonNullable<typeof item> => Boolean(item))}
+        />
+      </div>
 
       <EntityHistory entityType="NonConformance" entityId={id} />
     </div>
