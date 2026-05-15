@@ -42,6 +42,8 @@ export default function SalesOrdersPage() {
   const [status, setStatus] = useState<SalesOrderStatus | ''>('');
   const [search, setSearch] = useState('');
   const [lateOnly, setLateOnly] = useState(false);
+  const [statusGroup, setStatusGroup] = useState<'pending' | ''>('');
+  const [dateRange, setDateRange] = useState<'last7Days' | ''>('');
   const importMutation = useImportSalesOrders();
   const [importOpen, setImportOpen] = useState(false);
 
@@ -52,14 +54,23 @@ export default function SalesOrdersPage() {
 
   // Handle URL query params
   useEffect(() => {
-    if (searchParams.get('late') === 'true') {
-      setLateOnly(true);
-    }
+    setLateOnly(searchParams.get('late') === 'true');
+
+    const statusParam = searchParams.get('status') as SalesOrderStatus | null;
+    setStatus(STATUS_OPTIONS.some((option) => option.value === statusParam) ? statusParam ?? '' : '');
+
+    const statusGroupParam = searchParams.get('statusGroup');
+    setStatusGroup(statusGroupParam === 'pending' ? 'pending' : '');
+
+    const dateRangeParam = searchParams.get('dateRange');
+    setDateRange(dateRangeParam === 'last7Days' ? 'last7Days' : '');
   }, [searchParams]);
 
   const { data, isLoading } = useOrders({
     ...params,
     status: status || undefined,
+    statusGroup: statusGroup || undefined,
+    dateRange: dateRange || undefined,
     search: search || undefined,
     late: lateOnly || undefined,
   });
@@ -170,11 +181,13 @@ export default function SalesOrdersPage() {
   const openOrders = stats?.open ?? 0;
   const inFulfilment = stats?.inFulfilment ?? 0;
   const shippedCount = stats?.shipped ?? 0;
-  const hasActiveFilters = Boolean(search || status || lateOnly);
+  const hasActiveFilters = Boolean(search || status || statusGroup || dateRange || lateOnly);
   const handleApplySavedView = (values: SavedFilterValues) => {
     setSearch(String(values.search ?? ''));
     setStatus((values.status ?? '') as SalesOrderStatus | '');
     setLateOnly(Boolean(values.lateOnly));
+    setStatusGroup((values.statusGroup === 'pending' ? 'pending' : ''));
+    setDateRange((values.dateRange === 'last7Days' ? 'last7Days' : ''));
     setPage(1);
   };
 
@@ -253,7 +266,7 @@ export default function SalesOrdersPage() {
         <div className="flex gap-2 print:hidden">
           <SavedFilterViews
             storageKey="sales-orders"
-            currentValues={{ search, status, lateOnly }}
+            currentValues={{ search, status, statusGroup, dateRange, lateOnly }}
             onApply={handleApplySavedView}
           />
           <ColumnToggle
@@ -308,6 +321,8 @@ export default function SalesOrdersPage() {
               onClick={() => {
                 setSearch('');
                 setStatus('');
+                setStatusGroup('');
+                setDateRange('');
                 setLateOnly(false);
                 setPage(1);
               }}

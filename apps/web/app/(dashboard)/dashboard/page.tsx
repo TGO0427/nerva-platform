@@ -180,7 +180,7 @@ export default function DashboardPage() {
               subtitle={stats?.allocatedOrders ? `${formatNumber(stats.allocatedOrders)} allocated` : undefined}
               icon={<ClipboardIcon />}
               iconColor="blue"
-              href="/sales?status=PENDING"
+              href="/sales?statusGroup=pending"
             />
             <StatCard
               title="Weekly Sales"

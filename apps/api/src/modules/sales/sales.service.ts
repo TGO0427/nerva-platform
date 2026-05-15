@@ -113,7 +113,13 @@ export class SalesService {
 
   async listOrders(
     tenantId: string,
-    filters: { status?: string; customerId?: string; search?: string },
+    filters: {
+      status?: string;
+      statusGroup?: string;
+      dateRange?: string;
+      customerId?: string;
+      search?: string;
+    },
     page = 1,
     limit = 50,
   ) {

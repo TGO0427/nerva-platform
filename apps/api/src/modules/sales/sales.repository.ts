@@ -89,7 +89,13 @@ export class SalesRepository extends BaseRepository {
 
   async findOrdersByTenant(
     tenantId: string,
-    filters: { status?: string; customerId?: string; search?: string },
+    filters: {
+      status?: string;
+      statusGroup?: string;
+      dateRange?: string;
+      customerId?: string;
+      search?: string;
+    },
     limit = 50,
     offset = 0,
   ): Promise<SalesOrder[]> {
@@ -103,6 +109,11 @@ export class SalesRepository extends BaseRepository {
     if (filters.status) {
       sql += ` AND so.status = $${idx++}`;
       params.push(filters.status);
+    } else if (filters.statusGroup === "pending") {
+      sql += ` AND so.status IN ('DRAFT', 'CONFIRMED')`;
+    }
+    if (filters.dateRange === "last7Days") {
+      sql += ` AND so.created_at >= NOW() - INTERVAL '7 days'`;
     }
     if (filters.customerId) {
       sql += ` AND so.customer_id = $${idx++}`;
@@ -123,7 +134,13 @@ export class SalesRepository extends BaseRepository {
 
   async countOrdersByTenant(
     tenantId: string,
-    filters: { status?: string; customerId?: string; search?: string },
+    filters: {
+      status?: string;
+      statusGroup?: string;
+      dateRange?: string;
+      customerId?: string;
+      search?: string;
+    },
   ): Promise<number> {
     let sql = `SELECT COUNT(*) as count FROM sales_orders so
                LEFT JOIN customers c ON c.id = so.customer_id AND c.tenant_id = so.tenant_id
@@ -134,6 +151,11 @@ export class SalesRepository extends BaseRepository {
     if (filters.status) {
       sql += ` AND so.status = $${idx++}`;
       params.push(filters.status);
+    } else if (filters.statusGroup === "pending") {
+      sql += ` AND so.status IN ('DRAFT', 'CONFIRMED')`;
+    }
+    if (filters.dateRange === "last7Days") {
+      sql += ` AND so.created_at >= NOW() - INTERVAL '7 days'`;
     }
     if (filters.customerId) {
       sql += ` AND so.customer_id = $${idx++}`;

@@ -51,6 +51,8 @@ export class SalesController {
   async list(
     @TenantId() tenantId: string,
     @Query("status") status?: string,
+    @Query("statusGroup") statusGroup?: string,
+    @Query("dateRange") dateRange?: string,
     @Query("customerId") customerId?: string,
     @Query("search") search?: string,
     @Query("page") page?: number,
@@ -58,7 +60,7 @@ export class SalesController {
   ) {
     return this.service.listOrders(
       tenantId,
-      { status, customerId, search },
+      { status, statusGroup, dateRange, customerId, search },
       page,
       limit,
     );

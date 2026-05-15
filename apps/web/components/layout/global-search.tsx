@@ -36,7 +36,7 @@ const COMMANDS: SearchResult[] = [
   { type: 'command', id: 'dashboard', title: 'Go to Dashboard', subtitle: 'Overview & KPIs', href: '/dashboard', icon: 'home' },
   { type: 'command', id: 'exceptions', title: 'Go to Exceptions', subtitle: 'Operational queues & alerts', href: '/exceptions', icon: 'nav' },
   { type: 'command', id: 'late-orders', title: 'Open Late Orders', subtitle: 'Sales orders past requested ship date', href: '/sales?late=true', icon: 'nav' },
-  { type: 'command', id: 'allocation-failures', title: 'Open Allocation Failures', subtitle: 'Pending sales orders needing allocation review', href: '/sales?status=PENDING', icon: 'nav' },
+  { type: 'command', id: 'allocation-failures', title: 'Open Allocation Failures', subtitle: 'Pending sales orders needing allocation review', href: '/sales?statusGroup=pending', icon: 'nav' },
   { type: 'command', id: 'low-stock', title: 'Open Low Stock', subtitle: 'Inventory stock alerts', href: '/inventory/expiry-alerts?status=CRITICAL', icon: 'box' },
   { type: 'command', id: 'overdue-grns', title: 'Open Overdue GRNs', subtitle: 'Receiving documents needing closure', href: '/inventory/grn?status=OPEN', icon: 'nav' },
   { type: 'command', id: 'stuck-pick-waves', title: 'Open Stuck Pick Waves', subtitle: 'Fulfilment waves open too long', href: '/fulfilment?tab=pick-waves&status=IN_PROGRESS', icon: 'clipboard' },

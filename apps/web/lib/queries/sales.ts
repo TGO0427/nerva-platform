@@ -36,6 +36,8 @@ export interface SalesOrderLineWithItem extends SalesOrderLine {
 
 interface OrderFilters {
   status?: SalesOrderStatus;
+  statusGroup?: 'pending';
+  dateRange?: 'last7Days';
   customerId?: string;
   late?: boolean;
   search?: string;
@@ -66,6 +68,8 @@ export function useOrders(params: QueryParams & OrderFilters) {
       searchParams.set('page', String(params.page));
       searchParams.set('limit', String(params.limit));
       if (params.status) searchParams.set('status', params.status);
+      if (params.statusGroup) searchParams.set('statusGroup', params.statusGroup);
+      if (params.dateRange) searchParams.set('dateRange', params.dateRange);
       if (params.customerId) searchParams.set('customerId', params.customerId);
       if (params.late) searchParams.set('late', 'true');
       if (params.search) searchParams.set('search', params.search);
