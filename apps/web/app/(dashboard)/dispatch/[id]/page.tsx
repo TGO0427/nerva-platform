@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/toast';
 import { useCopy } from '@/lib/hooks/use-copy';
 import { Drawer, StopsProgress } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
+import { formatDate, formatDateTime, formatTime } from '@/lib/format';
 import {
   useTrip,
   useTripStops,
@@ -41,27 +42,16 @@ const FAILURE_REASONS = [
   { value: 'VEHICLE_ISSUE', label: 'Vehicle breakdown' },
   { value: 'OTHER', label: 'Other reason' },
 ];
-
-// Consistent date formatting
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('en-ZA', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function formatDateTime(dateStr: string | null): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleString('en-ZA', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+const SHORT_DATE_FORMAT: Intl.DateTimeFormatOptions = {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+};
+const DISPATCH_DATE_TIME_FORMAT: Intl.DateTimeFormatOptions = {
+  ...SHORT_DATE_FORMAT,
+  hour: '2-digit',
+  minute: '2-digit',
+};
 
 export default function TripDetailPage() {
   const params = useParams();
@@ -250,16 +240,12 @@ export default function TripDetailPage() {
     {
       key: 'arrivedAt',
       header: 'Arrived',
-      render: (row) => row.arrivedAt
-        ? new Date(row.arrivedAt).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
-        : '-',
+      render: (row) => formatTime(row.arrivedAt),
     },
     {
       key: 'departedAt',
       header: 'Departed',
-      render: (row) => row.departedAt
-        ? new Date(row.departedAt).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
-        : '-',
+      render: (row) => formatTime(row.departedAt),
     },
     {
       key: 'actions',
@@ -448,8 +434,8 @@ export default function TripDetailPage() {
           </div>
           <p className="text-slate-500 mt-1">
             {trip.plannedDate
-              ? `Planned for ${formatDate(trip.plannedDate)}`
-              : `Created ${formatDate(trip.createdAt)}`}
+              ? `Planned for ${formatDate(trip.plannedDate, '-', SHORT_DATE_FORMAT)}`
+              : `Created ${formatDate(trip.createdAt, '-', SHORT_DATE_FORMAT)}`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -583,15 +569,15 @@ export default function TripDetailPage() {
               </div>
               <div>
                 <dt className="text-slate-500">Planned Date</dt>
-                <dd className="font-medium">{formatDate(trip.plannedDate)}</dd>
+                <dd className="font-medium">{formatDate(trip.plannedDate, '-', SHORT_DATE_FORMAT)}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">Started At</dt>
-                <dd className="font-medium">{formatDateTime(trip.startedAt)}</dd>
+                <dd className="font-medium">{formatDateTime(trip.startedAt, '-', DISPATCH_DATE_TIME_FORMAT)}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">Completed At</dt>
-                <dd className="font-medium">{formatDateTime(trip.completedAt)}</dd>
+                <dd className="font-medium">{formatDateTime(trip.completedAt, '-', DISPATCH_DATE_TIME_FORMAT)}</dd>
               </div>
             </dl>
           </CardContent>

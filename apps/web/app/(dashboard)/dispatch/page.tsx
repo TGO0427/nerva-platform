@@ -38,6 +38,7 @@ import {
   AuditEntryWithActor,
 } from '@/lib/queries';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDate } from '@/lib/format';
 import type { TripStatus, StopStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
@@ -50,30 +51,17 @@ const STATUS_OPTIONS = [
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
 const STATUS_VALUES = STATUS_OPTIONS.map((option) => option.value).filter(Boolean);
+const SHORT_DATE_FORMAT: Intl.DateTimeFormatOptions = {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+};
 
 type Tab = 'trips' | 'ready-shipments';
 type ViewMode = 'table' | 'board';
 
 // Auto-refresh interval in milliseconds
 const REFRESH_INTERVAL = 25000; // 25 seconds
-
-// Consistent date formatting
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('en-ZA', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function formatTime(dateStr: string | null): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleTimeString('en-ZA', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function formatRelativeTime(dateStr: string | null): string {
   if (!dateStr) return '';
@@ -437,7 +425,7 @@ export default function DispatchPage() {
     {
       key: 'createdAt',
       header: 'Created',
-      render: (row) => formatDate(row.createdAt),
+      render: (row) => formatDate(row.createdAt, '-', SHORT_DATE_FORMAT),
     },
   ];
 
@@ -1012,7 +1000,7 @@ export default function DispatchPage() {
         isOpen={!!selectedTripId}
         onClose={() => setSelectedTripId(null)}
         title={drawerTrip?.tripNo || 'Trip Details'}
-        subtitle={drawerTrip ? `${formatStatus(drawerTrip.status)} • ${formatDate(drawerTrip.plannedDate)}` : undefined}
+        subtitle={drawerTrip ? `${formatStatus(drawerTrip.status)} • ${formatDate(drawerTrip.plannedDate, '-', SHORT_DATE_FORMAT)}` : undefined}
         size="xl"
       >
         {drawerTrip && (

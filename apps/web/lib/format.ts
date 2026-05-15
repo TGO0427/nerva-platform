@@ -7,16 +7,34 @@ function toDate(value: string | Date): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export function formatDate(value: string | Date | null | undefined, fallback = '-'): string {
+export function formatDate(
+  value: string | Date | null | undefined,
+  fallback = '-',
+  options?: Intl.DateTimeFormatOptions,
+): string {
   if (!value) return fallback;
   const date = toDate(value);
-  return date ? date.toLocaleDateString(DEFAULT_LOCALE) : fallback;
+  return date ? date.toLocaleDateString(DEFAULT_LOCALE, options) : fallback;
 }
 
-export function formatDateTime(value: string | Date | null | undefined, fallback = '-'): string {
+export function formatDateTime(
+  value: string | Date | null | undefined,
+  fallback = '-',
+  options?: Intl.DateTimeFormatOptions,
+): string {
   if (!value) return fallback;
   const date = toDate(value);
-  return date ? date.toLocaleString(DEFAULT_LOCALE) : fallback;
+  return date ? date.toLocaleString(DEFAULT_LOCALE, options) : fallback;
+}
+
+export function formatTime(
+  value: string | Date | null | undefined,
+  fallback = '-',
+  options: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' },
+): string {
+  if (!value) return fallback;
+  const date = toDate(value);
+  return date ? date.toLocaleTimeString(DEFAULT_LOCALE, options) : fallback;
 }
 
 export function formatNumber(value: FormatInput, options?: Intl.NumberFormatOptions, fallback = '-'): string {
