@@ -19,6 +19,8 @@ interface SearchResult {
   subtitle: string;
   href: string;
   icon?: string;
+  keywords?: string[];
+  featured?: boolean;
 }
 
 // Command definitions — all navigation + create actions
@@ -34,9 +36,9 @@ const COMMANDS: SearchResult[] = [
   { type: 'command', id: 'new-ncr', title: 'Create NCR', subtitle: 'Log a manufacturing quality issue', href: '/manufacturing/quality/new', icon: 'plus' },
   // Navigation
   { type: 'command', id: 'dashboard', title: 'Go to Dashboard', subtitle: 'Overview & KPIs', href: '/dashboard', icon: 'home' },
-  { type: 'command', id: 'exceptions', title: 'Go to Exceptions', subtitle: 'Operational queues & alerts', href: '/exceptions', icon: 'nav' },
-  { type: 'command', id: 'late-orders', title: 'Open Late Orders', subtitle: 'Sales orders past requested ship date', href: '/sales?late=true', icon: 'nav' },
-  { type: 'command', id: 'allocation-failures', title: 'Open Allocation Failures', subtitle: 'Pending sales orders needing allocation review', href: '/sales?statusGroup=pending', icon: 'nav' },
+  { type: 'command', id: 'exceptions', title: 'Go to Exceptions', subtitle: 'Operational queues & alerts', href: '/exceptions', icon: 'nav', featured: true, keywords: ['queues', 'cockpit', 'alerts'] },
+  { type: 'command', id: 'late-orders', title: 'Open Late Orders', subtitle: 'Sales orders past requested ship date', href: '/sales?late=true', icon: 'nav', featured: true, keywords: ['exceptions', 'overdue', 'sales'] },
+  { type: 'command', id: 'allocation-failures', title: 'Open Allocation Failures', subtitle: 'Pending sales orders needing allocation review', href: '/sales?statusGroup=pending', icon: 'nav', featured: true, keywords: ['allocate', 'allocation', 'failures', 'sales'] },
   { type: 'command', id: 'low-stock', title: 'Open Low Stock', subtitle: 'Inventory stock alerts', href: '/inventory/expiry-alerts?status=CRITICAL', icon: 'box' },
   { type: 'command', id: 'overdue-grns', title: 'Open Overdue GRNs', subtitle: 'Receiving documents needing closure', href: '/inventory/grn?overdue=true', icon: 'nav' },
   { type: 'command', id: 'stuck-pick-waves', title: 'Open Stuck Pick Waves', subtitle: 'Fulfilment waves open too long', href: '/fulfilment?tab=pick-waves&status=IN_PROGRESS', icon: 'clipboard' },
@@ -59,10 +61,32 @@ const COMMANDS: SearchResult[] = [
   { type: 'command', id: 'notifications', title: 'Go to Notifications', subtitle: 'View all notifications', href: '/notifications', icon: 'nav' },
   { type: 'command', id: 'audit-log', title: 'Go to Audit Log', subtitle: 'Activity audit trail', href: '/settings/audit-log', icon: 'nav' },
   { type: 'command', id: 'privacy', title: 'Go to Privacy & Data', subtitle: 'Export data or delete account', href: '/settings/privacy', icon: 'nav' },
-  { type: 'command', id: 'bulk-pick', title: 'Bulk Pick Waves', subtitle: 'Review picking work by wave', href: '/fulfilment?tab=pick-waves', icon: 'clipboard' },
-  { type: 'command', id: 'bulk-assign-dispatch', title: 'Assign Dispatch Trips', subtitle: 'Assign drivers and release deliveries', href: '/dispatch?tab=trips&status=PLANNED', icon: 'truck' },
-  { type: 'command', id: 'export-invoices', title: 'Export Invoices', subtitle: 'Open invoice list with CSV export', href: '/finance/invoices', icon: 'nav' },
+  // Sales operations
+  { type: 'command', id: 'sales-pending', title: 'Review Pending Orders', subtitle: 'Draft and confirmed orders awaiting next action', href: '/sales?statusGroup=pending', icon: 'clipboard', featured: true, keywords: ['sales', 'orders', 'release', 'confirm'] },
+  { type: 'command', id: 'sales-allocated', title: 'Review Allocated Orders', subtitle: 'Orders ready to move into fulfilment', href: '/sales?status=ALLOCATED', icon: 'clipboard', keywords: ['sales', 'allocate', 'allocated', 'release'] },
+  { type: 'command', id: 'sales-export', title: 'Export Sales Orders', subtitle: 'Open sales list with bulk export controls', href: '/sales', icon: 'nav', keywords: ['sales', 'orders', 'csv', 'download'] },
+  // Inventory operations
+  { type: 'command', id: 'inventory-adjust-approvals', title: 'Approve Stock Adjustments', subtitle: 'Submitted stock adjustments awaiting approval', href: '/inventory/adjustments?status=SUBMITTED', icon: 'box', featured: true, keywords: ['inventory', 'stock', 'approve', 'adjust'] },
+  { type: 'command', id: 'inventory-open-counts', title: 'Work Cycle Counts', subtitle: 'Open cycle counts for warehouse counting', href: '/inventory/cycle-counts?status=OPEN', icon: 'box', keywords: ['inventory', 'count', 'warehouse'] },
+  { type: 'command', id: 'inventory-putaway', title: 'Work Putaway Tasks', subtitle: 'Pending putaway work for received stock', href: '/inventory/putaway?status=PENDING', icon: 'box', keywords: ['inventory', 'putaway', 'receive', 'grn'] },
+  { type: 'command', id: 'inventory-grn-overdue', title: 'Close Overdue GRNs', subtitle: 'Receiving documents that need closure', href: '/inventory/grn?overdue=true', icon: 'box', keywords: ['inventory', 'grn', 'close', 'overdue'] },
+  { type: 'command', id: 'inventory-export', title: 'Export Stock List', subtitle: 'Open inventory list with bulk export controls', href: '/inventory', icon: 'box', keywords: ['inventory', 'stock', 'csv', 'download'] },
+  // Dispatch and fulfilment operations
+  { type: 'command', id: 'dispatch-assign', title: 'Assign Dispatch Trips', subtitle: 'Planned trips ready for driver assignment', href: '/dispatch?tab=trips&status=PLANNED', icon: 'truck', featured: true, keywords: ['dispatch', 'assign', 'driver'] },
+  { type: 'command', id: 'dispatch-active', title: 'Track Active Trips', subtitle: 'Trips currently in progress', href: '/dispatch?tab=trips&status=IN_PROGRESS', icon: 'truck', keywords: ['dispatch', 'delivery', 'trip'] },
+  { type: 'command', id: 'dispatch-ready', title: 'Release Ready Shipments', subtitle: 'Shipments ready for dispatch planning', href: '/dispatch?tab=ready-shipments', icon: 'truck', keywords: ['dispatch', 'release', 'shipments'] },
+  { type: 'command', id: 'fulfilment-pick', title: 'Pick Open Waves', subtitle: 'Open pick waves waiting for warehouse work', href: '/fulfilment?tab=pick-waves&status=OPEN', icon: 'clipboard', featured: true, keywords: ['pick', 'wave', 'warehouse'] },
+  { type: 'command', id: 'fulfilment-stuck', title: 'Review Stuck Pick Waves', subtitle: 'In-progress waves that need attention', href: '/fulfilment?tab=pick-waves&status=IN_PROGRESS', icon: 'clipboard', keywords: ['pick', 'wave', 'stuck', 'exceptions'] },
+  { type: 'command', id: 'fulfilment-ready-dispatch', title: 'Ship Ready Orders', subtitle: 'Shipments ready for dispatch', href: '/fulfilment?tab=shipments&status=READY_FOR_DISPATCH', icon: 'clipboard', keywords: ['ship', 'release', 'dispatch'] },
+  // Manufacturing operations
+  { type: 'command', id: 'manufacturing-release', title: 'Release Work Orders', subtitle: 'Draft work orders ready to release', href: '/manufacturing/work-orders?status=DRAFT', icon: 'clipboard', featured: true, keywords: ['manufacturing', 'release', 'production'] },
+  { type: 'command', id: 'manufacturing-active', title: 'Track Active Production', subtitle: 'Work orders currently in progress', href: '/manufacturing/work-orders?status=IN_PROGRESS', icon: 'clipboard', keywords: ['manufacturing', 'production', 'active'] },
+  { type: 'command', id: 'manufacturing-close', title: 'Close Completed Work Orders', subtitle: 'Completed production orders for final review', href: '/manufacturing/work-orders?status=COMPLETED', icon: 'clipboard', keywords: ['manufacturing', 'close', 'complete'] },
+  { type: 'command', id: 'manufacturing-open-ncrs', title: 'Review Open NCRs', subtitle: 'Manufacturing quality issues needing disposition', href: '/manufacturing/quality?status=OPEN', icon: 'nav', keywords: ['manufacturing', 'quality', 'ncr', 'exceptions'] },
+  { type: 'command', id: 'manufacturing-schedule', title: 'Open Production Schedule', subtitle: 'Plan and sequence manufacturing work', href: '/manufacturing/schedule', icon: 'nav', keywords: ['manufacturing', 'schedule', 'capacity'] },
 ];
+
+const FEATURED_COMMANDS = COMMANDS.filter((command) => command.featured);
 
 // Recent items storage key
 const RECENT_ITEMS_KEY = 'nerva-recent-items';
@@ -146,7 +170,8 @@ export function GlobalSearch() {
     const searchTerm = query.slice(1).toLowerCase();
     return COMMANDS.filter(cmd =>
       cmd.title.toLowerCase().includes(searchTerm) ||
-      cmd.subtitle.toLowerCase().includes(searchTerm)
+      cmd.subtitle.toLowerCase().includes(searchTerm) ||
+      cmd.keywords?.some((keyword) => keyword.includes(searchTerm))
     );
   }, [query, queryMode]);
 
@@ -348,7 +373,15 @@ export function GlobalSearch() {
   }, [router]);
 
   // Keyboard navigation
-  const displayResults = query.length < 2 && queryMode !== 'command' ? recentItems : results;
+  const idleResults = useMemo(() => {
+    const recentIds = new Set(recentItems.map((item) => item.id));
+    return [
+      ...recentItems,
+      ...FEATURED_COMMANDS.filter((command) => !recentIds.has(command.id)),
+    ];
+  }, [recentItems]);
+
+  const displayResults = query.length < 2 && queryMode !== 'command' ? idleResults : results;
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
@@ -446,38 +479,47 @@ export function GlobalSearch() {
 
               {/* Results */}
               <div className="max-h-96 overflow-y-auto">
-                {/* Show recent items when empty */}
-                {query.length < 2 && queryMode !== 'command' && recentItems.length > 0 && (
-                  <div className="py-2">
-                    <p className="px-4 py-1.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Recent</p>
-                    {recentItems.map((result, index) => (
-                      <ResultItem
-                        key={`recent-${result.id}`}
-                        result={result}
-                        isSelected={index === selectedIndex}
-                        onClick={() => handleResultClick(result)}
-                        onMouseEnter={() => setSelectedIndex(index)}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* Show quick tips when empty and no recent */}
-                {query.length < 2 && queryMode !== 'command' && recentItems.length === 0 && (
-                  <div className="py-6 px-4">
-                    <p className="text-sm text-slate-600 font-medium mb-3">Quick Tips</p>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-slate-500">
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">/</kbd> Commands</p>
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">SO-</kbd> Sales orders</p>
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">PO-</kbd> Purchase orders</p>
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">TRIP-</kbd> Dispatch trips</p>
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">INV-</kbd> Invoices</p>
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">RMA-</kbd> Returns</p>
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">WO-</kbd> Work orders</p>
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">@</kbd> Customers</p>
-                      <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">#</kbd> Items/SKUs</p>
+                {/* Show recent and featured commands when empty */}
+                {query.length < 2 && queryMode !== 'command' && (
+                  <>
+                    {recentItems.length > 0 && (
+                      <div className="py-2">
+                        <p className="px-4 py-1.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Recent</p>
+                        {recentItems.map((result, index) => (
+                          <ResultItem
+                            key={`recent-${result.id}`}
+                            result={result}
+                            isSelected={index === selectedIndex}
+                            onClick={() => handleResultClick(result)}
+                            onMouseEnter={() => setSelectedIndex(index)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <div className="py-2">
+                      <p className="px-4 py-1.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Operational Actions</p>
+                      {FEATURED_COMMANDS.map((result, index) => {
+                        const resultIndex = recentItems.length + index;
+                        return (
+                          <ResultItem
+                            key={`featured-${result.id}`}
+                            result={result}
+                            isSelected={resultIndex === selectedIndex}
+                            onClick={() => handleResultClick(result)}
+                            onMouseEnter={() => setSelectedIndex(resultIndex)}
+                          />
+                        );
+                      })}
                     </div>
-                  </div>
+                    <div className="px-4 py-3 border-t border-slate-100">
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-slate-500">
+                        <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">/</kbd> All commands</p>
+                        <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">SO-</kbd> Sales orders</p>
+                        <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">TRIP-</kbd> Dispatch trips</p>
+                        <p><kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">WO-</kbd> Work orders</p>
+                      </div>
+                    </div>
+                  </>
                 )}
 
                 {/* Commands mode */}
