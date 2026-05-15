@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { useToast } from '@/components/ui/toast';
 import { useIbts, useCreateIbt, useQueryParams, type IbtDetail } from '@/lib/queries';
@@ -30,6 +31,7 @@ const STATUS_OPTIONS = [
   { value: 'RECEIVED', label: 'Received' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
+const STATUS_VALUES = STATUS_OPTIONS.map((option) => option.value).filter(Boolean);
 
 function getStatusVariant(status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' {
   switch (status) {
@@ -47,6 +49,7 @@ function formatStatus(status: string): string {
 
 export default function IbtListPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
@@ -59,6 +62,10 @@ export default function IbtListPage() {
   const { data: warehouses } = useAllWarehouses();
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useIbts({ ...params, status: status || undefined });
+  const { data: allIbtsData } = useIbts({ page: 1, limit: 1 });
+  const { data: draftIbtsData } = useIbts({ page: 1, limit: 1, status: 'DRAFT' });
+  const { data: inTransitIbtsData } = useIbts({ page: 1, limit: 1, status: 'IN_TRANSIT' });
+  const { data: receivedIbtsData } = useIbts({ page: 1, limit: 1, status: 'RECEIVED' });
 
   const tableData = useMemo(() => {
     if (!data?.data) return [];
@@ -71,6 +78,16 @@ export default function IbtListPage() {
         row.toWarehouseName?.toLowerCase().includes(q),
     );
   }, [data?.data, search]);
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam && STATUS_VALUES.includes(statusParam)) {
+      setStatus(statusParam);
+    } else {
+      setStatus('');
+    }
+    setPage(1);
+  }, [searchParams, setPage]);
 
   const {
     selectedIds,
@@ -172,11 +189,28 @@ export default function IbtListPage() {
     }
   };
 
-  const totalIbts = data?.meta?.total || 0;
-  const draftCount = tableData.filter((o) => o.status === 'DRAFT').length;
-  const inTransitCount = tableData.filter((o) => o.status === 'IN_TRANSIT').length;
-  const receivedCount = tableData.filter((o) => o.status === 'RECEIVED').length;
+  const totalIbts = allIbtsData?.meta?.total || data?.meta?.total || 0;
+  const draftCount = draftIbtsData?.meta?.total || 0;
+  const inTransitCount = inTransitIbtsData?.meta?.total || 0;
+  const receivedCount = receivedIbtsData?.meta?.total || 0;
   const hasActiveFilters = Boolean(status || search);
+  const activeFilterLabels = [
+    status ? `Status: ${STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status}` : null,
+    search ? `Search: ${search}` : null,
+  ].filter(Boolean) as string[];
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatus('');
+    setPage(1);
+    router.replace('/inventory/ibts');
+  };
+
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setSearch(String(values.search ?? ''));
+    setStatus(String(values.status ?? ''));
+    setPage(1);
+  };
 
   return (
     <ListPageTemplate
@@ -189,10 +223,10 @@ export default function IbtListPage() {
         </Button>
       }
       stats={[
-        { title: 'Total', value: formatNumber(totalIbts), icon: <TransferIcon />, iconColor: 'gray' },
-        { title: 'Draft', value: formatNumber(draftCount), icon: <DraftIcon />, iconColor: 'blue' },
-        { title: 'In Transit', value: formatNumber(inTransitCount), icon: <TruckIcon />, iconColor: 'yellow' },
-        { title: 'Received', value: formatNumber(receivedCount), icon: <CheckIcon />, iconColor: 'green' },
+        { title: 'Total', value: formatNumber(totalIbts), icon: <TransferIcon />, iconColor: 'gray', href: '/inventory/ibts' },
+        { title: 'Draft', value: formatNumber(draftCount), icon: <DraftIcon />, iconColor: 'blue', href: '/inventory/ibts?status=DRAFT' },
+        { title: 'In Transit', value: formatNumber(inTransitCount), icon: <TruckIcon />, iconColor: 'yellow', href: '/inventory/ibts?status=IN_TRANSIT' },
+        { title: 'Received', value: formatNumber(receivedCount), icon: <CheckIcon />, iconColor: 'green', href: '/inventory/ibts?status=RECEIVED' },
       ]}
       filters={
         <div className="flex gap-2">
@@ -215,6 +249,11 @@ export default function IbtListPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="ibts"
+            currentValues={{ search, status }}
+            onApply={handleApplySavedView}
+          />
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}
@@ -226,6 +265,24 @@ export default function IbtListPage() {
         </div>
       }
     >
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {showCreate && (
         <Card className="mx-6 mb-4">
           <CardHeader>
@@ -325,11 +382,7 @@ export default function IbtListPage() {
           action: hasActiveFilters ? (
             <Button
               variant="secondary"
-              onClick={() => {
-                setSearch('');
-                setStatus('');
-                setPage(1);
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>

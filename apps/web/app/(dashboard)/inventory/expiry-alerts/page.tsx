@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ type FilterStatus = 'all' | 'EXPIRED' | 'CRITICAL' | 'WARNING';
 const FILTER_STATUS_VALUES: FilterStatus[] = ['all', 'EXPIRED', 'CRITICAL', 'WARNING'];
 
 export default function ExpiryAlertsPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [daysAhead, setDaysAhead] = useState<number>(30);
@@ -49,6 +50,8 @@ export default function ExpiryAlertsPage() {
     const statusParam = searchParams.get('status');
     if (statusParam && FILTER_STATUS_VALUES.includes(statusParam as FilterStatus)) {
       setFilterStatus(statusParam as FilterStatus);
+    } else {
+      setFilterStatus('all');
     }
   }, [searchParams]);
 
@@ -166,6 +169,20 @@ export default function ExpiryAlertsPage() {
   } = useColumnVisibility(allColumns, { storageKey: 'expiry-alerts', alwaysVisible: ['itemSku'] });
 
   const isLoading = summaryLoading || expiringLoading || expiredLoading;
+  const activeFilterLabels = [
+    filterStatus !== 'all' ? `Status: ${filterStatus}` : null,
+    warehouseId ? `Warehouse: ${warehouses?.find((warehouse) => warehouse.id === warehouseId)?.name ?? warehouseId}` : null,
+    daysAhead !== 30 ? `Window: ${daysAhead} days` : null,
+    search ? `Search: ${search}` : null,
+  ].filter(Boolean) as string[];
+
+  const clearAllFilters = () => {
+    setFilterStatus('all');
+    setWarehouseId('');
+    setDaysAhead(30);
+    setSearch('');
+    router.replace('/inventory/expiry-alerts');
+  };
 
   return (
     <div>
@@ -203,48 +220,48 @@ export default function ExpiryAlertsPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div
-          className={`cursor-pointer rounded-md transition-shadow ${
-            filterStatus === 'EXPIRED' ? 'ring-2 ring-red-500' : ''
-          }`}
-          onClick={() => setFilterStatus(filterStatus === 'EXPIRED' ? 'all' : 'EXPIRED')}
-        >
-          <StatCard
-            title="Expired"
-            value={formatNumber(summary?.expired || 0)}
-            icon={<ExpiredIcon />}
-            iconColor="red"
-          />
-        </div>
-
-        <div
-          className={`cursor-pointer rounded-md transition-shadow ${
-            filterStatus === 'CRITICAL' ? 'ring-2 ring-orange-500' : ''
-          }`}
-          onClick={() => setFilterStatus(filterStatus === 'CRITICAL' ? 'all' : 'CRITICAL')}
-        >
-          <StatCard
-            title="Critical (7 days)"
-            value={formatNumber(summary?.critical || 0)}
-            icon={<CriticalIcon />}
-            iconColor="orange"
-          />
-        </div>
-
-        <div
-          className={`cursor-pointer rounded-md transition-shadow ${
-            filterStatus === 'WARNING' ? 'ring-2 ring-yellow-500' : ''
-          }`}
-          onClick={() => setFilterStatus(filterStatus === 'WARNING' ? 'all' : 'WARNING')}
-        >
-          <StatCard
-            title="Warning (30 days)"
-            value={formatNumber(summary?.warning || 0)}
-            icon={<WarningIcon />}
-            iconColor="yellow"
-          />
-        </div>
+        <StatCard
+          title="Expired"
+          value={formatNumber(summary?.expired || 0)}
+          icon={<ExpiredIcon />}
+          iconColor="red"
+          alert={(summary?.expired || 0) > 0}
+          href="/inventory/expiry-alerts?status=EXPIRED"
+        />
+        <StatCard
+          title="Critical (7 days)"
+          value={formatNumber(summary?.critical || 0)}
+          icon={<CriticalIcon />}
+          iconColor="orange"
+          alert={(summary?.critical || 0) > 0}
+          href="/inventory/expiry-alerts?status=CRITICAL"
+        />
+        <StatCard
+          title="Warning (30 days)"
+          value={formatNumber(summary?.warning || 0)}
+          icon={<WarningIcon />}
+          iconColor="yellow"
+          href="/inventory/expiry-alerts?status=WARNING"
+        />
       </div>
+
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {/* Stock table */}
       <Card>
@@ -304,6 +321,11 @@ export default function ExpiryAlertsPage() {
                 filterStatus === 'all'
                   ? 'No stock is expiring within the selected timeframe'
                   : `No stock with ${filterStatus} status`,
+              action: activeFilterLabels.length > 0 ? (
+                <Button variant="secondary" onClick={clearAllFilters}>
+                  Clear Filters
+                </Button>
+              ) : undefined,
             }}
           />
         </CardContent>

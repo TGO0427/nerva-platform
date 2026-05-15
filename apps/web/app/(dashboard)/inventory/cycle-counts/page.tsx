@@ -61,8 +61,10 @@ export default function CycleCountsPage() {
     const statusParam = searchParams.get('status');
     if (statusParam && STATUS_OPTIONS.some((option) => option.value === statusParam)) {
       setStatusFilter(statusParam);
-      setPage(1);
+    } else {
+      setStatusFilter('');
     }
+    setPage(1);
   }, [searchParams, setPage]);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -146,10 +148,28 @@ export default function CycleCountsPage() {
     reset: resetColumns,
   } = useColumnVisibility(allColumns, { storageKey: 'cycle-counts', alwaysVisible: ['countNo'] });
 
-  const totalCounts = data?.meta?.total || 0;
-  const openCount = tableData.filter(cc => cc.status === 'OPEN').length;
-  const inProgressCount = tableData.filter(cc => cc.status === 'IN_PROGRESS').length;
+  const { data: allCountsData } = useCycleCounts({ page: 1, limit: 1 });
+  const { data: openCountsData } = useCycleCounts({ page: 1, limit: 1, status: 'OPEN' });
+  const { data: inProgressCountsData } = useCycleCounts({ page: 1, limit: 1, status: 'IN_PROGRESS' });
+  const { data: pendingApprovalCountsData } = useCycleCounts({ page: 1, limit: 1, status: 'PENDING_APPROVAL' });
+
+  const totalCounts = allCountsData?.meta?.total || data?.meta?.total || 0;
+  const openCount = openCountsData?.meta?.total || 0;
+  const inProgressCount = inProgressCountsData?.meta?.total || 0;
+  const pendingApprovalCount = pendingApprovalCountsData?.meta?.total || 0;
   const hasActiveFilters = Boolean(statusFilter || search);
+  const activeFilterLabels = [
+    statusFilter ? `Status: ${STATUS_OPTIONS.find((option) => option.value === statusFilter)?.label ?? statusFilter}` : null,
+    search ? `Search: ${search}` : null,
+  ].filter(Boolean) as string[];
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setPage(1);
+    router.replace('/inventory/cycle-counts');
+  };
+
   const handleApplySavedView = (values: SavedFilterValues) => {
     setSearch(String(values.search ?? ''));
     setStatusFilter(String(values.statusFilter ?? ''));
@@ -171,18 +191,29 @@ export default function CycleCountsPage() {
           value: formatNumber(totalCounts),
           icon: <ClipboardIcon />,
           iconColor: 'gray',
+          href: '/inventory/cycle-counts',
         },
         {
           title: 'Open',
           value: formatNumber(openCount),
           icon: <FolderOpenIcon />,
           iconColor: 'blue',
+          href: '/inventory/cycle-counts?status=OPEN',
         },
         {
           title: 'In Progress',
           value: formatNumber(inProgressCount),
           icon: <PlayIcon />,
           iconColor: 'yellow',
+          href: '/inventory/cycle-counts?status=IN_PROGRESS',
+        },
+        {
+          title: 'Pending Approval',
+          value: formatNumber(pendingApprovalCount),
+          icon: <ClockIcon />,
+          iconColor: 'orange',
+          alert: pendingApprovalCount > 0,
+          href: '/inventory/cycle-counts?status=PENDING_APPROVAL',
         },
       ]}
       filters={
@@ -219,6 +250,24 @@ export default function CycleCountsPage() {
         </div>
       }
     >
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {showCreateForm && (
         <Card className="mb-4 border-primary-200 bg-primary-50">
           <CardHeader>
@@ -276,11 +325,7 @@ export default function CycleCountsPage() {
           action: hasActiveFilters ? (
             <Button
               variant="secondary"
-              onClick={() => {
-                setSearch('');
-                setStatusFilter('');
-                setPage(1);
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>
@@ -313,6 +358,14 @@ function PlayIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }

@@ -53,8 +53,10 @@ export default function PutawayPage() {
     const statusParam = searchParams.get('status');
     if (statusParam && STATUS_TABS.some((tab) => tab.value === statusParam)) {
       setStatusFilter(statusParam);
-      setPage(1);
+    } else {
+      setStatusFilter('');
     }
+    setPage(1);
   }, [searchParams]);
 
   const { data, isLoading } = usePutawayTasks({
@@ -233,6 +235,18 @@ export default function PutawayPage() {
   ];
 
   const totalPages = data ? Math.ceil(data.total / limit) : 0;
+  const activeFilterLabels = [
+    statusFilter ? `Status: ${STATUS_TABS.find((tab) => tab.value === statusFilter)?.label ?? statusFilter}` : null,
+    warehouseFilter ? `Warehouse: ${warehouses?.find((warehouse) => warehouse.id === warehouseFilter)?.name ?? warehouseFilter}` : null,
+  ].filter(Boolean) as string[];
+
+  const clearAllFilters = () => {
+    setStatusFilter('');
+    setWarehouseFilter('');
+    setPage(1);
+    router.replace('/inventory/putaway');
+  };
+
   const handleApplySavedView = (values: SavedFilterValues) => {
     setStatusFilter(String(values.statusFilter ?? ''));
     setWarehouseFilter(String(values.warehouseFilter ?? ''));
@@ -307,6 +321,24 @@ export default function PutawayPage() {
         <ExportActions onExport={handleExport} />
       </div>
 
+      {activeFilterLabels.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-0">
           <DataTable
@@ -320,6 +352,11 @@ export default function PutawayPage() {
               description: statusFilter
                 ? 'No tasks match the current filters.'
                 : 'Putaway tasks are created from received GRNs.',
+              action: activeFilterLabels.length > 0 ? (
+                <Button variant="secondary" onClick={clearAllFilters}>
+                  Clear Filters
+                </Button>
+              ) : undefined,
             }}
           />
         </CardContent>
