@@ -26,6 +26,7 @@ import {
   useOrders,
   type SalesOrderWithCustomer,
 } from '@/lib/queries';
+import { formatDate, formatDateTime } from '@/lib/format';
 import type { Customer, CustomerContact, CustomerNote, AuditEntry } from '@nerva/shared';
 
 type Tab = 'company' | 'contacts' | 'notes' | 'orders';
@@ -284,7 +285,7 @@ function CompanyInfoTab({ customer, activityLog }: { customer: Customer; activit
                   <div>
                     <span className="font-medium">{entry.action}</span>
                     <span className="text-slate-500 ml-2">
-                      {new Date(entry.createdAt).toLocaleString()}
+                      {formatDateTime(entry.createdAt)}
                     </span>
                   </div>
                 </div>
@@ -588,7 +589,7 @@ function NotesTab({ customerId }: { customerId: string }) {
                     <p className="text-slate-800 whitespace-pre-wrap">{note.content}</p>
                     <div className="mt-2 text-sm text-slate-500">
                       {note.createdByName && <span>{note.createdByName} - </span>}
-                      {new Date(note.createdAt).toLocaleString()}
+                      {formatDateTime(note.createdAt)}
                     </div>
                   </div>
                   <button
@@ -689,14 +690,14 @@ function OrdersTab({ customerId }: { customerId: string }) {
                     <div>
                       <span className="font-medium text-primary-600">{order.orderNo}</span>
                       <div className="text-sm text-slate-500 mt-0.5">
-                        {new Date(order.createdAt).toLocaleDateString()}
+                        {formatDate(order.createdAt)}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     {order.requestedShipDate && (
                       <span className="text-xs text-slate-400">
-                        Ship by {new Date(order.requestedShipDate).toLocaleDateString()}
+                        Ship by {formatDate(order.requestedShipDate)}
                       </span>
                     )}
                     <Badge variant={orderStatusVariant[order.status] || 'default'}>

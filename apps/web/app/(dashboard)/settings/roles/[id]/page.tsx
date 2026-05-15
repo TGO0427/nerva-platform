@@ -15,6 +15,7 @@ import {
   useSetRolePermissions,
   Permission,
 } from '@/lib/queries';
+import { formatDate } from '@/lib/format';
 
 // Map permission code prefixes to friendly module names
 const MODULE_LABELS: Record<string, string> = {
@@ -369,7 +370,7 @@ export default function RoleDetailPage() {
                 <div>
                   <dt className="text-slate-500">Created</dt>
                   <dd className="font-medium">
-                    {new Date(role.createdAt).toLocaleDateString()}
+                    {formatDate(role.createdAt)}
                   </dd>
                 </div>
                 <div>

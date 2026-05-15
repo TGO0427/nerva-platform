@@ -35,6 +35,7 @@ import {
   useUpdateSupplierContract,
   useItems,
 } from '@/lib/queries';
+import { formatCurrency, formatDate, formatDateTime } from '@/lib/format';
 import type { Supplier, SupplierContact, SupplierNote, SupplierNcr, SupplierItem, SupplierContract, AuditEntry } from '@nerva/shared';
 
 type Tab = 'company' | 'products' | 'contracts' | 'contacts' | 'notes' | 'ncrs';
@@ -301,7 +302,7 @@ function CompanyInfoTab({ supplier, activityLog }: { supplier: Supplier; activit
                   <div>
                     <span className="font-medium">{entry.action}</span>
                     <span className="text-slate-500 ml-2">
-                      {new Date(entry.createdAt).toLocaleString()}
+                      {formatDateTime(entry.createdAt)}
                     </span>
                   </div>
                 </div>
@@ -605,7 +606,7 @@ function NotesTab({ supplierId }: { supplierId: string }) {
                   <div className="flex-1">
                     <p className="text-slate-800 whitespace-pre-wrap">{note.content}</p>
                     <div className="mt-2 text-sm text-slate-500">
-                      {new Date(note.createdAt).toLocaleString()}
+                      {formatDateTime(note.createdAt)}
                     </div>
                   </div>
                   <button
@@ -796,13 +797,13 @@ function NcrsTab({ supplierId }: { supplierId: string }) {
                         <p className="text-sm text-green-700">{ncr.resolution}</p>
                         {ncr.resolvedAt && (
                           <div className="text-xs text-green-600 mt-1">
-                            Resolved on {new Date(ncr.resolvedAt).toLocaleDateString()}
+                            Resolved on {formatDate(ncr.resolvedAt)}
                           </div>
                         )}
                       </div>
                     )}
                     <div className="mt-2 text-sm text-slate-500">
-                      Created {new Date(ncr.createdAt).toLocaleDateString()}
+                      Created {formatDate(ncr.createdAt)}
                     </div>
                   </div>
                   {ncr.status === 'OPEN' && !resolvingNcr && (
@@ -1036,7 +1037,7 @@ function ProductsTab({ supplierId }: { supplierId: string }) {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.itemDescription}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.supplierSku || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {item.unitCost ? `R ${Number(item.unitCost).toFixed(2)}` : '-'}
+                    {formatCurrency(item.unitCost)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                     {item.leadTimeDays ? `${item.leadTimeDays} days` : '-'}
@@ -1243,13 +1244,13 @@ function ContractsTab({ supplierId }: { supplierId: string }) {
                     </div>
                     <h4 className="text-lg font-medium mt-1">{contract.name}</h4>
                     <div className="mt-2 text-sm text-slate-600">
-                      <span>{new Date(contract.startDate).toLocaleDateString()}</span>
+                      <span>{formatDate(contract.startDate)}</span>
                       <span className="mx-2">to</span>
-                      <span>{new Date(contract.endDate).toLocaleDateString()}</span>
+                      <span>{formatDate(contract.endDate)}</span>
                     </div>
                     {contract.totalValue && (
                       <div className="mt-1 text-sm font-medium text-green-600">
-                        {contract.currency} {contract.totalValue.toLocaleString()}
+                        {formatCurrency(contract.totalValue, contract.currency)}
                       </div>
                     )}
                     {contract.terms && (

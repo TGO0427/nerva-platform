@@ -17,6 +17,7 @@ import {
   usePostingQueue,
   useRetryPosting,
 } from '@/lib/queries/integrations';
+import { formatDateTime } from '@/lib/format';
 import type { IntegrationConnection } from '@nerva/shared';
 
 const INTEGRATION_TYPES = [
@@ -249,7 +250,7 @@ function ConnectionsTab() {
                       <p className="text-sm text-slate-500">
                         {typeLabel(connection.type)}
                         {connection.lastSyncAt && (
-                          <> | Last sync: {new Date(connection.lastSyncAt).toLocaleString()}</>
+                          <> | Last sync: {formatDateTime(connection.lastSyncAt)}</>
                         )}
                       </p>
                       {connection.errorMessage && (
@@ -411,7 +412,7 @@ function PostingQueueTab() {
                           {item.lastError || '-'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
-                          {new Date(item.createdAt).toLocaleString()}
+                          {formatDateTime(item.createdAt)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-right">
                           {item.status === 'FAILED' && (

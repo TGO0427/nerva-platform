@@ -20,6 +20,7 @@ import {
   useUpdateBin,
 } from '@/lib/queries/warehouses';
 import { useSites } from '@/lib/queries';
+import { formatDate } from '@/lib/format';
 import type { Bin } from '@nerva/shared';
 
 const BIN_TYPES = ['STORAGE', 'PICKING', 'RECEIVING', 'QUARANTINE', 'SHIPPING', 'SCRAP'] as const;
@@ -271,7 +272,7 @@ export default function WarehouseDetailPage() {
           <CardContent className="pt-6">
             <p className="text-sm text-slate-500">Created</p>
             <p className="text-lg font-semibold text-slate-900">
-              {new Date(warehouse.createdAt).toLocaleDateString()}
+              {formatDate(warehouse.createdAt)}
             </p>
           </CardContent>
         </Card>

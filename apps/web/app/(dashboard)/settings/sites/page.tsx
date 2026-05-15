@@ -12,6 +12,7 @@ import { PageShell, MetricGrid } from '@/components/ui/motion';
 import { StatCard } from '@/components/ui/stat-card';
 import { Breadcrumbs } from '@/components/layout';
 import { useSites, useCreateSite, useUpdateSite, Site } from '@/lib/queries';
+import { formatDate } from '@/lib/format';
 
 export default function SitesPage() {
   const { data: sites, isLoading } = useSites();
@@ -239,7 +240,7 @@ export default function SitesPage() {
                           </Badge>
                         </div>
                         <p className="text-sm text-slate-500">
-                          Code: {site.code} | Created {new Date(site.createdAt).toLocaleDateString()}
+                          Code: {site.code} | Created {formatDate(site.createdAt)}
                         </p>
                       </div>
                     </div>

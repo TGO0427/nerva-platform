@@ -8,6 +8,7 @@ import { useAuth, hasPermission } from '@/lib/auth';
 import { useAdminTenants, useAdminTenantStats, TenantWithStats } from '@/lib/queries/admin-tenants';
 import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { formatDate, formatDateTime } from '@/lib/format';
 
 export default function AdminTenantsPage() {
   const { user } = useAuth();
@@ -46,7 +47,7 @@ export default function AdminTenantsPage() {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
     {
       key: 'isActive',
@@ -173,7 +174,7 @@ function TenantDetailPanel({
               <StatItem label="Sales Orders" value={stats.orderCount} />
               <StatItem
                 label="Last Activity"
-                value={stats.lastActivity ? new Date(stats.lastActivity).toLocaleDateString() : 'None'}
+                value={formatDate(stats.lastActivity, 'None')}
               />
             </div>
           ) : (
@@ -183,7 +184,7 @@ function TenantDetailPanel({
           <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 space-y-1">
             <p><span className="font-medium">Tenant ID:</span> <span className="font-mono">{tenant.id}</span></p>
             <p><span className="font-medium">Code:</span> {tenant.code || 'N/A'}</p>
-            <p><span className="font-medium">Created:</span> {new Date(tenant.createdAt).toLocaleString()}</p>
+            <p><span className="font-medium">Created:</span> {formatDateTime(tenant.createdAt)}</p>
           </div>
         </CardContent>
       </Card>

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuditLogs, type AuditEntryWithActor } from '@/lib/queries/audit';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDateTime } from '@/lib/format';
 
 const ENTITY_TYPES = [
   { value: '', label: 'All Entities' },
@@ -322,7 +323,7 @@ export default function AuditLogPage() {
                           </svg>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-600">
-                          {new Date(entry.createdAt).toLocaleString()}
+                          {formatDateTime(entry.createdAt)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {entry.actorName || <span className="text-slate-400">System</span>}

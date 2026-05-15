@@ -13,6 +13,7 @@ import { ListPageTemplate } from '@/components/templates';
 import { useUsers, useQueryParams, User } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
+import { formatDate } from '@/lib/format';
 
 export default function UsersPage() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function UsersPage() {
       key: 'createdAt',
       header: 'Created',
       sortable: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+      render: (row) => formatDate(row.createdAt),
     },
   ], []);
 

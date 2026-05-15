@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Breadcrumbs } from '@/components/layout';
 import { useAuth } from '@/lib/auth';
 import api from '@/lib/api';
+import { formatDateTime } from '@/lib/format';
 import { useQuery, useMutation } from '@tanstack/react-query';
 
 function useExportStatus() {
@@ -108,7 +109,7 @@ export default function PrivacyPage() {
               </div>
             ) : exportStatus?.lastExportDate ? (
               <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">
-                Last exported: {new Date(exportStatus.lastExportDate).toLocaleString()}
+                Last exported: {formatDateTime(exportStatus.lastExportDate)}
               </p>
             ) : (
               <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">

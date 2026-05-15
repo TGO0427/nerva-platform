@@ -26,6 +26,7 @@ import {
   useRemoveUserWarehouse,
 } from '@/lib/queries';
 import { useWarehouses } from '@/lib/queries/warehouses';
+import { formatDate } from '@/lib/format';
 
 export default function UserDetailPage() {
   const params = useParams();
@@ -194,7 +195,7 @@ export default function UserDetailPage() {
             </Badge>
           </div>
           <p className="text-slate-500 mt-1">
-            Created {new Date(user.createdAt).toLocaleDateString()}
+            Created {formatDate(user.createdAt)}
           </p>
         </div>
         <div className="flex gap-2">
@@ -270,12 +271,12 @@ export default function UserDetailPage() {
                 <div>
                   <dt className="text-slate-500">Last Login</dt>
                   <dd className="font-medium">
-                    {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+                    {formatDate(user.lastLoginAt, 'Never')}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-slate-500">Last Updated</dt>
-                  <dd className="font-medium">{new Date(user.updatedAt).toLocaleDateString()}</dd>
+                  <dd className="font-medium">{formatDate(user.updatedAt)}</dd>
                 </div>
               </dl>
             )}

@@ -13,6 +13,7 @@ import { PageShell, MetricGrid } from '@/components/ui/motion';
 import { StatCard } from '@/components/ui/stat-card';
 import { Breadcrumbs } from '@/components/layout';
 import { useRoles, useCreateRole, useDeleteRole, Role } from '@/lib/queries';
+import { formatDate } from '@/lib/format';
 
 export default function RolesPage() {
   const router = useRouter();
@@ -173,7 +174,7 @@ export default function RolesPage() {
                   <Badge variant="default">Role</Badge>
                 </div>
                 <p className="text-xs text-slate-400 mb-4">
-                  Created {new Date(role.createdAt).toLocaleDateString()}
+                  Created {formatDate(role.createdAt)}
                 </p>
                 <div className="flex gap-2">
                   <Button

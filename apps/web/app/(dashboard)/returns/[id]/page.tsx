@@ -13,6 +13,7 @@ import { downloadPdf } from '@/lib/utils/export';
 import { useState } from 'react';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { formatDate } from '@/lib/format';
 import {
   useRma,
   useRmaLines,
@@ -202,7 +203,7 @@ export default function RmaDetailPage() {
             <Badge variant="default">{rma.returnType}</Badge>
           </div>
           <p className="text-slate-500 mt-1">
-            Created {new Date(rma.createdAt).toLocaleDateString()}
+            Created {formatDate(rma.createdAt)}
           </p>
         </div>
         <div className="flex gap-2">

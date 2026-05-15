@@ -14,6 +14,7 @@ import {
   usePaymentHistory,
   useRetryPayment,
 } from '@/lib/queries/billing';
+import { formatDate } from '@/lib/format';
 import { PLANS, formatZar } from '@nerva/shared';
 import type { TenantPlan, BillingCycle } from '@nerva/shared';
 
@@ -190,7 +191,7 @@ export default function BillingPage() {
             <div>
               <div className="text-sm text-slate-500 dark:text-slate-400">Plan Started</div>
               <div className="text-lg font-semibold mt-1">
-                {new Date(current.planStartedAt).toLocaleDateString('en-ZA')}
+                {formatDate(current.planStartedAt)}
               </div>
             </div>
           </div>
@@ -312,7 +313,7 @@ export default function BillingPage() {
                 <tbody>
                   {history.map((tx) => (
                     <tr key={tx.id} className="border-b border-slate-100 dark:border-slate-800">
-                      <td className="py-2 pr-4">{new Date(tx.createdAt).toLocaleDateString('en-ZA')}</td>
+                      <td className="py-2 pr-4">{formatDate(tx.createdAt)}</td>
                       <td className="py-2 pr-4 capitalize">{tx.plan}</td>
                       <td className="py-2 pr-4 capitalize">{tx.billingCycle}</td>
                       <td className="py-2 pr-4 text-right">{formatZar(tx.amountZar)}</td>

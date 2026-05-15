@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
+import { formatCurrency, formatDate } from '@/lib/format';
 import {
   useCreditNote,
   useDeleteCreditNote,
@@ -136,7 +137,7 @@ export default function CreditNoteDetailPage() {
             </Badge>
           </div>
           <p className="text-slate-500 mt-1">
-            Created {new Date(creditNote.createdAt).toLocaleDateString()}
+            Created {formatDate(creditNote.createdAt)}
           </p>
         </div>
         <div className="flex gap-2">
@@ -223,7 +224,7 @@ export default function CreditNoteDetailPage() {
               <div>
                 <dt className="text-slate-500">Amount</dt>
                 <dd className="text-xl font-bold text-slate-900">
-                  {creditNote.currency} {Number(creditNote.amount).toFixed(2)}
+                  {formatCurrency(creditNote.amount, creditNote.currency)}
                 </dd>
               </div>
               <div>
@@ -251,17 +252,13 @@ export default function CreditNoteDetailPage() {
               <div>
                 <dt className="text-slate-500">Approved At</dt>
                 <dd className="font-medium">
-                  {creditNote.approvedAt
-                    ? new Date(creditNote.approvedAt).toLocaleDateString()
-                    : '-'}
+                  {formatDate(creditNote.approvedAt)}
                 </dd>
               </div>
               <div>
                 <dt className="text-slate-500">Posted At</dt>
                 <dd className="font-medium">
-                  {creditNote.postedAt
-                    ? new Date(creditNote.postedAt).toLocaleDateString()
-                    : '-'}
+                  {formatDate(creditNote.postedAt)}
                 </dd>
               </div>
               <div>
