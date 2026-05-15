@@ -102,31 +102,44 @@ export class InventoryRepository extends BaseRepository {
 
   async findGrnsByTenant(
     tenantId: string,
-    status?: string,
+    filters: { status?: string; overdue?: boolean } = {},
     limit = 50,
     offset = 0,
   ): Promise<Grn[]> {
     let sql = "SELECT * FROM grns WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
+    let idx = 2;
 
-    if (status) {
-      sql += " AND status = $2";
-      params.push(status);
+    if (filters.status) {
+      sql += ` AND status = $${idx++}`;
+      params.push(filters.status);
+    }
+    if (filters.overdue) {
+      sql +=
+        " AND status IN ('OPEN', 'PARTIAL', 'RECEIVED', 'PUTAWAY_PENDING') AND created_at < NOW() - INTERVAL '2 days'";
     }
 
-    sql += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    sql += ` ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
     params.push(limit, offset);
 
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
     return rows.map(this.mapGrn);
   }
 
-  async countGrnsByTenant(tenantId: string, status?: string): Promise<number> {
+  async countGrnsByTenant(
+    tenantId: string,
+    filters: { status?: string; overdue?: boolean } = {},
+  ): Promise<number> {
     let sql = "SELECT COUNT(*) as count FROM grns WHERE tenant_id = $1";
     const params: unknown[] = [tenantId];
-    if (status) {
-      sql += " AND status = $2";
-      params.push(status);
+    let idx = 2;
+    if (filters.status) {
+      sql += ` AND status = $${idx++}`;
+      params.push(filters.status);
+    }
+    if (filters.overdue) {
+      sql +=
+        " AND status IN ('OPEN', 'PARTIAL', 'RECEIVED', 'PUTAWAY_PENDING') AND created_at < NOW() - INTERVAL '2 days'";
     }
     const result = await this.queryOne<{ count: string }>(sql, params);
     return parseInt(result?.count || "0", 10);

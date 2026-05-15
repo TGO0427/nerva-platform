@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { MouseEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,10 +54,26 @@ function getSeverityVariant(severity: NcSeverity): 'default' | 'success' | 'warn
 
 export default function QualityPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState('');
   const [severity, setSeverity] = useState('');
   const [search, setSearch] = useState('');
   const { params, setPage } = useQueryParams();
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    setStatus(STATUS_OPTIONS.some((option) => option.value === statusParam) ? statusParam ?? '' : '');
+
+    const severityParam = searchParams.get('severity');
+    setSeverity(SEVERITY_OPTIONS.some((option) => option.value === severityParam) ? severityParam ?? '' : '');
+
+    const searchParam = searchParams.get('search');
+    if (searchParam) {
+      setSearch(searchParam);
+    }
+
+    setPage(1);
+  }, [searchParams, setPage]);
 
   const { data, isLoading } = useNonConformances({
     ...params,
@@ -162,6 +178,19 @@ export default function QualityPage() {
   const reviewCount = tableData.filter(nc => nc.status === 'UNDER_REVIEW').length;
   const criticalCount = tableData.filter(nc => nc.severity === 'CRITICAL').length;
   const hasActiveFilters = Boolean(status || severity || search);
+  const activeFilterLabels = [
+    status ? `Status: ${status.replace(/_/g, ' ')}` : null,
+    severity ? `Severity: ${severity}` : null,
+    search ? `Search: ${search}` : null,
+  ].filter((label): label is string => Boolean(label));
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatus('');
+    setSeverity('');
+    setPage(1);
+    router.replace('/manufacturing/quality');
+  };
 
   return (
     <ListPageTemplate
@@ -212,7 +241,10 @@ export default function QualityPage() {
           />
           <Select
             value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
             options={STATUS_OPTIONS}
             className="max-w-xs"
           />
@@ -237,6 +269,24 @@ export default function QualityPage() {
         </div>
       }
     >
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       <DataTable
         columns={visibleColumns}
         data={tableData}
@@ -260,12 +310,7 @@ export default function QualityPage() {
           action: hasActiveFilters ? (
             <Button
               variant="secondary"
-              onClick={() => {
-                setSearch('');
-                setStatus('');
-                setSeverity('');
-                setPage(1);
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>

@@ -47,10 +47,16 @@ export class GrnController {
   async list(
     @TenantId() tenantId: string,
     @Query("status") status?: string,
+    @Query("overdue") overdue?: string,
     @Query("page") page?: number,
     @Query("limit") limit?: number,
   ) {
-    return this.service.listGrns(tenantId, status, page, limit);
+    return this.service.listGrns(
+      tenantId,
+      { status, overdue: overdue === "true" },
+      page,
+      limit,
+    );
   }
 
   @Get(":id")

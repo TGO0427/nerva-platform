@@ -32,8 +32,13 @@ export default function GrnListPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState('');
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const { params, setPage } = useQueryParams();
-  const { data, isLoading } = useGrns({ ...params, status: status || undefined });
+  const { data, isLoading } = useGrns({
+    ...params,
+    status: status || undefined,
+    overdue: overdueOnly || undefined,
+  });
   const { data: warehouses } = useWarehouses();
   const { data: suppliersData } = useSuppliers({ page: 1, limit: 100 });
   const warehouseMap = useMemo(
@@ -49,10 +54,9 @@ export default function GrnListPage() {
 
   useEffect(() => {
     const statusParam = searchParams.get('status');
-    if (statusParam && STATUS_OPTIONS.some((option) => option.value === statusParam)) {
-      setStatus(statusParam);
-      setPage(1);
-    }
+    setStatus(statusParam && STATUS_OPTIONS.some((option) => option.value === statusParam) ? statusParam : '');
+    setOverdueOnly(searchParams.get('overdue') === 'true');
+    setPage(1);
   }, [searchParams, setPage]);
 
   // Row selection
@@ -137,9 +141,22 @@ export default function GrnListPage() {
   const partialGrns = tableData.filter(g => g.status === 'PARTIAL').length;
   const pendingPutaway = tableData.filter(g => g.status === 'PUTAWAY_PENDING').length;
   const totalGrns = data?.meta?.total || 0;
-  const hasActiveFilters = Boolean(status);
+  const hasActiveFilters = Boolean(status || overdueOnly);
+  const activeFilterLabels = [
+    status ? `Status: ${status.replace(/_/g, ' ')}` : null,
+    overdueOnly ? 'Overdue: older than 2 days' : null,
+  ].filter((label): label is string => Boolean(label));
+
+  const clearAllFilters = () => {
+    setStatus('');
+    setOverdueOnly(false);
+    setPage(1);
+    router.replace('/inventory/grn');
+  };
+
   const handleApplySavedView = (values: SavedFilterValues) => {
     setStatus(String(values.status ?? ''));
+    setOverdueOnly(Boolean(values.overdueOnly));
     setPage(1);
   };
 
@@ -184,21 +201,37 @@ export default function GrnListPage() {
       ]}
       statsColumns={4}
       filters={
-        <Select
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-          options={STATUS_OPTIONS}
-          className="max-w-xs"
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <Select
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+            options={STATUS_OPTIONS}
+            className="max-w-xs"
+          />
+          <label className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-colors ${
+            overdueOnly ? 'bg-red-50 border-red-200 text-red-700' : 'border-slate-200 hover:bg-slate-50'
+          }`}>
+            <input
+              type="checkbox"
+              checked={overdueOnly}
+              onChange={(e) => {
+                setOverdueOnly(e.target.checked);
+                setPage(1);
+              }}
+              className="rounded border-slate-300 text-red-600 focus:ring-red-500"
+            />
+            <span className="text-sm font-medium">Overdue only</span>
+          </label>
+        </div>
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
           <SavedFilterViews
             storageKey="grn"
-            currentValues={{ status }}
+            currentValues={{ status, overdueOnly }}
             onApply={handleApplySavedView}
           />
           <ColumnToggle
@@ -219,6 +252,24 @@ export default function GrnListPage() {
         >
           <ExportActions onExport={handleExport} />
         </BulkActionBar>
+      )}
+
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
       )}
 
       <DataTable
@@ -250,10 +301,7 @@ export default function GrnListPage() {
           action: hasActiveFilters ? (
             <Button
               variant="secondary"
-              onClick={() => {
-                setStatus('');
-                setPage(1);
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>

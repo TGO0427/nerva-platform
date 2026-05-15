@@ -225,7 +225,7 @@ function getExceptionQueues(stats: DashboardStats): ExceptionQueue[] {
       title: 'Overdue GRNs',
       description: 'Receipts open more than 2 days',
       value: stats.overdueGrns ?? 0,
-      href: '/inventory/grn?status=OPEN',
+      href: '/inventory/grn?overdue=true',
       tone: (stats.overdueGrns ?? 0) > 0 ? 'danger' : 'success',
       group: 'Inventory',
     },

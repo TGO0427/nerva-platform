@@ -268,14 +268,14 @@ describe("InventoryService", () => {
       repository.findGrnsByTenant.mockResolvedValue([mockGrn]);
       repository.countGrnsByTenant.mockResolvedValue(1);
 
-      const result = await service.listGrns("tenant-123", undefined, 1, 10);
+      const result = await service.listGrns("tenant-123", {}, 1, 10);
 
       expect(result.data).toEqual([mockGrn]);
       expect(result.meta.page).toBe(1);
       expect(result.meta.limit).toBe(10);
       expect(repository.findGrnsByTenant).toHaveBeenCalledWith(
         "tenant-123",
-        undefined,
+        {},
         10,
         0,
       );
@@ -285,11 +285,11 @@ describe("InventoryService", () => {
       repository.findGrnsByTenant.mockResolvedValue([]);
       repository.countGrnsByTenant.mockResolvedValue(0);
 
-      await service.listGrns("tenant-123", "COMPLETE", 1, 10);
+      await service.listGrns("tenant-123", { status: "COMPLETE" }, 1, 10);
 
       expect(repository.findGrnsByTenant).toHaveBeenCalledWith(
         "tenant-123",
-        "COMPLETE",
+        { status: "COMPLETE" },
         10,
         0,
       );
@@ -299,11 +299,11 @@ describe("InventoryService", () => {
       repository.findGrnsByTenant.mockResolvedValue([]);
       repository.countGrnsByTenant.mockResolvedValue(0);
 
-      await service.listGrns("tenant-123", undefined, 3, 20);
+      await service.listGrns("tenant-123", {}, 3, 20);
 
       expect(repository.findGrnsByTenant).toHaveBeenCalledWith(
         "tenant-123",
-        undefined,
+        {},
         20,
         40, // (3-1) * 20 = 40
       );

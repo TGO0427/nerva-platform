@@ -173,7 +173,7 @@ export function useTransferStock() {
 }
 
 // GRN queries
-export function useGrns(params: QueryParams & { status?: string }) {
+export function useGrns(params: QueryParams & { status?: string; overdue?: boolean }) {
   return useQuery({
     queryKey: [GRN_KEY, params],
     queryFn: async () => {
@@ -181,6 +181,7 @@ export function useGrns(params: QueryParams & { status?: string }) {
       searchParams.set('page', String(params.page));
       searchParams.set('limit', String(params.limit));
       if (params.status) searchParams.set('status', params.status);
+      if (params.overdue) searchParams.set('overdue', 'true');
 
       const response = await api.get<PaginatedResult<Grn>>(
         `/receiving/grns?${searchParams.toString()}`

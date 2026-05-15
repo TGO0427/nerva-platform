@@ -79,11 +79,16 @@ export class InventoryService {
     return grn;
   }
 
-  async listGrns(tenantId: string, status?: string, page = 1, limit = 50) {
+  async listGrns(
+    tenantId: string,
+    filters: { status?: string; overdue?: boolean } = {},
+    page = 1,
+    limit = 50,
+  ) {
     const offset = (page - 1) * limit;
     const [data, total] = await Promise.all([
-      this.repository.findGrnsByTenant(tenantId, status, limit, offset),
-      this.repository.countGrnsByTenant(tenantId, status),
+      this.repository.findGrnsByTenant(tenantId, filters, limit, offset),
+      this.repository.countGrnsByTenant(tenantId, filters),
     ]);
     return buildPaginatedResult(data, total, page, limit);
   }
