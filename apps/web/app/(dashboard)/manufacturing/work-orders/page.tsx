@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { ColumnToggle } from '@/components/ui/column-toggle';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { useWorkOrders, useImportWorkOrders, useQueryParams } from '@/lib/queries';
 import { useTableSelection, useColumnVisibility } from '@/lib/hooks';
@@ -31,9 +32,11 @@ const STATUS_OPTIONS = [
   { value: 'COMPLETED', label: 'Completed' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
+const STATUS_VALUES = STATUS_OPTIONS.map((option) => option.value).filter(Boolean);
 
 export default function WorkOrdersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState<WorkOrderStatus | ''>('');
   const [search, setSearch] = useState('');
   const importMutation = useImportWorkOrders();
@@ -45,8 +48,22 @@ export default function WorkOrdersPage() {
 
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useWorkOrders({ ...params, status: status || undefined, search: search || undefined });
+  const { data: allOrdersData } = useWorkOrders({ page: 1, limit: 1 });
+  const { data: draftOrdersData } = useWorkOrders({ page: 1, limit: 1, status: 'DRAFT' });
+  const { data: inProgressOrdersData } = useWorkOrders({ page: 1, limit: 1, status: 'IN_PROGRESS' });
+  const { data: completedOrdersData } = useWorkOrders({ page: 1, limit: 1, status: 'COMPLETED' });
 
   const tableData = data?.data || [];
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam && STATUS_VALUES.includes(statusParam)) {
+      setStatus(statusParam as WorkOrderStatus);
+    } else {
+      setStatus('');
+    }
+    setPage(1);
+  }, [searchParams, setPage]);
 
   const {
     selectedIds,
@@ -167,11 +184,28 @@ export default function WorkOrdersPage() {
     exportToCSV(exportData, exportColumns, generateExportFilename('work-orders'));
   };
 
-  const totalOrders = data?.meta?.total || 0;
-  const draftCount = tableData.filter(o => o.status === 'DRAFT').length;
-  const inProgressCount = tableData.filter(o => o.status === 'IN_PROGRESS').length;
-  const completedCount = tableData.filter(o => o.status === 'COMPLETED').length;
+  const totalOrders = allOrdersData?.meta?.total || data?.meta?.total || 0;
+  const draftCount = draftOrdersData?.meta?.total || 0;
+  const inProgressCount = inProgressOrdersData?.meta?.total || 0;
+  const completedCount = completedOrdersData?.meta?.total || 0;
   const hasActiveFilters = Boolean(status || search);
+  const activeFilterLabels = [
+    status ? `Status: ${STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status}` : null,
+    search ? `Search: ${search}` : null,
+  ].filter(Boolean) as string[];
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatus('');
+    setPage(1);
+    router.replace('/manufacturing/work-orders');
+  };
+
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setSearch(String(values.search ?? ''));
+    setStatus((values.status ?? '') as WorkOrderStatus | '');
+    setPage(1);
+  };
 
   return (
     <ListPageTemplate
@@ -197,24 +231,28 @@ export default function WorkOrdersPage() {
           value: formatNumber(totalOrders),
           icon: <ClipboardIcon />,
           iconColor: 'gray',
+          href: '/manufacturing/work-orders',
         },
         {
           title: 'Draft',
           value: formatNumber(draftCount),
           icon: <PencilIcon />,
           iconColor: 'blue',
+          href: '/manufacturing/work-orders?status=DRAFT',
         },
         {
           title: 'In Progress',
           value: formatNumber(inProgressCount),
           icon: <PlayIcon />,
           iconColor: 'yellow',
+          href: '/manufacturing/work-orders?status=IN_PROGRESS',
         },
         {
           title: 'Completed',
           value: formatNumber(completedCount),
           icon: <CheckIcon />,
           iconColor: 'green',
+          href: '/manufacturing/work-orders?status=COMPLETED',
         },
       ]}
       filters={
@@ -227,7 +265,10 @@ export default function WorkOrdersPage() {
           />
           <Select
             value={status}
-            onChange={(e) => setStatus(e.target.value as WorkOrderStatus | '')}
+            onChange={(e) => {
+              setStatus(e.target.value as WorkOrderStatus | '');
+              setPage(1);
+            }}
             options={STATUS_OPTIONS}
             className="max-w-xs"
           />
@@ -235,6 +276,11 @@ export default function WorkOrdersPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="work-orders"
+            currentValues={{ search, status }}
+            onApply={handleApplySavedView}
+          />
           <ColumnToggle
             columns={allColumns}
             visibleKeys={visibleKeys}
@@ -246,6 +292,24 @@ export default function WorkOrdersPage() {
         </div>
       }
     >
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {selectedCount > 0 && (
         <BulkActionBar
           selectedCount={selectedCount}
@@ -284,11 +348,7 @@ export default function WorkOrdersPage() {
           action: hasActiveFilters ? (
             <Button
               variant="secondary"
-              onClick={() => {
-                setSearch('');
-                setStatus('');
-                setPage(1);
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>

@@ -27,10 +27,10 @@ export default function ManufacturingPage() {
       </div>
 
       <MetricGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard title="In Progress" value={activeCount} icon={<PlayIcon />} iconColor="yellow" />
-        <StatCard title="Draft" value={draftCount} icon={<PencilIcon />} iconColor="gray" />
-        <StatCard title="Released" value={releasedCount} icon={<RocketIcon />} iconColor="blue" />
-        <StatCard title="Completed" value={completedCount} icon={<CheckIcon />} iconColor="green" />
+        <StatCard title="In Progress" value={activeCount} icon={<PlayIcon />} iconColor="yellow" href="/manufacturing/work-orders?status=IN_PROGRESS" />
+        <StatCard title="Draft" value={draftCount} icon={<PencilIcon />} iconColor="gray" href="/manufacturing/work-orders?status=DRAFT" />
+        <StatCard title="Released" value={releasedCount} icon={<RocketIcon />} iconColor="blue" href="/manufacturing/work-orders?status=RELEASED" />
+        <StatCard title="Completed" value={completedCount} icon={<CheckIcon />} iconColor="green" href="/manufacturing/work-orders?status=COMPLETED" />
       </MetricGrid>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

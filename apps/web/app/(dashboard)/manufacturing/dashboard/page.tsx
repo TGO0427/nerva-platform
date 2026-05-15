@@ -51,6 +51,7 @@ export default function ProductionDashboardPage() {
           value={formatNumber(dashboard?.activeWorkOrders ?? 0)}
           icon={<ClipboardIcon />}
           iconColor="blue"
+          href="/manufacturing/work-orders?status=IN_PROGRESS"
         />
         <StatCard
           title="Today's Output"
