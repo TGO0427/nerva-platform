@@ -152,7 +152,8 @@ INSERT INTO customers (id, tenant_id, code, name, email, phone, shipping_address
   ('88888888-8888-8888-8888-888888888803', '11111111-1111-1111-1111-111111111111', 'CUST003', 'Golden Grain Bakeries', 'supply@retailworld.co.za', '+27 31 345 6789', '789 Commerce Street', 'Durban', '4001', 'South Africa'),
   ('88888888-8888-8888-8888-888888888804', '11111111-1111-1111-1111-111111111111', 'CUST004', 'Karoo Meat Processors', 'orders@buildright.co.za', '+27 12 456 7890', '321 Industrial Road', 'Pretoria', '0001', 'South Africa'),
   ('88888888-8888-8888-8888-888888888805', '11111111-1111-1111-1111-111111111111', 'CUST005', 'Coastal Fresh Produce', 'procurement@greenenergy.co.za', '+27 41 567 8901', '555 Eco Park', 'Port Elizabeth', '6001', 'South Africa')
-ON CONFLICT (tenant_id, code) DO NOTHING;
+ON CONFLICT (tenant_id, code) DO UPDATE SET
+  name = EXCLUDED.name;
 
 -- ================
 -- Suppliers
