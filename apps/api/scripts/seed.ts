@@ -155,11 +155,11 @@ async function seed() {
     console.log('Seeding customers...');
     // Create customers
     const customers = [
-      { code: 'CUST001', name: 'Acme Corporation', email: 'orders@acme.co.za', addr: '123 Business Park', city: 'Johannesburg' },
-      { code: 'CUST002', name: 'TechStart Solutions', email: 'purchasing@techstart.co.za', addr: '456 Innovation Hub', city: 'Cape Town' },
-      { code: 'CUST003', name: 'Retail World', email: 'supply@retailworld.co.za', addr: '789 Commerce Street', city: 'Durban' },
-      { code: 'CUST004', name: 'BuildRight Construction', email: 'orders@buildright.co.za', addr: '321 Industrial Road', city: 'Pretoria' },
-      { code: 'CUST005', name: 'Green Energy Co', email: 'procurement@greenenergy.co.za', addr: '555 Eco Park', city: 'Port Elizabeth' },
+      { code: 'CUST001', name: 'Cape Harvest Foods', email: 'orders@acme.co.za', addr: '123 Business Park', city: 'Johannesburg' },
+      { code: 'CUST002', name: 'Ubuntu Dairy Products', email: 'purchasing@techstart.co.za', addr: '456 Innovation Hub', city: 'Cape Town' },
+      { code: 'CUST003', name: 'Golden Grain Bakeries', email: 'supply@retailworld.co.za', addr: '789 Commerce Street', city: 'Durban' },
+      { code: 'CUST004', name: 'Karoo Meat Processors', email: 'orders@buildright.co.za', addr: '321 Industrial Road', city: 'Pretoria' },
+      { code: 'CUST005', name: 'Coastal Fresh Produce', email: 'procurement@greenenergy.co.za', addr: '555 Eco Park', city: 'Port Elizabeth' },
     ];
 
     const customerIds: Record<string, string> = {};

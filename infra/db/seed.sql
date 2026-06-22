@@ -147,11 +147,11 @@ ON CONFLICT (tenant_id, sku) DO NOTHING;
 -- Customers
 -- ================
 INSERT INTO customers (id, tenant_id, code, name, email, phone, shipping_address_line1, shipping_city, shipping_postal_code, shipping_country) VALUES
-  ('88888888-8888-8888-8888-888888888801', '11111111-1111-1111-1111-111111111111', 'CUST001', 'Acme Corporation', 'orders@acme.co.za', '+27 11 123 4567', '123 Business Park', 'Johannesburg', '2000', 'South Africa'),
-  ('88888888-8888-8888-8888-888888888802', '11111111-1111-1111-1111-111111111111', 'CUST002', 'TechStart Solutions', 'purchasing@techstart.co.za', '+27 21 234 5678', '456 Innovation Hub', 'Cape Town', '8001', 'South Africa'),
-  ('88888888-8888-8888-8888-888888888803', '11111111-1111-1111-1111-111111111111', 'CUST003', 'Retail World', 'supply@retailworld.co.za', '+27 31 345 6789', '789 Commerce Street', 'Durban', '4001', 'South Africa'),
-  ('88888888-8888-8888-8888-888888888804', '11111111-1111-1111-1111-111111111111', 'CUST004', 'BuildRight Construction', 'orders@buildright.co.za', '+27 12 456 7890', '321 Industrial Road', 'Pretoria', '0001', 'South Africa'),
-  ('88888888-8888-8888-8888-888888888805', '11111111-1111-1111-1111-111111111111', 'CUST005', 'Green Energy Co', 'procurement@greenenergy.co.za', '+27 41 567 8901', '555 Eco Park', 'Port Elizabeth', '6001', 'South Africa')
+  ('88888888-8888-8888-8888-888888888801', '11111111-1111-1111-1111-111111111111', 'CUST001', 'Cape Harvest Foods', 'orders@acme.co.za', '+27 11 123 4567', '123 Business Park', 'Johannesburg', '2000', 'South Africa'),
+  ('88888888-8888-8888-8888-888888888802', '11111111-1111-1111-1111-111111111111', 'CUST002', 'Ubuntu Dairy Products', 'purchasing@techstart.co.za', '+27 21 234 5678', '456 Innovation Hub', 'Cape Town', '8001', 'South Africa'),
+  ('88888888-8888-8888-8888-888888888803', '11111111-1111-1111-1111-111111111111', 'CUST003', 'Golden Grain Bakeries', 'supply@retailworld.co.za', '+27 31 345 6789', '789 Commerce Street', 'Durban', '4001', 'South Africa'),
+  ('88888888-8888-8888-8888-888888888804', '11111111-1111-1111-1111-111111111111', 'CUST004', 'Karoo Meat Processors', 'orders@buildright.co.za', '+27 12 456 7890', '321 Industrial Road', 'Pretoria', '0001', 'South Africa'),
+  ('88888888-8888-8888-8888-888888888805', '11111111-1111-1111-1111-111111111111', 'CUST005', 'Coastal Fresh Produce', 'procurement@greenenergy.co.za', '+27 41 567 8901', '555 Eco Park', 'Port Elizabeth', '6001', 'South Africa')
 ON CONFLICT (tenant_id, code) DO NOTHING;
 
 -- ================
