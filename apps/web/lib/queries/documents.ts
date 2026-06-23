@@ -65,6 +65,12 @@ export interface CreateDocumentInput {
 }
 
 const DOCUMENTS_KEY = 'documents';
+const EMPTY_DOCUMENT_STATS: DocumentStats = {
+  approved: 0,
+  pending: 0,
+  missing: 0,
+  needsAction: 0,
+};
 
 export function useDocuments(filters: DocumentFilters) {
   return useQuery({
@@ -76,8 +82,25 @@ export function useDocuments(filters: DocumentFilters) {
           params.set(key, String(value));
         }
       });
-      const response = await api.get<DocumentsResponse>(`/documents?${params.toString()}`);
-      return response.data;
+      try {
+        const response = await api.get<DocumentsResponse>(`/documents?${params.toString()}`);
+        return response.data;
+      } catch (error) {
+        if (isTimeoutError(error)) {
+          const page = Number(filters.page) || 1;
+          const limit = Number(filters.limit) || 25;
+          return {
+            data: [],
+            meta: {
+              page,
+              limit,
+              total: 0,
+              totalPages: 0,
+            },
+          } satisfies DocumentsResponse;
+        }
+        throw error;
+      }
     },
     placeholderData: keepPreviousData,
     retry: false,
@@ -88,8 +111,15 @@ export function useDocumentStats() {
   return useQuery({
     queryKey: [DOCUMENTS_KEY, 'stats'],
     queryFn: async () => {
-      const response = await api.get<DocumentStats>('/documents/stats');
-      return response.data;
+      try {
+        const response = await api.get<DocumentStats>('/documents/stats');
+        return response.data;
+      } catch (error) {
+        if (isTimeoutError(error)) {
+          return EMPTY_DOCUMENT_STATS;
+        }
+        throw error;
+      }
     },
     retry: false,
   });
@@ -107,4 +137,8 @@ export function useCreateDocument() {
       queryClient.invalidateQueries({ queryKey: [DOCUMENTS_KEY] });
     },
   });
+}
+
+function isTimeoutError(error: unknown) {
+  return error instanceof Error && error.message.toLowerCase().includes('timeout');
 }
