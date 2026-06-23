@@ -136,7 +136,7 @@ export default function ManufacturingReportContent() {
           title="Total Output"
           value={formatQuantity(report?.summary.totalOutput ?? 0)}
           icon={<OutputIcon />}
-          iconColor="green"
+          iconColor="blue"
         />
         <StatCard
           title="Total Scrap"
@@ -193,10 +193,10 @@ export default function ManufacturingReportContent() {
               <Line
                 type="monotone"
                 dataKey="output"
-                stroke="#10b981"
+                stroke="#38bdf8"
                 strokeWidth={2.5}
-                dot={{ r: 4, fill: ct.dotFill, stroke: '#10b981', strokeWidth: 2 }}
-                activeDot={{ r: 6, fill: '#10b981', stroke: ct.activeDotStroke, strokeWidth: 2 }}
+                dot={{ r: 4, fill: ct.dotFill, stroke: '#38bdf8', strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: '#38bdf8', stroke: ct.activeDotStroke, strokeWidth: 2 }}
                 name="Output"
               />
               <Line
@@ -241,7 +241,7 @@ export default function ManufacturingReportContent() {
                         <td className="px-4 py-2 text-sm text-right">{formatQuantity(item.output)}</td>
                         <td className="px-4 py-2 text-sm text-right">{formatQuantity(item.scrap)}</td>
                         <td className="px-4 py-2 text-sm text-right font-medium">
-                          <span className={item.yieldRate >= 95 ? 'text-emerald-600' : item.yieldRate >= 85 ? 'text-amber-600' : 'text-red-600'}>
+                          <span className={item.yieldRate >= 95 ? 'text-sky-600' : item.yieldRate >= 85 ? 'text-amber-600' : 'text-red-600'}>
                             {formatPercent(item.yieldRate)}
                           </span>
                         </td>
