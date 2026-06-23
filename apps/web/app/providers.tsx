@@ -41,6 +41,12 @@ function QueryClientProviderWithToast({ children }: { children: React.ReactNode 
             refetchOnWindowFocus: false,
             retry: (failureCount, error) => {
               // Don't retry on 4xx errors
+              if (error instanceof Error && 'status' in error) {
+                const status = (error as { status?: number }).status;
+                if (status && status >= 400 && status < 500) {
+                  return false;
+                }
+              }
               if (error instanceof Error && 'response' in error) {
                 const status = (error as { response?: { status?: number } }).response?.status;
                 if (status && status >= 400 && status < 500) {

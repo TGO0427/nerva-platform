@@ -21,6 +21,7 @@ import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Alert } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import {
   type ComplianceDocument,
@@ -57,8 +58,17 @@ export default function DocumentCentrePage() {
     limit: 25,
   };
 
-  const { data: documentResult, isLoading } = useDocuments(filters);
-  const { data: stats } = useDocumentStats();
+  const {
+    data: documentResult,
+    error: documentsError,
+    isError: isDocumentsError,
+    isLoading,
+  } = useDocuments(filters);
+  const {
+    data: stats,
+    error: statsError,
+    isError: isStatsError,
+  } = useDocumentStats();
   const documents = documentResult?.data ?? [];
   const metricStats = stats ?? { approved: 0, pending: 0, missing: 0, needsAction: 0 };
 
@@ -219,6 +229,12 @@ export default function DocumentCentrePage() {
         <MetricCard title="Needs Action" value={metricStats.needsAction} icon={<AlertTriangle className="h-5 w-5" />} tone="warning" />
         <MetricCard title="Missing" value={metricStats.missing} icon={<FileCheck2 className="h-5 w-5" />} tone="danger" />
       </div>
+
+      {(isDocumentsError || isStatsError) && (
+        <Alert variant="error" title="Document Centre could not load">
+          {getErrorMessage(documentsError || statsError)}
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-4">
@@ -428,4 +444,11 @@ function formatLabel(value?: string | null) {
 function formatDate(value?: string | null) {
   if (!value) return '-';
   return new Date(value).toLocaleDateString();
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Check that the API deployment has the latest Document Centre migration and that your user has document access.';
 }
