@@ -1,22 +1,19 @@
 {
-  "name": "Nerva Driver",
-  "short_name": "Driver",
-  "description": "Nerva delivery driver app",
-  "start_url": "/driver",
+  "name": "Nerva",
+  "short_name": "Nerva",
+  "description": "Nerva warehouse, inventory, and operations platform",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f5f7fb",
-  "theme_color": "#064e3b",
-  "orientation": "portrait",
+  "theme_color": "#075985",
+  "orientation": "any",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }

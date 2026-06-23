@@ -6,6 +6,7 @@ import { Providers } from './providers';
 const poppins = Poppins({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'] });
 
 export const metadata: Metadata = {
+  manifest: '/manifest.json',
   title: {
     default: 'Nerva - Warehouse & Inventory Management',
     template: '%s | Nerva',
