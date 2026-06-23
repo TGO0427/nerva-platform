@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "cd ../.. && pnpm install && pnpm build --filter=@nerva/api"
+buildCommand = "cd ../.. && pnpm install && pnpm --filter @nerva/api build"
 
 [deploy]
 startCommand = "node dist/main.js"
