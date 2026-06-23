@@ -44,7 +44,7 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: <HomeIcon /> },
       { name: 'Exceptions', href: '/exceptions', icon: <AlertIcon /> },
-      { name: 'Document Centre', href: '/documents', icon: <ReportIcon /> },
+      { name: 'Document Centre', href: '/documents', icon: <ReportIcon />, permissions: [PERMISSIONS.DOCUMENT_READ] },
     ],
   },
   {

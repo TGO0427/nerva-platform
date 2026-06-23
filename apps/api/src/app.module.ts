@@ -27,6 +27,7 @@ import { InvoicingModule } from "./modules/invoicing/invoicing.module";
 import { UploadModule } from "./common/upload/upload.module";
 import { PortalModule } from "./modules/portal/portal.module";
 import { BillingModule } from "./modules/billing/billing.module";
+import { DocumentsModule } from "./modules/documents/documents.module";
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { BillingModule } from "./modules/billing/billing.module";
     UploadModule,
     PortalModule,
     BillingModule,
+    DocumentsModule,
   ],
 })
 export class AppModule {}

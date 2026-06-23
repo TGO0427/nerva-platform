@@ -21,3 +21,4 @@ export * from './invoices';
 export * from './portal';
 export * from './driver';
 export * from './admin-tenants';
+export * from './documents';

@@ -103,6 +103,10 @@ export const PERMISSIONS = {
   QUALITY_EDIT: 'quality.edit',
   QUALITY_RESOLVE: 'quality.resolve',
 
+  // Documents
+  DOCUMENT_READ: 'document.read',
+  DOCUMENT_WRITE: 'document.write',
+
   // Invoicing
   INVOICE_READ: 'invoice.read',
   INVOICE_CREATE: 'invoice.create',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -22,124 +22,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-
-type DocumentStatus = 'Approved' | 'Pending' | 'Missing' | 'Rejected';
-type ExpiryStatus = 'Valid' | 'Expiring Soon' | 'Expired' | 'No Expiry';
-type DocumentType = 'COA' | 'Export' | 'SGS' | 'Invoice' | 'POD' | 'Quality' | 'SADC';
-type LinkedEntity = 'Supplier' | 'Customer' | 'Shipment' | 'Product' | 'Purchase Order';
-
-interface ComplianceDocument {
-  id: string;
-  document: string;
-  type: DocumentType;
-  linkedTo: string;
-  linkedEntity: LinkedEntity;
-  status: DocumentStatus;
-  expiry: string | null;
-  expiryStatus: ExpiryStatus;
-  uploadedBy: string;
-  uploadedAt: string;
-  owner: string;
-}
-
-const documents: ComplianceDocument[] = [
-  {
-    id: 'doc-001',
-    document: 'COA_Futura_PO-0012.pdf',
-    type: 'COA',
-    linkedTo: 'Futura PO-0012',
-    linkedEntity: 'Purchase Order',
-    status: 'Approved',
-    expiry: '2027-06-23',
-    expiryStatus: 'Valid',
-    uploadedBy: 'Tino',
-    uploadedAt: '2026-06-18',
-    owner: 'Futura Foods',
-  },
-  {
-    id: 'doc-002',
-    document: 'SADC_export_zambia.pdf',
-    type: 'SADC',
-    linkedTo: 'Zambia Shipment',
-    linkedEntity: 'Shipment',
-    status: 'Pending',
-    expiry: null,
-    expiryStatus: 'No Expiry',
-    uploadedBy: 'Liam',
-    uploadedAt: '2026-06-21',
-    owner: 'Border Desk',
-  },
-  {
-    id: 'doc-003',
-    document: 'SGS_COC_kenya_export.pdf',
-    type: 'SGS',
-    linkedTo: 'Kenya Export',
-    linkedEntity: 'Shipment',
-    status: 'Missing',
-    expiry: null,
-    expiryStatus: 'No Expiry',
-    uploadedBy: 'QA',
-    uploadedAt: '2026-06-20',
-    owner: 'Quality',
-  },
-  {
-    id: 'doc-004',
-    document: 'POD_SH-1048_signed.pdf',
-    type: 'POD',
-    linkedTo: 'Shipment SH-1048',
-    linkedEntity: 'Shipment',
-    status: 'Approved',
-    expiry: null,
-    expiryStatus: 'No Expiry',
-    uploadedBy: 'Driver App',
-    uploadedAt: '2026-06-19',
-    owner: 'Dispatch',
-  },
-  {
-    id: 'doc-005',
-    document: 'supplier_food_safety_cert.pdf',
-    type: 'Quality',
-    linkedTo: 'Cape Ingredients',
-    linkedEntity: 'Supplier',
-    status: 'Approved',
-    expiry: '2026-07-08',
-    expiryStatus: 'Expiring Soon',
-    uploadedBy: 'Maya',
-    uploadedAt: '2026-05-28',
-    owner: 'Procurement',
-  },
-  {
-    id: 'doc-006',
-    document: 'customer_credit_terms.pdf',
-    type: 'Invoice',
-    linkedTo: 'Blue Retail Group',
-    linkedEntity: 'Customer',
-    status: 'Rejected',
-    expiry: '2026-04-30',
-    expiryStatus: 'Expired',
-    uploadedBy: 'Finance',
-    uploadedAt: '2026-04-12',
-    owner: 'Finance',
-  },
-  {
-    id: 'doc-007',
-    document: 'product_spec_raw_sugar.pdf',
-    type: 'COA',
-    linkedTo: 'RAW-SUGAR-25KG',
-    linkedEntity: 'Product',
-    status: 'Approved',
-    expiry: '2027-01-15',
-    expiryStatus: 'Valid',
-    uploadedBy: 'QA',
-    uploadedAt: '2026-06-11',
-    owner: 'Quality',
-  },
-];
+import {
+  type ComplianceDocument,
+  type DocumentStatus,
+  type ExpiryStatus,
+  useDocumentStats,
+  useDocuments,
+} from '@/lib/queries';
 
 const documentTypes = ['All', 'COA', 'Export', 'SGS', 'Invoice', 'POD', 'Quality', 'SADC'] as const;
-const linkedEntities = ['All', 'Supplier', 'Customer', 'Shipment', 'Product', 'Purchase Order'] as const;
-const statuses = ['All', 'Approved', 'Pending', 'Missing', 'Rejected'] as const;
-const expiryStatuses = ['All', 'Valid', 'Expiring Soon', 'Expired', 'No Expiry'] as const;
+const linkedEntities = ['All', 'supplier', 'customer', 'shipment', 'product', 'purchase_order', 'pod', 'invoice'] as const;
+const statuses = ['All', 'APPROVED', 'PENDING', 'MISSING', 'REJECTED'] as const;
+const expiryStatuses = ['All', 'VALID', 'EXPIRING_SOON', 'EXPIRED', 'NO_EXPIRY'] as const;
 
 export default function DocumentCentrePage() {
   const [search, setSearch] = useState('');
@@ -147,44 +41,30 @@ export default function DocumentCentrePage() {
   const [linkedEntity, setLinkedEntity] = useState<(typeof linkedEntities)[number]>('All');
   const [status, setStatus] = useState<(typeof statuses)[number]>('All');
   const [expiryStatus, setExpiryStatus] = useState<(typeof expiryStatuses)[number]>('All');
+  const [page, setPage] = useState(1);
   const [showColumns, setShowColumns] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    () => new Set(['document', 'type', 'linkedTo', 'status', 'expiry', 'uploadedBy', 'actions'])
+    () => new Set(['fileName', 'documentType', 'linkedLabel', 'status', 'expiryDate', 'uploadedByName', 'actions'])
   );
 
-  const filteredDocuments = useMemo(() => {
-    const q = search.trim().toLowerCase();
+  const filters = {
+    search,
+    documentType: type === 'All' ? undefined : type,
+    entityType: linkedEntity === 'All' ? undefined : linkedEntity,
+    status: status === 'All' ? undefined : status,
+    expiryStatus: expiryStatus === 'All' ? undefined : expiryStatus,
+    page,
+    limit: 25,
+  };
 
-    return documents.filter((doc) => {
-      const matchesSearch =
-        !q ||
-        doc.document.toLowerCase().includes(q) ||
-        doc.linkedTo.toLowerCase().includes(q) ||
-        doc.owner.toLowerCase().includes(q) ||
-        doc.uploadedBy.toLowerCase().includes(q);
-
-      return (
-        matchesSearch &&
-        (type === 'All' || doc.type === type) &&
-        (linkedEntity === 'All' || doc.linkedEntity === linkedEntity) &&
-        (status === 'All' || doc.status === status) &&
-        (expiryStatus === 'All' || doc.expiryStatus === expiryStatus)
-      );
-    });
-  }, [expiryStatus, linkedEntity, search, status, type]);
-
-  const stats = useMemo(() => {
-    const approved = documents.filter((doc) => doc.status === 'Approved').length;
-    const pending = documents.filter((doc) => doc.status === 'Pending').length;
-    const risk = documents.filter((doc) => doc.status === 'Missing' || doc.expiryStatus === 'Expired' || doc.expiryStatus === 'Expiring Soon').length;
-    const missing = documents.filter((doc) => doc.status === 'Missing').length;
-
-    return { approved, pending, risk, missing };
-  }, []);
+  const { data: documentResult, isLoading } = useDocuments(filters);
+  const { data: stats } = useDocumentStats();
+  const documents = documentResult?.data ?? [];
+  const metricStats = stats ?? { approved: 0, pending: 0, missing: 0, needsAction: 0 };
 
   const allColumns: Column<ComplianceDocument>[] = [
     {
-      key: 'document',
+      key: 'fileName',
       header: 'Document',
       sortable: true,
       render: (doc) => (
@@ -193,27 +73,27 @@ export default function DocumentCentrePage() {
             <FileText className="h-4 w-4" />
           </div>
           <div>
-            <p className="font-medium text-slate-900">{doc.document}</p>
-            <p className="text-xs text-slate-500">{doc.owner}</p>
+            <p className="font-medium text-slate-900">{doc.fileName}</p>
+            <p className="text-xs text-slate-500">{doc.ownerName || 'Unassigned'}</p>
           </div>
         </div>
       ),
     },
     {
-      key: 'type',
+      key: 'documentType',
       header: 'Type',
       sortable: true,
-      width: '110px',
-      render: (doc) => <Badge variant="info">{doc.type}</Badge>,
+      width: '120px',
+      render: (doc) => <Badge variant="info">{formatLabel(doc.documentType)}</Badge>,
     },
     {
-      key: 'linkedTo',
+      key: 'linkedLabel',
       header: 'Linked To',
       sortable: true,
       render: (doc) => (
         <div>
-          <p className="font-medium text-slate-800">{doc.linkedTo}</p>
-          <p className="text-xs text-slate-500">{doc.linkedEntity}</p>
+          <p className="font-medium text-slate-800">{doc.linkedLabel || '-'}</p>
+          <p className="text-xs text-slate-500">{formatLabel(doc.entityType)}</p>
         </div>
       ),
     },
@@ -222,29 +102,29 @@ export default function DocumentCentrePage() {
       header: 'Status',
       sortable: true,
       width: '130px',
-      render: (doc) => <Badge variant={getStatusVariant(doc.status)}>{doc.status}</Badge>,
+      render: (doc) => <Badge variant={getStatusVariant(doc.status)}>{formatLabel(doc.status)}</Badge>,
     },
     {
-      key: 'expiry',
+      key: 'expiryDate',
       header: 'Expiry',
       sortable: true,
       width: '150px',
       render: (doc) => (
         <div>
-          <p className="text-sm text-slate-900">{doc.expiry ?? '-'}</p>
-          <p className={cn('text-xs', getExpiryTextClass(doc.expiryStatus))}>{doc.expiryStatus}</p>
+          <p className="text-sm text-slate-900">{formatDate(doc.expiryDate)}</p>
+          <p className={cn('text-xs', getExpiryTextClass(doc.expiryStatus))}>{formatLabel(doc.expiryStatus)}</p>
         </div>
       ),
     },
     {
-      key: 'uploadedBy',
+      key: 'uploadedByName',
       header: 'Uploaded By',
       sortable: true,
-      width: '150px',
+      width: '160px',
       render: (doc) => (
         <div>
-          <p className="text-sm font-medium text-slate-800">{doc.uploadedBy}</p>
-          <p className="text-xs text-slate-500">{doc.uploadedAt}</p>
+          <p className="text-sm font-medium text-slate-800">{doc.uploadedByName}</p>
+          <p className="text-xs text-slate-500">{formatDate(doc.createdAt)}</p>
         </div>
       ),
     },
@@ -280,19 +160,24 @@ export default function DocumentCentrePage() {
     });
   }
 
+  function updateSearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
+
   function exportCsv() {
     const rows = [
       ['Document', 'Type', 'Linked To', 'Linked Entity', 'Status', 'Expiry', 'Expiry Status', 'Uploaded By', 'Uploaded At'],
-      ...filteredDocuments.map((doc) => [
-        doc.document,
-        doc.type,
-        doc.linkedTo,
-        doc.linkedEntity,
+      ...documents.map((doc) => [
+        doc.fileName,
+        doc.documentType,
+        doc.linkedLabel ?? '',
+        doc.entityType,
         doc.status,
-        doc.expiry ?? '',
+        doc.expiryDate ?? '',
         doc.expiryStatus,
-        doc.uploadedBy,
-        doc.uploadedAt,
+        doc.uploadedByName,
+        doc.createdAt,
       ]),
     ];
 
@@ -316,7 +201,7 @@ export default function DocumentCentrePage() {
         subtitle="Track compliance documents, missing files, approvals, and expiry risk in one operational view."
         actions={(
           <>
-            <Button variant="secondary" onClick={exportCsv}>
+            <Button variant="secondary" onClick={exportCsv} disabled={documents.length === 0}>
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
@@ -329,10 +214,10 @@ export default function DocumentCentrePage() {
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <MetricCard title="Approved" value={stats.approved} icon={<CheckCircle2 className="h-5 w-5" />} tone="success" />
-        <MetricCard title="Pending Review" value={stats.pending} icon={<ShieldCheck className="h-5 w-5" />} tone="info" />
-        <MetricCard title="Needs Action" value={stats.risk} icon={<AlertTriangle className="h-5 w-5" />} tone="warning" />
-        <MetricCard title="Missing" value={stats.missing} icon={<FileCheck2 className="h-5 w-5" />} tone="danger" />
+        <MetricCard title="Approved" value={metricStats.approved} icon={<CheckCircle2 className="h-5 w-5" />} tone="success" />
+        <MetricCard title="Pending Review" value={metricStats.pending} icon={<ShieldCheck className="h-5 w-5" />} tone="info" />
+        <MetricCard title="Needs Action" value={metricStats.needsAction} icon={<AlertTriangle className="h-5 w-5" />} tone="warning" />
+        <MetricCard title="Missing" value={metricStats.missing} icon={<FileCheck2 className="h-5 w-5" />} tone="danger" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -344,17 +229,17 @@ export default function DocumentCentrePage() {
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <Input
                     value={search}
-                    onChange={(event) => setSearch(event.target.value)}
+                    onChange={(event) => updateSearch(event.target.value)}
                     placeholder="Search documents, linked records, owners..."
                     className="pl-9"
                   />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <FilterSelect label="Type" value={type} options={documentTypes} onChange={(value) => setType(value as typeof type)} />
-                  <FilterSelect label="Linked" value={linkedEntity} options={linkedEntities} onChange={(value) => setLinkedEntity(value as typeof linkedEntity)} />
-                  <FilterSelect label="Status" value={status} options={statuses} onChange={(value) => setStatus(value as typeof status)} />
-                  <FilterSelect label="Expiry" value={expiryStatus} options={expiryStatuses} onChange={(value) => setExpiryStatus(value as typeof expiryStatus)} />
+                  <FilterSelect label="Type" value={type} options={documentTypes} onChange={(value) => { setType(value as typeof type); setPage(1); }} />
+                  <FilterSelect label="Linked" value={linkedEntity} options={linkedEntities} onChange={(value) => { setLinkedEntity(value as typeof linkedEntity); setPage(1); }} formatOption={formatLabel} />
+                  <FilterSelect label="Status" value={status} options={statuses} onChange={(value) => { setStatus(value as typeof status); setPage(1); }} formatOption={formatLabel} />
+                  <FilterSelect label="Expiry" value={expiryStatus} options={expiryStatuses} onChange={(value) => { setExpiryStatus(value as typeof expiryStatus); setPage(1); }} formatOption={formatLabel} />
                 </div>
 
                 <div className="relative">
@@ -388,9 +273,12 @@ export default function DocumentCentrePage() {
 
           <DataTable
             columns={columns}
-            data={filteredDocuments}
+            data={documents}
             keyField="id"
             density="compact"
+            isLoading={isLoading}
+            pagination={documentResult?.meta}
+            onPageChange={setPage}
             emptyState={{
               icon: <FileText className="h-10 w-10" />,
               title: 'No documents match this view',
@@ -417,9 +305,9 @@ export default function DocumentCentrePage() {
               Action Queue
             </div>
             <div className="mt-4 space-y-3">
-              <QueueItem label="Expired customer documents" value="1" tone="danger" />
-              <QueueItem label="Missing export certificates" value="1" tone="warning" />
-              <QueueItem label="Awaiting approval" value="1" tone="info" />
+              <QueueItem label="Expired documents" value={String(metricStats.needsAction)} tone="warning" />
+              <QueueItem label="Missing files" value={String(metricStats.missing)} tone="danger" />
+              <QueueItem label="Awaiting approval" value={String(metricStats.pending)} tone="info" />
             </div>
           </div>
         </aside>
@@ -433,11 +321,13 @@ function FilterSelect({
   value,
   options,
   onChange,
+  formatOption = (option) => option,
 }: {
   label: string;
   value: string;
   options: readonly string[];
   onChange: (value: string) => void;
+  formatOption?: (value: string) => string;
 }) {
   return (
     <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
@@ -449,7 +339,7 @@ function FilterSelect({
       >
         {options.map((option) => (
           <option key={option} value={option}>
-            {option}
+            {formatOption(option)}
           </option>
         ))}
       </select>
@@ -513,15 +403,29 @@ function IconButton({ label, children }: { label: string; children: React.ReactN
 }
 
 function getStatusVariant(status: DocumentStatus): BadgeVariant {
-  if (status === 'Approved') return 'success';
-  if (status === 'Pending') return 'warning';
-  if (status === 'Missing' || status === 'Rejected') return 'danger';
+  if (status === 'APPROVED') return 'success';
+  if (status === 'PENDING') return 'warning';
+  if (status === 'MISSING' || status === 'REJECTED') return 'danger';
   return 'default';
 }
 
 function getExpiryTextClass(status: ExpiryStatus) {
-  if (status === 'Expired') return 'text-red-600';
-  if (status === 'Expiring Soon') return 'text-amber-600';
-  if (status === 'Valid') return 'text-emerald-600';
+  if (status === 'EXPIRED') return 'text-red-600';
+  if (status === 'EXPIRING_SOON') return 'text-amber-600';
+  if (status === 'VALID') return 'text-emerald-600';
   return 'text-slate-500';
+}
+
+function formatLabel(value?: string | null) {
+  if (!value) return '-';
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return '-';
+  return new Date(value).toLocaleDateString();
 }
