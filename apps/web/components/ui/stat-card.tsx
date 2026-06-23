@@ -22,7 +22,7 @@ export interface StatCardProps {
 const borderColors: Record<IconColor, string> = {
   gray: 'border-b-slate-400',
   blue: 'border-b-blue-500',
-  green: 'border-b-emerald-500',
+  green: 'border-b-sky-400',
   red: 'border-b-red-500',
   yellow: 'border-b-amber-500',
   purple: 'border-b-violet-500',
@@ -32,7 +32,7 @@ const borderColors: Record<IconColor, string> = {
 const bgTints: Record<IconColor, string> = {
   gray: 'bg-gradient-to-br from-slate-50/80 to-white',
   blue: 'bg-gradient-to-br from-blue-50/60 to-white',
-  green: 'bg-gradient-to-br from-emerald-50/60 to-white',
+  green: 'bg-gradient-to-br from-sky-50/70 to-white',
   red: 'bg-gradient-to-br from-red-50/60 to-white',
   yellow: 'bg-gradient-to-br from-amber-50/60 to-white',
   purple: 'bg-gradient-to-br from-violet-50/60 to-white',
@@ -40,7 +40,7 @@ const bgTints: Record<IconColor, string> = {
 };
 
 const subtitleColors = {
-  positive: 'text-green-600',
+  positive: 'text-sky-600',
   negative: 'text-red-600',
   neutral: 'text-slate-400',
 };

@@ -31,25 +31,25 @@ module.exports = {
           },
         },
         primary: {
-          50: '#E8F5E9',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#66BB6A',
-          500: '#4FB84F',     // brand accent green
-          600: '#4FB84F',     // primary action
-          700: '#3E9B3E',     // accent hover
-          800: '#166534',
-          900: '#14532d',
-          950: '#052e16',
-          hover: '#3E9B3E',      // accent hover
-          tint: '#E8F5E9',       // accent tint
-          sidebar: '#064e3b',    // sidebar background
-          active: '#34d399',     // sidebar active highlight
-          subtitle: '#6ee7b7',   // sidebar subtitle green
-          dark: '#66BB6A',       // dark accent
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#38bdf8',     // brand accent light blue
+          600: '#0ea5e9',     // primary action
+          700: '#0284c7',     // accent hover
+          800: '#0369a1',
+          900: '#075985',
+          950: '#082f49',
+          hover: '#0284c7',      // accent hover
+          tint: '#f0f9ff',       // accent tint
+          sidebar: '#075985',    // sidebar background
+          active: '#7dd3fc',     // sidebar active highlight
+          subtitle: '#bae6fd',   // sidebar subtitle light blue
+          dark: '#38bdf8',       // dark accent
         },
-        success: '#10b981',
+        success: '#38bdf8',
         warning: '#f59e0b',
         danger: '#ef4444',
         info: '#3b82f6',
