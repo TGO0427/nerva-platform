@@ -4,7 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { Logger } from "nestjs-pino";
 import helmet from "helmet";
-import compression from "compression";
+import compression = require("compression");
 import * as nodeHttps from "https";
 import { json, urlencoded } from "express";
 import { AppModule } from "./app.module";
