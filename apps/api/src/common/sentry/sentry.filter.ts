@@ -9,7 +9,7 @@ import * as Sentry from "@sentry/nestjs";
 
 @Catch()
 export class SentryExceptionFilter implements ExceptionFilter {
-  catch(exception: unknown, _host: ArgumentsHost) {
+  catch(exception: unknown, host: ArgumentsHost) {
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
@@ -20,7 +20,25 @@ export class SentryExceptionFilter implements ExceptionFilter {
       Sentry.captureException(exception);
     }
 
-    // Re-throw so the existing GlobalExceptionFilter handles the response
-    throw exception;
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    const request = ctx.getRequest();
+    const exceptionResponse =
+      exception instanceof HttpException ? exception.getResponse() : null;
+
+    const body =
+      typeof exceptionResponse === "object" && exceptionResponse !== null
+        ? exceptionResponse
+        : {
+            statusCode: status,
+            message:
+              typeof exceptionResponse === "string"
+                ? exceptionResponse
+                : "Internal server error",
+            path: request?.url,
+            timestamp: new Date().toISOString(),
+          };
+
+    response.status(status).json(body);
   }
 }
