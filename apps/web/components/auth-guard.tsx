@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth, getHomeRoute } from '@/lib/auth';
@@ -17,6 +17,7 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
   const { isAuthenticated, isLoading, user, fetchUser } = useAuth();
   const [hydrated, setHydrated] = useState(false);
   const [showExpiredMessage, setShowExpiredMessage] = useState(false);
+  const refreshedUserRef = useRef(false);
 
   // Wait for client-side hydration
   useEffect(() => {
@@ -29,6 +30,14 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
       fetchUser();
     }
   }, [hydrated, isAuthenticated, user, isLoading, fetchUser]);
+
+  // Refresh persisted user details without blocking the dashboard on reload.
+  useEffect(() => {
+    if (hydrated && isAuthenticated && user && !refreshedUserRef.current) {
+      refreshedUserRef.current = true;
+      fetchUser();
+    }
+  }, [hydrated, isAuthenticated, user, fetchUser]);
 
   // Handle unauthenticated state
   useEffect(() => {
@@ -80,7 +89,7 @@ export function AuthGuard({ children, requiredUserType }: AuthGuardProps) {
     );
   }
 
-  if (isLoading || (!isAuthenticated && !showExpiredMessage)) {
+  if ((isLoading && !user) || (!isAuthenticated && !showExpiredMessage)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

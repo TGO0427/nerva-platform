@@ -64,10 +64,12 @@ export const useAuth = create<AuthState>()(
       },
 
       fetchUser: async () => {
+        set({ isLoading: true });
         try {
           const response = await api.get<CurrentUser>('/auth/me');
-          set({ user: response.data });
+          set({ user: response.data, isLoading: false });
         } catch {
+          set({ isLoading: false });
           get().logout();
         }
       },
@@ -75,6 +77,7 @@ export const useAuth = create<AuthState>()(
     {
       name: 'nerva-auth',
       partialize: (state) => ({
+        user: state.user,
         accessToken: state.accessToken,
         isAuthenticated: state.isAuthenticated,
       }),
