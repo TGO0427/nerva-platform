@@ -84,7 +84,7 @@ export function DataTable<T extends object>({
 }: DataTableProps<T>) {
   const containerClass = variant === 'embedded'
     ? cn(className)
-    : cn('bg-white rounded-2xl border border-slate-200 overflow-hidden', className);
+    : cn('bg-white rounded-lg border border-slate-200/80 shadow-sm ring-1 ring-black/[0.02] overflow-hidden', className);
 
   const getRowId = (row: T): string => String(row[keyField]);
   const isRowSelected = (row: T): boolean => selectedIds?.has(getRowId(row)) ?? false;
@@ -176,8 +176,8 @@ export function DataTable<T extends object>({
   return (
     <div className={containerClass}>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
+        <table className="min-w-full divide-y divide-slate-200/80">
+          <thead className="bg-slate-50/80">
             <tr>
               {selectable && (
                 <th scope="col" className="w-12 px-4 py-3">
@@ -205,7 +205,7 @@ export function DataTable<T extends object>({
                       style={{ width: column.width }}
                       className={cn(
                         headerPadding,
-                        'text-xs font-medium uppercase tracking-wider text-slate-500',
+                        'text-xs font-semibold uppercase tracking-wider text-slate-500',
                         getAlignClass(align),
                         column.sortable && 'cursor-pointer select-none hover:bg-slate-100',
                         column.className
@@ -227,13 +227,13 @@ export function DataTable<T extends object>({
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-slate-200">
+          <tbody className="bg-white divide-y divide-slate-100">
             {sortedData.map((row) => (
               <tr
                 key={String(row[keyField])}
                 onClick={() => onRowClick?.(row)}
                 className={cn(
-                  'hover:bg-slate-50 transition-colors',
+                  'hover:bg-slate-50/80 transition-colors',
                   onRowClick && 'cursor-pointer',
                   selectable && isRowSelected(row) && 'bg-primary-50'
                 )}

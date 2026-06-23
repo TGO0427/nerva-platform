@@ -29,6 +29,7 @@ const searchSynonyms: Record<string, string[]> = {
   '/inventory/ibts': ['IBT', 'inter-branch', 'bin transfer', 'stock transfer'],
   '/inventory/cycle-counts': ['stock take', 'physical count'],
   '/inventory/adjustments': ['stock adjustment'],
+  '/documents': ['document centre', 'documents', 'compliance', 'certificates', 'COA', 'SADC', 'SGS'],
   '/exceptions': ['exception', 'exceptions', 'issues', 'alerts', 'operational queues'],
   '/manufacturing/quality': ['NCR', 'non-conformance', 'holds'],
   '/procurement/purchase-orders': ['PO'],
@@ -43,6 +44,7 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: <HomeIcon /> },
       { name: 'Exceptions', href: '/exceptions', icon: <AlertIcon /> },
+      { name: 'Document Centre', href: '/documents', icon: <ReportIcon /> },
     ],
   },
   {
