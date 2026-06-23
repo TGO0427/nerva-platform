@@ -292,7 +292,7 @@ export default function DocumentCentrePage() {
             data={documents}
             keyField="id"
             density="compact"
-            isLoading={isLoading}
+            isLoading={isLoading && !isDocumentsError}
             pagination={documentResult?.meta}
             onPageChange={setPage}
             emptyState={{

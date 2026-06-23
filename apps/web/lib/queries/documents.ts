@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { PaginationMeta } from '@/components/ui/data-table';
 
@@ -79,6 +79,8 @@ export function useDocuments(filters: DocumentFilters) {
       const response = await api.get<DocumentsResponse>(`/documents?${params.toString()}`);
       return response.data;
     },
+    placeholderData: keepPreviousData,
+    retry: false,
   });
 }
 
@@ -89,6 +91,7 @@ export function useDocumentStats() {
       const response = await api.get<DocumentStats>('/documents/stats');
       return response.data;
     },
+    retry: false,
   });
 }
 
