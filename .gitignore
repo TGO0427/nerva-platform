@@ -34,3 +34,7 @@ coverage
 # Misc
 *.tsbuildinfo
 .vercel
+
+# Standalone source folder for apps/import-schedule, kept locally as a
+# reference/backup; not part of the workspace (see apps/import-schedule)
+Synercore Nerva Import Schedule/

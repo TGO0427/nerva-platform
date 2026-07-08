@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/supplier",
+      "destination": "/supplier.html"
+    },
+    {
+      "source": "/supplier/(.*)",
+      "destination": "/supplier.html"
+    },
+    {
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

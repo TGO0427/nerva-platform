@@ -1,0 +1,1643 @@
+import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { getCurrentWeekNumber } from '../utils/dateUtils';
+import { jsPDF } from 'jspdf';
+import { ShipmentStatus, DELAYED_STATUSES } from '../types/shipment';
+import { authUtils } from '../utils/auth';
+import CapacityForecastTable from './CapacityForecastTable';
+import { useNotification } from '../contexts/NotificationContext';
+import { SkeletonCardGrid } from './SkeletonLoaders';
+
+// Helper function to get current month's weeks using consistent week calculation
+const getCurrentMonthWeeks = () => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-based
+
+  const weeksInMonth = [];
+
+  // Get first day of current month
+  const firstDay = new Date(currentYear, currentMonth, 1);
+
+  // Get last day of current month
+  const lastDay = new Date(currentYear, currentMonth + 1, 0);
+
+  // Use the same week calculation method as dateUtils.js for consistency
+  const getWeekNumber = (date) => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  };
+
+  const firstWeek = getWeekNumber(firstDay);
+  const lastWeek = getWeekNumber(lastDay);
+
+  // Add all weeks in the month
+  for (let week = firstWeek; week <= lastWeek; week++) {
+    weeksInMonth.push(week);
+  }
+
+  return weeksInMonth;
+};
+
+// Simple input that tracks changes without auto-saving
+const SimpleBinInput = ({ warehouseKey, initialValue, maxValue, onUpdate, hasUnsavedChanges }) => {
+  const [localValue, setLocalValue] = React.useState(initialValue);
+  const mountedRef = React.useRef(false);
+
+  // Only update local value from parent on first mount, not on subsequent updates
+  React.useEffect(() => {
+    if (!mountedRef.current) {
+      setLocalValue(initialValue);
+      mountedRef.current = true;
+    }
+  }, [initialValue]);
+
+  const handleChange = (e) => {
+    const rawValue = e.target.value;
+    setLocalValue(rawValue); // Update local state immediately for smooth typing
+  };
+
+  const handleBlur = () => {
+    // Only update parent when user is done typing
+    const numValue = Math.max(0, Math.min(parseInt(localValue) || 0, maxValue));
+    setLocalValue(numValue); // Clean up the display value
+    onUpdate(warehouseKey, numValue);
+  };
+
+  return (
+    <input
+      key={`${warehouseKey}-simple`}
+      type="number"
+      value={localValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onFocus={(e) => e.target.select()}
+      style={{
+        padding: '4px 8px',
+        borderRadius: '4px',
+        border: hasUnsavedChanges ? '2px solid var(--warning)' : '2px solid var(--border)',
+        fontSize: '0.85rem',
+        fontWeight: 'bold',
+        color: 'var(--text-900)',
+        width: '70px',
+        backgroundColor: hasUnsavedChanges ? '#fff3e0' : 'white'
+      }}
+      min="0"
+      max={maxValue}
+    />
+  );
+};
+
+function WarehouseCapacity({ shipments, initialWarehouse = 'all', lockWarehouse = false }) {
+  const normalizedInitialWarehouse = initialWarehouse || 'all';
+  const [selectedWarehouse, setSelectedWarehouse] = useState(normalizedInitialWarehouse);
+  const [showSettings, setShowSettings] = useState(false);
+  const [editableBinsUsed, setEditableBinsUsed] = useState({});
+  const [savedBinsUsed, setSavedBinsUsed] = useState({});
+  const [pendingChanges, setPendingChanges] = useState({});
+  const [editableTotalCapacity, setEditableTotalCapacity] = useState({});
+  const [savedTotalCapacity, setSavedTotalCapacity] = useState({});
+  const [pendingTotalCapacityChanges, setPendingTotalCapacityChanges] = useState({});
+  const [isLoadingCapacity, setIsLoadingCapacity] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState(null);
+  const [detailProduct, setDetailProduct] = useState(null);
+  const { showError, showWarning, showSuccess } = useNotification();
+
+  useEffect(() => {
+    setSelectedWarehouse(normalizedInitialWarehouse);
+  }, [normalizedInitialWarehouse]);
+
+  // Load warehouse capacity data from database on mount
+  useEffect(() => {
+    const loadCapacityData = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+        const response = await fetch(`${apiUrl}/api/warehouse-capacity`);
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // Handle both old and new API response formats
+          if (data.binsUsed) {
+            // New format with binsUsed and optionally totalCapacity
+            setEditableBinsUsed(data.binsUsed);
+            setSavedBinsUsed(data.binsUsed);
+            if (data.totalCapacity) {
+              setEditableTotalCapacity(data.totalCapacity);
+              setSavedTotalCapacity(data.totalCapacity);
+            }
+          } else {
+            // Old format (backward compatibility) - assume it's just bins_used
+            setEditableBinsUsed(data);
+            setSavedBinsUsed(data);
+          }
+          // Update sync time
+          setLastSyncTime(new Date());
+        }
+      } catch (error) {
+        // Error loading warehouse capacity data - fail silently and retry
+      } finally {
+        setIsLoadingCapacity(false);
+      }
+    };
+
+    loadCapacityData();
+  }, []);
+
+  // Memoize current month weeks to avoid recalculating on every render
+  const currentMonthWeeks = useMemo(() => getCurrentMonthWeeks(), []);
+
+  const warehouseData = useMemo(() => {
+    const currentWeek = getCurrentWeekNumber();
+    const baseBinCapacity = 384; // Standard bin capacity per warehouse
+
+    // console.log('WarehouseCapacity: Recalculating warehouse data...', {
+    //   currentWeek,
+    //   currentMonthWeeks,
+    //   totalShipments: shipments.length,
+    //   editableBinsUsedKeys: Object.keys(editableBinsUsed)
+    // });
+
+    // Define warehouse configurations - use editable total capacity from state if available
+    const warehouseConfigs = {
+      'PRETORIA': { totalBins: editableTotalCapacity['PRETORIA'] || 650, avgItemsPerBin: 1 },
+      'KLAPMUTS': { totalBins: editableTotalCapacity['KLAPMUTS'] || 384, avgItemsPerBin: 1 },
+      'OFFSITE': { totalBins: editableTotalCapacity['OFFSITE'] || 384, avgItemsPerBin: 1 }
+    };
+
+    // Calculate current and projected usage
+    const warehouseStats = {};
+
+    // Initialize all warehouses from config with zero stats
+    Object.entries(warehouseConfigs).forEach(([warehouseName, config]) => {
+      warehouseStats[warehouseName] = {
+        totalBins: config.totalBins,
+        avgItemsPerBin: config.avgItemsPerBin,
+        maxCapacity: config.totalBins * config.avgItemsPerBin,
+        currentStock: 0,
+        incoming: 0,
+        currentWeekIncoming: 0,
+        weeklyIncoming: {},
+        totalProjected: 0,
+        usedBins: 0,
+        availableBins: config.totalBins,
+        projectedBinsUsed: 0,
+        binUtilizationPercent: 0,
+        status: 'normal'
+      };
+    });
+
+    const getCapacityWarehouse = (shipment) => {
+      if ((shipment.receivingWarehouse || '').toUpperCase() === 'OFFSITE') return 'OFFSITE';
+      if (shipment.latestStatus === 'arrived_offsite') return 'OFFSITE';
+      return shipment.receivingWarehouse || shipment.finalPod || 'Unassigned';
+    };
+
+    const isOffsiteStoredStock = (shipment) => {
+      return getCapacityWarehouse(shipment) === 'OFFSITE' && shipment.latestStatus === ShipmentStatus.STORED;
+    };
+
+    // Filter shipments to current month, but always keep stored OFFSITE stock for capacity.
+    const currentMonthShipments = shipments.filter(shipment => {
+      const weekNumber = parseInt(shipment.weekNumber) || currentWeek;
+      const isCurrentMonth = currentMonthWeeks.includes(weekNumber);
+      const notStored = shipment.latestStatus !== ShipmentStatus.STORED;
+      return (isCurrentMonth && notStored) || isOffsiteStoredStock(shipment);
+    });
+
+    currentMonthShipments.forEach(shipment => {
+      const warehouse = getCapacityWarehouse(shipment);
+      // Use palletQty field only
+      const pallets = shipment.palletQty || 0;
+      const weekNumber = parseInt(shipment.weekNumber) || currentWeek;
+
+
+      if (!warehouseStats[warehouse]) {
+        const config = warehouseConfigs[warehouse] || { totalBins: 384, avgItemsPerBin: 1 };
+        warehouseStats[warehouse] = {
+          totalBins: config.totalBins,
+          avgItemsPerBin: config.avgItemsPerBin,
+          maxCapacity: config.totalBins * config.avgItemsPerBin,
+          currentStock: 0,
+          incoming: 0,
+          currentWeekIncoming: 0,
+          weeklyIncoming: {},
+          totalProjected: 0,
+          usedBins: 0,
+          availableBins: config.totalBins,
+          projectedBinsUsed: 0,
+          binUtilizationPercent: 0,
+          status: 'normal'
+        };
+      }
+      
+      // Incoming (all non-arrived shipments) - count pallets
+      const arrivedStatuses = ['arrived_pta', 'arrived_klm', 'arrived_offsite', 'unloading', 'inspection_pending', 'inspecting', 'inspection_failed', 'inspection_passed', 'receiving', 'received', 'stored'];
+
+      // Current stock (arrived shipments) - count pallets
+      if (arrivedStatuses.includes(shipment.latestStatus)) {
+        warehouseStats[warehouse].currentStock += pallets;
+      }
+      const cancelledStatuses = ['cancelled'];
+      // Include in_transit_seaway and other transit statuses as incoming
+      const isIncoming = !arrivedStatuses.includes(shipment.latestStatus) && !cancelledStatuses.includes(shipment.latestStatus);
+
+      if (isIncoming) {
+        // Add to total incoming for the month
+        warehouseStats[warehouse].incoming += pallets;
+
+        // Track weekly incoming
+        if (!warehouseStats[warehouse].weeklyIncoming[weekNumber]) {
+          warehouseStats[warehouse].weeklyIncoming[weekNumber] = 0;
+        }
+        warehouseStats[warehouse].weeklyIncoming[weekNumber] += pallets;
+
+        // Track current week incoming specifically
+        if (weekNumber === currentWeek) {
+          if (!warehouseStats[warehouse].currentWeekIncoming) {
+            warehouseStats[warehouse].currentWeekIncoming = 0;
+          }
+          warehouseStats[warehouse].currentWeekIncoming += pallets;
+        }
+      }
+      
+      warehouseStats[warehouse].totalProjected = 
+        warehouseStats[warehouse].currentStock + warehouseStats[warehouse].incoming;
+    });
+
+    // Calculate bin utilization and capacity status
+    Object.keys(warehouseStats).forEach(warehouse => {
+      const stats = warehouseStats[warehouse];
+
+      const calculatedCurrentBins = Math.ceil(stats.currentStock / stats.avgItemsPerBin);
+      const manualBinsUsed = editableBinsUsed[warehouse];
+      const currentBinsUsed = warehouse === 'OFFSITE' && manualBinsUsed !== undefined
+        ? Math.max(manualBinsUsed, calculatedCurrentBins)
+        : manualBinsUsed !== undefined
+        ? manualBinsUsed
+        : calculatedCurrentBins;
+      
+      stats.usedBins = currentBinsUsed;
+      stats.projectedBinsUsed = currentBinsUsed + Math.ceil(stats.incoming / stats.avgItemsPerBin);
+      stats.availableBins = stats.totalBins - currentBinsUsed;  // Currently available bins
+      stats.projectedAvailableBins = stats.totalBins - stats.projectedBinsUsed;  // Available after incoming
+      stats.binUtilizationPercent = (stats.projectedBinsUsed / stats.totalBins) * 100;
+      
+      // Capacity status based on bin utilization
+      if (stats.binUtilizationPercent >= 95) {
+        stats.status = 'critical';
+      } else if (stats.binUtilizationPercent >= 80) {
+        stats.status = 'warning';
+      } else if (stats.binUtilizationPercent >= 60) {
+        stats.status = 'good';
+      } else {
+        stats.status = 'low';
+      }
+    });
+
+
+    return { warehouseStats, currentWeek };
+  }, [shipments, editableBinsUsed, editableTotalCapacity, currentMonthWeeks]);
+
+  const handleBinsUsedChange = useCallback((warehouse, newValue) => {
+    const updatedBinsUsed = {
+      ...editableBinsUsed,
+      [warehouse]: newValue
+    };
+
+    setEditableBinsUsed(updatedBinsUsed);
+
+    // Track as pending if different from saved value
+    if (newValue !== savedBinsUsed[warehouse]) {
+      setPendingChanges(prev => ({ ...prev, [warehouse]: newValue }));
+    } else {
+      // Remove from pending if value matches saved value
+      setPendingChanges(prev => {
+        const updated = { ...prev };
+        delete updated[warehouse];
+        return updated;
+      });
+    }
+  }, [editableBinsUsed, savedBinsUsed]);
+
+  const handleTotalCapacityChange = useCallback((warehouse, newValue) => {
+    const updatedTotalCapacity = {
+      ...editableTotalCapacity,
+      [warehouse]: newValue
+    };
+
+    setEditableTotalCapacity(updatedTotalCapacity);
+
+    // Track as pending if different from saved value
+    if (newValue !== savedTotalCapacity[warehouse]) {
+      setPendingTotalCapacityChanges(prev => ({ ...prev, [warehouse]: newValue }));
+    } else {
+      // Remove from pending if value matches saved value
+      setPendingTotalCapacityChanges(prev => {
+        const updated = { ...prev };
+        delete updated[warehouse];
+        return updated;
+      });
+    }
+  }, [editableTotalCapacity, savedTotalCapacity]);
+
+  const saveAllChanges = useCallback(async () => {
+    const hasPendingBinsChanges = Object.keys(pendingChanges).length > 0;
+    const hasPendingTotalCapacityChanges = Object.keys(pendingTotalCapacityChanges).length > 0;
+
+    if (!hasPendingBinsChanges && !hasPendingTotalCapacityChanges) return;
+
+    setIsSaving(true);
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+    const token = authUtils.getToken();
+
+    if (!token) {
+      showError('You must be logged in to update warehouse capacity.');
+      setIsSaving(false);
+      return;
+    }
+
+    const user = authUtils.getUser();
+    let successCount = 0;
+    let failCount = 0;
+
+    // Save bins used changes
+    for (const [warehouse, newValue] of Object.entries(pendingChanges)) {
+      try {
+        const url = `${apiUrl}/api/warehouse-capacity/${encodeURIComponent(warehouse)}`;
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authUtils.getAuthHeader()
+          },
+          body: JSON.stringify({ binsUsed: newValue }),
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          showError('Your session has expired. Please log in again.');
+          authUtils.clearAuth();
+          window.location.reload();
+          setIsSaving(false);
+          return;
+        }
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to save warehouse capacity: ${response.status} ${errorText}`);
+        }
+
+        await response.json();
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to save ${warehouse}:`, error.message);
+        failCount++;
+      }
+    }
+
+    // Save total capacity changes
+    for (const [warehouse, newValue] of Object.entries(pendingTotalCapacityChanges)) {
+      try {
+        const url = `${apiUrl}/api/warehouse-capacity/${encodeURIComponent(warehouse)}/total-capacity`;
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authUtils.getAuthHeader()
+          },
+          body: JSON.stringify({ totalCapacity: newValue }),
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          showError('Your session has expired. Please log in again.');
+          authUtils.clearAuth();
+          window.location.reload();
+          setIsSaving(false);
+          return;
+        }
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to save total capacity: ${response.status} ${errorText}`);
+        }
+
+        await response.json();
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to save ${warehouse} total capacity:`, error.message);
+        failCount++;
+      }
+    }
+
+    // Update saved values and clear pending changes
+    setSavedBinsUsed({ ...editableBinsUsed });
+    setPendingChanges({});
+    setSavedTotalCapacity({ ...editableTotalCapacity });
+    setPendingTotalCapacityChanges({});
+    setIsSaving(false);
+
+    if (failCount > 0) {
+      showWarning(`Saved ${successCount} changes, but ${failCount} failed. Please check console for details.`);
+    } else if (successCount > 0) {
+      showSuccess(`Successfully saved ${successCount} ${successCount === 1 ? 'change' : 'changes'}`);
+
+      // Reload warehouse capacity data from server to get fresh values
+      try {
+        const response = await fetch(`${apiUrl}/api/warehouse-capacity`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.binsUsed) {
+            setEditableBinsUsed(data.binsUsed);
+            setSavedBinsUsed(data.binsUsed);
+            if (data.totalCapacity) {
+              setEditableTotalCapacity(data.totalCapacity);
+              setSavedTotalCapacity(data.totalCapacity);
+            }
+            setLastSyncTime(new Date());
+          }
+        }
+      } catch (error) {
+        // Silently fail - data will refresh on next load
+      }
+    }
+  }, [pendingChanges, pendingTotalCapacityChanges, editableBinsUsed, editableTotalCapacity]);
+
+  const handleCardClick = useCallback((warehouse) => {
+    if (lockWarehouse) return;
+
+    // Toggle between selected warehouse and "all"
+    setSelectedWarehouse(prevSelected =>
+      prevSelected === warehouse ? 'all' : warehouse
+    );
+  }, [lockWarehouse]);
+
+  const handleExportToPDF = useCallback(() => {
+    try {
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      let yPosition = 20;
+
+      // Get current week and month weeks for filtering
+      const currentWeek = getCurrentWeekNumber();
+      const currentMonthWeeks = getCurrentMonthWeeks();
+
+      // Get current date/time
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      const timeStr = now.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+
+      // Header - match the UI exactly
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(44, 62, 80); // Match UI color #2c3e50
+      doc.text('🏭 Warehouse Capacity Management', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 8;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      doc.setTextColor(127, 140, 141); // Match UI color #7f8c8d
+      doc.text('Monitor warehouse utilization and capacity planning', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 8;
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated on ${dateStr} at ${timeStr}`, pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 20;
+
+      // Get warehouse data exactly as shown in UI
+      const warehouses = selectedWarehouse === 'all' 
+        ? Object.entries(warehouseData.warehouseStats)
+        : Object.entries(warehouseData.warehouseStats).filter(([name]) => name === selectedWarehouse);
+
+      // Warehouse Capacity Cards Section
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(44, 62, 80);
+      doc.text('Warehouse Capacity Status', 20, yPosition);
+      yPosition += 15;
+
+      // Create capacity cards exactly like the UI
+      warehouses.forEach(([warehouse, stats], index) => {
+        // Check for new page
+        if (yPosition > pageHeight - 80) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
+        // Card background
+        const getStatusColor = (status) => {
+          switch (status) {
+            case 'critical': return { r: 244, g: 67, b: 54 };
+            case 'warning': return { r: 255, g: 152, b: 0 };
+            case 'good': return { r: 76, g: 175, b: 80 };
+            case 'low': return { r: 33, g: 150, b: 243 };
+            default: return { r: 158, g: 158, b: 158 };
+          }
+        };
+
+        const statusColor = getStatusColor(stats.status);
+        const statusText = {
+          critical: 'Over Capacity',
+          warning: 'Near Capacity', 
+          good: 'Good Utilization',
+          low: 'Under Utilized'
+        }[stats.status] || 'Unknown';
+
+        // Card border (status color)
+        doc.setDrawColor(statusColor.r, statusColor.g, statusColor.b);
+        doc.setLineWidth(1);
+        doc.rect(20, yPosition - 5, pageWidth - 40, 55);
+
+        // Warehouse name and status badge
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(44, 62, 80);
+        doc.text(warehouse, 25, yPosition + 5);
+
+        // Status badge
+        doc.setFillColor(statusColor.r, statusColor.g, statusColor.b);
+        doc.rect(pageWidth - 60, yPosition - 2, 35, 8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        doc.text(statusText, pageWidth - 42.5, yPosition + 3, { align: 'center' });
+
+        // Bin Utilization Progress Bar
+        yPosition += 12;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text('Bin Utilization:', 25, yPosition);
+        doc.text(`${stats.binUtilizationPercent.toFixed(1)}% (${stats.projectedBinsUsed}/${stats.totalBins} bins)`, 
+                 pageWidth - 25, yPosition, { align: 'right' });
+
+        // Progress bar background
+        yPosition += 5;
+        doc.setFillColor(240, 240, 240);
+        doc.rect(25, yPosition - 2, pageWidth - 50, 4, 'F');
+
+        // Progress bar fill
+        const barWidth = (pageWidth - 50) * (Math.min(stats.binUtilizationPercent, 100) / 100);
+        doc.setFillColor(statusColor.r, statusColor.g, statusColor.b);
+        doc.rect(25, yPosition - 2, barWidth, 4, 'F');
+
+        // Stats Grid (4 columns like UI)
+        yPosition += 12;
+        const colWidth = (pageWidth - 50) / 4;
+
+        // Current Bins Utilized
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(102, 102, 102);
+        doc.text('Current Bins Utilized', 25, yPosition);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(44, 62, 80);
+        doc.text(`${stats.usedBins} bins`, 25, yPosition + 5);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(136, 136, 136);
+        doc.text(`(Stock: ${stats.currentStock.toLocaleString()} pallets)`, 25, yPosition + 10);
+
+        // Incoming
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(102, 102, 102);
+        doc.text('Incoming', 25 + colWidth, yPosition);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(255, 152, 0);
+        doc.text(`${stats.incoming.toLocaleString()}`, 25 + colWidth, yPosition + 5);
+
+        // Total Bins
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(102, 102, 102);
+        doc.text('Total Bins', 25 + colWidth * 2, yPosition);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(76, 175, 80);
+        doc.text(`${stats.totalBins}`, 25 + colWidth * 2, yPosition + 5);
+
+        // Available Bins
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(102, 102, 102);
+        doc.text('Available Bins', 25 + colWidth * 3, yPosition);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(stats.availableBins >= 0 ? 76 : 244, stats.availableBins >= 0 ? 175 : 67, stats.availableBins >= 0 ? 80 : 54);
+        doc.text(stats.availableBins >= 0 ? `${stats.availableBins}` : `(${Math.abs(stats.availableBins)})`, 
+                 25 + colWidth * 3, yPosition + 5);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(136, 136, 136);
+        doc.text(`After incoming: ${stats.projectedAvailableBins >= 0 ? stats.projectedAvailableBins : `(${Math.abs(stats.projectedAvailableBins)})`}`, 
+                 25 + colWidth * 3, yPosition + 10);
+
+        yPosition += 25;
+      });
+
+      // Add capacity status overview like in UI
+      if (warehouses.length > 1) {
+        if (yPosition > pageHeight - 80) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
+        yPosition += 10;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(44, 62, 80);
+        doc.text('🎯 Capacity Status Distribution', 20, yPosition);
+        yPosition += 15;
+
+        const statusCounts = warehouses.reduce((acc, [_, stats]) => {
+          acc[stats.status] = (acc[stats.status] || 0) + 1;
+          return acc;
+        }, {});
+
+        const statusData = [
+          { status: 'critical', label: 'Over Capacity', color: { r: 244, g: 67, b: 54 }, count: statusCounts.critical || 0 },
+          { status: 'warning', label: 'Near Capacity', color: { r: 255, g: 152, b: 0 }, count: statusCounts.warning || 0 },
+          { status: 'good', label: 'Good Utilization', color: { r: 76, g: 175, b: 80 }, count: statusCounts.good || 0 },
+          { status: 'low', label: 'Under Utilized', color: { r: 33, g: 150, b: 243 }, count: statusCounts.low || 0 }
+        ];
+
+        statusData.forEach((item, index) => {
+          const xPos = 20 + (index * 45);
+          const percentage = warehouses.length > 0 ? (item.count / warehouses.length) * 100 : 0;
+
+          // Status circle
+          doc.setFillColor(item.color.r, item.color.g, item.color.b);
+          doc.circle(xPos + 10, yPosition + 5, 8, 'F');
+          
+          // Count in circle
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(12);
+          doc.setTextColor(255, 255, 255);
+          doc.text(item.count.toString(), xPos + 10, yPosition + 7, { align: 'center' });
+
+          // Label
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(44, 62, 80);
+          doc.text(item.label, xPos + 10, yPosition + 18, { align: 'center' });
+          doc.setFontSize(8);
+          doc.setTextColor(102, 102, 102);
+          doc.text(`${percentage.toFixed(1)}%`, xPos + 10, yPosition + 23, { align: 'center' });
+        });
+
+        yPosition += 35;
+      }
+
+      // Add Bin Utilization Overview (like the chart in UI)
+      if (yPosition > pageHeight - 100) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      yPosition += 10;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(44, 62, 80);
+      doc.text('📊 Bin Utilization Overview', 20, yPosition);
+      yPosition += 15;
+
+      // Sort warehouses by utilization like in UI
+      const sortedWarehouses = [...warehouses].sort((a, b) => b[1].binUtilizationPercent - a[1].binUtilizationPercent);
+
+      sortedWarehouses.forEach(([warehouse, stats]) => {
+        if (yPosition > pageHeight - 20) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
+        const percentage = stats.binUtilizationPercent;
+        const getColor = () => {
+          if (percentage >= 95) return { r: 244, g: 67, b: 54 };
+          if (percentage >= 80) return { r: 255, g: 152, b: 0 };
+          if (percentage >= 60) return { r: 76, g: 175, b: 80 };
+          return { r: 33, g: 150, b: 243 };
+        };
+        const color = getColor();
+
+        // Warehouse name
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        doc.text(warehouse.length > 20 ? warehouse.substring(0, 20) + '...' : warehouse, 25, yPosition);
+
+        // Progress bar background
+        doc.setFillColor(240, 240, 240);
+        doc.rect(85, yPosition - 3, 80, 6, 'F');
+
+        // Progress bar fill
+        const barWidth = 80 * (Math.min(percentage, 100) / 100);
+        doc.setFillColor(color.r, color.g, color.b);
+        doc.rect(85, yPosition - 3, barWidth, 6, 'F');
+
+        // Percentage text
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(percentage > 50 ? 255 : 51, percentage > 50 ? 255 : 51, percentage > 50 ? 255 : 51);
+        doc.text(`${percentage.toFixed(1)}%`, 125, yPosition + 1, { align: 'center' });
+
+        // Bins ratio
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(102, 102, 102);
+        doc.text(`${stats.projectedBinsUsed}/${stats.totalBins} bins`, 175, yPosition);
+
+        yPosition += 10;
+      });
+
+      // Add Weekly Capacity Inflow (like the table in UI)
+      if (yPosition > pageHeight - 100) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      yPosition += 15;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(44, 62, 80);
+      doc.text('📈 Weekly Capacity Inflow (Pallets) - Current Month', 20, yPosition);
+      yPosition += 15;
+
+      // Get current month weeks from warehouse stats
+      const allWeeks = new Set();
+      Object.values(warehouseData.warehouseStats).forEach(stats => {
+        Object.keys(stats.weeklyIncoming).forEach(week => {
+          const weekNum = parseInt(week);
+          if (currentMonthWeeks.includes(weekNum)) {
+            allWeeks.add(weekNum);
+          }
+        });
+      });
+      const weeks = Array.from(allWeeks).sort((a, b) => a - b); // Show all current month weeks
+
+      if (weeks.length > 0) {
+        // Table header
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(255, 255, 255);
+        doc.setFillColor(68, 114, 196);
+        
+        const colWidth = (pageWidth - 60) / (weeks.length + 1);
+        doc.rect(20, yPosition - 5, colWidth, 8, 'F');
+        doc.text('Warehouse', 20 + colWidth/2, yPosition, { align: 'center' });
+        
+        weeks.forEach((week, index) => {
+          doc.rect(20 + colWidth * (index + 1), yPosition - 5, colWidth, 8, 'F');
+          doc.text(`Week ${week}`, 20 + colWidth * (index + 1) + colWidth/2, yPosition, { align: 'center' });
+        });
+        
+        yPosition += 10;
+
+        // Table rows
+        Object.entries(warehouseData.warehouseStats).forEach(([warehouse, stats], rowIndex) => {
+          if (yPosition > pageHeight - 15) {
+            doc.addPage();
+            yPosition = 20;
+          }
+
+          // Alternating row colors
+          if (rowIndex % 2 === 0) {
+            doc.setFillColor(248, 249, 250);
+            doc.rect(20, yPosition - 5, pageWidth - 40, 8, 'F');
+          }
+
+          // Warehouse name
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(44, 62, 80);
+          const warehouseName = warehouse.length > 12 ? warehouse.substring(0, 12) + '...' : warehouse;
+          doc.text(warehouseName, 20 + colWidth/2, yPosition, { align: 'center' });
+
+          // Week data
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(0, 0, 0);
+          weeks.forEach((week, index) => {
+            const amount = stats.weeklyIncoming[week] || 0;
+            const text = amount > 0 ? amount.toLocaleString() : '-';
+            if (amount > 0) {
+              doc.setFillColor(227, 242, 253);
+              doc.rect(20 + colWidth * (index + 1), yPosition - 5, colWidth, 8, 'F');
+            }
+            doc.text(text, 20 + colWidth * (index + 1) + colWidth/2, yPosition, { align: 'center' });
+          });
+
+          yPosition += 8;
+        });
+      }
+
+      // Add Incoming Products Summary (like ProductBreakdownChart) - Current Month Only, excluding stored shipments
+      const incomingShipments = shipments.filter(shipment => {
+        const isIncoming = shipment.latestStatus === 'planned_airfreight' || shipment.latestStatus === 'planned_seafreight' ||
+          shipment.latestStatus === 'in_transit_airfreight' || shipment.latestStatus === 'air_customs_clearance' ||
+          shipment.latestStatus === 'in_transit_roadway' || shipment.latestStatus === 'in_transit_seaway';
+
+        const weekNumber = parseInt(shipment.weekNumber) || currentWeek;
+        const isCurrentMonth = currentMonthWeeks.includes(weekNumber);
+        const notStored = shipment.latestStatus !== ShipmentStatus.STORED;
+
+        return isIncoming && isCurrentMonth && notStored;
+      });
+
+      if (incomingShipments.length > 0) {
+        if (yPosition > pageHeight - 80) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
+        yPosition += 15;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(44, 62, 80);
+        doc.text('📋 Incoming Products Summary', 20, yPosition);
+        yPosition += 15;
+
+        // Summary stats like in UI
+        const totalProducts = incomingShipments.length;
+        const totalPalletsFromQty = Math.round(incomingShipments.reduce((sum, s) => sum + (s.palletQty || 0), 0));
+        const totalQuantity = incomingShipments.reduce((sum, s) => sum + (s.quantity || 0), 0);
+        const totalPallets = Math.round(incomingShipments.reduce((sum, s) => {
+          return sum + (s.palletQty || 0);
+        }, 0));
+
+        // Summary boxes (4 across)
+        const boxWidth = (pageWidth - 50) / 4;
+        const summaryData = [
+          { value: totalProducts, label: 'Total Products', color: { r: 33, g: 150, b: 243 } },
+          { value: totalPalletsFromQty.toLocaleString(), label: 'Total Pallet Qty', color: { r: 76, g: 175, b: 80 } },
+          { value: totalQuantity.toLocaleString(), label: 'Total Tonnage', color: { r: 255, g: 152, b: 0 } },
+          { value: totalPallets.toLocaleString(), label: 'Estimated Pallets', color: { r: 156, g: 39, b: 176 } }
+        ];
+
+        summaryData.forEach((item, index) => {
+          const xPos = 25 + (boxWidth * index);
+          
+          // Background
+          doc.setFillColor(248, 249, 250);
+          doc.rect(xPos, yPosition - 5, boxWidth - 5, 25, 'F');
+          doc.setDrawColor(225, 225, 225);
+          doc.rect(xPos, yPosition - 5, boxWidth - 5, 25);
+
+          // Value
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(14);
+          doc.setTextColor(item.color.r, item.color.g, item.color.b);
+          doc.text(item.value.toString(), xPos + (boxWidth - 5)/2, yPosition + 5, { align: 'center' });
+
+          // Label
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(102, 102, 102);
+          doc.text(item.label, xPos + (boxWidth - 5)/2, yPosition + 12, { align: 'center' });
+        });
+
+        yPosition += 30;
+      }
+
+      // Footer
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        doc.text('Synercore Import Schedule - Warehouse Capacity Management', pageWidth / 2, pageHeight - 5, { align: 'center' });
+      }
+
+      // Generate filename
+      const dateForFile = now.toISOString().split('T')[0];
+      const timeForFile = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+      const warehouseFilter = selectedWarehouse === 'all' ? 'All_Warehouses' : selectedWarehouse.replace(/\s+/g, '_');
+      const filename = `Warehouse_Capacity_${warehouseFilter}_${dateForFile}_${timeForFile}.pdf`;
+
+      // Save the PDF
+      doc.save(filename);
+      
+    } catch (error) {
+      console.error('Error exporting warehouse capacity data:', error);
+      showError('Failed to export warehouse capacity data. Please try again.');
+    }
+  }, [warehouseData, selectedWarehouse, shipments]);
+
+
+  const CapacityCard = React.memo(({ warehouse, stats, onBinsUsedChange, onCardClick, isSelected, editableBinsUsed, pendingChanges }) => {
+    const utilizationPercent = stats.binUtilizationPercent;
+    const availableCapacity = stats.maxCapacity - stats.totalProjected;
+    
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'critical': return 'var(--danger)';
+        case 'warning': return 'var(--warning)';
+        case 'good': return 'var(--success)';
+        case 'low': return 'var(--info)';
+        default: return 'var(--text-500)';
+      }
+    };
+
+    const getStatusRing = (status) => {
+      switch (status) {
+        case 'critical': return 'ring-danger';
+        case 'warning': return 'ring-warning';
+        case 'good': return 'ring-success';
+        case 'low': return 'ring-info';
+        default: return 'ring-accent';
+      }
+    };
+
+    const getStatusText = (status) => {
+      switch (status) {
+        case 'critical': return 'Over Capacity';
+        case 'warning': return 'Near Capacity';
+        case 'good': return 'Good Utilization';
+        case 'low': return 'Under Utilized';
+        default: return 'Unknown';
+      }
+    };
+
+    return (
+      <div
+        className={`stat-card ${getStatusRing(stats.status)} ${onCardClick ? 'clickable' : ''} ${isSelected ? 'active' : ''}`}
+        onClick={() => onCardClick && onCardClick(warehouse)}
+        style={{ padding: 10 }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+          <h3 style={{ color: 'var(--text-900)', fontSize: '0.9rem', margin: 0 }}>{warehouse}</h3>
+          <span style={{
+            backgroundColor: getStatusColor(stats.status),
+            color: 'white',
+            padding: '2px 6px',
+            borderRadius: '10px',
+            fontSize: '0.65rem',
+            fontWeight: 'bold'
+          }}>
+            {getStatusText(stats.status)}
+          </span>
+        </div>
+
+        {/* Bin Utilization Bar */}
+        <div style={{ marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>Bin Utilization</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: getStatusColor(stats.status) }}>
+              {utilizationPercent.toFixed(1)}% ({stats.projectedBinsUsed}/{stats.totalBins} bins)
+            </span>
+          </div>
+          <div style={{
+            width: '100%',
+            height: '14px',
+            backgroundColor: 'var(--surface-2)',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
+            <div style={{
+              width: `${Math.min(utilizationPercent, 100)}%`,
+              height: '100%',
+              background: `linear-gradient(90deg, ${getStatusColor(stats.status)}22, ${getStatusColor(stats.status)})`,
+              borderRadius: '10px',
+              transition: 'width 0.5s ease'
+            }}></div>
+            {utilizationPercent > 100 && (
+              <div style={{
+                position: 'absolute',
+                right: '5px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: '0.7rem',
+                fontWeight: 'bold',
+                color: 'var(--danger)'
+              }}>
+                OVERFLOW
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
+          <div>
+            <div style={{ color: 'var(--text-500)', marginBottom: '0.25rem' }}>Current Bins Utilized</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{
+                fontWeight: 'bold',
+                fontSize: '0.85rem',
+                color: 'var(--text-900)',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                backgroundColor: pendingChanges[warehouse] !== undefined ? '#fff3e0' : 'var(--surface-2)',
+                border: pendingChanges[warehouse] !== undefined ? '2px solid var(--warning)' : '2px solid transparent'
+              }}>
+                {editableBinsUsed[warehouse] !== undefined ? editableBinsUsed[warehouse] : stats.usedBins}
+              </div>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-500)' }}>bins</span>
+            </div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-500)', marginTop: '0.25rem' }}>
+              (Stock: {stats.currentStock.toLocaleString()} pallets)
+            </div>
+          </div>
+          <div>
+            <div style={{ color: 'var(--text-500)', marginBottom: '0.25rem' }}>Incoming (Week {warehouseData.currentWeek}) 🔄</div>
+            <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--warning)' }}>
+              {(stats.currentWeekIncoming || 0).toLocaleString()}
+            </div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-500)', marginTop: '0.25rem' }}>
+              (Month total: {stats.incoming.toLocaleString()})
+            </div>
+          </div>
+          <div>
+            <div style={{ color: 'var(--text-500)', marginBottom: '0.25rem' }}>Total Bins</div>
+            <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--success)' }}>
+              {stats.totalBins}
+            </div>
+          </div>
+          <div>
+            <div style={{ color: 'var(--text-500)', marginBottom: '0.25rem' }}>Available Bins</div>
+            <div style={{
+              fontWeight: 'bold',
+              fontSize: '0.85rem',
+              color: stats.availableBins >= 0 ? 'var(--success)' : 'var(--danger)'
+            }}>
+              {stats.availableBins >= 0 ? stats.availableBins : `(${Math.abs(stats.availableBins)})`}
+            </div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-500)' }}>
+              After incoming: {stats.projectedAvailableBins >= 0 ? stats.projectedAvailableBins : `(${Math.abs(stats.projectedAvailableBins)})`}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  });
+
+  const WeeklyInflowChart = ({ warehouseStats }) => {
+    const currentMonthWeeks = getCurrentMonthWeeks();
+
+    // Filter to only show weeks that have data and are in current month
+    const allWeeks = new Set();
+    Object.values(warehouseStats).forEach(stats => {
+      Object.keys(stats.weeklyIncoming).forEach(week => {
+        const weekNum = parseInt(week);
+        if (currentMonthWeeks.includes(weekNum)) {
+          allWeeks.add(weekNum);
+        }
+      });
+    });
+
+    const weeks = Array.from(allWeeks).sort((a, b) => a - b);
+    const warehouses = Object.keys(warehouseStats);
+
+    return (
+      <div className="dash-panel" style={{ marginTop: '2rem' }}>
+        <h3 style={{ color: 'var(--text-900)', marginBottom: '1.5rem' }}>📈 Weekly Capacity Inflow (Pallets) - Current Month</h3>
+        
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ backgroundColor: 'var(--surface-2)' }}>
+                <th style={{ padding: '12px', textAlign: 'left', border: '1px solid var(--border)' }}>Warehouse</th>
+                {weeks.map(week => (
+                  <th key={week} style={{
+                    padding: '12px',
+                    textAlign: 'center',
+                    border: '1px solid var(--border)',
+                    minWidth: '80px'
+                  }}>
+                    Week {week}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {warehouses.map(warehouse => (
+                <tr key={warehouse}>
+                  <td style={{
+                    padding: '12px',
+                    fontWeight: 'bold',
+                    border: '1px solid var(--border)',
+                    backgroundColor: '#f8f9fc'
+                  }}>
+                    {warehouse}
+                  </td>
+                  {weeks.map(week => {
+                    const amount = warehouseStats[warehouse].weeklyIncoming[week] || 0;
+                    return (
+                      <td key={week} style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        border: '1px solid var(--border)',
+                        backgroundColor: amount > 0 ? '#e3f2fd' : 'white'
+                      }}>
+                        {amount > 0 ? amount.toLocaleString() : '-'}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  const ProductETAChart = ({ shipments }) => {
+    const currentWeek = getCurrentWeekNumber();
+    const currentMonthWeeks = getCurrentMonthWeeks();
+
+    const inTransitStatuses = [
+      ShipmentStatus.PLANNED_AIRFREIGHT, ShipmentStatus.PLANNED_SEAFREIGHT,
+      ShipmentStatus.IN_TRANSIT_AIRFREIGHT, ShipmentStatus.IN_TRANSIT_SEAWAY,
+      ShipmentStatus.IN_TRANSIT_ROADWAY, ShipmentStatus.AIR_CUSTOMS_CLEARANCE,
+      ShipmentStatus.MOORED, ShipmentStatus.BERTH_WORKING, ShipmentStatus.BERTH_COMPLETE, ShipmentStatus.GATED_IN_PORT,
+      ...DELAYED_STATUSES,
+    ];
+    const productData = shipments
+      .filter(shipment => {
+        const hasProduct = shipment.productName && shipment.productName.trim() !== '';
+        const weekNumber = parseInt(shipment.weekNumber) || currentWeek;
+        const isCurrentMonth = currentMonthWeeks.includes(weekNumber);
+        const isInTransit = inTransitStatuses.includes(shipment.latestStatus);
+        return hasProduct && isCurrentMonth && isInTransit;
+      })
+      .map(shipment => ({
+        name: shipment.productName || 'Unknown Product',
+        quantity: shipment.quantity || 0,
+        palletQty: shipment.palletQty || 0,
+        warehouse: shipment.receivingWarehouse || shipment.finalPod || 'Unassigned',
+        weekNumber: shipment.weekNumber || currentWeek,
+        status: shipment.latestStatus,
+        id: shipment.id,
+        orderRef: shipment.orderRef,
+        supplier: shipment.supplier,
+        cbm: shipment.cbm,
+        freightType: shipment.freightType,
+        finalPod: shipment.finalPod,
+        incoterm: shipment.incoterm,
+        forwardingAgent: shipment.forwardingAgent,
+        vesselName: shipment.vesselName,
+      }))
+      .sort((a, b) => {
+        if (a.weekNumber !== b.weekNumber) return a.weekNumber - b.weekNumber;
+        return b.palletQty - a.palletQty;
+      })
+      .slice(0, 20);
+
+    const getWarehouseColor = (warehouse) => {
+      const warehouseLower = warehouse.toLowerCase();
+      if (warehouseLower.includes('pretoria')) return '#2196f3';
+      if (warehouseLower.includes('klapmuts')) return '#4caf50';
+      return '#ff9800';
+    };
+
+    const totalPallets = Math.round(productData.reduce((sum, p) => sum + p.palletQty, 0));
+    const totalQty = productData.reduce((sum, p) => sum + p.quantity, 0);
+
+    return (
+      <div className="dash-panel" style={{ marginTop: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h3 style={{ color: 'var(--text-900)', margin: 0, fontSize: '1rem' }}>Incoming Products by ETA Week</h3>
+          <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: 'var(--text-500)' }}>
+            <span><strong style={{ color: 'var(--text-900)' }}>{productData.length}</strong> products</span>
+            <span><strong style={{ color: 'var(--text-900)' }}>{totalPallets.toLocaleString()}</strong> pallets</span>
+            <span><strong style={{ color: 'var(--text-900)' }}>{totalQty.toLocaleString()}</strong> tonnage</span>
+          </div>
+        </div>
+
+        {productData.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-500)', fontStyle: 'italic' }}>
+            No incoming products found
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: 'var(--surface-2)' }}>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', border: '1px solid var(--border)', fontSize: '0.8rem' }}>Product</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'center', border: '1px solid var(--border)', fontSize: '0.8rem' }}>Week</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'center', border: '1px solid var(--border)', fontSize: '0.8rem' }}>Pallets</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'center', border: '1px solid var(--border)', fontSize: '0.8rem' }}>Qty</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', border: '1px solid var(--border)', fontSize: '0.8rem' }}>Warehouse</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', border: '1px solid var(--border)', fontSize: '0.8rem' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {productData.map((product, index) => {
+                  const isCurrentWeek = product.weekNumber === currentWeek;
+                  const warehouseColor = getWarehouseColor(product.warehouse);
+
+                  return (
+                    <tr key={`${product.id}-${index}`} style={{
+                      backgroundColor: isCurrentWeek ? '#f0f8f0' : (index % 2 === 0 ? 'white' : '#fafbfc')
+                    }}>
+                      <td style={{ padding: '8px 12px', border: '1px solid var(--border)', fontWeight: '500', fontSize: '0.85rem' }}>
+                        <span
+                          onClick={() => setDetailProduct(product)}
+                          style={{ color: 'var(--accent)', cursor: 'pointer', borderBottom: '1px dashed var(--accent)' }}
+                          title="View order details"
+                        >
+                          {product.name}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 12px', border: '1px solid var(--border)', textAlign: 'center', fontWeight: isCurrentWeek ? 'bold' : 'normal', fontSize: '0.85rem' }}>
+                        {isCurrentWeek ? `W${product.weekNumber} *` : `W${product.weekNumber}`}
+                      </td>
+                      <td style={{ padding: '8px 12px', border: '1px solid var(--border)', textAlign: 'center', fontWeight: '600', fontSize: '0.85rem' }}>
+                        {product.palletQty > 0 ? (Math.round(product.palletQty) || 1) : '-'}
+                      </td>
+                      <td style={{ padding: '8px 12px', border: '1px solid var(--border)', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-500)' }}>
+                        {product.quantity > 0 ? product.quantity.toLocaleString() : '-'}
+                      </td>
+                      <td style={{ padding: '8px 12px', border: '1px solid var(--border)', fontSize: '0.85rem', color: warehouseColor, fontWeight: '500' }}>
+                        {product.warehouse}
+                      </td>
+                      <td style={{ padding: '8px 12px', border: '1px solid var(--border)', fontSize: '0.7rem', color: 'var(--text-500)' }}>
+                        {(product.status || '').replace(/_/g, ' ')}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const filteredWarehouses = selectedWarehouse === 'all'
+    ? Object.entries(warehouseData.warehouseStats)
+    : Object.entries(warehouseData.warehouseStats).filter(([name]) => name === selectedWarehouse);
+
+  // Filter warehouse stats for charts
+  const filteredWarehouseStats = selectedWarehouse === 'all'
+    ? warehouseData.warehouseStats
+    : Object.fromEntries(filteredWarehouses);
+
+  // Filter shipments for charts based on selected warehouse
+  const filteredShipments = selectedWarehouse === 'all'
+    ? shipments
+    : shipments.filter(shipment => {
+        const warehouse = shipment.receivingWarehouse || shipment.finalPod || 'Unassigned';
+        return warehouse === selectedWarehouse;
+      });
+
+  // Helper function to format relative time
+  const getRelativeTime = (date) => {
+    if (!date) return 'Never';
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+  };
+
+  // Helper function to get capacity status and warnings
+  const getCapacityWarnings = () => {
+    const warnings = [];
+
+    Object.entries(warehouseData.warehouseStats || {}).forEach(([warehouse, stats]) => {
+      if (selectedWarehouse !== 'all' && warehouse !== selectedWarehouse) return;
+
+      if (stats.totalBins > 0) {
+        const utilizationPercent = (stats.usedBins / stats.totalBins) * 100;
+
+        // Critical: >= 95%
+        if (utilizationPercent >= 95) {
+          warnings.push({
+            warehouse,
+            severity: 'critical',
+            message: `${warehouse} is AT CAPACITY (${Math.round(utilizationPercent)}%)`,
+            availableBins: stats.availableBins
+          });
+        }
+        // Warning: 80-95%
+        else if (utilizationPercent >= 80) {
+          warnings.push({
+            warehouse,
+            severity: 'warning',
+            message: `${warehouse} capacity WARNING (${Math.round(utilizationPercent)}%)`,
+            availableBins: stats.availableBins
+          });
+        }
+      }
+    });
+
+    return warnings;
+  };
+
+  const capacityWarnings = getCapacityWarnings();
+
+  return (
+    <div style={{ padding: '2rem', backgroundColor: '#f8f9fc', minHeight: '100vh' }}>
+      <div className="brand-strip" />
+      {/* Capacity Warnings Banner */}
+      {capacityWarnings.length > 0 && (
+        <div style={{
+          marginBottom: '2rem',
+          padding: '1.5rem',
+          backgroundColor: '#fff3cd',
+          borderLeft: '4px solid #ff6b6b',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
+          <h3 style={{ margin: '0 0 1rem 0', color: '#d63031' }}>
+            ⚠️ Warehouse Capacity Alerts
+          </h3>
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {capacityWarnings.map((warning, idx) => (
+              <div
+                key={idx}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: warning.severity === 'critical' ? '#ff6b6b' : '#ffa502',
+                  color: 'white',
+                  borderRadius: '6px',
+                  fontWeight: '500',
+                  fontSize: '0.95rem'
+                }}
+              >
+                {warning.severity === 'critical' ? '🚨' : '⚠️'} {warning.message}
+                <div style={{ fontSize: '0.85rem', marginTop: '0.25rem', opacity: 0.9 }}>
+                  Only {warning.availableBins} bin{warning.availableBins !== 1 ? 's' : ''} available
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Header Row ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: '0.75rem', paddingBottom: '0.75rem',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-900)' }}>
+            {selectedWarehouse === 'all' ? 'Warehouse Capacity' : `${selectedWarehouse} Capacity`}
+          </h2>
+          <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: 'var(--text-500)' }}>
+            {selectedWarehouse === 'all'
+              ? `${Object.keys(warehouseData.warehouseStats).length} location${Object.keys(warehouseData.warehouseStats).length !== 1 ? 's' : ''}`
+              : '1 location'} &middot; Bin management & forecasting
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {lockWarehouse ? (
+            <span className="badge" style={{ fontSize: 12, fontWeight: 700 }}>
+              {selectedWarehouse}
+            </span>
+          ) : (
+            <select value={selectedWarehouse} onChange={(e) => setSelectedWarehouse(e.target.value)}
+              className="select" style={{ fontSize: 13, minWidth: 140 }}>
+              <option value="all">All Warehouses</option>
+              {Object.keys(warehouseData.warehouseStats).map(w => (
+                <option key={w} value={w}>{w}</option>
+              ))}
+            </select>
+          )}
+          {(Object.keys(pendingChanges).length > 0 || Object.keys(pendingTotalCapacityChanges).length > 0) && (
+            <button onClick={saveAllChanges} disabled={isSaving} className="btn"
+              style={{ background: 'var(--accent)', color: '#fff', fontSize: 13, border: 'none', fontWeight: 600 }}>
+              {isSaving ? 'Saving...' : `Save ${Object.keys(pendingChanges).length + Object.keys(pendingTotalCapacityChanges).length} change${(Object.keys(pendingChanges).length + Object.keys(pendingTotalCapacityChanges).length) !== 1 ? 's' : ''}`}
+            </button>
+          )}
+          <button className="btn btn-ghost" onClick={handleExportToPDF} style={{ fontSize: 13 }}>PDF</button>
+        </div>
+      </div>
+
+      {/* ── Collapsible Settings Panel ── */}
+      <div style={{ marginBottom: '1.25rem' }}>
+        <button
+          onClick={() => setShowSettings(prev => !prev)}
+          type="button"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+            padding: '10px 16px', background: 'var(--surface-2)', border: 'none',
+            borderBottom: showSettings ? '1px solid var(--border)' : 'none',
+            borderRadius: showSettings ? '8px 8px 0 0' : 8,
+            cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-700)',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--border)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
+        >
+          <span style={{ transform: showSettings ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', fontSize: 11 }}>▶</span>
+          Warehouse Settings
+          <span style={{ fontWeight: 400, color: 'var(--text-500)', fontSize: 12 }}>Edit bins used and total capacity; available bins is calculated</span>
+        </button>
+        {showSettings && (
+          <div className="dash-panel" style={{ borderRadius: '0 0 8px 8px', padding: '1rem 1.25rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600, color: 'var(--text-700)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Warehouse</th>
+                  <th style={{ textAlign: 'center', padding: '8px 0', fontWeight: 600, color: 'var(--text-700)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Bins Used</th>
+                  <th style={{ textAlign: 'center', padding: '8px 0', fontWeight: 600, color: 'var(--text-700)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Available</th>
+                  <th style={{ textAlign: 'center', padding: '8px 0', fontWeight: 600, color: 'var(--text-700)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Capacity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredWarehouses.map(([warehouse, stats]) => {
+                  const currentBinsUsed = editableBinsUsed[warehouse] !== undefined ? editableBinsUsed[warehouse] : stats.usedBins;
+                  const totalCapacity = editableTotalCapacity[warehouse] !== undefined ? editableTotalCapacity[warehouse] : stats.totalBins;
+                  const availableBins = totalCapacity - currentBinsUsed;
+
+                  return (
+                    <tr key={warehouse} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '10px 0', fontWeight: 600, color: 'var(--text-900)' }}>{warehouse}</td>
+                      <td style={{ textAlign: 'center', padding: '10px 0' }}>
+                        <input type="number" className="input"
+                          value={currentBinsUsed}
+                          onChange={(e) => handleBinsUsedChange(warehouse, Math.max(0, Math.min(parseInt(e.target.value) || 0, totalCapacity)))}
+                          style={{ width: 70, textAlign: 'center', fontSize: 13, fontWeight: 700,
+                            border: pendingChanges[warehouse] !== undefined ? '2px solid var(--warning)' : undefined,
+                            backgroundColor: pendingChanges[warehouse] !== undefined ? '#fff3e0' : undefined }}
+                          min="0" max={totalCapacity} />
+                      </td>
+                      <td style={{ textAlign: 'center', padding: '10px 0' }}>
+                        <span
+                          className="input"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 70,
+                            minHeight: 34,
+                            textAlign: 'center',
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: availableBins >= 0 ? 'var(--text-900)' : 'var(--danger)',
+                            backgroundColor: 'var(--surface-2)',
+                            cursor: 'default'
+                          }}
+                          title="Total capacity minus bins used"
+                        >
+                          {availableBins >= 0 ? availableBins : `(${Math.abs(availableBins)})`}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center', padding: '10px 0' }}>
+                        <input type="number" className="input"
+                          value={totalCapacity}
+                          onChange={(e) => handleTotalCapacityChange(warehouse, Math.max(0, parseInt(e.target.value) || 0))}
+                          style={{ width: 70, textAlign: 'center', fontSize: 13, fontWeight: 700,
+                            border: pendingTotalCapacityChanges[warehouse] !== undefined ? '2px solid var(--info)' : undefined,
+                            backgroundColor: pendingTotalCapacityChanges[warehouse] !== undefined ? '#e3f2fd' : undefined }}
+                          min="0" />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Capacity Cards Grid */}
+      {isLoadingCapacity ? (
+        <SkeletonCardGrid count={3} columns={3} />
+      ) : (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+          gap: '1.25rem',
+          marginBottom: '1.5rem'
+        }}>
+          {filteredWarehouses.map(([warehouse, stats]) => (
+            <CapacityCard
+              key={warehouse}
+              warehouse={warehouse}
+              stats={stats}
+              onBinsUsedChange={handleBinsUsedChange}
+              onCardClick={handleCardClick}
+              isSelected={selectedWarehouse === warehouse}
+              editableBinsUsed={editableBinsUsed}
+              pendingChanges={pendingChanges}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* 8-Week Capacity Forecast */}
+      <div style={{ marginBottom: '2rem' }}>
+        <CapacityForecastTable
+          shipments={shipments}
+          selectedWarehouse={selectedWarehouse}
+          currentBinsUsed={{
+            'PRETORIA': warehouseData.warehouseStats['PRETORIA']?.usedBins || 0,
+            'KLAPMUTS': warehouseData.warehouseStats['KLAPMUTS']?.usedBins || 0,
+            'OFFSITE': warehouseData.warehouseStats['OFFSITE']?.usedBins || 0
+          }}
+          warehouseCapacities={{
+            'PRETORIA': warehouseData.warehouseStats['PRETORIA']?.totalBins || 650,
+            'KLAPMUTS': warehouseData.warehouseStats['KLAPMUTS']?.totalBins || 384,
+            'OFFSITE': warehouseData.warehouseStats['OFFSITE']?.totalBins || 384
+          }}
+        />
+      </div>
+
+      {/* Analytics Charts - Filtered by Selected Warehouse */}
+      <WeeklyInflowChart warehouseStats={filteredWarehouseStats} />
+      <ProductETAChart shipments={filteredShipments} />
+
+      {/* Order Detail Card */}
+      {detailProduct && (
+        <div
+          onClick={() => setDetailProduct(null)}
+          style={{
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--surface)', borderRadius: 12, padding: '1.5rem',
+              width: '90%', maxWidth: 520, maxHeight: '80vh', overflowY: 'auto',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.2)', border: '1px solid var(--border)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--navy-900)' }}>
+                {detailProduct.orderRef || detailProduct.name}
+              </h3>
+              <button
+                onClick={() => setDetailProduct(null)}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-500)', lineHeight: 1 }}
+              >
+                x
+              </button>
+            </div>
+            {(() => {
+              const p = detailProduct;
+              const rows = [
+                ['Product', p.name],
+                ['Supplier', p.supplier || '-'],
+                ['Order Ref', p.orderRef || '-'],
+                ['Quantity', p.quantity > 0 ? p.quantity.toLocaleString() : '-'],
+                ['Pallets', p.palletQty > 0 ? (Math.round(p.palletQty) || 1) : '-'],
+                ['CBM', p.cbm || '-'],
+                ['Week', p.weekNumber ? `Week ${p.weekNumber}` : '-'],
+                ['Warehouse', p.warehouse || '-'],
+                ['Status', (p.status || '').replace(/_/g, ' ') || '-'],
+                ['Freight Type', p.freightType || '-'],
+                ['Final POD', p.finalPod || '-'],
+                ['Incoterm', p.incoterm || '-'],
+                ['Forwarding Agent', p.forwardingAgent || '-'],
+                ['Vessel', p.vesselName || '-'],
+              ];
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 0 }}>
+                  {rows.map(([label, value]) => (
+                    <React.Fragment key={label}>
+                      <div style={{
+                        padding: '6px 8px', fontSize: 12, fontWeight: 600,
+                        color: 'var(--text-500)', borderBottom: '1px solid var(--border)'
+                      }}>
+                        {label}
+                      </div>
+                      <div style={{
+                        padding: '6px 8px', fontSize: 13,
+                        color: 'var(--text-700)', borderBottom: '1px solid var(--border)',
+                        wordBreak: 'break-word'
+                      }}>
+                        {value || '-'}
+                      </div>
+                    </React.Fragment>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default WarehouseCapacity;

@@ -1,0 +1,11 @@
+server/data/*
+!server/data/.gitkeep
+server/uploads/**/*
+!server/uploads/**/.gitkeep
+server/pdf-cache/*
+!server/pdf-cache/.gitkeep
+server/archive
+server/dist
+dist-server
+cypress/videos
+cypress/screenshots
