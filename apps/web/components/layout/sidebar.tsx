@@ -456,10 +456,10 @@ function SidebarContent({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden">
       {/* Logo */}
       <div className={cn(
-        'flex items-center h-16 border-b border-white/10',
+        'sticky top-0 z-10 flex items-center h-16 border-b border-white/10 bg-primary-sidebar',
         collapsed ? 'justify-center px-2' : 'px-6'
       )}>
         <Link href="/" className="flex items-center gap-2" onClick={onClose}>
@@ -510,7 +510,7 @@ function SidebarContent({
 
       {/* Navigation */}
       <nav className={cn(
-        'flex-1 overflow-y-auto overflow-x-hidden py-4',
+        'flex-1 py-4',
         collapsed ? 'px-2 space-y-2' : 'px-3'
       )}>
         {isSearching ? (
@@ -776,7 +776,7 @@ function SidebarFooter({
   ];
 
   return (
-    <div className="border-t border-white/10 overflow-y-auto max-h-[40vh] shrink-0">
+    <div className="border-t border-white/10 shrink-0">
       {/* Quick Stats */}
       {stats && (
         <div className="px-4 py-3 border-b border-white/10">
