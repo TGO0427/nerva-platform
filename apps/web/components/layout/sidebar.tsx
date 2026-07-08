@@ -45,6 +45,7 @@ const navigation: NavGroup[] = [
       { name: 'Dashboard', href: '/dashboard', icon: <HomeIcon /> },
       { name: 'Exceptions', href: '/exceptions', icon: <AlertIcon /> },
       { name: 'Document Centre', href: '/documents', icon: <ReportIcon />, permissions: [PERMISSIONS.DOCUMENT_READ] },
+      { name: 'Import Schedule', href: 'https://synercore-import-schedule.vercel.app', icon: <LinkIcon /> },
     ],
   },
   {
@@ -394,6 +395,7 @@ function SidebarContent({
           onClick={onClose}
           title={collapsed ? item.name : undefined}
           className="relative block"
+          {...(item.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
         >
           <div
             className={cn(
@@ -527,6 +529,7 @@ function SidebarContent({
                   href={item.href}
                   onClick={() => { setSearchQuery(''); onClose?.(); }}
                   className="relative block"
+                  {...(item.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 >
                   <div
                     className={cn(
