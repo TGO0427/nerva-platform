@@ -395,6 +395,7 @@ function SidebarContent({
           onClick={onClose}
           title={collapsed ? item.name : undefined}
           className="relative block"
+          {...(item.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
         >
           <div
             className={cn(
@@ -528,6 +529,7 @@ function SidebarContent({
                   href={item.href}
                   onClick={() => { setSearchQuery(''); onClose?.(); }}
                   className="relative block"
+                  {...(item.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 >
                   <div
                     className={cn(
