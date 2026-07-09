@@ -2,47 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { pathLabels } from '@/lib/page-titles';
 
 interface BreadcrumbItem {
   label: string;
   href?: string;
 }
-
-const pathLabels: Record<string, string> = {
-  dashboard: 'Dashboard',
-  exceptions: 'Exceptions',
-  inventory: 'Inventory',
-  sales: 'Sales Orders',
-  fulfilment: 'Fulfilment',
-  dispatch: 'Dispatch',
-  returns: 'Returns',
-  'master-data': 'Master Data',
-  items: 'Items',
-  customers: 'Customers',
-  suppliers: 'Suppliers',
-  warehouses: 'Warehouses',
-  settings: 'Settings',
-  users: 'Users',
-  roles: 'Roles',
-  sites: 'Sites',
-  company: 'Company Profile',
-  integrations: 'Integrations',
-  adjustments: 'Stock Adjustments',
-  'cycle-counts': 'Cycle Counts',
-  'audit-log': 'Audit Log',
-  putaway: 'Putaway',
-  ibts: 'Internal Transfers',
-  grn: 'Goods Receiving',
-  receive: 'Receive',
-  'purchase-orders': 'Purchase Orders',
-  'customer-analytics': 'Customer Analytics',
-  'supplier-analytics': 'Supplier Analytics',
-  'expiry-alerts': 'Expiry Alerts',
-  'pick-waves': 'Pick Waves',
-  profile: 'Profile',
-  new: 'New',
-  edit: 'Edit',
-};
 
 export function Breadcrumbs() {
   const pathname = usePathname();
