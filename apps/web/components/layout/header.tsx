@@ -9,6 +9,14 @@ import { cn } from '@/lib/utils';
 import { useNotifications, useUnreadNotificationCount, useMarkNotificationAsRead, useMarkAllNotificationsAsRead } from '@/lib/queries';
 import { useSites } from '@/lib/queries/settings';
 import { GlobalSearch } from './global-search';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -18,10 +26,8 @@ export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSiteMenuOpen, setIsSiteMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const siteMenuRef = useRef<HTMLDivElement>(null);
 
@@ -58,9 +64,6 @@ export function Header({ onMenuClick }: HeaderProps) {
   // Close menus when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setIsUserMenuOpen(false);
-      }
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setIsNotificationsOpen(false);
       }
@@ -247,65 +250,44 @@ export function Header({ onMenuClick }: HeaderProps) {
         </div>
 
         {/* User dropdown */}
-        <div className="relative" ref={userMenuRef}>
-          <button
-            type="button"
-            className="flex items-center gap-2 p-2 rounded-md hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors"
-            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-          >
-            <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-              <span className="text-sm font-medium text-primary-700">
-                {user?.displayName?.charAt(0).toUpperCase() || '?'}
-              </span>
-            </div>
-            <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-text-secondary dark:text-text-dark-primary">
-                {user?.displayName || 'User'}
-              </p>
-              <p className="text-xs text-text-muted dark:text-text-dark-muted truncate max-w-[120px]">
-                {user?.email}
-              </p>
-            </div>
-            <svg
-              className={cn(
-                'h-4 w-4 text-text-muted dark:text-text-dark-muted transition-transform',
-                isUserMenuOpen && 'rotate-180'
-              )}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-2 p-2 rounded-md hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {/* Dropdown menu */}
-          {isUserMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-surface-card dark:bg-surface-dark-card rounded-md shadow-lg border border-surface-border dark:border-surface-dark-border py-1 z-50">
-              <div className="px-4 py-2 border-b border-surface-border dark:border-surface-dark-border sm:hidden">
-                <p className="text-sm font-medium text-text-secondary dark:text-text-dark-primary">{user?.displayName}</p>
-                <p className="text-xs text-text-muted dark:text-text-dark-muted truncate">{user?.email}</p>
+              <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                <span className="text-sm font-medium text-primary-700">
+                  {user?.displayName?.charAt(0).toUpperCase() || '?'}
+                </span>
               </div>
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-text-secondary dark:text-text-dark-primary hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary"
-                onClick={() => {
-                  setIsUserMenuOpen(false);
-                  router.push('/settings/profile');
-                }}
-              >
-                Profile Settings
-              </button>
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                onClick={handleLogout}
-              >
-                Sign out
-              </button>
-            </div>
-          )}
-        </div>
+              <div className="hidden sm:block text-left">
+                <p className="text-sm font-medium text-text-secondary dark:text-text-dark-primary">
+                  {user?.displayName || 'User'}
+                </p>
+                <p className="text-xs text-text-muted dark:text-text-dark-muted truncate max-w-[120px]">
+                  {user?.email}
+                </p>
+              </div>
+              <svg className="h-4 w-4 text-text-muted dark:text-text-dark-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel className="sm:hidden">
+              <p className="font-medium normal-case tracking-normal text-text-secondary dark:text-text-dark-primary">{user?.displayName}</p>
+              <p className="truncate text-xs normal-case tracking-normal">{user?.email}</p>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator className="sm:hidden" />
+            <DropdownMenuItem onClick={() => router.push('/settings/profile')}>
+              Profile Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

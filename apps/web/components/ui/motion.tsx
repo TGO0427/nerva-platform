@@ -365,22 +365,3 @@ export function CollapsibleSidebar({ children, collapsed, className = '' }: Coll
   );
 }
 
-// Tooltip wrapper for collapsed sidebar items
-interface TooltipProps {
-  children: ReactNode;
-  content: string;
-  side?: 'left' | 'right';
-}
-
-export function Tooltip({ children, content, side = 'right' }: TooltipProps) {
-  return (
-    <div className="relative group">
-      {children}
-      <div
-        className={`absolute ${side === 'right' ? 'left-full ml-2' : 'right-full mr-2'} top-1/2 -translate-y-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50`}
-      >
-        {content}
-      </div>
-    </div>
-  );
-}

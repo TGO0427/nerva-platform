@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider, MutationCache } from '@tanstack/react
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { ToastProvider, useToast } from '@/components/ui/toast';
 import { ConfirmProvider } from '@/components/ui/confirm-dialog';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 // Extract error message from various error formats
 function getErrorMessage(error: unknown): string {
@@ -76,10 +77,12 @@ function QueryClientProviderWithToast({ children }: { children: React.ReactNode 
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ToastProvider>
-      <ConfirmProvider>
-        <QueryClientProviderWithToast>{children}</QueryClientProviderWithToast>
-      </ConfirmProvider>
-    </ToastProvider>
+    <TooltipProvider>
+      <ToastProvider>
+        <ConfirmProvider>
+          <QueryClientProviderWithToast>{children}</QueryClientProviderWithToast>
+        </ConfirmProvider>
+      </ToastProvider>
+    </TooltipProvider>
   );
 }
