@@ -5,6 +5,7 @@ export * from './suppliers';
 export * from './warehouses';
 export * from './inventory';
 export * from './sales';
+export * from './import-schedule';
 export * from './fulfilment';
 export * from './dispatch';
 export * from './returns';

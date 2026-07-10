@@ -17,6 +17,8 @@ export const PERMISSIONS = {
   // Procurement
   PURCHASE_ORDER_READ: 'purchase_order.read',
   PURCHASE_ORDER_WRITE: 'purchase_order.write',
+  IMPORT_SHIPMENT_READ: 'import_shipment.read',
+  IMPORT_SHIPMENT_WRITE: 'import_shipment.write',
 
   // Warehouse
   WAREHOUSE_MANAGE: 'warehouse.manage',

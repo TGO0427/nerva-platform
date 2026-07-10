@@ -439,6 +439,38 @@ export interface SalesOrderLine {
   unitPrice: number | null;
 }
 
+// Import Shipments
+export interface ImportShipment {
+  id: string;
+  tenantId: string;
+  siteId: string | null;
+  reference: string;
+  supplierId: string;
+  supplierName?: string | null;
+  transportMode: ImportShipmentTransportMode;
+  carrier: string | null;
+  vesselOrAwb: string | null;
+  destinationPort: string | null;
+  etaDate: string | null;
+  status: ImportShipmentStatus;
+  quantity: number | null;
+  cbm: number | null;
+  palletQty: number | null;
+  incoterm: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ImportShipmentTransportMode = 'AIR' | 'SEA' | 'ROAD';
+
+export type ImportShipmentStatus =
+  | 'PLANNED'
+  | 'IN_TRANSIT'
+  | 'ARRIVED'
+  | 'DELAYED'
+  | 'CANCELLED';
+
 // Dispatch
 export interface DispatchTrip {
   id: string;

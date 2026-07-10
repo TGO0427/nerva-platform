@@ -2,6 +2,7 @@ export const pathLabels: Record<string, string> = {
   dashboard: 'Dashboard',
   exceptions: 'Exceptions',
   documents: 'Document Centre',
+  'import-schedule': 'Import Schedule',
   inventory: 'Inventory',
   sales: 'Sales Orders',
   fulfilment: 'Fulfilment',

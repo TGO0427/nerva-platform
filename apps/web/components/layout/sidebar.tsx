@@ -45,7 +45,7 @@ const navigation: NavGroup[] = [
       { name: 'Dashboard', href: '/dashboard', icon: <HomeIcon /> },
       { name: 'Exceptions', href: '/exceptions', icon: <AlertIcon /> },
       { name: 'Document Centre', href: '/documents', icon: <ReportIcon />, permissions: [PERMISSIONS.DOCUMENT_READ] },
-      { name: 'Import Schedule', href: 'https://synercore-import-schedule.vercel.app', icon: <LinkIcon /> },
+      { name: 'Import Schedule', href: '/import-schedule', icon: <LinkIcon />, permissions: [PERMISSIONS.IMPORT_SHIPMENT_READ] },
     ],
   },
   {

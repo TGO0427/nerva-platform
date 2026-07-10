@@ -17,6 +17,7 @@ import { UsersModule } from "./modules/users/users.module";
 import { MasterDataModule } from "./modules/masterdata/masterdata.module";
 import { InventoryModule } from "./modules/inventory/inventory.module";
 import { SalesModule } from "./modules/sales/sales.module";
+import { ImportShipmentsModule } from "./modules/import-shipments/import-shipments.module";
 import { FulfilmentModule } from "./modules/fulfilment/fulfilment.module";
 import { DispatchModule } from "./modules/dispatch/dispatch.module";
 import { ReturnsModule } from "./modules/returns/returns.module";
@@ -77,6 +78,7 @@ import { DocumentsModule } from "./modules/documents/documents.module";
     MasterDataModule,
     InventoryModule,
     SalesModule,
+    ImportShipmentsModule,
     FulfilmentModule,
     DispatchModule,
     ReturnsModule,
