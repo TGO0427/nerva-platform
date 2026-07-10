@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash text NOT NULL,
   is_active boolean NOT NULL DEFAULT true,
   user_type text NOT NULL DEFAULT 'internal', -- 'internal', 'customer', 'driver'
-  customer_id uuid REFERENCES customers(id) ON DELETE SET NULL,
+  customer_id uuid, -- FK to customers added below, after that table is defined
   last_login_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS user_sites (
 -- User-warehouse access (optional per-warehouse restriction)
 CREATE TABLE IF NOT EXISTS user_warehouses (
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  warehouse_id uuid NOT NULL REFERENCES warehouses(id) ON DELETE CASCADE,
+  warehouse_id uuid NOT NULL, -- FK to warehouses added below, after that table is defined
   PRIMARY KEY (user_id, warehouse_id)
 );
 
@@ -189,6 +189,9 @@ CREATE INDEX IF NOT EXISTS idx_customers_tenant ON customers(tenant_id);
 CREATE TRIGGER trg_customers_updated
 BEFORE UPDATE ON customers
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+ALTER TABLE users ADD CONSTRAINT users_customer_id_fkey
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS suppliers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -337,6 +340,9 @@ CREATE INDEX IF NOT EXISTS idx_warehouses_site ON warehouses(site_id);
 CREATE TRIGGER trg_warehouses_updated
 BEFORE UPDATE ON warehouses
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+ALTER TABLE user_warehouses ADD CONSTRAINT user_warehouses_warehouse_id_fkey
+  FOREIGN KEY (warehouse_id) REFERENCES warehouses(id) ON DELETE CASCADE;
 
 CREATE TABLE IF NOT EXISTS bins (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

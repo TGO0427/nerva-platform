@@ -13,6 +13,9 @@ out
 .env.local
 .env.*.local
 
+# Local docker overrides (e.g. port remaps for machine-specific conflicts)
+docker-compose.override.yml
+
 # IDE
 .idea
 .vscode
