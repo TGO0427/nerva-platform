@@ -7,8 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth, getHomeRoute } from '@/lib/auth';
 import api from '@/lib/api';
-import type { ApiError } from '@nerva/shared';
-import { AxiosError } from 'axios';
 
 const TENANT_STORAGE_KEY = 'nerva_remembered_tenant';
 const TENANT_IDENTIFIER_PATTERN = /^[a-z0-9][a-z0-9_-]{1,31}$/i;
@@ -119,13 +117,7 @@ export default function LoginPage() {
       const user = useAuth.getState().user;
       router.push(getHomeRoute(user?.userType || 'internal'));
     } catch (err) {
-      const axiosError = err as AxiosError<ApiError>;
-      if (axiosError.response?.data?.message) {
-        const message = axiosError.response.data.message;
-        setError(Array.isArray(message) ? message.join(', ') : message);
-      } else {
-        setError('Login failed. Please check your credentials and try again.');
-      }
+      setError(err instanceof Error ? err.message : 'Login failed. Please check your credentials and try again.');
     }
   };
 
@@ -159,13 +151,7 @@ export default function LoginPage() {
       const currentUser = useAuth.getState().user;
       router.push(getHomeRoute(currentUser?.userType || 'internal'));
     } catch (err) {
-      const axiosError = err as AxiosError<ApiError>;
-      if (axiosError.response?.data?.message) {
-        const message = axiosError.response.data.message;
-        setError(Array.isArray(message) ? message.join(', ') : message);
-      } else {
-        setError('Invalid verification code. Please try again.');
-      }
+      setError(err instanceof Error ? err.message : 'Invalid verification code. Please try again.');
     } finally {
       setMfaLoading(false);
     }
@@ -183,13 +169,7 @@ export default function LoginPage() {
       });
       setResendSuccess(true);
     } catch (err) {
-      const axiosError = err as AxiosError<ApiError>;
-      if (axiosError.response?.data?.message) {
-        const message = axiosError.response.data.message;
-        setError(Array.isArray(message) ? message.join(', ') : message);
-      } else {
-        setError('Failed to resend verification email. Please try again.');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to resend verification email. Please try again.');
     } finally {
       setResendLoading(false);
     }

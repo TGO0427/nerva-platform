@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import api from '@/lib/api';
-import { AxiosError } from 'axios';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -66,13 +65,7 @@ function ResetPasswordForm() {
 
       setSuccess(true);
     } catch (err) {
-      const axiosError = err as AxiosError<{ message: string | string[] }>;
-      if (axiosError.response?.data?.message) {
-        const message = axiosError.response.data.message;
-        setError(Array.isArray(message) ? message.join(', ') : message);
-      } else {
-        setError('Something went wrong. Please try again.');
-      }
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }

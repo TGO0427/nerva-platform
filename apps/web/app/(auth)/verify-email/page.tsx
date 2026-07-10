@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import api from '@/lib/api';
-import { AxiosError } from 'axios';
 
 function VerifyEmailForm() {
   const searchParams = useSearchParams();
@@ -35,13 +34,7 @@ function VerifyEmailForm() {
         await api.post('/auth/verify-email', { token: tokenFromUrl });
         setStatus('success');
       } catch (err) {
-        const axiosError = err as AxiosError<{ message: string | string[] }>;
-        if (axiosError.response?.data?.message) {
-          const message = axiosError.response.data.message;
-          setError(Array.isArray(message) ? message.join(', ') : message);
-        } else {
-          setError('Verification failed. The link may be invalid or expired.');
-        }
+        setError(err instanceof Error ? err.message : 'Verification failed. The link may be invalid or expired.');
         setStatus('error');
       }
     };
@@ -62,13 +55,7 @@ function VerifyEmailForm() {
       });
       setResendSuccess(true);
     } catch (err) {
-      const axiosError = err as AxiosError<{ message: string | string[] }>;
-      if (axiosError.response?.data?.message) {
-        const message = axiosError.response.data.message;
-        setError(Array.isArray(message) ? message.join(', ') : message);
-      } else {
-        setError('Failed to resend verification email. Please try again.');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to resend verification email. Please try again.');
     } finally {
       setResendLoading(false);
     }

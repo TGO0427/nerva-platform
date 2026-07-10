@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import api from '@/lib/api';
-import { AxiosError } from 'axios';
 
 const TENANT_IDENTIFIER_PATTERN = /^[a-z0-9][a-z0-9_-]{1,31}$/i;
 const TENANT_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -59,13 +58,7 @@ export default function ForgotPasswordPage() {
 
       setSubmitted(true);
     } catch (err) {
-      const axiosError = err as AxiosError<{ message: string | string[] }>;
-      if (axiosError.response?.data?.message) {
-        const message = axiosError.response.data.message;
-        setError(Array.isArray(message) ? message.join(', ') : message);
-      } else {
-        setError('Something went wrong. Please try again.');
-      }
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }

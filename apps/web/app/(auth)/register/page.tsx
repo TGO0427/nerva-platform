@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
-import { AxiosError } from 'axios';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -103,13 +102,7 @@ export default function RegisterPage() {
         tenantCode: response.data.tenant.code,
       });
     } catch (err) {
-      const axiosError = err as AxiosError<{ message: string | string[] }>;
-      if (axiosError.response?.data?.message) {
-        const message = axiosError.response.data.message;
-        setError(Array.isArray(message) ? message.join(', ') : message);
-      } else {
-        setError('Registration failed. Please try again.');
-      }
+      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
