@@ -20,8 +20,10 @@ const databasePoolFactory = {
     const pool = new Pool({
       connectionString,
       max: 20,
-      idleTimeoutMillis: 30000,
+      idleTimeoutMillis: isExternalDb ? 300000 : 30000,
       connectionTimeoutMillis: 10000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
       ssl: isProduction || isExternalDb ? { rejectUnauthorized: false } : false,
     });
 
