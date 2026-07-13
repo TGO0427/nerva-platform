@@ -1,4 +1,4 @@
-import type { ImportShipmentStatus } from '../types';
+import type { ImportShipmentStatus, ImportShipmentTransportMode } from '../types';
 
 export const STATUS_LABELS: Record<ImportShipmentStatus, string> = {
   PLANNED_AIRFREIGHT: 'Planned Airfreight',
@@ -155,4 +155,24 @@ export const SEAFREIGHT_AGENTS: ForwardingAgentOption[] = [
 
 export function getForwardingAgents(transportMode: string): ForwardingAgentOption[] {
   return transportMode === 'AIR' ? AIRFREIGHT_AGENTS : SEAFREIGHT_AGENTS;
+}
+
+/**
+ * External deep-link to look up an AWB (track-trace.com) or vessel name
+ * (VesselFinder), matching the tracking link from the legacy import-schedule app.
+ */
+export function getVesselTrackingUrl(
+  transportMode: ImportShipmentTransportMode,
+  vesselOrAwb: string
+): string | null {
+  const trimmed = vesselOrAwb.trim();
+  if (!trimmed) return null;
+
+  if (transportMode === 'AIR') {
+    const digits = trimmed.replace(/\D/g, '');
+    if (!digits) return null;
+    return `https://www.track-trace.com/aircargo?awb=${encodeURIComponent(digits)}`;
+  }
+
+  return `https://www.vesselfinder.com/vessels?name=${encodeURIComponent(trimmed)}`;
 }

@@ -17,6 +17,7 @@ import {
   ImportShipmentLineData,
 } from '@/lib/queries';
 import { useDebounce } from '@/lib/hooks/use-debounce';
+import { getVesselTrackingUrl } from '@nerva/shared';
 import type { Supplier } from '@nerva/shared';
 
 const TRANSPORT_MODE_OPTIONS = [
@@ -329,10 +330,27 @@ export default function EditImportShipmentPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     {line.transportMode === 'AIR' ? 'AWB Number' : 'Vessel Name'}
                   </label>
-                  <Input
-                    value={line.vesselOrAwb}
-                    onChange={(e) => updateLine(index, { vesselOrAwb: e.target.value })}
-                  />
+                  <div className="flex items-center gap-1">
+                    <Input
+                      value={line.vesselOrAwb}
+                      onChange={(e) => updateLine(index, { vesselOrAwb: e.target.value })}
+                      className="flex-1"
+                    />
+                    {(() => {
+                      const trackingUrl = getVesselTrackingUrl(line.transportMode, line.vesselOrAwb);
+                      return trackingUrl ? (
+                        <a
+                          href={trackingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={line.transportMode === 'AIR' ? 'Track AWB' : 'Track vessel on VesselFinder'}
+                          className="shrink-0 text-primary-600 hover:text-primary-700"
+                        >
+                          <ExternalLinkIcon />
+                        </a>
+                      ) : null;
+                    })()}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Week Start</label>
@@ -399,6 +417,25 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+      <polyline points="15 3 21 3 21 9"></polyline>
+      <line x1="10" y1="14" x2="21" y2="3"></line>
     </svg>
   );
 }

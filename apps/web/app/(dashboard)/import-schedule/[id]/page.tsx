@@ -21,8 +21,9 @@ import {
   STATUS_LABELS,
   DELAYED_STATUSES,
   POST_ARRIVAL_STATUSES,
+  getVesselTrackingUrl,
 } from '@nerva/shared';
-import type { ImportShipmentLine, ImportShipmentStatus } from '@nerva/shared';
+import type { ImportShipmentLine, ImportShipmentStatus, ImportShipmentTransportMode } from '@nerva/shared';
 
 const STATUS_OPTIONS = ALL_IMPORT_SHIPMENT_STATUSES.map((status) => ({
   value: status,
@@ -139,10 +140,7 @@ export default function ImportShipmentDetailPage() {
                 />
                 <Field label="Destination" value={line.destinationPort || '—'} />
                 <Field label="Carrier" value={line.carrier || '—'} />
-                <Field
-                  label={line.transportMode === 'AIR' ? 'AWB Number' : 'Vessel Name'}
-                  value={line.vesselOrAwb || '—'}
-                />
+                <VesselField transportMode={line.transportMode} vesselOrAwb={line.vesselOrAwb} />
                 <Field label="Quantity" value={line.quantity != null ? String(line.quantity) : '—'} />
                 <Field label="CBM" value={line.cbm != null ? String(line.cbm) : '—'} />
                 <Field label="Pallet Qty" value={line.palletQty != null ? String(line.palletQty) : '—'} />
@@ -175,6 +173,57 @@ function Field({ label, value }: { label: string; value: string }) {
       <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</dt>
       <dd className="mt-0.5 text-sm text-slate-900">{value}</dd>
     </div>
+  );
+}
+
+function VesselField({
+  transportMode,
+  vesselOrAwb,
+}: {
+  transportMode: ImportShipmentTransportMode;
+  vesselOrAwb: string | null;
+}) {
+  const trackingUrl = vesselOrAwb ? getVesselTrackingUrl(transportMode, vesselOrAwb) : null;
+
+  return (
+    <div>
+      <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+        {transportMode === 'AIR' ? 'AWB Number' : 'Vessel Name'}
+      </dt>
+      <dd className="mt-0.5 text-sm text-slate-900 flex items-center gap-1">
+        {vesselOrAwb || '—'}
+        {trackingUrl && (
+          <a
+            href={trackingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={transportMode === 'AIR' ? 'Track AWB' : 'Track vessel on VesselFinder'}
+            className="text-primary-600 hover:text-primary-700"
+          >
+            <ExternalLinkIcon />
+          </a>
+        )}
+      </dd>
+    </div>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+      <polyline points="15 3 21 3 21 9"></polyline>
+      <line x1="10" y1="14" x2="21" y2="3"></line>
+    </svg>
   );
 }
 
