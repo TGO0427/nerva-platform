@@ -240,6 +240,7 @@ export class ImportShipmentsRepository extends BaseRepository {
     id: string,
     tenantId: string,
     data: {
+      reference?: string;
       supplierId?: string;
       siteId?: string | null;
       incoterm?: string | null;
@@ -251,6 +252,7 @@ export class ImportShipmentsRepository extends BaseRepository {
     let idx = 1;
 
     const fieldMap: Record<string, unknown> = {
+      reference: data.reference,
       supplier_id: data.supplierId,
       site_id: data.siteId,
       incoterm: data.incoterm,

@@ -131,6 +131,12 @@ export class CreateImportShipmentDto {
 export class UpdateImportShipmentDto {
   @ApiPropertyOptional()
   @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  reference?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsUUID()
   supplierId?: string;
 

@@ -52,6 +52,7 @@ export class ImportShipmentsService {
     id: string,
     tenantId: string,
     data: {
+      reference?: string;
       supplierId?: string;
       siteId?: string | null;
       incoterm?: string | null;
