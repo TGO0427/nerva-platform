@@ -4,8 +4,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "module": "CommonJS",
-    "moduleResolution": "Node",
-    "ignoreDeprecations": "6.0"
+    "moduleResolution": "Node10"
   },
   "include": ["src/**/*"]
 }

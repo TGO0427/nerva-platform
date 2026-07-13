@@ -11,15 +11,17 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { ListPageTemplate } from '@/components/templates';
 import { useImportShipments, useQueryParams } from '@/lib/queries';
 import { formatDate } from '@/lib/format';
-import type { ImportShipment, ImportShipmentStatus } from '@nerva/shared';
+import {
+  ALL_IMPORT_SHIPMENT_STATUSES,
+  STATUS_LABELS,
+  DELAYED_STATUSES,
+  POST_ARRIVAL_STATUSES,
+} from '@nerva/shared';
+import type { ImportShipmentLineRow, ImportShipmentStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
-  { value: 'PLANNED', label: 'Planned' },
-  { value: 'IN_TRANSIT', label: 'In Transit' },
-  { value: 'ARRIVED', label: 'Arrived' },
-  { value: 'DELAYED', label: 'Delayed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
+  ...ALL_IMPORT_SHIPMENT_STATUSES.map((status) => ({ value: status, label: STATUS_LABELS[status] })),
 ];
 
 export default function ImportSchedulePage() {
@@ -34,7 +36,7 @@ export default function ImportSchedulePage() {
     search: search || undefined,
   });
 
-  const columns: Column<ImportShipment>[] = [
+  const columns: Column<ImportShipmentLineRow>[] = [
     {
       key: 'reference',
       header: 'Reference',
@@ -44,6 +46,11 @@ export default function ImportSchedulePage() {
       key: 'supplierName',
       header: 'Supplier',
       render: (row) => row.supplierName || row.supplierId.slice(0, 8),
+    },
+    {
+      key: 'productDescription',
+      header: 'Product',
+      render: (row) => row.productDescription,
     },
     {
       key: 'transportMode',
@@ -57,17 +64,17 @@ export default function ImportSchedulePage() {
       render: (row) => row.destinationPort || '—',
     },
     {
-      key: 'etaDate',
-      header: 'ETA',
+      key: 'weekStartDate',
+      header: 'Week',
       sortable: true,
-      render: (row) => (row.etaDate ? formatDate(row.etaDate) : '—'),
+      render: (row) => (row.weekStartDate ? formatDate(row.weekStartDate) : '—'),
     },
     {
       key: 'status',
       header: 'Status',
-      width: '130px',
+      width: '160px',
       render: (row) => (
-        <Badge variant={getStatusVariant(row.status)}>{formatStatus(row.status)}</Badge>
+        <Badge variant={getStatusVariant(row.status)}>{STATUS_LABELS[row.status]}</Badge>
       ),
     },
   ];
@@ -95,7 +102,7 @@ export default function ImportSchedulePage() {
       filters={
         <div className="flex flex-wrap items-center gap-3">
           <Input
-            placeholder="Search reference or supplier..."
+            placeholder="Search reference, supplier or product..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="max-w-xs"
@@ -122,7 +129,7 @@ export default function ImportSchedulePage() {
           totalPages: data.meta.totalPages || 1,
         } : undefined}
         onPageChange={setPage}
-        onRowClick={(row) => router.push(`/import-schedule/${row.id}`)}
+        onRowClick={(row) => router.push(`/import-schedule/${row.importShipmentId}`)}
         emptyState={{
           icon: <ShipmentIcon />,
           title: 'No shipments found',
@@ -143,23 +150,10 @@ export default function ImportSchedulePage() {
 }
 
 function getStatusVariant(status: ImportShipmentStatus): 'default' | 'success' | 'warning' | 'danger' | 'info' {
-  switch (status) {
-    case 'ARRIVED':
-      return 'success';
-    case 'IN_TRANSIT':
-      return 'info';
-    case 'DELAYED':
-      return 'warning';
-    case 'CANCELLED':
-      return 'danger';
-    case 'PLANNED':
-    default:
-      return 'default';
-  }
-}
-
-function formatStatus(status: ImportShipmentStatus): string {
-  return status?.replace(/_/g, ' ') || status || '';
+  if (status === 'CANCELLED') return 'danger';
+  if (DELAYED_STATUSES.includes(status)) return 'warning';
+  if (POST_ARRIVAL_STATUSES.includes(status) || status === 'STORED' || status === 'ARCHIVED') return 'success';
+  return 'info';
 }
 
 function PlusIcon() {

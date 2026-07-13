@@ -450,6 +450,65 @@ CREATE TABLE IF NOT EXISTS purchase_order_lines (
 
 CREATE INDEX IF NOT EXISTS idx_po_lines_po ON purchase_order_lines(purchase_order_id);
 
+-- Shipping Schedule: import shipment header + line items. Named
+-- import_shipments (not shipments) to avoid colliding with the outbound
+-- fulfilment/dispatch `shipments` table. Line-level fields (status,
+-- vessel/AWB, week, transport mode, carrier, destination port, quantity)
+-- can differ per product on the same order/reference.
+CREATE TABLE IF NOT EXISTS import_shipments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  site_id uuid REFERENCES sites(id) ON DELETE SET NULL,
+  reference text NOT NULL,
+  supplier_id uuid NOT NULL REFERENCES suppliers(id) ON DELETE RESTRICT,
+  incoterm text,
+  notes text,
+  created_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, reference)
+);
+
+CREATE TRIGGER trg_import_shipments_updated
+BEFORE UPDATE ON import_shipments
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE IF NOT EXISTS import_shipment_lines (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  import_shipment_id uuid NOT NULL REFERENCES import_shipments(id) ON DELETE CASCADE,
+  line_no int NOT NULL,
+  product_description text NOT NULL,
+  item_id uuid REFERENCES items(id) ON DELETE SET NULL,
+  quantity numeric,
+  cbm numeric,
+  pallet_qty numeric,
+  transport_mode text NOT NULL DEFAULT 'SEA',    -- AIR, SEA, ROAD
+  carrier text,                                   -- forwarding agent / shipping line
+  vessel_or_awb text,
+  destination_port text,                          -- final POD
+  status text NOT NULL DEFAULT 'PLANNED_SEAFREIGHT',
+    -- PLANNED_AIRFREIGHT, PLANNED_SEAFREIGHT, IN_TRANSIT_AIRFREIGHT, AIR_CUSTOMS_CLEARANCE,
+    -- IN_TRANSIT_ROADWAY, IN_TRANSIT_SEAWAY, MOORED, BERTH_WORKING, BERTH_COMPLETE, GATED_IN_PORT,
+    -- ARRIVED_PTA, ARRIVED_KLM, ARRIVED_OFFSITE, DELAYED_PORT, DELAYED_CUSTOMS, DELAYED_DOCUMENTS,
+    -- DELAYED_SUPPLIER, CANCELLED, UNLOADING, INSPECTION_PENDING, INSPECTING, INSPECTION_FAILED,
+    -- INSPECTION_PASSED, RECEIVING, RECEIVED, STORED, ARCHIVED
+  week_start_date date,
+  week_end_date date,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, import_shipment_id, line_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_isl_shipment ON import_shipment_lines(import_shipment_id);
+CREATE INDEX IF NOT EXISTS idx_isl_status ON import_shipment_lines(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_isl_week ON import_shipment_lines(tenant_id, week_start_date);
+
+CREATE TRIGGER trg_import_shipment_lines_updated
+BEFORE UPDATE ON import_shipment_lines
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 CREATE TABLE IF NOT EXISTS grns (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -1195,6 +1254,8 @@ INSERT INTO permissions (code, description) VALUES
   ('customer.write', 'Create/edit customers'),
   ('supplier.read', 'View suppliers'),
   ('supplier.write', 'Create/edit suppliers'),
+  ('import_shipment.read', 'View shipping schedule'),
+  ('import_shipment.write', 'Create and edit shipping schedule entries'),
 
   -- Warehouse
   ('warehouse.manage', 'Manage warehouses and bins'),

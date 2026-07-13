@@ -440,36 +440,83 @@ export interface SalesOrderLine {
 }
 
 // Import Shipments
-export interface ImportShipment {
+export interface ImportShipmentHeader {
   id: string;
   tenantId: string;
   siteId: string | null;
   reference: string;
   supplierId: string;
   supplierName?: string | null;
-  transportMode: ImportShipmentTransportMode;
-  carrier: string | null;
-  vesselOrAwb: string | null;
-  destinationPort: string | null;
-  etaDate: string | null;
-  status: ImportShipmentStatus;
-  quantity: number | null;
-  cbm: number | null;
-  palletQty: number | null;
   incoterm: string | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface ImportShipmentLine {
+  id: string;
+  importShipmentId: string;
+  lineNo: number;
+  productDescription: string;
+  itemId: string | null;
+  quantity: number | null;
+  cbm: number | null;
+  palletQty: number | null;
+  transportMode: ImportShipmentTransportMode;
+  carrier: string | null;
+  vesselOrAwb: string | null;
+  destinationPort: string | null;
+  status: ImportShipmentStatus;
+  weekStartDate: string | null;
+  weekEndDate: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Flattened header+line shape returned by the list endpoint — one row per line. */
+export type ImportShipmentLineRow = ImportShipmentLine & {
+  reference: string;
+  supplierId: string;
+  supplierName: string | null;
+  incoterm: string | null;
+};
+
+/** Shape returned by the detail/edit endpoint. */
+export type ImportShipmentDetail = ImportShipmentHeader & {
+  lines: ImportShipmentLine[];
+};
+
 export type ImportShipmentTransportMode = 'AIR' | 'SEA' | 'ROAD';
 
 export type ImportShipmentStatus =
-  | 'PLANNED'
-  | 'IN_TRANSIT'
-  | 'ARRIVED'
-  | 'DELAYED'
-  | 'CANCELLED';
+  | 'PLANNED_AIRFREIGHT'
+  | 'PLANNED_SEAFREIGHT'
+  | 'IN_TRANSIT_AIRFREIGHT'
+  | 'AIR_CUSTOMS_CLEARANCE'
+  | 'IN_TRANSIT_ROADWAY'
+  | 'IN_TRANSIT_SEAWAY'
+  | 'MOORED'
+  | 'BERTH_WORKING'
+  | 'BERTH_COMPLETE'
+  | 'GATED_IN_PORT'
+  | 'ARRIVED_PTA'
+  | 'ARRIVED_KLM'
+  | 'ARRIVED_OFFSITE'
+  | 'DELAYED_PORT'
+  | 'DELAYED_CUSTOMS'
+  | 'DELAYED_DOCUMENTS'
+  | 'DELAYED_SUPPLIER'
+  | 'CANCELLED'
+  | 'UNLOADING'
+  | 'INSPECTION_PENDING'
+  | 'INSPECTING'
+  | 'INSPECTION_FAILED'
+  | 'INSPECTION_PASSED'
+  | 'RECEIVING'
+  | 'RECEIVED'
+  | 'STORED'
+  | 'ARCHIVED';
 
 // Dispatch
 export interface DispatchTrip {

@@ -3,30 +3,48 @@ import {
   IsOptional,
   IsUUID,
   IsNumber,
+  IsArray,
   IsDate,
   IsIn,
+  ValidateNested,
   MaxLength,
   Min,
+  ArrayMinSize,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { ALL_IMPORT_SHIPMENT_STATUSES } from "@nerva/shared";
 
 const TRANSPORT_MODES = ["AIR", "SEA", "ROAD"];
 
-export class CreateImportShipmentDto {
+export class CreateImportShipmentLineDto {
   @ApiProperty()
   @IsString()
-  @MaxLength(100)
-  reference: string;
-
-  @ApiProperty()
-  @IsUUID()
-  supplierId: string;
+  @MaxLength(500)
+  productDescription: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
-  siteId?: string;
+  itemId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  quantity?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  cbm?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  palletQty?: number;
 
   @ApiPropertyOptional({ enum: TRANSPORT_MODES })
   @IsOptional()
@@ -51,29 +69,44 @@ export class CreateImportShipmentDto {
   @MaxLength(255)
   destinationPort?: string;
 
+  @ApiPropertyOptional({ enum: ALL_IMPORT_SHIPMENT_STATUSES })
+  @IsOptional()
+  @IsIn(ALL_IMPORT_SHIPMENT_STATUSES)
+  status?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Date)
   @IsDate()
-  etaDate?: Date;
+  weekStartDate?: Date;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  quantity?: number;
+  @Type(() => Date)
+  @IsDate()
+  weekEndDate?: Date;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  cbm?: number;
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
+}
+
+export class CreateImportShipmentDto {
+  @ApiProperty()
+  @IsString()
+  @MaxLength(100)
+  reference: string;
+
+  @ApiProperty()
+  @IsUUID()
+  supplierId: string;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  palletQty?: number;
+  @IsUUID()
+  siteId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -86,6 +119,13 @@ export class CreateImportShipmentDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  @ApiProperty({ type: [CreateImportShipmentLineDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateImportShipmentLineDto)
+  lines: CreateImportShipmentLineDto[];
 }
 
 export class UpdateImportShipmentDto {
@@ -99,53 +139,6 @@ export class UpdateImportShipmentDto {
   @IsUUID()
   siteId?: string | null;
 
-  @ApiPropertyOptional({ enum: TRANSPORT_MODES })
-  @IsOptional()
-  @IsIn(TRANSPORT_MODES)
-  transportMode?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  carrier?: string | null;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  vesselOrAwb?: string | null;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  destinationPort?: string | null;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  etaDate?: Date | null;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  quantity?: number | null;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  cbm?: number | null;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  palletQty?: number | null;
-
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -157,10 +150,18 @@ export class UpdateImportShipmentDto {
   @IsString()
   @MaxLength(2000)
   notes?: string | null;
+
+  @ApiPropertyOptional({ type: [CreateImportShipmentLineDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateImportShipmentLineDto)
+  lines?: CreateImportShipmentLineDto[];
 }
 
-export class UpdateImportShipmentStatusDto {
-  @ApiProperty({ enum: ["PLANNED", "IN_TRANSIT", "ARRIVED", "DELAYED", "CANCELLED"] })
-  @IsIn(["PLANNED", "IN_TRANSIT", "ARRIVED", "DELAYED", "CANCELLED"])
+export class UpdateImportShipmentLineStatusDto {
+  @ApiProperty({ enum: ALL_IMPORT_SHIPMENT_STATUSES })
+  @IsIn(ALL_IMPORT_SHIPMENT_STATUSES)
   status: string;
 }

@@ -5,21 +5,29 @@ import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
-import { useImportShipment, useUpdateImportShipmentStatus, useDeleteImportShipment } from '@/lib/queries';
+import {
+  useImportShipment,
+  useUpdateImportShipmentLineStatus,
+  useDeleteImportShipment,
+} from '@/lib/queries';
 import { formatDate } from '@/lib/format';
-import type { ImportShipmentStatus } from '@nerva/shared';
+import {
+  ALL_IMPORT_SHIPMENT_STATUSES,
+  STATUS_LABELS,
+  DELAYED_STATUSES,
+  POST_ARRIVAL_STATUSES,
+} from '@nerva/shared';
+import type { ImportShipmentLine, ImportShipmentStatus } from '@nerva/shared';
 
-const STATUS_FLOW: Record<string, ImportShipmentStatus[]> = {
-  PLANNED: ['IN_TRANSIT', 'CANCELLED'],
-  IN_TRANSIT: ['ARRIVED', 'DELAYED', 'CANCELLED'],
-  DELAYED: ['IN_TRANSIT', 'ARRIVED', 'CANCELLED'],
-  ARRIVED: [],
-  CANCELLED: ['PLANNED'],
-};
+const STATUS_OPTIONS = ALL_IMPORT_SHIPMENT_STATUSES.map((status) => ({
+  value: status,
+  label: STATUS_LABELS[status],
+}));
 
 export default function ImportShipmentDetailPage() {
   const params = useParams<{ id: string }>();
@@ -27,7 +35,7 @@ export default function ImportShipmentDetailPage() {
   const { addToast } = useToast();
   const { confirm } = useConfirm();
   const { data: shipment, isLoading } = useImportShipment(params.id);
-  const updateStatus = useUpdateImportShipmentStatus();
+  const updateLineStatus = useUpdateImportShipmentLineStatus();
   const deleteShipment = useDeleteImportShipment();
 
   if (isLoading) {
@@ -44,10 +52,10 @@ export default function ImportShipmentDetailPage() {
     );
   }
 
-  const handleStatusChange = async (status: ImportShipmentStatus) => {
+  const handleStatusChange = async (line: ImportShipmentLine, status: ImportShipmentStatus) => {
     try {
-      await updateStatus.mutateAsync({ id: shipment.id, status });
-      addToast(`Shipment marked as ${status.replace(/_/g, ' ').toLowerCase()}`, 'success');
+      await updateLineStatus.mutateAsync({ shipmentId: shipment.id, lineId: line.id, status });
+      addToast(`Line ${line.lineNo} marked as ${STATUS_LABELS[status].toLowerCase()}`, 'success');
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Failed to update status', 'error');
     }
@@ -71,20 +79,13 @@ export default function ImportShipmentDetailPage() {
     }
   };
 
-  const nextStatuses = STATUS_FLOW[shipment.status] || [];
-
   return (
     <div className="max-w-4xl mx-auto">
       <Breadcrumbs />
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">{shipment.reference}</h1>
-            <Badge variant={getStatusVariant(shipment.status)}>
-              {shipment.status.replace(/_/g, ' ')}
-            </Badge>
-          </div>
+          <h1 className="text-2xl font-bold text-slate-900">{shipment.reference}</h1>
           <p className="text-slate-500 mt-1">{shipment.supplierName || 'Unknown supplier'}</p>
         </div>
         <div className="flex gap-2">
@@ -97,48 +98,73 @@ export default function ImportShipmentDetailPage() {
         </div>
       </div>
 
-      {nextStatuses.length > 0 && (
-        <div className="flex gap-2 mb-6">
-          {nextStatuses.map((status) => (
-            <Button
-              key={status}
-              variant="secondary"
-              size="sm"
-              onClick={() => handleStatusChange(status)}
-              isLoading={updateStatus.isPending}
-            >
-              Mark as {status.replace(/_/g, ' ')}
-            </Button>
-          ))}
-        </div>
-      )}
-
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Shipment Details</CardTitle>
+          <CardTitle>Order Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <dl className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
-            <Field label="Transport Mode" value={shipment.transportMode} />
-            <Field label="ETA" value={shipment.etaDate ? formatDate(shipment.etaDate) : '—'} />
-            <Field label="Destination" value={shipment.destinationPort || '—'} />
-            <Field label="Carrier" value={shipment.carrier || '—'} />
-            <Field
-              label={shipment.transportMode === 'AIR' ? 'AWB Number' : 'Vessel Name'}
-              value={shipment.vesselOrAwb || '—'}
-            />
+          <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
             <Field label="Incoterm" value={shipment.incoterm || '—'} />
-            <Field label="Quantity" value={shipment.quantity != null ? String(shipment.quantity) : '—'} />
-            <Field label="CBM" value={shipment.cbm != null ? String(shipment.cbm) : '—'} />
-            <Field label="Pallet Qty" value={shipment.palletQty != null ? String(shipment.palletQty) : '—'} />
+            <Field label="Lines" value={String(shipment.lines.length)} />
             {shipment.notes && (
-              <div className="lg:col-span-3">
+              <div className="md:col-span-3">
                 <Field label="Notes" value={shipment.notes} />
               </div>
             )}
           </dl>
         </CardContent>
       </Card>
+
+      <div className="space-y-4">
+        {shipment.lines.map((line) => (
+          <Card key={line.id}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>
+                  Line {line.lineNo}: {line.productDescription}
+                </CardTitle>
+                <Badge variant={getStatusVariant(line.status)}>{STATUS_LABELS[line.status]}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 mb-4">
+                <Field label="Transport Mode" value={line.transportMode} />
+                <Field
+                  label="Week"
+                  value={
+                    line.weekStartDate
+                      ? `${formatDate(line.weekStartDate)}${line.weekEndDate ? ` – ${formatDate(line.weekEndDate)}` : ''}`
+                      : '—'
+                  }
+                />
+                <Field label="Destination" value={line.destinationPort || '—'} />
+                <Field label="Carrier" value={line.carrier || '—'} />
+                <Field
+                  label={line.transportMode === 'AIR' ? 'AWB Number' : 'Vessel Name'}
+                  value={line.vesselOrAwb || '—'}
+                />
+                <Field label="Quantity" value={line.quantity != null ? String(line.quantity) : '—'} />
+                <Field label="CBM" value={line.cbm != null ? String(line.cbm) : '—'} />
+                <Field label="Pallet Qty" value={line.palletQty != null ? String(line.palletQty) : '—'} />
+                {line.notes && (
+                  <div className="lg:col-span-3">
+                    <Field label="Notes" value={line.notes} />
+                  </div>
+                )}
+              </dl>
+              <div className="max-w-xs">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                <Select
+                  value={line.status}
+                  onChange={(e) => handleStatusChange(line, e.target.value as ImportShipmentStatus)}
+                  options={STATUS_OPTIONS}
+                  disabled={updateLineStatus.isPending}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
@@ -152,17 +178,9 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function getStatusVariant(status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' {
-  switch (status) {
-    case 'ARRIVED':
-      return 'success';
-    case 'IN_TRANSIT':
-      return 'info';
-    case 'DELAYED':
-      return 'warning';
-    case 'CANCELLED':
-      return 'danger';
-    default:
-      return 'default';
-  }
+function getStatusVariant(status: ImportShipmentStatus): 'default' | 'success' | 'warning' | 'danger' | 'info' {
+  if (status === 'CANCELLED') return 'danger';
+  if (DELAYED_STATUSES.includes(status)) return 'warning';
+  if (POST_ARRIVAL_STATUSES.includes(status) || status === 'STORED' || status === 'ARCHIVED') return 'success';
+  return 'info';
 }

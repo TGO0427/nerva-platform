@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { ImportShipment, ImportShipmentStatus, PaginatedResult } from '@nerva/shared';
+import type {
+  ImportShipmentDetail,
+  ImportShipmentLineRow,
+  ImportShipmentStatus,
+  ImportShipmentTransportMode,
+  PaginatedResult,
+} from '@nerva/shared';
 import type { QueryParams } from './use-query-params';
 
 const SHIPMENTS_KEY = 'import-shipments';
@@ -20,7 +26,7 @@ export function useImportShipments(params: QueryParams & ImportShipmentFilters) 
       if (params.status) searchParams.set('status', params.status);
       if (params.search) searchParams.set('search', params.search);
 
-      const response = await api.get<PaginatedResult<ImportShipment>>(
+      const response = await api.get<PaginatedResult<ImportShipmentLineRow>>(
         `/import-shipments?${searchParams.toString()}`
       );
       return response.data;
@@ -32,27 +38,36 @@ export function useImportShipment(id: string | undefined) {
   return useQuery({
     queryKey: [SHIPMENTS_KEY, id],
     queryFn: async () => {
-      const response = await api.get<ImportShipment>(`/import-shipments/${id}`);
+      const response = await api.get<ImportShipmentDetail>(`/import-shipments/${id}`);
       return response.data;
     },
     enabled: !!id,
   });
 }
 
+export interface ImportShipmentLineData {
+  productDescription: string;
+  itemId?: string;
+  quantity?: number;
+  cbm?: number;
+  palletQty?: number;
+  transportMode?: ImportShipmentTransportMode;
+  carrier?: string;
+  vesselOrAwb?: string;
+  destinationPort?: string;
+  status?: ImportShipmentStatus;
+  weekStartDate?: string;
+  weekEndDate?: string;
+  notes?: string;
+}
+
 export interface CreateImportShipmentData {
   reference: string;
   supplierId: string;
   siteId?: string;
-  transportMode?: 'AIR' | 'SEA' | 'ROAD';
-  carrier?: string;
-  vesselOrAwb?: string;
-  destinationPort?: string;
-  etaDate?: string;
-  quantity?: number;
-  cbm?: number;
-  palletQty?: number;
   incoterm?: string;
   notes?: string;
+  lines: ImportShipmentLineData[];
 }
 
 export function useCreateImportShipment() {
@@ -60,7 +75,7 @@ export function useCreateImportShipment() {
 
   return useMutation({
     mutationFn: async (data: CreateImportShipmentData) => {
-      const response = await api.post<ImportShipment>('/import-shipments', data);
+      const response = await api.post<ImportShipmentDetail>('/import-shipments', data);
       return response.data;
     },
     onSuccess: () => {
@@ -69,14 +84,16 @@ export function useCreateImportShipment() {
   });
 }
 
-export type UpdateImportShipmentData = Partial<CreateImportShipmentData>;
+export type UpdateImportShipmentData = Partial<Omit<CreateImportShipmentData, 'lines'>> & {
+  lines?: ImportShipmentLineData[];
+};
 
 export function useUpdateImportShipment() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateImportShipmentData }) => {
-      const response = await api.patch<ImportShipment>(`/import-shipments/${id}`, data);
+      const response = await api.patch<ImportShipmentDetail>(`/import-shipments/${id}`, data);
       return response.data;
     },
     onSuccess: (_, { id }) => {
@@ -86,17 +103,28 @@ export function useUpdateImportShipment() {
   });
 }
 
-export function useUpdateImportShipmentStatus() {
+export function useUpdateImportShipmentLineStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: ImportShipmentStatus }) => {
-      const response = await api.patch<ImportShipment>(`/import-shipments/${id}/status`, { status });
+    mutationFn: async ({
+      shipmentId,
+      lineId,
+      status,
+    }: {
+      shipmentId: string;
+      lineId: string;
+      status: ImportShipmentStatus;
+    }) => {
+      const response = await api.patch<ImportShipmentLineRow>(
+        `/import-shipments/${shipmentId}/lines/${lineId}/status`,
+        { status }
+      );
       return response.data;
     },
-    onSuccess: (_, { id }) => {
+    onSuccess: (_, { shipmentId }) => {
       queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY] });
-      queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY, id] });
+      queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY, shipmentId] });
     },
   });
 }

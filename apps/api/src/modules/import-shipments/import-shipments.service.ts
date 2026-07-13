@@ -1,95 +1,95 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { ALL_IMPORT_SHIPMENT_STATUSES } from "@nerva/shared";
 import {
   ImportShipmentsRepository,
-  ImportShipment,
+  ImportShipmentDetail,
+  ImportShipmentLineInput,
+  ImportShipmentLineRow,
 } from "./import-shipments.repository";
-import { buildPaginatedResult } from "../../common/utils/pagination";
-
-const VALID_STATUSES = [
-  "PLANNED",
-  "IN_TRANSIT",
-  "ARRIVED",
-  "DELAYED",
-  "CANCELLED",
-];
+import { buildPaginatedResult, normalizePagination } from "../../common/utils/pagination";
 
 @Injectable()
 export class ImportShipmentsService {
   constructor(private readonly repository: ImportShipmentsRepository) {}
 
-  async create(data: {
-    tenantId: string;
-    siteId?: string | null;
-    reference: string;
-    supplierId: string;
-    transportMode?: string;
-    carrier?: string;
-    vesselOrAwb?: string;
-    destinationPort?: string;
-    etaDate?: Date;
-    quantity?: number;
-    cbm?: number;
-    palletQty?: number;
-    incoterm?: string;
-    notes?: string;
-    createdBy?: string;
-  }): Promise<ImportShipment> {
-    return this.repository.create(data);
+  async create(
+    tenantId: string,
+    data: {
+      siteId?: string | null;
+      reference: string;
+      supplierId: string;
+      incoterm?: string;
+      notes?: string;
+      createdBy?: string;
+      lines: ImportShipmentLineInput[];
+    },
+  ): Promise<ImportShipmentDetail> {
+    const { lines, ...header } = data;
+    return this.repository.createWithLines(tenantId, header, lines);
   }
 
-  async get(id: string): Promise<ImportShipment> {
-    const shipment = await this.repository.findById(id);
+  async get(id: string, tenantId: string): Promise<ImportShipmentDetail> {
+    const shipment = await this.repository.findDetailById(id, tenantId);
     if (!shipment) throw new NotFoundException("Shipment not found");
     return shipment;
   }
 
   async list(
     tenantId: string,
-    filters: { status?: string; search?: string },
-    page = 1,
-    limit = 50,
+    filters: { status?: string; search?: string; weekFrom?: number; weekTo?: number },
+    rawPage?: number,
+    rawLimit?: number,
   ) {
-    const offset = (page - 1) * limit;
+    const { page, limit, offset } = normalizePagination({ page: rawPage, limit: rawLimit });
     const [data, total] = await Promise.all([
-      this.repository.findByTenant(tenantId, filters, limit, offset),
-      this.repository.countByTenant(tenantId, filters),
+      this.repository.listFlattened(tenantId, filters, limit, offset),
+      this.repository.countFlattened(tenantId, filters),
     ]);
     return buildPaginatedResult(data, total, page, limit);
   }
 
   async update(
     id: string,
+    tenantId: string,
     data: {
-      siteId?: string | null;
       supplierId?: string;
-      transportMode?: string;
-      carrier?: string | null;
-      vesselOrAwb?: string | null;
-      destinationPort?: string | null;
-      etaDate?: Date | null;
-      quantity?: number | null;
-      cbm?: number | null;
-      palletQty?: number | null;
+      siteId?: string | null;
       incoterm?: string | null;
       notes?: string | null;
+      lines?: ImportShipmentLineInput[];
     },
-  ): Promise<ImportShipment> {
-    await this.get(id);
-    const updated = await this.repository.update(id, data);
-    return updated!;
+  ): Promise<ImportShipmentDetail> {
+    await this.get(id, tenantId);
+    const { lines, ...header } = data;
+    await this.repository.updateHeader(id, tenantId, header);
+    if (lines !== undefined) {
+      await this.repository.replaceLines(id, tenantId, lines);
+    }
+    return this.get(id, tenantId);
   }
 
-  async updateStatus(id: string, status: string): Promise<ImportShipment> {
-    if (!VALID_STATUSES.includes(status)) {
+  async updateLineStatus(
+    shipmentId: string,
+    lineId: string,
+    tenantId: string,
+    status: string,
+  ): Promise<ImportShipmentLineRow> {
+    if (!ALL_IMPORT_SHIPMENT_STATUSES.includes(status as any)) {
       throw new BadRequestException(`Invalid status: ${status}`);
     }
-    await this.get(id);
-    const updated = await this.repository.updateStatus(id, status);
-    return updated!;
+    await this.get(shipmentId, tenantId);
+    const updated = await this.repository.updateLineStatus(
+      shipmentId,
+      lineId,
+      tenantId,
+      status,
+    );
+    if (!updated) throw new NotFoundException("Shipment line not found");
+    return updated;
   }
 
-  async delete(id: string): Promise<void> {
-    await this.get(id);
-    await this.repository.delete(id);
+  async delete(id: string, tenantId: string): Promise<void> {
+    await this.get(id, tenantId);
+    await this.repository.delete(id, tenantId);
   }
 }
