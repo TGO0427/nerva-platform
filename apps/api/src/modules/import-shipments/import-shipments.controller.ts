@@ -25,6 +25,7 @@ import {
   CreateImportShipmentDto,
   UpdateImportShipmentDto,
   UpdateImportShipmentLineStatusDto,
+  UpdateImportShipmentLineDto,
 } from "./dto/import-shipments.dto";
 
 @ApiTags("import-shipments")
@@ -101,6 +102,18 @@ export class ImportShipmentsController {
     @Body() data: UpdateImportShipmentLineStatusDto,
   ) {
     return this.service.updateLineStatus(id, lineId, tenantId, data.status);
+  }
+
+  @Patch(":id/lines/:lineId")
+  @RequirePermissions("import_shipment.write")
+  @ApiOperation({ summary: "Update a single shipment line's fields" })
+  async updateLine(
+    @Param("id", UuidValidationPipe) id: string,
+    @Param("lineId", UuidValidationPipe) lineId: string,
+    @TenantId() tenantId: string,
+    @Body() data: UpdateImportShipmentLineDto,
+  ) {
+    return this.service.updateLine(id, lineId, tenantId, data);
   }
 
   @Delete(":id")

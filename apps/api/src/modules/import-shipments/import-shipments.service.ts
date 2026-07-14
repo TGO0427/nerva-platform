@@ -90,6 +90,21 @@ export class ImportShipmentsService {
     return updated;
   }
 
+  async updateLine(
+    shipmentId: string,
+    lineId: string,
+    tenantId: string,
+    data: Partial<ImportShipmentLineInput>,
+  ): Promise<ImportShipmentLineRow> {
+    if (data.status && !ALL_IMPORT_SHIPMENT_STATUSES.includes(data.status as any)) {
+      throw new BadRequestException(`Invalid status: ${data.status}`);
+    }
+    await this.get(shipmentId, tenantId);
+    const updated = await this.repository.updateLine(shipmentId, lineId, tenantId, data);
+    if (!updated) throw new NotFoundException("Shipment line not found");
+    return updated;
+  }
+
   async delete(id: string, tenantId: string): Promise<void> {
     await this.get(id, tenantId);
     await this.repository.delete(id, tenantId);

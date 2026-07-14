@@ -336,6 +336,62 @@ export class ImportShipmentsRepository extends BaseRepository {
     return row ? this.mapLine(row) : null;
   }
 
+  async updateLine(
+    shipmentId: string,
+    lineId: string,
+    tenantId: string,
+    data: Partial<ImportShipmentLineInput>,
+  ): Promise<ImportShipmentLineRow | null> {
+    const sets: string[] = [];
+    const params: unknown[] = [];
+    let idx = 1;
+
+    const fieldMap: Record<string, unknown> = {
+      item_id: data.itemId,
+      quantity: data.quantity,
+      cbm: data.cbm,
+      pallet_qty: data.palletQty,
+      transport_mode: data.transportMode,
+      carrier: data.carrier,
+      vessel_or_awb: data.vesselOrAwb,
+      destination_port: data.destinationPort,
+      status: data.status,
+      week_start_date: data.weekStartDate,
+      week_end_date: data.weekEndDate,
+      notes: data.notes,
+    };
+
+    for (const [column, value] of Object.entries(fieldMap)) {
+      if (value !== undefined) {
+        sets.push(`${column} = $${idx++}`);
+        params.push(value);
+      }
+    }
+
+    if (sets.length === 0) return this.findLineById(shipmentId, lineId, tenantId);
+
+    params.push(lineId, shipmentId, tenantId);
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE import_shipment_lines SET ${sets.join(", ")}
+       WHERE id = $${idx++} AND import_shipment_id = $${idx++} AND tenant_id = $${idx}
+       RETURNING *`,
+      params,
+    );
+    return row ? this.mapLine(row) : null;
+  }
+
+  async findLineById(
+    shipmentId: string,
+    lineId: string,
+    tenantId: string,
+  ): Promise<ImportShipmentLineRow | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `SELECT * FROM import_shipment_lines WHERE id = $1 AND import_shipment_id = $2 AND tenant_id = $3`,
+      [lineId, shipmentId, tenantId],
+    );
+    return row ? this.mapLine(row) : null;
+  }
+
   async delete(id: string, tenantId: string): Promise<boolean> {
     const count = await this.execute(
       "DELETE FROM import_shipments WHERE id = $1 AND tenant_id = $2",

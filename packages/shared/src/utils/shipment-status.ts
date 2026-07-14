@@ -176,3 +176,17 @@ export function getVesselTrackingUrl(
 
   return `https://www.vesselfinder.com/vessels?name=${encodeURIComponent(trimmed)}`;
 }
+
+/**
+ * ISO 8601 week number + year for a given date, used only to label the Week
+ * badge on the shipping schedule table (e.g. "Week 30 2026"). The stored and
+ * edited values remain the real weekStartDate/weekEndDate on the line.
+ */
+export function getIsoWeek(date: Date): { week: number; year: number } {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return { week, year: d.getUTCFullYear() };
+}

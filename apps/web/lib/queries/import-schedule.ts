@@ -129,6 +129,47 @@ export function useUpdateImportShipmentLineStatus() {
   });
 }
 
+export interface UpdateImportShipmentLineData {
+  itemId?: string;
+  quantity?: number;
+  cbm?: number;
+  palletQty?: number;
+  transportMode?: ImportShipmentTransportMode;
+  carrier?: string;
+  vesselOrAwb?: string;
+  destinationPort?: string;
+  status?: ImportShipmentStatus;
+  weekStartDate?: string;
+  weekEndDate?: string;
+  notes?: string;
+}
+
+export function useUpdateImportShipmentLine() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      shipmentId,
+      lineId,
+      data,
+    }: {
+      shipmentId: string;
+      lineId: string;
+      data: UpdateImportShipmentLineData;
+    }) => {
+      const response = await api.patch<ImportShipmentLineRow>(
+        `/import-shipments/${shipmentId}/lines/${lineId}`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: (_, { shipmentId }) => {
+      queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY, shipmentId] });
+    },
+  });
+}
+
 export function useDeleteImportShipment() {
   const queryClient = useQueryClient();
 
