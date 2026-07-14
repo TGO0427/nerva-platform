@@ -23,7 +23,7 @@ export function AppShell({ children }: AppShellProps) {
           onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
         />
 
-        <div className="flex-1 flex flex-col h-screen lg:pl-0">
+        <div className="flex-1 flex flex-col h-screen min-w-0 lg:pl-0">
           {/* Sticky header */}
           <div className="sticky top-0 z-40 print:hidden">
             <Header onMenuClick={() => setIsSidebarOpen(true)} />
@@ -34,7 +34,7 @@ export function AppShell({ children }: AppShellProps) {
             <TabStrip />
           </div>
 
-          <main className="flex-1 overflow-y-auto p-4 lg:p-6 text-text-primary dark:text-text-dark-primary">
+          <main className="flex-1 min-w-0 overflow-y-auto p-4 lg:p-6 text-text-primary dark:text-text-dark-primary">
             {children}
           </main>
         </div>
