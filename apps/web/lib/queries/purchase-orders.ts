@@ -12,6 +12,7 @@ interface CreatePurchaseOrderData {
   expectedDate?: string;
   shipToWarehouseId?: string;
   notes?: string;
+  isImport?: boolean;
   lines?: Array<{
     itemId: string;
     qtyOrdered: number;
@@ -24,6 +25,7 @@ interface UpdatePurchaseOrderData {
   expectedDate?: string;
   shipToWarehouseId?: string;
   notes?: string;
+  isImport?: boolean;
 }
 
 interface POFilters {

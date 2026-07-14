@@ -11,6 +11,7 @@ export interface ImportShipmentHeaderRow {
   supplierName: string | null;
   incoterm: string | null;
   notes: string | null;
+  purchaseOrderId: string | null;
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -87,6 +88,7 @@ export class ImportShipmentsRepository extends BaseRepository {
       supplierId: string;
       incoterm?: string | null;
       notes?: string | null;
+      purchaseOrderId?: string | null;
       createdBy?: string | null;
     },
     lines: ImportShipmentLineInput[],
@@ -94,8 +96,8 @@ export class ImportShipmentsRepository extends BaseRepository {
     return this.transaction(async (client) => {
       const headerResult = await (client as unknown as Pool).query(
         `INSERT INTO import_shipments (
-          tenant_id, site_id, reference, supplier_id, incoterm, notes, created_by
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+          tenant_id, site_id, reference, supplier_id, incoterm, notes, purchase_order_id, created_by
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *`,
         [
           tenantId,
@@ -104,6 +106,7 @@ export class ImportShipmentsRepository extends BaseRepository {
           header.supplierId,
           header.incoterm || null,
           header.notes || null,
+          header.purchaseOrderId || null,
           header.createdBy || null,
         ],
       );
@@ -361,6 +364,7 @@ export class ImportShipmentsRepository extends BaseRepository {
       supplierName: (row.supplier_name as string) || null,
       incoterm: row.incoterm as string | null,
       notes: row.notes as string | null,
+      purchaseOrderId: row.purchase_order_id as string | null,
       createdBy: row.created_by as string | null,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,

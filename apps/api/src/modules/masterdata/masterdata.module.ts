@@ -10,8 +10,10 @@ import { NotificationsController } from "./notifications.controller";
 import { MasterDataService } from "./masterdata.service";
 import { MasterDataRepository } from "./masterdata.repository";
 import { PurchaseOrderPdfService } from "./purchase-order-pdf.service";
+import { ImportShipmentsModule } from "../import-shipments/import-shipments.module";
 
 @Module({
+  imports: [ImportShipmentsModule],
   controllers: [
     ItemsController,
     CustomersController,

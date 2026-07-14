@@ -425,6 +425,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   tax_amount numeric(14,2) DEFAULT 0,
   total_amount numeric(14,2) DEFAULT 0,
   notes text,
+  is_import boolean NOT NULL DEFAULT false,
   created_by uuid REFERENCES users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -463,15 +464,25 @@ CREATE TABLE IF NOT EXISTS import_shipments (
   supplier_id uuid NOT NULL REFERENCES suppliers(id) ON DELETE RESTRICT,
   incoterm text,
   notes text,
+  purchase_order_id uuid REFERENCES purchase_orders(id) ON DELETE SET NULL,
   created_by uuid REFERENCES users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, reference)
 );
 
+CREATE INDEX IF NOT EXISTS idx_import_shipments_purchase_order ON import_shipments(purchase_order_id);
+
 CREATE TRIGGER trg_import_shipments_updated
 BEFORE UPDATE ON import_shipments
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- purchase_orders.linked_import_shipment_id references import_shipments, which
+-- is only defined above (after purchase_orders) — added via ALTER here to keep
+-- CREATE TABLE statement ordering valid for a fresh bootstrap.
+ALTER TABLE purchase_orders
+  ADD COLUMN IF NOT EXISTS linked_import_shipment_id uuid
+    REFERENCES import_shipments(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS import_shipment_lines (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

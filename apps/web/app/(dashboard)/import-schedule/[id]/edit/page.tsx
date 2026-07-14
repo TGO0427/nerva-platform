@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
+import { RelatedRecordsPanel } from '@/components/ui/record-panels';
 import {
   useSuppliers,
   useImportShipment,
@@ -209,6 +210,17 @@ export default function EditImportShipmentPage() {
       )}
 
       <div className="space-y-6">
+        {shipment.purchaseOrderId && (
+          <RelatedRecordsPanel
+            items={[{
+              label: 'Purchase Order',
+              description: 'Source order for this shipment',
+              href: `/procurement/purchase-orders/${shipment.purchaseOrderId}`,
+              badge: 'Purchase Order',
+            }]}
+          />
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Supplier</CardTitle>

@@ -214,6 +214,7 @@ export interface AuditEntry {
 export interface PurchaseOrder {
   id: string;
   tenantId: string;
+  siteId: string | null;
   poNo: string;
   supplierId: string;
   status: PurchaseOrderStatus;
@@ -224,6 +225,8 @@ export interface PurchaseOrder {
   taxAmount: number;
   totalAmount: number;
   notes: string | null;
+  isImport: boolean;
+  linkedImportShipmentId: string | null;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -449,6 +452,7 @@ export interface ImportShipmentHeader {
   supplierName?: string | null;
   incoterm: string | null;
   notes: string | null;
+  purchaseOrderId: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -6,6 +6,7 @@ import {
   IsDateString,
   IsArray,
   IsNumber,
+  IsBoolean,
   ValidateNested,
   MaxLength,
 } from "class-validator";
@@ -53,6 +54,13 @@ export class CreatePurchaseOrderDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: "Flag this PO as an import order (auto-creates a linked Import Shipment on confirm)",
+  })
+  @IsOptional()
+  @IsBoolean()
+  isImport?: boolean;
 
   @ApiPropertyOptional({ description: "Order lines" })
   @IsOptional()

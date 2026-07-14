@@ -92,6 +92,18 @@ export default function PurchaseOrderDetailPage() {
       href: `/master-data/warehouses/${po.shipToWarehouseId}`,
       badge: 'Warehouse',
     }] : []),
+    ...(po.isImport && po.linkedImportShipmentId ? [{
+      label: 'Import Shipment',
+      description: 'Shipping schedule entry for this order',
+      href: `/import-schedule/${po.linkedImportShipmentId}`,
+      badge: 'Shipment',
+    }] : []),
+    ...(po.isImport && !po.linkedImportShipmentId ? [{
+      label: 'Import Shipment',
+      description: ['CONFIRMED', 'PARTIAL', 'RECEIVED'].includes(po.status)
+        ? 'No shipment was created (order had no lines when confirmed)'
+        : 'Will be created automatically once this order is confirmed',
+    }] : []),
   ];
 
   return (

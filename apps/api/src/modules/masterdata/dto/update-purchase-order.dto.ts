@@ -4,6 +4,7 @@ import {
   IsUUID,
   IsDateString,
   IsIn,
+  IsBoolean,
   MaxLength,
 } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
@@ -30,4 +31,11 @@ export class UpdatePurchaseOrderDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: "Flag this PO as an import order (auto-creates a linked Import Shipment on confirm)",
+  })
+  @IsOptional()
+  @IsBoolean()
+  isImport?: boolean;
 }

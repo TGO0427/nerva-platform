@@ -12,10 +12,12 @@ import {
   Supplier,
   Warehouse,
 } from "./masterdata.repository";
+import { ImportShipmentsService } from "../import-shipments/import-shipments.service";
 
 describe("MasterDataService", () => {
   let service: MasterDataService;
   let repository: jest.Mocked<MasterDataRepository>;
+  let importShipmentsService: jest.Mocked<ImportShipmentsService>;
 
   const tenantId = "tenant-123";
 
@@ -205,11 +207,18 @@ describe("MasterDataService", () => {
             deleteNotification: jest.fn(),
           },
         },
+        {
+          provide: ImportShipmentsService,
+          useValue: {
+            create: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<MasterDataService>(MasterDataService);
     repository = module.get(MasterDataRepository);
+    importShipmentsService = module.get(ImportShipmentsService);
   });
 
   afterEach(() => {
@@ -658,6 +667,179 @@ describe("MasterDataService", () => {
       await expect(service.reopenPurchaseOrder("po-1")).rejects.toThrow(
         "Only cancelled or received purchase orders can be reopened",
       );
+    });
+  });
+
+  describe("updatePurchaseOrder — import shipment auto-creation", () => {
+    const basePo = {
+      id: "po-1",
+      tenantId,
+      poNo: "PO-00001",
+      supplierId: "supplier-1",
+      siteId: "site-1",
+      createdBy: "user-1",
+      isImport: true,
+      linkedImportShipmentId: null as string | null,
+    };
+    const poLines = [
+      {
+        id: "line-1",
+        itemId: "item-1",
+        itemSku: "SKU-1",
+        itemDescription: "Widget",
+        qtyOrdered: 10,
+      },
+    ];
+
+    it("creates a linked shipment when an is_import PO transitions DRAFT -> CONFIRMED", async () => {
+      repository.findPurchaseOrderById.mockResolvedValue({
+        ...basePo,
+        status: "DRAFT",
+      } as any);
+      repository.updatePurchaseOrder.mockResolvedValueOnce({
+        ...basePo,
+        status: "CONFIRMED",
+      } as any);
+      repository.findPurchaseOrderLines.mockResolvedValue(poLines as any);
+      importShipmentsService.create.mockResolvedValue({ id: "shipment-1" } as any);
+      repository.updatePurchaseOrder.mockResolvedValueOnce({
+        ...basePo,
+        status: "CONFIRMED",
+        linkedImportShipmentId: "shipment-1",
+      } as any);
+
+      await service.updatePurchaseOrder("po-1", { status: "CONFIRMED" });
+
+      expect(importShipmentsService.create).toHaveBeenCalledWith(tenantId, {
+        siteId: "site-1",
+        reference: "PO-00001",
+        supplierId: "supplier-1",
+        purchaseOrderId: "po-1",
+        notes: "Auto-created from PO PO-00001",
+        createdBy: "user-1",
+        lines: [
+          { productDescription: "Widget", itemId: "item-1", quantity: 10 },
+        ],
+      });
+      expect(repository.updatePurchaseOrder).toHaveBeenCalledWith("po-1", {
+        linkedImportShipmentId: "shipment-1",
+      });
+    });
+
+    it("does not create a shipment when isImport is false", async () => {
+      repository.findPurchaseOrderById.mockResolvedValue({
+        ...basePo,
+        isImport: false,
+        status: "DRAFT",
+      } as any);
+      repository.updatePurchaseOrder.mockResolvedValue({
+        ...basePo,
+        isImport: false,
+        status: "CONFIRMED",
+      } as any);
+
+      await service.updatePurchaseOrder("po-1", { status: "CONFIRMED" });
+
+      expect(importShipmentsService.create).not.toHaveBeenCalled();
+    });
+
+    it("does not create a shipment when linkedImportShipmentId is already set", async () => {
+      repository.findPurchaseOrderById.mockResolvedValue({
+        ...basePo,
+        status: "SENT",
+      } as any);
+      repository.updatePurchaseOrder.mockResolvedValue({
+        ...basePo,
+        status: "CONFIRMED",
+        linkedImportShipmentId: "existing-shipment",
+      } as any);
+
+      await service.updatePurchaseOrder("po-1", { status: "CONFIRMED" });
+
+      expect(importShipmentsService.create).not.toHaveBeenCalled();
+    });
+
+    it("does not create a shipment for a non-CONFIRMED-transition status change", async () => {
+      repository.findPurchaseOrderById.mockResolvedValue({
+        ...basePo,
+        status: "SENT",
+      } as any);
+      repository.updatePurchaseOrder.mockResolvedValue({
+        ...basePo,
+        status: "PARTIAL",
+      } as any);
+
+      await service.updatePurchaseOrder("po-1", { status: "PARTIAL" });
+
+      expect(importShipmentsService.create).not.toHaveBeenCalled();
+    });
+
+    it("does not re-fire when the PO was already CONFIRMED", async () => {
+      repository.findPurchaseOrderById.mockResolvedValue({
+        ...basePo,
+        status: "CONFIRMED",
+      } as any);
+      repository.updatePurchaseOrder.mockResolvedValue({
+        ...basePo,
+        status: "CONFIRMED",
+      } as any);
+
+      await service.updatePurchaseOrder("po-1", { status: "CONFIRMED" });
+
+      expect(importShipmentsService.create).not.toHaveBeenCalled();
+    });
+
+    it("skips silently when the PO has zero lines", async () => {
+      repository.findPurchaseOrderById.mockResolvedValue({
+        ...basePo,
+        status: "DRAFT",
+      } as any);
+      repository.updatePurchaseOrder.mockResolvedValue({
+        ...basePo,
+        status: "CONFIRMED",
+      } as any);
+      repository.findPurchaseOrderLines.mockResolvedValue([]);
+
+      const result = await service.updatePurchaseOrder("po-1", {
+        status: "CONFIRMED",
+      });
+
+      expect(result.status).toBe("CONFIRMED");
+      expect(importShipmentsService.create).not.toHaveBeenCalled();
+    });
+
+    it("does not fail the status update if shipment creation throws", async () => {
+      repository.findPurchaseOrderById.mockResolvedValue({
+        ...basePo,
+        status: "DRAFT",
+      } as any);
+      repository.updatePurchaseOrder.mockResolvedValue({
+        ...basePo,
+        status: "CONFIRMED",
+      } as any);
+      repository.findPurchaseOrderLines.mockResolvedValue(poLines as any);
+      importShipmentsService.create.mockRejectedValue(new Error("boom"));
+
+      const result = await service.updatePurchaseOrder("po-1", {
+        status: "CONFIRMED",
+      });
+
+      expect(result.status).toBe("CONFIRMED");
+    });
+
+    it("does not trigger via reopenPurchaseOrder (bypasses updatePurchaseOrder)", async () => {
+      repository.findPurchaseOrderById.mockResolvedValue({
+        ...basePo,
+        status: "RECEIVED",
+      } as any);
+      repository.updatePurchaseOrder.mockResolvedValue({
+        ...basePo,
+        status: "CONFIRMED",
+      } as any);
+
+      await service.reopenPurchaseOrder("po-1");
+
+      expect(importShipmentsService.create).not.toHaveBeenCalled();
     });
   });
 });

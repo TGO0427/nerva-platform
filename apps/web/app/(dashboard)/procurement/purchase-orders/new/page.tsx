@@ -35,6 +35,7 @@ export default function NewPurchaseOrderPage() {
     expectedDate: '',
     shipToWarehouseId: '',
     notes: '',
+    isImport: false,
   });
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [itemSearch, setItemSearch] = useState('');
@@ -116,6 +117,7 @@ export default function NewPurchaseOrderPage() {
         expectedDate: formData.expectedDate || undefined,
         shipToWarehouseId: formData.shipToWarehouseId || undefined,
         notes: formData.notes || undefined,
+        isImport: formData.isImport,
         lines: lines.length > 0
           ? lines.map((l) => ({
               itemId: l.itemId,
@@ -218,6 +220,22 @@ export default function NewPurchaseOrderPage() {
                 className="w-full h-24 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Add any notes or special instructions..."
               />
+            </div>
+
+            <div className="flex items-start gap-2">
+              <input
+                id="isImport"
+                type="checkbox"
+                checked={formData.isImport}
+                onChange={(e) => setFormData({ ...formData, isImport: e.target.checked })}
+                className="mt-1"
+              />
+              <div>
+                <Label htmlFor="isImport">This is an import order</Label>
+                <p className="text-xs text-slate-500">
+                  Automatically creates a shipping schedule entry in Import Schedule once this order is confirmed.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

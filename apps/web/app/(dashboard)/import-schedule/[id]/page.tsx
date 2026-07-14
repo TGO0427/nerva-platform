@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { RelatedRecordsPanel } from '@/components/ui/record-panels';
 import {
   useImportShipment,
   useUpdateImportShipmentLineStatus,
@@ -115,6 +116,19 @@ export default function ImportShipmentDetailPage() {
           </dl>
         </CardContent>
       </Card>
+
+      {shipment.purchaseOrderId && (
+        <div className="mb-6">
+          <RelatedRecordsPanel
+            items={[{
+              label: 'Purchase Order',
+              description: 'Source order for this shipment',
+              href: `/procurement/purchase-orders/${shipment.purchaseOrderId}`,
+              badge: 'Purchase Order',
+            }]}
+          />
+        </div>
+      )}
 
       <div className="space-y-4">
         {shipment.lines.map((line) => (

@@ -184,6 +184,7 @@ export interface CustomerNote {
 export interface PurchaseOrder {
   id: string;
   tenantId: string;
+  siteId: string | null;
   poNo: string;
   supplierId: string;
   status: string;
@@ -194,6 +195,8 @@ export interface PurchaseOrder {
   taxAmount: number;
   totalAmount: number;
   notes: string | null;
+  isImport: boolean;
+  linkedImportShipmentId: string | null;
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -2048,12 +2051,13 @@ export class MasterDataRepository extends BaseRepository {
     expectedDate?: Date;
     shipToWarehouseId?: string;
     notes?: string;
+    isImport?: boolean;
     createdBy?: string;
   }): Promise<PurchaseOrder> {
     const row = await this.queryOne<Record<string, unknown>>(
       `INSERT INTO purchase_orders (
-        tenant_id, site_id, supplier_id, po_no, order_date, expected_date, ship_to_warehouse_id, notes, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        tenant_id, site_id, supplier_id, po_no, order_date, expected_date, ship_to_warehouse_id, notes, is_import, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
         data.tenantId,
@@ -2064,6 +2068,7 @@ export class MasterDataRepository extends BaseRepository {
         data.expectedDate || null,
         data.shipToWarehouseId || null,
         data.notes || null,
+        data.isImport ?? false,
         data.createdBy || null,
       ],
     );
@@ -2080,6 +2085,8 @@ export class MasterDataRepository extends BaseRepository {
       taxAmount: number;
       totalAmount: number;
       notes: string;
+      isImport: boolean;
+      linkedImportShipmentId: string | null;
     }>,
   ): Promise<PurchaseOrder | null> {
     const fields: string[] = [];
@@ -2113,6 +2120,14 @@ export class MasterDataRepository extends BaseRepository {
     if (data.notes !== undefined) {
       fields.push(`notes = $${idx++}`);
       values.push(data.notes);
+    }
+    if (data.isImport !== undefined) {
+      fields.push(`is_import = $${idx++}`);
+      values.push(data.isImport);
+    }
+    if (data.linkedImportShipmentId !== undefined) {
+      fields.push(`linked_import_shipment_id = $${idx++}`);
+      values.push(data.linkedImportShipmentId);
     }
 
     if (fields.length === 0) return this.findPurchaseOrderById(id);
@@ -2250,6 +2265,7 @@ export class MasterDataRepository extends BaseRepository {
     return {
       id: row.id as string,
       tenantId: row.tenant_id as string,
+      siteId: row.site_id as string | null,
       poNo: row.po_no as string,
       supplierId: row.supplier_id as string,
       status: row.status as string,
@@ -2262,6 +2278,8 @@ export class MasterDataRepository extends BaseRepository {
         ? parseFloat(row.total_amount as string)
         : 0,
       notes: row.notes as string | null,
+      isImport: row.is_import as boolean,
+      linkedImportShipmentId: row.linked_import_shipment_id as string | null,
       createdBy: row.created_by as string | null,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,

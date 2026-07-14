@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ConflictException,
   BadRequestException,
@@ -30,10 +31,16 @@ import {
 } from "../../common/utils/pagination";
 import type { ImportResult } from "./dto/import.dto";
 import type { PurchaseOrderImportRowDto } from "./dto/po-import.dto";
+import { ImportShipmentsService } from "../import-shipments/import-shipments.service";
 
 @Injectable()
 export class MasterDataService {
-  constructor(private readonly repository: MasterDataRepository) {}
+  private readonly logger = new Logger(MasterDataService.name);
+
+  constructor(
+    private readonly repository: MasterDataRepository,
+    private readonly importShipmentsService: ImportShipmentsService,
+  ) {}
 
   // Items
   async listItems(
@@ -810,6 +817,7 @@ export class MasterDataService {
     expectedDate?: Date;
     shipToWarehouseId?: string;
     notes?: string;
+    isImport?: boolean;
     createdBy?: string;
   }): Promise<PurchaseOrder> {
     const poNo = await this.repository.generatePoNo(data.tenantId);
@@ -826,11 +834,68 @@ export class MasterDataService {
       taxAmount: number;
       totalAmount: number;
       notes: string;
+      isImport: boolean;
     }>,
   ): Promise<PurchaseOrder> {
+    let previousStatus: string | undefined;
+    if (data.status !== undefined) {
+      const existing = await this.repository.findPurchaseOrderById(id);
+      if (!existing) throw new NotFoundException("Purchase order not found");
+      previousStatus = existing.status;
+    }
+
     const order = await this.repository.updatePurchaseOrder(id, data);
     if (!order) throw new NotFoundException("Purchase order not found");
+
+    const justConfirmed =
+      data.status === "CONFIRMED" && previousStatus !== "CONFIRMED";
+    if (justConfirmed && order.isImport && !order.linkedImportShipmentId) {
+      await this.autoCreateImportShipmentForPo(order);
+    }
+
     return order;
+  }
+
+  private async autoCreateImportShipmentForPo(
+    order: PurchaseOrder,
+  ): Promise<void> {
+    try {
+      const lines = await this.repository.findPurchaseOrderLines(order.id);
+      if (lines.length === 0) {
+        this.logger.warn(
+          `PO ${order.poNo} is flagged is_import but has no lines; skipping shipment auto-creation`,
+        );
+        return;
+      }
+
+      const shipment = await this.importShipmentsService.create(
+        order.tenantId,
+        {
+          siteId: order.siteId ?? undefined,
+          reference: order.poNo,
+          supplierId: order.supplierId,
+          purchaseOrderId: order.id,
+          notes: `Auto-created from PO ${order.poNo}`,
+          createdBy: order.createdBy ?? undefined,
+          lines: lines.map((l) => ({
+            productDescription: l.itemDescription || l.itemSku || "Unknown item",
+            itemId: l.itemId,
+            quantity: l.qtyOrdered,
+          })),
+        },
+      );
+
+      await this.repository.updatePurchaseOrder(order.id, {
+        linkedImportShipmentId: shipment.id,
+      });
+    } catch (err) {
+      this.logger.error(
+        `Failed to auto-create import shipment for PO ${order.poNo} (${order.id})`,
+        err instanceof Error ? err.stack : String(err),
+      );
+      // Swallow: a downstream logistics-record failure must not block the
+      // PO's own status transition.
+    }
   }
 
   // Purchase Order Lines

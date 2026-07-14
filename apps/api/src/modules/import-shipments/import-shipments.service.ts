@@ -20,6 +20,7 @@ export class ImportShipmentsService {
       supplierId: string;
       incoterm?: string;
       notes?: string;
+      purchaseOrderId?: string | null;
       createdBy?: string;
       lines: ImportShipmentLineInput[];
     },

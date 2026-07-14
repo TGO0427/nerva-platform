@@ -146,6 +146,7 @@ export class PurchaseOrdersController {
       expectedDate: data.expectedDate ? new Date(data.expectedDate) : undefined,
       shipToWarehouseId: data.shipToWarehouseId,
       notes: data.notes,
+      isImport: data.isImport,
       createdBy: user.id,
     });
 
