@@ -316,7 +316,7 @@ export default function NewPurchaseOrderPage() {
                             onChange={(e) => handleUpdateLine(line.tempId, 'qtyOrdered', e.target.value)}
                             className="w-24 text-right"
                             min="0.01"
-                            step="1"
+                            step="0.01"
                           />
                         </td>
                         <td className="py-3 px-2">
