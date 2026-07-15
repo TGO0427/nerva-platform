@@ -1,5 +1,7 @@
 import {
   Injectable,
+  Inject,
+  forwardRef,
   Logger,
   NotFoundException,
   ConflictException,
@@ -39,6 +41,7 @@ export class MasterDataService {
 
   constructor(
     private readonly repository: MasterDataRepository,
+    @Inject(forwardRef(() => ImportShipmentsService))
     private readonly importShipmentsService: ImportShipmentsService,
   ) {}
 

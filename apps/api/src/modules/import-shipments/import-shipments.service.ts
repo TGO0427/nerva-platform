@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  Inject,
+  forwardRef,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { ALL_IMPORT_SHIPMENT_STATUSES, INSPECTION_FAILURE_REASONS } from "@nerva/shared";
 import {
   ImportShipmentsRepository,
@@ -18,6 +24,7 @@ const INSPECTION_REASON_LABELS: Record<string, string> = Object.fromEntries(
 export class ImportShipmentsService {
   constructor(
     private readonly repository: ImportShipmentsRepository,
+    @Inject(forwardRef(() => InventoryService))
     private readonly inventoryService: InventoryService,
   ) {}
 
