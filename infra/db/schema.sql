@@ -507,6 +507,16 @@ CREATE TABLE IF NOT EXISTS import_shipment_lines (
   week_start_date date,
   week_end_date date,
   notes text,
+  inspected_by text,
+  inspection_reason text,
+  inspection_notes text,
+  inspected_at timestamptz,
+  received_by text,
+  received_qty numeric,
+  receiving_bin_location text,
+  discrepancy_notes text,
+  received_at timestamptz,
+  ncr_id uuid REFERENCES supplier_ncrs(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, import_shipment_id, line_no)
@@ -542,6 +552,14 @@ CREATE INDEX IF NOT EXISTS idx_grns_tenant_status ON grns(tenant_id, status);
 CREATE TRIGGER trg_grns_updated
 BEFORE UPDATE ON grns
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- import_shipment_lines.grn_id references grns, which is only defined above
+-- (after import_shipment_lines) — added via ALTER here to keep CREATE TABLE
+-- statement ordering valid for a fresh bootstrap.
+ALTER TABLE import_shipment_lines
+  ADD COLUMN IF NOT EXISTS grn_id uuid REFERENCES grns(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_isl_grn ON import_shipment_lines(grn_id);
 
 CREATE TABLE IF NOT EXISTS grn_lines (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

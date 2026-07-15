@@ -34,6 +34,17 @@ export interface ImportShipmentLineRow {
   weekStartDate: Date | null;
   weekEndDate: Date | null;
   notes: string | null;
+  inspectedBy: string | null;
+  inspectionReason: string | null;
+  inspectionNotes: string | null;
+  inspectedAt: Date | null;
+  receivedBy: string | null;
+  receivedQty: number | null;
+  receivingBinLocation: string | null;
+  discrepancyNotes: string | null;
+  receivedAt: Date | null;
+  grnId: string | null;
+  ncrId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -336,6 +347,105 @@ export class ImportShipmentsRepository extends BaseRepository {
     return row ? this.mapLine(row) : null;
   }
 
+  async completeInspection(
+    shipmentId: string,
+    lineId: string,
+    tenantId: string,
+    data: {
+      status: string;
+      reason?: string | null;
+      notes?: string | null;
+      inspectedBy: string;
+      ncrId?: string | null;
+    },
+  ): Promise<ImportShipmentLineRow | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE import_shipment_lines SET
+        status = $1, inspection_reason = $2, inspection_notes = $3,
+        inspected_by = $4, inspected_at = now(), ncr_id = $5
+       WHERE id = $6 AND import_shipment_id = $7 AND tenant_id = $8
+       RETURNING *`,
+      [
+        data.status,
+        data.reason || null,
+        data.notes || null,
+        data.inspectedBy,
+        data.ncrId || null,
+        lineId,
+        shipmentId,
+        tenantId,
+      ],
+    );
+    return row ? this.mapLine(row) : null;
+  }
+
+  async startReceiving(
+    shipmentId: string,
+    lineId: string,
+    tenantId: string,
+    data: { grnId?: string | null },
+  ): Promise<ImportShipmentLineRow | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE import_shipment_lines SET status = 'RECEIVING', grn_id = $1
+       WHERE id = $2 AND import_shipment_id = $3 AND tenant_id = $4
+       RETURNING *`,
+      [data.grnId || null, lineId, shipmentId, tenantId],
+    );
+    return row ? this.mapLine(row) : null;
+  }
+
+  async completeReceiving(
+    shipmentId: string,
+    lineId: string,
+    tenantId: string,
+    data: {
+      receivedQty?: number | null;
+      receivingBinLocation?: string | null;
+      discrepancyNotes?: string | null;
+      receivedBy: string;
+    },
+  ): Promise<ImportShipmentLineRow | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE import_shipment_lines SET
+        status = 'STORED', received_qty = $1, receiving_bin_location = $2,
+        discrepancy_notes = $3, received_by = $4, received_at = now()
+       WHERE id = $5 AND import_shipment_id = $6 AND tenant_id = $7
+       RETURNING *`,
+      [
+        data.receivedQty ?? null,
+        data.receivingBinLocation || null,
+        data.discrepancyNotes || null,
+        data.receivedBy,
+        lineId,
+        shipmentId,
+        tenantId,
+      ],
+    );
+    return row ? this.mapLine(row) : null;
+  }
+
+  async createNcrForFailedInspection(
+    tenantId: string,
+    supplierId: string,
+    description: string,
+    createdBy?: string | null,
+  ): Promise<string> {
+    const countResult = await this.queryOne<{ count: string }>(
+      "SELECT COUNT(*) as count FROM supplier_ncrs WHERE tenant_id = $1",
+      [tenantId],
+    );
+    const count = parseInt(countResult?.count || "0", 10) + 1;
+    const ncrNo = `NCR-${String(count).padStart(5, "0")}`;
+
+    const row = await this.queryOne<{ id: string }>(
+      `INSERT INTO supplier_ncrs (tenant_id, supplier_id, ncr_no, ncr_type, description, created_by)
+       VALUES ($1, $2, $3, 'QUALITY', $4, $5)
+       RETURNING id`,
+      [tenantId, supplierId, ncrNo, description, createdBy || null],
+    );
+    return row!.id;
+  }
+
   async updateLine(
     shipmentId: string,
     lineId: string,
@@ -446,6 +556,18 @@ export class ImportShipmentsRepository extends BaseRepository {
       weekStartDate: row.week_start_date as Date | null,
       weekEndDate: row.week_end_date as Date | null,
       notes: row.notes as string | null,
+      inspectedBy: row.inspected_by as string | null,
+      inspectionReason: row.inspection_reason as string | null,
+      inspectionNotes: row.inspection_notes as string | null,
+      inspectedAt: row.inspected_at as Date | null,
+      receivedBy: row.received_by as string | null,
+      receivedQty:
+        row.received_qty !== null ? parseFloat(row.received_qty as string) : null,
+      receivingBinLocation: row.receiving_bin_location as string | null,
+      discrepancyNotes: row.discrepancy_notes as string | null,
+      receivedAt: row.received_at as Date | null,
+      grnId: row.grn_id as string | null,
+      ncrId: row.ncr_id as string | null,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,
     };

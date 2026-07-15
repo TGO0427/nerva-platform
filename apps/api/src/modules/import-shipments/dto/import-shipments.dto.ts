@@ -5,7 +5,9 @@ import {
   IsNumber,
   IsArray,
   IsDate,
+  IsDateString,
   IsIn,
+  IsBoolean,
   ValidateNested,
   MaxLength,
   Min,
@@ -13,7 +15,10 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { ALL_IMPORT_SHIPMENT_STATUSES } from "@nerva/shared";
+import {
+  ALL_IMPORT_SHIPMENT_STATUSES,
+  INSPECTION_FAILURE_REASON_VALUES,
+} from "@nerva/shared";
 
 const TRANSPORT_MODES = ["AIR", "SEA", "ROAD"];
 
@@ -241,4 +246,64 @@ export class UpdateImportShipmentLineDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+}
+
+export class CompleteInspectionDto {
+  @ApiProperty()
+  @IsBoolean()
+  passed: boolean;
+
+  @ApiPropertyOptional({ enum: INSPECTION_FAILURE_REASON_VALUES })
+  @IsOptional()
+  @IsIn(INSPECTION_FAILURE_REASON_VALUES)
+  reason?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
+}
+
+export class StartReceivingDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  warehouseId?: string;
+}
+
+export class CompleteReceivingDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  receivedQty?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  binId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  binLocation?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  batchNo?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  expiryDate?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  discrepancyNotes?: string;
 }

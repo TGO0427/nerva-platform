@@ -11,6 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { RelatedRecordsPanel } from '@/components/ui/record-panels';
+import { LineWorkflowActions } from './line-workflow-actions';
 import {
   useImportShipment,
   useUpdateImportShipmentLineStatus,
@@ -164,8 +165,12 @@ export default function ImportShipmentDetailPage() {
                   </div>
                 )}
               </dl>
+              <div className="mb-4 pb-4 border-b border-slate-100">
+                <LineWorkflowActions shipmentId={shipment.id} line={line} />
+              </div>
+
               <div className="max-w-xs">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Status (override)</label>
                 <Select
                   value={line.status}
                   onChange={(e) => handleStatusChange(line, e.target.value as ImportShipmentStatus)}

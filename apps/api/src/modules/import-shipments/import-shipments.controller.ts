@@ -26,6 +26,9 @@ import {
   UpdateImportShipmentDto,
   UpdateImportShipmentLineStatusDto,
   UpdateImportShipmentLineDto,
+  CompleteInspectionDto,
+  StartReceivingDto,
+  CompleteReceivingDto,
 } from "./dto/import-shipments.dto";
 
 @ApiTags("import-shipments")
@@ -114,6 +117,44 @@ export class ImportShipmentsController {
     @Body() data: UpdateImportShipmentLineDto,
   ) {
     return this.service.updateLine(id, lineId, tenantId, data);
+  }
+
+  @Post(":id/lines/:lineId/complete-inspection")
+  @RequirePermissions("import_shipment.write")
+  @ApiOperation({ summary: "Record a line's inspection result" })
+  async completeInspection(
+    @Param("id", UuidValidationPipe) id: string,
+    @Param("lineId", UuidValidationPipe) lineId: string,
+    @TenantId() tenantId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: CompleteInspectionDto,
+  ) {
+    return this.service.completeInspection(id, lineId, tenantId, data, user);
+  }
+
+  @Post(":id/lines/:lineId/start-receiving")
+  @RequirePermissions("import_shipment.write")
+  @ApiOperation({ summary: "Start receiving a shipment line" })
+  async startReceiving(
+    @Param("id", UuidValidationPipe) id: string,
+    @Param("lineId", UuidValidationPipe) lineId: string,
+    @TenantId() tenantId: string,
+    @Body() data: StartReceivingDto,
+  ) {
+    return this.service.startReceiving(id, lineId, tenantId, data);
+  }
+
+  @Post(":id/lines/:lineId/complete-receiving")
+  @RequirePermissions("import_shipment.write")
+  @ApiOperation({ summary: "Complete receiving a shipment line" })
+  async completeReceiving(
+    @Param("id", UuidValidationPipe) id: string,
+    @Param("lineId", UuidValidationPipe) lineId: string,
+    @TenantId() tenantId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: CompleteReceivingDto,
+  ) {
+    return this.service.completeReceiving(id, lineId, tenantId, data, user);
   }
 
   @Delete(":id")

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
-import { ALL_IMPORT_SHIPMENT_STATUSES } from "@nerva/shared";
+import { ALL_IMPORT_SHIPMENT_STATUSES, INSPECTION_FAILURE_REASONS } from "@nerva/shared";
 import {
   ImportShipmentsRepository,
   ImportShipmentDetail,
@@ -7,10 +7,19 @@ import {
   ImportShipmentLineRow,
 } from "./import-shipments.repository";
 import { buildPaginatedResult, normalizePagination } from "../../common/utils/pagination";
+import { InventoryService } from "../inventory/inventory.service";
+import { CurrentUserData } from "../../common/decorators/current-user.decorator";
+
+const INSPECTION_REASON_LABELS: Record<string, string> = Object.fromEntries(
+  INSPECTION_FAILURE_REASONS.map((r) => [r.value, r.label]),
+);
 
 @Injectable()
 export class ImportShipmentsService {
-  constructor(private readonly repository: ImportShipmentsRepository) {}
+  constructor(
+    private readonly repository: ImportShipmentsRepository,
+    private readonly inventoryService: InventoryService,
+  ) {}
 
   async create(
     tenantId: string,
@@ -86,6 +95,114 @@ export class ImportShipmentsService {
       tenantId,
       status,
     );
+    if (!updated) throw new NotFoundException("Shipment line not found");
+    return updated;
+  }
+
+  async completeInspection(
+    shipmentId: string,
+    lineId: string,
+    tenantId: string,
+    data: { passed: boolean; reason?: string; notes?: string },
+    user: CurrentUserData,
+  ): Promise<ImportShipmentLineRow> {
+    const shipment = await this.get(shipmentId, tenantId);
+    if (!data.passed && !data.reason) {
+      throw new BadRequestException("Reason is required when inspection fails");
+    }
+
+    let ncrId: string | undefined;
+    if (!data.passed) {
+      const reasonLabel = data.reason ? INSPECTION_REASON_LABELS[data.reason] : undefined;
+      const description = `Inspection failed on shipment ${shipment.reference}: ${reasonLabel || data.reason}${data.notes ? ` — ${data.notes}` : ""}`;
+      ncrId = await this.repository.createNcrForFailedInspection(
+        tenantId,
+        shipment.supplierId,
+        description,
+        user.id,
+      );
+    }
+
+    const updated = await this.repository.completeInspection(shipmentId, lineId, tenantId, {
+      status: data.passed ? "INSPECTION_PASSED" : "INSPECTION_FAILED",
+      reason: data.reason,
+      notes: data.notes,
+      inspectedBy: user.displayName,
+      ncrId,
+    });
+    if (!updated) throw new NotFoundException("Shipment line not found");
+    return updated;
+  }
+
+  async startReceiving(
+    shipmentId: string,
+    lineId: string,
+    tenantId: string,
+    data: { warehouseId?: string },
+  ): Promise<ImportShipmentLineRow> {
+    const shipment = await this.get(shipmentId, tenantId);
+    const line = shipment.lines.find((l) => l.id === lineId);
+    if (!line) throw new NotFoundException("Shipment line not found");
+
+    let grnId: string | undefined;
+    if (line.itemId) {
+      if (!data.warehouseId) {
+        throw new BadRequestException("Warehouse is required to receive a linked item");
+      }
+      const grn = await this.inventoryService.createGrn({
+        tenantId,
+        warehouseId: data.warehouseId,
+        supplierId: shipment.supplierId,
+        notes: `Auto-created from import shipment ${shipment.reference}`,
+      });
+      grnId = grn.id;
+    }
+
+    const updated = await this.repository.startReceiving(shipmentId, lineId, tenantId, { grnId });
+    if (!updated) throw new NotFoundException("Shipment line not found");
+    return updated;
+  }
+
+  async completeReceiving(
+    shipmentId: string,
+    lineId: string,
+    tenantId: string,
+    data: {
+      receivedQty?: number;
+      binId?: string;
+      binLocation?: string;
+      batchNo?: string;
+      expiryDate?: string;
+      discrepancyNotes?: string;
+    },
+    user: CurrentUserData,
+  ): Promise<ImportShipmentLineRow> {
+    const shipment = await this.get(shipmentId, tenantId);
+    const line = shipment.lines.find((l) => l.id === lineId);
+    if (!line) throw new NotFoundException("Shipment line not found");
+
+    if (line.grnId) {
+      if (!data.receivedQty || !data.binId) {
+        throw new BadRequestException("Quantity and bin are required");
+      }
+      await this.inventoryService.receiveGrnLine(line.grnId, {
+        tenantId,
+        itemId: line.itemId!,
+        qtyReceived: data.receivedQty,
+        batchNo: data.batchNo,
+        expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
+        receivingBinId: data.binId,
+        createdBy: user.id,
+      });
+      await this.inventoryService.completeGrn(line.grnId);
+    }
+
+    const updated = await this.repository.completeReceiving(shipmentId, lineId, tenantId, {
+      receivedQty: data.receivedQty,
+      receivingBinLocation: line.grnId ? undefined : data.binLocation,
+      discrepancyNotes: data.discrepancyNotes,
+      receivedBy: user.displayName,
+    });
     if (!updated) throw new NotFoundException("Shipment line not found");
     return updated;
   }

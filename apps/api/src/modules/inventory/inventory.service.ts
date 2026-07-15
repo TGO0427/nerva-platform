@@ -1,5 +1,7 @@
 import {
   Injectable,
+  Inject,
+  forwardRef,
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
@@ -35,6 +37,7 @@ export class InventoryService {
     private readonly putawayRepo: PutawayRepository,
     private readonly stockLedger: StockLedgerService,
     private readonly batchRepository: BatchRepository,
+    @Inject(forwardRef(() => MasterDataService))
     private readonly masterDataService: MasterDataService,
   ) {}
 

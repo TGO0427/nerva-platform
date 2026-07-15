@@ -170,6 +170,93 @@ export function useUpdateImportShipmentLine() {
   });
 }
 
+export function useCompleteInspection() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      shipmentId,
+      lineId,
+      data,
+    }: {
+      shipmentId: string;
+      lineId: string;
+      data: { passed: boolean; reason?: string; notes?: string };
+    }) => {
+      const response = await api.post<ImportShipmentLineRow>(
+        `/import-shipments/${shipmentId}/lines/${lineId}/complete-inspection`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: (_, { shipmentId }) => {
+      queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY, shipmentId] });
+    },
+  });
+}
+
+export function useStartReceiving() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      shipmentId,
+      lineId,
+      data,
+    }: {
+      shipmentId: string;
+      lineId: string;
+      data: { warehouseId?: string };
+    }) => {
+      const response = await api.post<ImportShipmentLineRow>(
+        `/import-shipments/${shipmentId}/lines/${lineId}/start-receiving`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: (_, { shipmentId }) => {
+      queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY, shipmentId] });
+    },
+  });
+}
+
+export interface CompleteReceivingData {
+  receivedQty?: number;
+  binId?: string;
+  binLocation?: string;
+  batchNo?: string;
+  expiryDate?: string;
+  discrepancyNotes?: string;
+}
+
+export function useCompleteReceiving() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      shipmentId,
+      lineId,
+      data,
+    }: {
+      shipmentId: string;
+      lineId: string;
+      data: CompleteReceivingData;
+    }) => {
+      const response = await api.post<ImportShipmentLineRow>(
+        `/import-shipments/${shipmentId}/lines/${lineId}/complete-receiving`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: (_, { shipmentId }) => {
+      queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [SHIPMENTS_KEY, shipmentId] });
+    },
+  });
+}
+
 export function useDeleteImportShipment() {
   const queryClient = useQueryClient();
 

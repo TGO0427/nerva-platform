@@ -474,6 +474,17 @@ export interface ImportShipmentLine {
   weekStartDate: string | null;
   weekEndDate: string | null;
   notes: string | null;
+  inspectedBy: string | null;
+  inspectionReason: string | null;
+  inspectionNotes: string | null;
+  inspectedAt: string | null;
+  receivedBy: string | null;
+  receivedQty: number | null;
+  receivingBinLocation: string | null;
+  discrepancyNotes: string | null;
+  receivedAt: string | null;
+  grnId: string | null;
+  ncrId: string | null;
   createdAt: string;
   updatedAt: string;
 }

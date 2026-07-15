@@ -190,3 +190,22 @@ export function getIsoWeek(date: Date): { week: number; year: number } {
   const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   return { week, year: d.getUTCFullYear() };
 }
+
+export interface InspectionReasonOption {
+  value: string;
+  label: string;
+}
+
+/** Structured reasons for a failed/on-hold inspection outcome. */
+export const INSPECTION_FAILURE_REASONS: InspectionReasonOption[] = [
+  { value: 'NO_COA', label: 'No COA' },
+  { value: 'SUPPLIER_NOT_APPROVED', label: 'Supplier Not Approved' },
+  { value: 'DAMAGED_STOCK', label: 'Damaged Stock' },
+  { value: 'EXPIRED_STOCK', label: 'Expired Stock' },
+  { value: 'NON_COMPLIANT_DOCUMENTATION', label: 'Non-Compliant Documentation' },
+  { value: 'PENDING_RESULTS', label: 'Pending Results (On Hold)' },
+  { value: 'AWAITING_COA', label: 'Awaiting COA (On Hold)' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+export const INSPECTION_FAILURE_REASON_VALUES = INSPECTION_FAILURE_REASONS.map((r) => r.value);
