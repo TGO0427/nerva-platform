@@ -13,11 +13,18 @@ import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
 import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
-import { useNonConformances, useQueryParams } from '@/lib/queries';
+import { useNonConformances, useQueryParams, useAssignNonConformance, useUpdateNonConformance } from '@/lib/queries';
+import { useUsers } from '@/lib/queries/settings';
 import { useColumnVisibility } from '@/lib/hooks';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import { formatDate, formatNumber, formatQuantity } from '@/lib/format';
 import type { NonConformance, NonConformanceStatus, NcSeverity } from '@nerva/shared';
+
+function isOverdue(nc: NonConformance): boolean {
+  if (!nc.dueDate) return false;
+  if (nc.status !== 'OPEN' && nc.status !== 'UNDER_REVIEW') return false;
+  return new Date(nc.dueDate) < new Date(new Date().toDateString());
+}
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -59,7 +66,17 @@ export default function QualityPage() {
   const [status, setStatus] = useState('');
   const [severity, setSeverity] = useState('');
   const [search, setSearch] = useState('');
+  const [assigneeId, setAssigneeId] = useState('');
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const { params, setPage } = useQueryParams();
+  const { data: usersData } = useUsers({ page: 1, limit: 100 });
+  const assignNc = useAssignNonConformance();
+  const updateNc = useUpdateNonConformance();
+
+  const assigneeOptions = [
+    { value: '', label: 'All Assignees' },
+    ...(usersData?.data || []).map((u) => ({ value: u.id, label: u.displayName || u.email })),
+  ];
 
   useEffect(() => {
     const statusParam = searchParams.get('status');
@@ -80,6 +97,8 @@ export default function QualityPage() {
     ...params,
     status: status || undefined,
     severity: severity || undefined,
+    assigneeId: assigneeId || undefined,
+    overdue: overdueOnly || undefined,
     search: search || undefined,
   });
 
@@ -146,12 +165,48 @@ export default function QualityPage() {
       render: (row) => formatQuantity(row.qtyAffected),
     },
     {
+      key: 'assigneeId',
+      header: 'Assignee',
+      width: '160px',
+      render: (row) => (
+        <Select
+          value={row.assigneeId || ''}
+          onChange={(e) => {
+            e.stopPropagation();
+            assignNc.mutate({ id: row.id, userId: e.target.value });
+          }}
+          onClick={(e) => e.stopPropagation()}
+          options={assigneeOptions}
+        />
+      ),
+    },
+    {
+      key: 'dueDate',
+      header: 'Due Date',
+      width: '150px',
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={row.dueDate ? row.dueDate.slice(0, 10) : ''}
+            onChange={(e) => {
+              e.stopPropagation();
+              updateNc.mutate({ id: row.id, dueDate: e.target.value });
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-md border border-slate-300 px-2 py-1 text-xs"
+          />
+          {isOverdue(row) && <span className="text-xs font-medium text-red-600">Overdue</span>}
+        </div>
+      ),
+    },
+    {
       key: 'createdAt',
       header: 'Date',
       sortable: true,
       render: (row) => formatDate(row.createdAt),
     },
-  ], []);
+  ], [assigneeOptions, assignNc, updateNc]);
 
   const {
     visibleKeys,
@@ -178,17 +233,21 @@ export default function QualityPage() {
   const openCount = tableData.filter(nc => nc.status === 'OPEN').length;
   const reviewCount = tableData.filter(nc => nc.status === 'UNDER_REVIEW').length;
   const criticalCount = tableData.filter(nc => nc.severity === 'CRITICAL').length;
-  const hasActiveFilters = Boolean(status || severity || search);
+  const hasActiveFilters = Boolean(status || severity || search || assigneeId || overdueOnly);
   const activeFilterLabels = [
     status ? `Status: ${status.replace(/_/g, ' ')}` : null,
     severity ? `Severity: ${severity}` : null,
     search ? `Search: ${search}` : null,
+    assigneeId ? `Assignee: ${assigneeOptions.find((o) => o.value === assigneeId)?.label || assigneeId}` : null,
+    overdueOnly ? 'Overdue only' : null,
   ].filter((label): label is string => Boolean(label));
 
   const clearAllFilters = () => {
     setSearch('');
     setStatus('');
     setSeverity('');
+    setAssigneeId('');
+    setOverdueOnly(false);
     setPage(1);
     router.replace('/manufacturing/quality');
   };
@@ -204,6 +263,8 @@ export default function QualityPage() {
     setStatus(nextStatus);
     setSeverity(nextSeverity);
     setSearch(typeof values.search === 'string' ? values.search : '');
+    setAssigneeId(typeof values.assigneeId === 'string' ? values.assigneeId : '');
+    setOverdueOnly(Boolean(values.overdueOnly));
     setPage(1);
   };
 
@@ -269,13 +330,27 @@ export default function QualityPage() {
             options={SEVERITY_OPTIONS}
             className="max-w-xs"
           />
+          <Select
+            value={assigneeId}
+            onChange={(e) => { setAssigneeId(e.target.value); setPage(1); }}
+            options={assigneeOptions}
+            className="max-w-xs"
+          />
+          <label className="flex items-center gap-2 text-sm text-slate-700 whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={overdueOnly}
+              onChange={(e) => { setOverdueOnly(e.target.checked); setPage(1); }}
+            />
+            Overdue only
+          </label>
         </div>
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
           <SavedFilterViews
             storageKey="quality-ncs"
-            currentValues={{ search, status, severity }}
+            currentValues={{ search, status, severity, assigneeId, overdueOnly }}
             onApply={applySavedView}
           />
           <ColumnToggle

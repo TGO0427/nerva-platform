@@ -56,6 +56,7 @@ import {
   CreateNonConformanceDto,
   UpdateNonConformanceDto,
   ResolveNonConformanceDto,
+  AssignNonConformanceDto,
 } from "./dto/manufacturing.dto";
 import { ImportWorkOrdersDto } from "./dto/wo-import.dto";
 import { ImportWorkstationsDto } from "./dto/workstation-import.dto";
@@ -808,13 +809,22 @@ export class ManufacturingController {
     @Query("status") status?: string,
     @Query("severity") severity?: string,
     @Query("workOrderId") workOrderId?: string,
+    @Query("assigneeId") assigneeId?: string,
+    @Query("overdue") overdue?: string,
     @Query("search") search?: string,
     @Query("page") page?: number,
     @Query("limit") limit?: number,
   ) {
     return this.service.listNonConformances(
       tenantId,
-      { status, severity, workOrderId, search },
+      {
+        status,
+        severity,
+        workOrderId,
+        assigneeId,
+        overdue: overdue === "true",
+        search,
+      },
       page,
       limit,
     );
@@ -823,8 +833,11 @@ export class ManufacturingController {
   @Get("non-conformances/:id")
   @RequirePermissions("quality.view")
   @ApiOperation({ summary: "Get non-conformance detail" })
-  async getNonConformance(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.getNonConformance(id);
+  async getNonConformance(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.getNonConformance(tenantId, id);
   }
 
   @Post("non-conformances")
@@ -846,21 +859,44 @@ export class ManufacturingController {
   @RequirePermissions("quality.edit")
   @ApiOperation({ summary: "Update non-conformance" })
   async updateNonConformance(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @Body() data: UpdateNonConformanceDto,
   ) {
-    return this.service.updateNonConformance(id, data);
+    return this.service.updateNonConformance(tenantId, id, data);
+  }
+
+  @Post("non-conformances/:id/start-review")
+  @RequirePermissions("quality.edit")
+  @ApiOperation({ summary: "Begin review of a non-conformance" })
+  async startReviewNonConformance(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.startReviewNonConformance(tenantId, id);
+  }
+
+  @Post("non-conformances/:id/assign")
+  @RequirePermissions("quality.edit")
+  @ApiOperation({ summary: "Assign non-conformance to a user" })
+  async assignNonConformance(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+    @Body() data: AssignNonConformanceDto,
+  ) {
+    return this.service.assignNonConformance(tenantId, id, data.userId);
   }
 
   @Post("non-conformances/:id/resolve")
   @RequirePermissions("quality.resolve")
   @ApiOperation({ summary: "Resolve non-conformance with disposition" })
   async resolveNonConformance(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
     @Body() data: ResolveNonConformanceDto,
   ) {
-    return this.service.resolveNonConformance(id, {
+    return this.service.resolveNonConformance(tenantId, id, {
       ...data,
       resolvedBy: user.id,
     });
@@ -869,8 +905,22 @@ export class ManufacturingController {
   @Post("non-conformances/:id/close")
   @RequirePermissions("quality.resolve")
   @ApiOperation({ summary: "Close non-conformance" })
-  async closeNonConformance(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.closeNonConformance(id);
+  async closeNonConformance(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.service.closeNonConformance(tenantId, id, user.id);
+  }
+
+  @Post("non-conformances/:id/reopen")
+  @RequirePermissions("quality.resolve")
+  @ApiOperation({ summary: "Reopen a resolved or closed non-conformance" })
+  async reopenNonConformance(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.reopenNonConformance(tenantId, id);
   }
 
   // ============ Production Ledger ============

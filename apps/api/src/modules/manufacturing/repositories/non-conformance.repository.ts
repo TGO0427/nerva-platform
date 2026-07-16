@@ -14,9 +14,16 @@ export interface NonConformance {
   qtyAffected: number | null;
   disposition: string | null;
   correctiveAction: string | null;
+  rootCause: string | null;
   status: string;
   resolvedBy: string | null;
   resolvedAt: Date | null;
+  assigneeId: string | null;
+  assigneeName?: string;
+  dueDate: Date | null;
+  closedBy: string | null;
+  closedByName?: string;
+  closedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +51,8 @@ export class NonConformanceRepository extends BaseRepository {
       status?: string;
       severity?: string;
       workOrderId?: string;
+      assigneeId?: string;
+      overdue?: boolean;
       search?: string;
     },
     limit = 50,
@@ -59,11 +68,13 @@ export class NonConformanceRepository extends BaseRepository {
   }> {
     let sql = `
       SELECT nc.*, i.sku as item_sku, i.description as item_description,
-             wo.work_order_no, u.display_name as reported_by_name
+             wo.work_order_no, u.display_name as reported_by_name,
+             ua.display_name as assignee_name
       FROM non_conformances nc
       LEFT JOIN items i ON i.id = nc.item_id
       LEFT JOIN work_orders wo ON wo.id = nc.work_order_id
       LEFT JOIN users u ON u.id = nc.reported_by
+      LEFT JOIN users ua ON ua.id = nc.assignee_id
       WHERE nc.tenant_id = $1
     `;
     let countSql = `
@@ -96,6 +107,17 @@ export class NonConformanceRepository extends BaseRepository {
       countParams.push(filters.workOrderId);
       idx++;
     }
+    if (filters.assigneeId) {
+      sql += ` AND nc.assignee_id = $${idx}`;
+      countSql += ` AND nc.assignee_id = $${idx}`;
+      params.push(filters.assigneeId);
+      countParams.push(filters.assigneeId);
+      idx++;
+    }
+    if (filters.overdue) {
+      sql += ` AND nc.due_date < CURRENT_DATE AND nc.status IN ('OPEN', 'UNDER_REVIEW')`;
+      countSql += ` AND nc.due_date < CURRENT_DATE AND nc.status IN ('OPEN', 'UNDER_REVIEW')`;
+    }
     if (filters.search) {
       sql += ` AND (nc.nc_no ILIKE $${idx} OR nc.description ILIKE $${idx} OR i.sku ILIKE $${idx})`;
       countSql += ` AND (nc.nc_no ILIKE $${idx} OR nc.description ILIKE $${idx} OR i.sku ILIKE $${idx})`;
@@ -124,7 +146,10 @@ export class NonConformanceRepository extends BaseRepository {
     };
   }
 
-  async findById(id: string): Promise<
+  async findById(
+    tenantId: string,
+    id: string,
+  ): Promise<
     | (NonConformance & {
         itemSku?: string;
         itemDescription?: string;
@@ -137,14 +162,18 @@ export class NonConformanceRepository extends BaseRepository {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT nc.*, i.sku as item_sku, i.description as item_description,
               wo.work_order_no, u.display_name as reported_by_name,
-              u2.display_name as resolved_by_name
+              u2.display_name as resolved_by_name,
+              ua.display_name as assignee_name,
+              uc.display_name as closed_by_name
        FROM non_conformances nc
        LEFT JOIN items i ON i.id = nc.item_id
        LEFT JOIN work_orders wo ON wo.id = nc.work_order_id
        LEFT JOIN users u ON u.id = nc.reported_by
        LEFT JOIN users u2 ON u2.id = nc.resolved_by
-       WHERE nc.id = $1`,
-      [id],
+       LEFT JOIN users ua ON ua.id = nc.assignee_id
+       LEFT JOIN users uc ON uc.id = nc.closed_by
+       WHERE nc.id = $1 AND nc.tenant_id = $2`,
+      [id, tenantId],
     );
     if (!row) return null;
     return {
@@ -198,9 +227,14 @@ export class NonConformanceRepository extends BaseRepository {
       qtyAffected: number;
       disposition: string;
       correctiveAction: string;
+      rootCause: string;
       status: string;
       resolvedBy: string;
       resolvedAt: Date;
+      assigneeId: string | null;
+      dueDate: string | null;
+      closedBy: string | null;
+      closedAt: Date | null;
     }>,
   ): Promise<NonConformance | null> {
     const updates: string[] = [];
@@ -231,6 +265,10 @@ export class NonConformanceRepository extends BaseRepository {
       updates.push(`corrective_action = $${idx++}`);
       params.push(data.correctiveAction);
     }
+    if (data.rootCause !== undefined) {
+      updates.push(`root_cause = $${idx++}`);
+      params.push(data.rootCause);
+    }
     if (data.status !== undefined) {
       updates.push(`status = $${idx++}`);
       params.push(data.status);
@@ -242,6 +280,22 @@ export class NonConformanceRepository extends BaseRepository {
     if (data.resolvedAt !== undefined) {
       updates.push(`resolved_at = $${idx++}`);
       params.push(data.resolvedAt);
+    }
+    if (data.assigneeId !== undefined) {
+      updates.push(`assignee_id = $${idx++}`);
+      params.push(data.assigneeId);
+    }
+    if (data.dueDate !== undefined) {
+      updates.push(`due_date = $${idx++}`);
+      params.push(data.dueDate);
+    }
+    if (data.closedBy !== undefined) {
+      updates.push(`closed_by = $${idx++}`);
+      params.push(data.closedBy);
+    }
+    if (data.closedAt !== undefined) {
+      updates.push(`closed_at = $${idx++}`);
+      params.push(data.closedAt);
     }
 
     if (updates.length === 0) return null;
@@ -270,9 +324,16 @@ export class NonConformanceRepository extends BaseRepository {
         : 0,
       disposition: row.disposition as string | null,
       correctiveAction: row.corrective_action as string | null,
+      rootCause: row.root_cause as string | null,
       status: row.status as string,
       resolvedBy: row.resolved_by as string | null,
       resolvedAt: row.resolved_at as Date | null,
+      assigneeId: row.assignee_id as string | null,
+      assigneeName: row.assignee_name as string | undefined,
+      dueDate: row.due_date as Date | null,
+      closedBy: row.closed_by as string | null,
+      closedByName: row.closed_by_name as string | undefined,
+      closedAt: row.closed_at as Date | null,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,
     };

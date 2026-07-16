@@ -1061,9 +1061,14 @@ export interface NonConformance {
   qtyAffected: number;
   disposition: NcDisposition | null;
   correctiveAction: string | null;
+  rootCause: string | null;
   status: NonConformanceStatus;
   resolvedBy: string | null;
   resolvedAt: string | null;
+  assigneeId: string | null;
+  dueDate: string | null;
+  closedBy: string | null;
+  closedAt: string | null;
   createdAt: string;
   updatedAt: string;
   // Joined fields
@@ -1072,4 +1077,6 @@ export interface NonConformance {
   workOrderNo?: string;
   reportedByName?: string;
   resolvedByName?: string;
+  assigneeName?: string;
+  closedByName?: string;
 }

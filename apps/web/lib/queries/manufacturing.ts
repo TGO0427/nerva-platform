@@ -1044,6 +1044,8 @@ interface NcFilters {
   status?: string;
   severity?: string;
   workOrderId?: string;
+  assigneeId?: string;
+  overdue?: boolean;
   search?: string;
 }
 
@@ -1057,6 +1059,8 @@ export function useNonConformances(params: QueryParams & NcFilters) {
       if (params.status) searchParams.set('status', params.status);
       if (params.severity) searchParams.set('severity', params.severity);
       if (params.workOrderId) searchParams.set('workOrderId', params.workOrderId);
+      if (params.assigneeId) searchParams.set('assigneeId', params.assigneeId);
+      if (params.overdue) searchParams.set('overdue', 'true');
       if (params.search) searchParams.set('search', params.search);
 
       const response = await api.get<PaginatedResult<NonConformance>>(
@@ -1109,7 +1113,9 @@ export function useUpdateNonConformance() {
       qtyAffected?: number;
       disposition?: string;
       correctiveAction?: string;
-      status?: string;
+      rootCause?: string;
+      assigneeId?: string;
+      dueDate?: string;
     }) => {
       const response = await api.patch<NonConformance>(`/manufacturing/non-conformances/${id}`, data);
       return response.data;
@@ -1128,6 +1134,7 @@ export function useResolveNonConformance() {
       id: string;
       disposition: string;
       correctiveAction: string;
+      rootCause: string;
     }) => {
       const response = await api.post<NonConformance>(`/manufacturing/non-conformances/${id}/resolve`, data);
       return response.data;
@@ -1144,6 +1151,48 @@ export function useCloseNonConformance() {
   return useMutation({
     mutationFn: async (id: string) => {
       const response = await api.post<NonConformance>(`/manufacturing/non-conformances/${id}/close`);
+      return response.data;
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY] });
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY, id] });
+    },
+  });
+}
+
+export function useStartReviewNonConformance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<NonConformance>(`/manufacturing/non-conformances/${id}/start-review`);
+      return response.data;
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY] });
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY, id] });
+    },
+  });
+}
+
+export function useAssignNonConformance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
+      const response = await api.post<NonConformance>(`/manufacturing/non-conformances/${id}/assign`, { userId });
+      return response.data;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY] });
+      queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY, id] });
+    },
+  });
+}
+
+export function useReopenNonConformance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<NonConformance>(`/manufacturing/non-conformances/${id}/reopen`);
       return response.data;
     },
     onSuccess: (_, id) => {

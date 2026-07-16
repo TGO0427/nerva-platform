@@ -7,6 +7,7 @@ import {
   IsArray,
   IsBoolean,
   IsDate,
+  IsDateString,
   IsObject,
   ValidateNested,
   MaxLength,
@@ -821,6 +822,22 @@ export class UpdateNonConformanceDto {
   @IsOptional()
   @IsString()
   correctiveAction?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  rootCause?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  assigneeId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  dueDate?: string;
 }
 
 export class ResolveNonConformanceDto {
@@ -833,4 +850,16 @@ export class ResolveNonConformanceDto {
   @IsString()
   @IsNotEmpty()
   correctiveAction: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(5000)
+  rootCause: string;
+}
+
+export class AssignNonConformanceDto {
+  @ApiProperty()
+  @IsUUID()
+  userId: string;
 }

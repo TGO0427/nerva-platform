@@ -1437,6 +1437,8 @@ export class ManufacturingService {
       status?: string;
       severity?: string;
       workOrderId?: string;
+      assigneeId?: string;
+      overdue?: boolean;
       search?: string;
     },
     page = 1,
@@ -1460,8 +1462,8 @@ export class ManufacturingService {
     };
   }
 
-  async getNonConformance(id: string) {
-    const nc = await this.ncRepo.findById(id);
+  async getNonConformance(tenantId: string, id: string) {
+    const nc = await this.ncRepo.findById(tenantId, id);
     if (!nc) throw new NotFoundException("Non-conformance not found");
     return nc;
   }
@@ -1481,6 +1483,7 @@ export class ManufacturingService {
   }
 
   async updateNonConformance(
+    tenantId: string,
     id: string,
     data: {
       defectType?: string;
@@ -1489,9 +1492,12 @@ export class ManufacturingService {
       qtyAffected?: number;
       disposition?: string;
       correctiveAction?: string;
+      rootCause?: string;
+      assigneeId?: string;
+      dueDate?: string;
     },
   ) {
-    const nc = await this.ncRepo.findById(id);
+    const nc = await this.ncRepo.findById(tenantId, id);
     if (!nc) throw new NotFoundException("Non-conformance not found");
     if (nc.status === "CLOSED") {
       throw new BadRequestException("Cannot update a CLOSED non-conformance");
@@ -1500,14 +1506,16 @@ export class ManufacturingService {
   }
 
   async resolveNonConformance(
+    tenantId: string,
     id: string,
     data: {
       disposition: string;
       correctiveAction: string;
+      rootCause: string;
       resolvedBy: string;
     },
   ) {
-    const nc = await this.ncRepo.findById(id);
+    const nc = await this.ncRepo.findById(tenantId, id);
     if (!nc) throw new NotFoundException("Non-conformance not found");
     if (nc.status === "CLOSED") {
       throw new BadRequestException("Cannot resolve a CLOSED non-conformance");
@@ -1519,14 +1527,53 @@ export class ManufacturingService {
     });
   }
 
-  async closeNonConformance(id: string) {
-    const nc = await this.ncRepo.findById(id);
+  async closeNonConformance(tenantId: string, id: string, userId: string) {
+    const nc = await this.ncRepo.findById(tenantId, id);
     if (!nc) throw new NotFoundException("Non-conformance not found");
     if (nc.status !== "RESOLVED") {
       throw new BadRequestException(
         "Only RESOLVED non-conformances can be closed",
       );
     }
-    return this.ncRepo.update(id, { status: "CLOSED" });
+    return this.ncRepo.update(id, {
+      status: "CLOSED",
+      closedBy: userId,
+      closedAt: new Date(),
+    });
+  }
+
+  async startReviewNonConformance(tenantId: string, id: string) {
+    const nc = await this.ncRepo.findById(tenantId, id);
+    if (!nc) throw new NotFoundException("Non-conformance not found");
+    if (nc.status !== "OPEN") {
+      throw new BadRequestException(
+        "Only OPEN non-conformances can begin review",
+      );
+    }
+    return this.ncRepo.update(id, { status: "UNDER_REVIEW" });
+  }
+
+  async assignNonConformance(tenantId: string, id: string, userId: string) {
+    const nc = await this.ncRepo.findById(tenantId, id);
+    if (!nc) throw new NotFoundException("Non-conformance not found");
+    return this.ncRepo.update(id, {
+      assigneeId: userId,
+      status: nc.status === "OPEN" ? "UNDER_REVIEW" : undefined,
+    });
+  }
+
+  async reopenNonConformance(tenantId: string, id: string) {
+    const nc = await this.ncRepo.findById(tenantId, id);
+    if (!nc) throw new NotFoundException("Non-conformance not found");
+    if (nc.status !== "RESOLVED" && nc.status !== "CLOSED") {
+      throw new BadRequestException(
+        "Only RESOLVED or CLOSED non-conformances can be reopened",
+      );
+    }
+    return this.ncRepo.update(id, {
+      status: "UNDER_REVIEW",
+      closedBy: null,
+      closedAt: null,
+    });
   }
 }

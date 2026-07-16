@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Select } from '@/components/ui/select';
 import { EntityHistory } from '@/components/ui/entity-history';
 import { RecordDocumentsPanel, RelatedRecordsPanel } from '@/components/ui/record-panels';
 import { useToast } from '@/components/ui/toast';
@@ -17,7 +18,11 @@ import {
   useUpdateNonConformance,
   useResolveNonConformance,
   useCloseNonConformance,
+  useStartReviewNonConformance,
+  useAssignNonConformance,
+  useReopenNonConformance,
 } from '@/lib/queries';
+import { useUsers } from '@/lib/queries/settings';
 import { formatDate, formatDateTime, formatQuantity } from '@/lib/format';
 import type { NonConformanceStatus, NcSeverity, NcDisposition } from '@nerva/shared';
 
@@ -70,18 +75,29 @@ export default function NcDetailPage() {
   const updateNc = useUpdateNonConformance();
   const resolveNc = useResolveNonConformance();
   const closeNc = useCloseNonConformance();
+  const startReviewNc = useStartReviewNonConformance();
+  const assignNc = useAssignNonConformance();
+  const reopenNc = useReopenNonConformance();
+  const { data: usersData } = useUsers({ page: 1, limit: 100 });
 
   const [showResolveForm, setShowResolveForm] = useState(false);
   const [disposition, setDisposition] = useState<NcDisposition | ''>('');
   const [correctiveAction, setCorrectiveAction] = useState('');
+  const [rootCause, setRootCause] = useState('');
 
   // Sync existing disposition/corrective action into form
   useEffect(() => {
     if (nc) {
       setDisposition(nc.disposition || '');
       setCorrectiveAction(nc.correctiveAction || '');
+      setRootCause(nc.rootCause || '');
     }
   }, [nc]);
+
+  const userOptions = [
+    { value: '', label: 'Unassigned' },
+    ...(usersData?.data || []).map((u) => ({ value: u.id, label: u.displayName || u.email })),
+  ];
 
   if (isLoading) {
     return (
@@ -111,7 +127,7 @@ export default function NcDetailPage() {
 
   const handleBeginReview = async () => {
     try {
-      await updateNc.mutateAsync({ id, status: 'UNDER_REVIEW' as NonConformanceStatus });
+      await startReviewNc.mutateAsync(id);
       addToast('NC moved to Under Review', 'success');
     } catch {
       addToast('Failed to update status', 'error');
@@ -127,11 +143,16 @@ export default function NcDetailPage() {
       addToast('Please enter a corrective action', 'error');
       return;
     }
+    if (!rootCause.trim()) {
+      addToast('Please enter a root cause', 'error');
+      return;
+    }
     try {
       await resolveNc.mutateAsync({
         id,
         disposition: disposition as string,
         correctiveAction: correctiveAction.trim(),
+        rootCause: rootCause.trim(),
       });
       addToast('NC resolved successfully', 'success');
       setShowResolveForm(false);
@@ -149,13 +170,23 @@ export default function NcDetailPage() {
     }
   };
 
+  const handleReopen = async () => {
+    try {
+      await reopenNc.mutateAsync(id);
+      addToast('NC reopened', 'success');
+    } catch {
+      addToast('Failed to reopen NC', 'error');
+    }
+  };
+
   const handleSaveDisposition = async () => {
     try {
       await updateNc.mutateAsync({
         id,
         disposition: disposition || undefined,
         correctiveAction: correctiveAction || undefined,
-      } as { id: string; disposition?: string; correctiveAction?: string });
+        rootCause: rootCause || undefined,
+      });
       addToast('Disposition saved', 'success');
     } catch {
       addToast('Failed to save disposition', 'error');
@@ -195,11 +226,21 @@ export default function NcDetailPage() {
             </Button>
           )}
           {nc.status === 'RESOLVED' && (
-            <Button
-              onClick={handleClose}
-              disabled={closeNc.isPending}
-            >
-              {closeNc.isPending ? 'Closing...' : 'Close NC'}
+            <>
+              <Button
+                onClick={handleClose}
+                disabled={closeNc.isPending}
+              >
+                {closeNc.isPending ? 'Closing...' : 'Close NC'}
+              </Button>
+              <Button variant="secondary" onClick={handleReopen} disabled={reopenNc.isPending}>
+                Reopen
+              </Button>
+            </>
+          )}
+          {nc.status === 'CLOSED' && (
+            <Button variant="secondary" onClick={handleReopen} disabled={reopenNc.isPending}>
+              Reopen
             </Button>
           )}
           <Button variant="secondary" onClick={() => router.push('/manufacturing/quality')}>
@@ -255,6 +296,26 @@ export default function NcDetailPage() {
               <Label>Qty Affected</Label>
               <p className="mt-1 text-slate-900 font-medium">{formatQuantity(nc.qtyAffected)}</p>
             </div>
+            <div>
+              <Label htmlFor="assignee">Assignee</Label>
+              <Select
+                id="assignee"
+                value={nc.assigneeId || ''}
+                onChange={(e) => assignNc.mutate({ id, userId: e.target.value })}
+                options={userOptions}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="dueDate">Due Date</Label>
+              <input
+                id="dueDate"
+                type="date"
+                value={nc.dueDate ? nc.dueDate.slice(0, 10) : ''}
+                onChange={(e) => updateNc.mutate({ id, dueDate: e.target.value })}
+                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:border-primary-500 focus:ring-primary-500"
+              />
+            </div>
             <div className="col-span-full">
               <Label>Description</Label>
               <p className="mt-1 text-slate-900 whitespace-pre-wrap">{nc.description}</p>
@@ -292,6 +353,12 @@ export default function NcDetailPage() {
                 </p>
               </div>
               <div>
+                <Label>Root Cause</Label>
+                <p className="mt-1 text-slate-900 whitespace-pre-wrap">
+                  {nc.rootCause || '-'}
+                </p>
+              </div>
+              <div className="col-span-full">
                 <Label>Corrective Action</Label>
                 <p className="mt-1 text-slate-900 whitespace-pre-wrap">
                   {nc.correctiveAction || '-'}
@@ -315,6 +382,17 @@ export default function NcDetailPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <Label htmlFor="rootCause">Root Cause</Label>
+                <textarea
+                  id="rootCause"
+                  className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:border-primary-500 focus:ring-primary-500"
+                  rows={4}
+                  placeholder="Why did this non-conformance happen?"
+                  value={rootCause}
+                  onChange={(e) => setRootCause(e.target.value)}
+                />
               </div>
               <div>
                 <Label htmlFor="correctiveAction">Corrective Action</Label>
@@ -358,6 +436,11 @@ export default function NcDetailPage() {
                 Please select a disposition above before resolving.
               </p>
             )}
+            {!rootCause.trim() && (
+              <p className="text-sm text-red-600 mb-2">
+                Please enter a root cause above before resolving.
+              </p>
+            )}
             {!correctiveAction.trim() && (
               <p className="text-sm text-red-600 mb-2">
                 Please enter a corrective action above before resolving.
@@ -369,7 +452,7 @@ export default function NcDetailPage() {
               </Button>
               <Button
                 onClick={handleResolve}
-                disabled={resolveNc.isPending || !disposition || !correctiveAction.trim()}
+                disabled={resolveNc.isPending || !disposition || !rootCause.trim() || !correctiveAction.trim()}
               >
                 {resolveNc.isPending ? 'Resolving...' : 'Confirm Resolve'}
               </Button>
