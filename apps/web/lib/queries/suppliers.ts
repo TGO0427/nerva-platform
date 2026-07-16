@@ -309,7 +309,118 @@ export function useResolveSupplierNcr() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, variables.supplierId, 'ncrs'] });
       queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, 'ncrs', variables.ncrId] });
+      queryClient.invalidateQueries({ queryKey: [NCR_WORKLIST_KEY] });
     },
+  });
+}
+
+const NCR_WORKLIST_KEY = 'supplier-ncr-worklist';
+
+interface NcrWorklistFilters {
+  status?: string[];
+  assigneeId?: string;
+  overdue?: boolean;
+  search?: string;
+}
+
+// Tenant-wide NCR worklist across all suppliers
+export function useSupplierNcrWorklist(params: QueryParams & NcrWorklistFilters) {
+  return useQuery({
+    queryKey: [NCR_WORKLIST_KEY, params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      searchParams.set('page', String(params.page));
+      searchParams.set('limit', String(params.limit));
+      if (params.status && params.status.length > 0) searchParams.set('status', params.status.join(','));
+      if (params.assigneeId) searchParams.set('assigneeId', params.assigneeId);
+      if (params.overdue) searchParams.set('overdue', 'true');
+      if (params.search) searchParams.set('search', params.search);
+
+      const response = await api.get<PaginatedResult<SupplierNcr>>(
+        `/masterdata/suppliers/ncrs?${searchParams.toString()}`
+      );
+      return response.data;
+    },
+  });
+}
+
+function invalidateNcr(queryClient: ReturnType<typeof useQueryClient>, ncrId: string, supplierId?: string) {
+  if (supplierId) {
+    queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, supplierId, 'ncrs'] });
+  }
+  queryClient.invalidateQueries({ queryKey: [SUPPLIERS_KEY, 'ncrs', ncrId] });
+  queryClient.invalidateQueries({ queryKey: [NCR_WORKLIST_KEY] });
+}
+
+// Assign supplier NCR to a user
+export function useAssignSupplierNcr() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ncrId, userId }: { ncrId: string; userId: string; supplierId?: string }) => {
+      const response = await api.post<SupplierNcr>(`/masterdata/suppliers/ncrs/${ncrId}/assign`, { userId });
+      return response.data;
+    },
+    onSuccess: (_, variables) => invalidateNcr(queryClient, variables.ncrId, variables.supplierId),
+  });
+}
+
+// Start work on a supplier NCR (OPEN -> IN_PROGRESS)
+export function useStartSupplierNcr() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ncrId }: { ncrId: string; supplierId?: string }) => {
+      const response = await api.post<SupplierNcr>(`/masterdata/suppliers/ncrs/${ncrId}/start`, {});
+      return response.data;
+    },
+    onSuccess: (_, variables) => invalidateNcr(queryClient, variables.ncrId, variables.supplierId),
+  });
+}
+
+// Close a resolved supplier NCR
+export function useCloseSupplierNcr() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ncrId }: { ncrId: string; supplierId?: string }) => {
+      const response = await api.post<SupplierNcr>(`/masterdata/suppliers/ncrs/${ncrId}/close`, {});
+      return response.data;
+    },
+    onSuccess: (_, variables) => invalidateNcr(queryClient, variables.ncrId, variables.supplierId),
+  });
+}
+
+// Reopen a resolved or closed supplier NCR
+export function useReopenSupplierNcr() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ncrId }: { ncrId: string; supplierId?: string }) => {
+      const response = await api.post<SupplierNcr>(`/masterdata/suppliers/ncrs/${ncrId}/reopen`, {});
+      return response.data;
+    },
+    onSuccess: (_, variables) => invalidateNcr(queryClient, variables.ncrId, variables.supplierId),
+  });
+}
+
+// Update supplier NCR assignee/due date (no status change)
+export function useUpdateSupplierNcrMeta() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      ncrId,
+      data,
+    }: {
+      ncrId: string;
+      supplierId?: string;
+      data: { assigneeId?: string; dueDate?: string };
+    }) => {
+      const response = await api.patch<SupplierNcr>(`/masterdata/suppliers/ncrs/${ncrId}`, data);
+      return response.data;
+    },
+    onSuccess: (_, variables) => invalidateNcr(queryClient, variables.ncrId, variables.supplierId),
   });
 }
 

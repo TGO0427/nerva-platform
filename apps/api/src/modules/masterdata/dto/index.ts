@@ -27,6 +27,8 @@ export { CreateSupplierNoteDto } from "./create-supplier-note.dto";
 // Supplier NCRs
 export { CreateSupplierNcrDto } from "./create-supplier-ncr.dto";
 export { ResolveSupplierNcrDto } from "./resolve-supplier-ncr.dto";
+export { AssignSupplierNcrDto } from "./assign-supplier-ncr.dto";
+export { UpdateSupplierNcrMetaDto } from "./update-supplier-ncr-meta.dto";
 
 // Supplier Items
 export { CreateSupplierItemDto } from "./create-supplier-item.dto";

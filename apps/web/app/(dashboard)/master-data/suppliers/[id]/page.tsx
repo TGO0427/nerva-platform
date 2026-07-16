@@ -12,6 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { Select } from '@/components/ui/select';
+import { NcrStatusActions } from '@/components/ncr-status-actions';
+import { useUsers } from '@/lib/queries/settings';
 import {
   useSupplier,
   useDeleteSupplier,
@@ -26,6 +29,8 @@ import {
   useSupplierNcrs,
   useCreateSupplierNcr,
   useResolveSupplierNcr,
+  useAssignSupplierNcr,
+  useUpdateSupplierNcrMeta,
   useSupplierItems,
   useAddSupplierItem,
   useUpdateSupplierItem,
@@ -637,8 +642,6 @@ function NotesTab({ supplierId }: { supplierId: string }) {
 
 function NcrsTab({ supplierId }: { supplierId: string }) {
   const [showForm, setShowForm] = useState(false);
-  const [resolvingNcr, setResolvingNcr] = useState<SupplierNcr | null>(null);
-  const [resolution, setResolution] = useState('');
   const [formData, setFormData] = useState({
     ncrType: 'QUALITY' as const,
     description: '',
@@ -646,7 +649,14 @@ function NcrsTab({ supplierId }: { supplierId: string }) {
 
   const { data: ncrs, isLoading } = useSupplierNcrs(supplierId);
   const createNcr = useCreateSupplierNcr();
-  const resolveNcr = useResolveSupplierNcr();
+  const assignNcr = useAssignSupplierNcr();
+  const updateMeta = useUpdateSupplierNcrMeta();
+  const { data: usersData } = useUsers({ page: 1, limit: 100 });
+
+  const userOptions = [
+    { value: '', label: 'Unassigned' },
+    ...(usersData?.data || []).map((u) => ({ value: u.id, label: u.displayName || u.email })),
+  ];
 
   const ncrTypes = [
     { value: 'QUALITY', label: 'Quality Issue' },
@@ -664,22 +674,6 @@ function NcrsTab({ supplierId }: { supplierId: string }) {
       setShowForm(false);
     } catch (error) {
       console.error('Failed to create NCR:', error);
-    }
-  };
-
-  const handleResolve = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resolvingNcr || !resolution.trim()) return;
-    try {
-      await resolveNcr.mutateAsync({
-        ncrId: resolvingNcr.id,
-        resolution: resolution.trim(),
-        supplierId,
-      });
-      setResolvingNcr(null);
-      setResolution('');
-    } catch (error) {
-      console.error('Failed to resolve NCR:', error);
     }
   };
 
@@ -745,48 +739,17 @@ function NcrsTab({ supplierId }: { supplierId: string }) {
         </Card>
       )}
 
-      {resolvingNcr && (
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle>Resolve NCR: {resolvingNcr.ncrNo}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleResolve} className="space-y-4">
-              <div>
-                <Label htmlFor="resolution">Resolution *</Label>
-                <textarea
-                  id="resolution"
-                  value={resolution}
-                  onChange={(e) => setResolution(e.target.value)}
-                  placeholder="Describe how the issue was resolved..."
-                  className="w-full h-24 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" disabled={resolveNcr.isPending}>
-                  {resolveNcr.isPending ? 'Resolving...' : 'Mark as Resolved'}
-                </Button>
-                <Button type="button" variant="secondary" onClick={() => setResolvingNcr(null)}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
       {ncrs && ncrs.length > 0 ? (
         <div className="space-y-4">
           {ncrs.map((ncr) => (
-            <Card key={ncr.id} className={ncr.status === 'RESOLVED' ? 'bg-slate-50' : ''}>
+            <Card key={ncr.id} className={ncr.status === 'RESOLVED' || ncr.status === 'CLOSED' ? 'bg-slate-50' : ''}>
               <CardContent className="pt-4">
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{ncr.ncrNo}</span>
                       <Badge variant={getNcrStatusVariant(ncr.status)}>
-                        {ncr.status}
+                        {ncr.status.replace('_', ' ')}
                       </Badge>
                       <Badge variant="default">{ncr.ncrType}</Badge>
                     </div>
@@ -802,19 +765,33 @@ function NcrsTab({ supplierId }: { supplierId: string }) {
                         )}
                       </div>
                     )}
+                    <div className="mt-3 flex flex-wrap items-center gap-4">
+                      <div>
+                        <Label htmlFor={`assignee-${ncr.id}`}>Assignee</Label>
+                        <Select
+                          value={ncr.assigneeId || ''}
+                          onChange={(e) => assignNcr.mutate({ ncrId: ncr.id, supplierId, userId: e.target.value })}
+                          options={userOptions}
+                          className="w-48"
+                          disabled={assignNcr.isPending}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`due-${ncr.id}`}>Due Date</Label>
+                        <input
+                          id={`due-${ncr.id}`}
+                          type="date"
+                          value={ncr.dueDate ? ncr.dueDate.slice(0, 10) : ''}
+                          onChange={(e) => updateMeta.mutate({ ncrId: ncr.id, supplierId, data: { dueDate: e.target.value } })}
+                          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                        />
+                      </div>
+                    </div>
                     <div className="mt-2 text-sm text-slate-500">
                       Created {formatDate(ncr.createdAt)}
                     </div>
                   </div>
-                  {ncr.status === 'OPEN' && !resolvingNcr && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => setResolvingNcr(ncr)}
-                    >
-                      Resolve
-                    </Button>
-                  )}
+                  <NcrStatusActions ncr={ncr} />
                 </div>
               </CardContent>
             </Card>

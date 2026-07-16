@@ -31,7 +31,8 @@ const searchSynonyms: Record<string, string[]> = {
   '/inventory/adjustments': ['stock adjustment'],
   '/documents': ['document centre', 'documents', 'compliance', 'certificates', 'COA', 'SADC', 'SGS'],
   '/exceptions': ['exception', 'exceptions', 'issues', 'alerts', 'operational queues'],
-  '/manufacturing/quality': ['NCR', 'non-conformance', 'holds'],
+  '/manufacturing/quality': ['non-conformance', 'holds'],
+  '/procurement/supplier-ncrs': ['NCR', 'supplier ncr', 'non-conformance report', 'supplier quality'],
   '/procurement/purchase-orders': ['PO'],
   '/fulfilment': ['pick', 'wave'],
   '/fulfilment/packing': ['pack'],
@@ -99,6 +100,7 @@ const navigation: NavGroup[] = [
     name: 'Procurement',
     items: [
       { name: 'Purchase Orders', href: '/procurement/purchase-orders', icon: <ShoppingCartIcon />, permissions: [PERMISSIONS.PURCHASE_ORDER_READ] },
+      { name: 'Supplier NCRs', href: '/procurement/supplier-ncrs', icon: <AlertIcon />, permissions: [PERMISSIONS.SUPPLIER_READ] },
     ],
   },
   {
@@ -168,7 +170,7 @@ export function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
   if (stats) {
     if (stats.pendingGrns > 0) badgeCounts['/inventory/grn'] = stats.pendingGrns;
     if (stats.openCycleCounts > 0) badgeCounts['/inventory/cycle-counts'] = stats.openCycleCounts;
-    if (stats.openNCRs > 0) badgeCounts['/manufacturing/quality'] = stats.openNCRs;
+    if (stats.openNCRs > 0) badgeCounts['/procurement/supplier-ncrs'] = stats.openNCRs;
     if (stats.expiringItems > 0) badgeCounts['/inventory/expiry-alerts'] = stats.expiringItems;
   }
 

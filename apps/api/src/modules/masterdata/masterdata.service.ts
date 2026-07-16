@@ -495,8 +495,30 @@ export class MasterDataService {
   }
 
   // Supplier NCRs
-  async listSupplierNcrs(supplierId: string): Promise<SupplierNcr[]> {
-    return this.repository.findSupplierNcrs(supplierId);
+  async listSupplierNcrs(
+    tenantId: string,
+    supplierId: string,
+  ): Promise<SupplierNcr[]> {
+    return this.repository.findSupplierNcrs(tenantId, supplierId);
+  }
+
+  async listAllSupplierNcrs(
+    tenantId: string,
+    filters: {
+      status?: string[];
+      assigneeId?: string;
+      overdue?: boolean;
+      search?: string;
+    },
+    rawPage?: number,
+    rawLimit?: number,
+  ) {
+    const { page, limit, offset } = normalizePagination({ page: rawPage, limit: rawLimit });
+    const [data, total] = await Promise.all([
+      this.repository.findAllNcrs(tenantId, filters, limit, offset),
+      this.repository.countAllNcrs(tenantId, filters),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async getSupplierNcr(tenantId: string, id: string): Promise<SupplierNcr> {
@@ -516,6 +538,32 @@ export class MasterDataService {
     return this.repository.createSupplierNcr({ ...data, ncrNo });
   }
 
+  async assignSupplierNcr(
+    tenantId: string,
+    id: string,
+    userId: string,
+  ): Promise<SupplierNcr> {
+    const existing = await this.getSupplierNcr(tenantId, id);
+    const ncr = await this.repository.updateSupplierNcr(tenantId, id, {
+      assigneeId: userId,
+      status: existing.status === "OPEN" ? "IN_PROGRESS" : undefined,
+    });
+    if (!ncr) throw new NotFoundException("NCR not found");
+    return ncr;
+  }
+
+  async startSupplierNcr(tenantId: string, id: string): Promise<SupplierNcr> {
+    const existing = await this.getSupplierNcr(tenantId, id);
+    if (existing.status !== "OPEN") {
+      throw new BadRequestException("Only OPEN NCRs can be started");
+    }
+    const ncr = await this.repository.updateSupplierNcr(tenantId, id, {
+      status: "IN_PROGRESS",
+    });
+    if (!ncr) throw new NotFoundException("NCR not found");
+    return ncr;
+  }
+
   async resolveSupplierNcr(
     tenantId: string,
     id: string,
@@ -531,14 +579,44 @@ export class MasterDataService {
     return ncr;
   }
 
-  async updateSupplierNcrStatus(
+  async closeSupplierNcr(
     tenantId: string,
     id: string,
-    status: string,
+    userId: string,
   ): Promise<SupplierNcr> {
+    const existing = await this.getSupplierNcr(tenantId, id);
+    if (existing.status !== "RESOLVED") {
+      throw new BadRequestException("Only RESOLVED NCRs can be closed");
+    }
     const ncr = await this.repository.updateSupplierNcr(tenantId, id, {
-      status,
+      status: "CLOSED",
+      closedBy: userId,
+      closedAt: new Date(),
     });
+    if (!ncr) throw new NotFoundException("NCR not found");
+    return ncr;
+  }
+
+  async reopenSupplierNcr(tenantId: string, id: string): Promise<SupplierNcr> {
+    const existing = await this.getSupplierNcr(tenantId, id);
+    if (existing.status !== "RESOLVED" && existing.status !== "CLOSED") {
+      throw new BadRequestException("Only RESOLVED or CLOSED NCRs can be reopened");
+    }
+    const ncr = await this.repository.updateSupplierNcr(tenantId, id, {
+      status: "IN_PROGRESS",
+      closedBy: null,
+      closedAt: null,
+    });
+    if (!ncr) throw new NotFoundException("NCR not found");
+    return ncr;
+  }
+
+  async updateSupplierNcrMeta(
+    tenantId: string,
+    id: string,
+    data: { assigneeId?: string | null; dueDate?: string | null },
+  ): Promise<SupplierNcr> {
+    const ncr = await this.repository.updateSupplierNcrMeta(tenantId, id, data);
     if (!ncr) throw new NotFoundException("NCR not found");
     return ncr;
   }

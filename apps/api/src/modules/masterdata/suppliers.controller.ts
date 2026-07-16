@@ -27,6 +27,8 @@ import {
   CreateSupplierNoteDto,
   CreateSupplierNcrDto,
   ResolveSupplierNcrDto,
+  AssignSupplierNcrDto,
+  UpdateSupplierNcrMetaDto,
   CreateSupplierItemDto,
   UpdateSupplierItemDto,
   CreateSupplierContractDto,
@@ -65,6 +67,31 @@ export class SuppliersController {
     @Body() data: ImportSuppliersDto,
   ): Promise<ImportResult> {
     return this.service.importSuppliers(tenantId, data.suppliers);
+  }
+
+  @Get("ncrs")
+  @RequirePermissions("supplier.read")
+  @ApiOperation({ summary: "List NCRs across all suppliers (worklist)" })
+  async listAllNcrs(
+    @TenantId() tenantId: string,
+    @Query("status") status?: string,
+    @Query("assigneeId") assigneeId?: string,
+    @Query("overdue") overdue?: string,
+    @Query("search") search?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+  ) {
+    return this.service.listAllSupplierNcrs(
+      tenantId,
+      {
+        status: status ? status.split(",") : undefined,
+        assigneeId,
+        overdue: overdue === "true",
+        search,
+      },
+      page,
+      limit,
+    );
   }
 
   @Get(":id")
@@ -209,8 +236,11 @@ export class SuppliersController {
   @Get(":id/ncrs")
   @RequirePermissions("supplier.read")
   @ApiOperation({ summary: "List supplier NCRs" })
-  async listNcrs(@Param("id", UuidValidationPipe) supplierId: string) {
-    return this.service.listSupplierNcrs(supplierId);
+  async listNcrs(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) supplierId: string,
+  ) {
+    return this.service.listSupplierNcrs(tenantId, supplierId);
   }
 
   @Post(":id/ncrs")
@@ -254,6 +284,59 @@ export class SuppliersController {
       resolution: data.resolution,
       resolvedBy: user.id,
     });
+  }
+
+  @Post("ncrs/:ncrId/assign")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Assign supplier NCR to a user" })
+  async assignNcr(
+    @TenantId() tenantId: string,
+    @Param("ncrId", UuidValidationPipe) ncrId: string,
+    @Body() data: AssignSupplierNcrDto,
+  ) {
+    return this.service.assignSupplierNcr(tenantId, ncrId, data.userId);
+  }
+
+  @Post("ncrs/:ncrId/start")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Start work on supplier NCR" })
+  async startNcr(
+    @TenantId() tenantId: string,
+    @Param("ncrId", UuidValidationPipe) ncrId: string,
+  ) {
+    return this.service.startSupplierNcr(tenantId, ncrId);
+  }
+
+  @Post("ncrs/:ncrId/close")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Close a resolved supplier NCR" })
+  async closeNcr(
+    @TenantId() tenantId: string,
+    @Param("ncrId", UuidValidationPipe) ncrId: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.service.closeSupplierNcr(tenantId, ncrId, user.id);
+  }
+
+  @Post("ncrs/:ncrId/reopen")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Reopen a resolved or closed supplier NCR" })
+  async reopenNcr(
+    @TenantId() tenantId: string,
+    @Param("ncrId", UuidValidationPipe) ncrId: string,
+  ) {
+    return this.service.reopenSupplierNcr(tenantId, ncrId);
+  }
+
+  @Patch("ncrs/:ncrId")
+  @RequirePermissions("supplier.write")
+  @ApiOperation({ summary: "Update supplier NCR assignee/due date" })
+  async updateNcrMeta(
+    @TenantId() tenantId: string,
+    @Param("ncrId", UuidValidationPipe) ncrId: string,
+    @Body() data: UpdateSupplierNcrMetaDto,
+  ) {
+    return this.service.updateSupplierNcrMeta(tenantId, ncrId, data);
   }
 
   // Supplier Items (Products & Services)

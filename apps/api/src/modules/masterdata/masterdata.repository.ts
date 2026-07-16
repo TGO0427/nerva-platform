@@ -94,6 +94,7 @@ export interface SupplierNcr {
   id: string;
   tenantId: string;
   supplierId: string;
+  supplierName?: string;
   ncrNo: string;
   ncrType: string;
   status: string;
@@ -105,6 +106,12 @@ export interface SupplierNcr {
   resolvedByName?: string;
   createdAt: Date;
   resolvedAt: Date | null;
+  assigneeId: string | null;
+  assigneeName?: string;
+  dueDate: Date | null;
+  closedBy: string | null;
+  closedByName?: string;
+  closedAt: Date | null;
 }
 
 export interface SupplierItem {
@@ -1048,17 +1055,24 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   // Supplier NCRs
-  async findSupplierNcrs(supplierId: string): Promise<SupplierNcr[]> {
+  async findSupplierNcrs(
+    tenantId: string,
+    supplierId: string,
+  ): Promise<SupplierNcr[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT sn.*,
               u1.display_name as created_by_name,
-              u2.display_name as resolved_by_name
+              u2.display_name as resolved_by_name,
+              u3.display_name as assignee_name,
+              u4.display_name as closed_by_name
        FROM supplier_ncrs sn
        LEFT JOIN users u1 ON sn.created_by = u1.id
        LEFT JOIN users u2 ON sn.resolved_by = u2.id
-       WHERE sn.supplier_id = $1
+       LEFT JOIN users u3 ON sn.assignee_id = u3.id
+       LEFT JOIN users u4 ON sn.closed_by = u4.id
+       WHERE sn.supplier_id = $1 AND sn.tenant_id = $2
        ORDER BY sn.created_at DESC`,
-      [supplierId],
+      [supplierId, tenantId],
     );
     return rows.map(this.mapSupplierNcr);
   }
@@ -1070,14 +1084,105 @@ export class MasterDataRepository extends BaseRepository {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT sn.*,
               u1.display_name as created_by_name,
-              u2.display_name as resolved_by_name
+              u2.display_name as resolved_by_name,
+              u3.display_name as assignee_name,
+              u4.display_name as closed_by_name
        FROM supplier_ncrs sn
        LEFT JOIN users u1 ON sn.created_by = u1.id
        LEFT JOIN users u2 ON sn.resolved_by = u2.id
+       LEFT JOIN users u3 ON sn.assignee_id = u3.id
+       LEFT JOIN users u4 ON sn.closed_by = u4.id
        WHERE sn.id = $1 AND sn.tenant_id = $2`,
       [id, tenantId],
     );
     return row ? this.mapSupplierNcr(row) : null;
+  }
+
+  async findAllNcrs(
+    tenantId: string,
+    filters: {
+      status?: string[];
+      assigneeId?: string;
+      overdue?: boolean;
+      search?: string;
+    },
+    limit: number,
+    offset: number,
+  ): Promise<SupplierNcr[]> {
+    const { sql, params } = this.buildNcrWhereClause(tenantId, filters);
+    let idx = params.length + 1;
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT sn.*,
+              s.name as supplier_name,
+              u1.display_name as created_by_name,
+              u2.display_name as resolved_by_name,
+              u3.display_name as assignee_name,
+              u4.display_name as closed_by_name
+       FROM supplier_ncrs sn
+       JOIN suppliers s ON sn.supplier_id = s.id
+       LEFT JOIN users u1 ON sn.created_by = u1.id
+       LEFT JOIN users u2 ON sn.resolved_by = u2.id
+       LEFT JOIN users u3 ON sn.assignee_id = u3.id
+       LEFT JOIN users u4 ON sn.closed_by = u4.id
+       ${sql}
+       ORDER BY sn.created_at DESC
+       LIMIT $${idx++} OFFSET $${idx}`,
+      [...params, limit, offset],
+    );
+    return rows.map(this.mapSupplierNcr);
+  }
+
+  async countAllNcrs(
+    tenantId: string,
+    filters: {
+      status?: string[];
+      assigneeId?: string;
+      overdue?: boolean;
+      search?: string;
+    },
+  ): Promise<number> {
+    const { sql, params } = this.buildNcrWhereClause(tenantId, filters);
+    const result = await this.queryOne<{ count: string }>(
+      `SELECT COUNT(*) as count
+       FROM supplier_ncrs sn
+       JOIN suppliers s ON sn.supplier_id = s.id
+       ${sql}`,
+      params,
+    );
+    return parseInt(result?.count || "0", 10);
+  }
+
+  private buildNcrWhereClause(
+    tenantId: string,
+    filters: {
+      status?: string[];
+      assigneeId?: string;
+      overdue?: boolean;
+      search?: string;
+    },
+  ): { sql: string; params: unknown[] } {
+    let sql = "WHERE sn.tenant_id = $1";
+    const params: unknown[] = [tenantId];
+    let idx = 2;
+
+    if (filters.status && filters.status.length > 0) {
+      sql += ` AND sn.status = ANY($${idx++})`;
+      params.push(filters.status);
+    }
+    if (filters.assigneeId) {
+      sql += ` AND sn.assignee_id = $${idx++}`;
+      params.push(filters.assigneeId);
+    }
+    if (filters.overdue) {
+      sql += ` AND sn.due_date < CURRENT_DATE AND sn.status IN ('OPEN', 'IN_PROGRESS')`;
+    }
+    if (filters.search) {
+      sql += ` AND (sn.ncr_no ILIKE $${idx} OR sn.description ILIKE $${idx})`;
+      params.push(`%${filters.search}%`);
+      idx++;
+    }
+
+    return { sql, params };
   }
 
   async createSupplierNcr(data: {
@@ -1112,6 +1217,9 @@ export class MasterDataRepository extends BaseRepository {
       resolution: string;
       resolvedBy: string;
       resolvedAt: Date;
+      assigneeId: string | null;
+      closedBy: string | null;
+      closedAt: Date | null;
     }>,
   ): Promise<SupplierNcr | null> {
     const fields: string[] = [];
@@ -1133,6 +1241,47 @@ export class MasterDataRepository extends BaseRepository {
     if (data.resolvedAt !== undefined) {
       fields.push(`resolved_at = $${idx++}`);
       values.push(data.resolvedAt);
+    }
+    if (data.assigneeId !== undefined) {
+      fields.push(`assignee_id = $${idx++}`);
+      values.push(data.assigneeId);
+    }
+    if (data.closedBy !== undefined) {
+      fields.push(`closed_by = $${idx++}`);
+      values.push(data.closedBy);
+    }
+    if (data.closedAt !== undefined) {
+      fields.push(`closed_at = $${idx++}`);
+      values.push(data.closedAt);
+    }
+
+    if (fields.length === 0) return this.findSupplierNcrById(tenantId, id);
+
+    values.push(id);
+    values.push(tenantId);
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE supplier_ncrs SET ${fields.join(", ")} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
+      values,
+    );
+    return row ? this.mapSupplierNcr(row) : null;
+  }
+
+  async updateSupplierNcrMeta(
+    tenantId: string,
+    id: string,
+    data: { assigneeId?: string | null; dueDate?: string | null },
+  ): Promise<SupplierNcr | null> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (data.assigneeId !== undefined) {
+      fields.push(`assignee_id = $${idx++}`);
+      values.push(data.assigneeId);
+    }
+    if (data.dueDate !== undefined) {
+      fields.push(`due_date = $${idx++}`);
+      values.push(data.dueDate);
     }
 
     if (fields.length === 0) return this.findSupplierNcrById(tenantId, id);
@@ -1485,6 +1634,7 @@ export class MasterDataRepository extends BaseRepository {
       id: row.id as string,
       tenantId: row.tenant_id as string,
       supplierId: row.supplier_id as string,
+      supplierName: row.supplier_name as string | undefined,
       ncrNo: row.ncr_no as string,
       ncrType: row.ncr_type as string,
       status: row.status as string,
@@ -1496,6 +1646,12 @@ export class MasterDataRepository extends BaseRepository {
       resolvedByName: row.resolved_by_name as string | undefined,
       createdAt: row.created_at as Date,
       resolvedAt: row.resolved_at as Date | null,
+      assigneeId: row.assignee_id as string | null,
+      assigneeName: row.assignee_name as string | undefined,
+      dueDate: row.due_date as Date | null,
+      closedBy: row.closed_by as string | null,
+      closedByName: row.closed_by_name as string | undefined,
+      closedAt: row.closed_at as Date | null,
     };
   }
 

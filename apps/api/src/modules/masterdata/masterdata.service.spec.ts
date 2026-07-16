@@ -151,6 +151,9 @@ describe("MasterDataService", () => {
             findSupplierNcrById: jest.fn(),
             createSupplierNcr: jest.fn(),
             updateSupplierNcr: jest.fn(),
+            updateSupplierNcrMeta: jest.fn(),
+            findAllNcrs: jest.fn(),
+            countAllNcrs: jest.fn(),
             generateNcrNo: jest.fn(),
             generateContractNo: jest.fn(),
             findSupplierItems: jest.fn(),
@@ -840,6 +843,153 @@ describe("MasterDataService", () => {
       await service.reopenPurchaseOrder("po-1");
 
       expect(importShipmentsService.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("supplier NCR workflow", () => {
+    const tenantId = "tenant-123";
+    const ncrId = "ncr-1";
+    const baseNcr = {
+      id: ncrId,
+      tenantId,
+      supplierId: "supplier-1",
+      ncrNo: "NCR-00001",
+      ncrType: "QUALITY",
+      status: "OPEN",
+      description: "Damaged on arrival",
+      resolution: null,
+      createdBy: "user-1",
+      resolvedBy: null,
+      createdAt: new Date(),
+      resolvedAt: null,
+      assigneeId: null,
+      dueDate: null,
+      closedBy: null,
+      closedAt: null,
+    };
+
+    describe("assignSupplierNcr", () => {
+      it("assigns and advances OPEN to IN_PROGRESS", async () => {
+        repository.findSupplierNcrById.mockResolvedValue({ ...baseNcr, status: "OPEN" } as any);
+        repository.updateSupplierNcr.mockResolvedValue({
+          ...baseNcr,
+          status: "IN_PROGRESS",
+          assigneeId: "user-2",
+        } as any);
+
+        const result = await service.assignSupplierNcr(tenantId, ncrId, "user-2");
+
+        expect(result.assigneeId).toBe("user-2");
+        expect(repository.updateSupplierNcr).toHaveBeenCalledWith(tenantId, ncrId, {
+          assigneeId: "user-2",
+          status: "IN_PROGRESS",
+        });
+      });
+
+      it("reassigns without changing status when already IN_PROGRESS", async () => {
+        repository.findSupplierNcrById.mockResolvedValue({ ...baseNcr, status: "IN_PROGRESS" } as any);
+        repository.updateSupplierNcr.mockResolvedValue({
+          ...baseNcr,
+          status: "IN_PROGRESS",
+          assigneeId: "user-2",
+        } as any);
+
+        await service.assignSupplierNcr(tenantId, ncrId, "user-2");
+
+        expect(repository.updateSupplierNcr).toHaveBeenCalledWith(tenantId, ncrId, {
+          assigneeId: "user-2",
+          status: undefined,
+        });
+      });
+    });
+
+    describe("startSupplierNcr", () => {
+      it("moves OPEN to IN_PROGRESS", async () => {
+        repository.findSupplierNcrById.mockResolvedValue({ ...baseNcr, status: "OPEN" } as any);
+        repository.updateSupplierNcr.mockResolvedValue({ ...baseNcr, status: "IN_PROGRESS" } as any);
+
+        const result = await service.startSupplierNcr(tenantId, ncrId);
+
+        expect(result.status).toBe("IN_PROGRESS");
+      });
+
+      it("throws BadRequestException when not OPEN", async () => {
+        repository.findSupplierNcrById.mockResolvedValue({ ...baseNcr, status: "IN_PROGRESS" } as any);
+
+        await expect(service.startSupplierNcr(tenantId, ncrId)).rejects.toThrow(BadRequestException);
+        expect(repository.updateSupplierNcr).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("closeSupplierNcr", () => {
+      it("closes a RESOLVED NCR", async () => {
+        repository.findSupplierNcrById.mockResolvedValue({ ...baseNcr, status: "RESOLVED" } as any);
+        repository.updateSupplierNcr.mockResolvedValue({
+          ...baseNcr,
+          status: "CLOSED",
+          closedBy: "user-3",
+        } as any);
+
+        const result = await service.closeSupplierNcr(tenantId, ncrId, "user-3");
+
+        expect(result.status).toBe("CLOSED");
+        expect(repository.updateSupplierNcr).toHaveBeenCalledWith(
+          tenantId,
+          ncrId,
+          expect.objectContaining({ status: "CLOSED", closedBy: "user-3" }),
+        );
+      });
+
+      it("throws BadRequestException when not RESOLVED", async () => {
+        repository.findSupplierNcrById.mockResolvedValue({ ...baseNcr, status: "OPEN" } as any);
+
+        await expect(service.closeSupplierNcr(tenantId, ncrId, "user-3")).rejects.toThrow(
+          BadRequestException,
+        );
+        expect(repository.updateSupplierNcr).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("reopenSupplierNcr", () => {
+      it("reopens a CLOSED NCR back to IN_PROGRESS and clears closedBy/closedAt", async () => {
+        repository.findSupplierNcrById.mockResolvedValue({ ...baseNcr, status: "CLOSED" } as any);
+        repository.updateSupplierNcr.mockResolvedValue({
+          ...baseNcr,
+          status: "IN_PROGRESS",
+          closedBy: null,
+          closedAt: null,
+        } as any);
+
+        const result = await service.reopenSupplierNcr(tenantId, ncrId);
+
+        expect(result.status).toBe("IN_PROGRESS");
+        expect(repository.updateSupplierNcr).toHaveBeenCalledWith(tenantId, ncrId, {
+          status: "IN_PROGRESS",
+          closedBy: null,
+          closedAt: null,
+        });
+      });
+
+      it("throws BadRequestException when not RESOLVED or CLOSED", async () => {
+        repository.findSupplierNcrById.mockResolvedValue({ ...baseNcr, status: "OPEN" } as any);
+
+        await expect(service.reopenSupplierNcr(tenantId, ncrId)).rejects.toThrow(BadRequestException);
+        expect(repository.updateSupplierNcr).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("listAllSupplierNcrs", () => {
+      it("paginates results from findAllNcrs/countAllNcrs", async () => {
+        repository.findAllNcrs.mockResolvedValue([baseNcr] as any);
+        repository.countAllNcrs.mockResolvedValue(1);
+
+        const result = await service.listAllSupplierNcrs(tenantId, { status: ["OPEN"] }, 1, 20);
+
+        expect(result.data).toHaveLength(1);
+        expect(result.meta.total).toBe(1);
+        expect(repository.findAllNcrs).toHaveBeenCalledWith(tenantId, { status: ["OPEN"] }, 20, 0);
+        expect(repository.countAllNcrs).toHaveBeenCalledWith(tenantId, { status: ["OPEN"] });
+      });
     });
   });
 });

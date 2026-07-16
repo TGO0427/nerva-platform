@@ -279,11 +279,17 @@ CREATE TABLE IF NOT EXISTS supplier_ncrs (
   resolved_by uuid REFERENCES users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   resolved_at timestamptz,
+  assignee_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  due_date date,
+  closed_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  closed_at timestamptz,
   UNIQUE (tenant_id, ncr_no)
 );
 
 CREATE INDEX IF NOT EXISTS idx_supplier_ncrs_supplier ON supplier_ncrs(supplier_id);
 CREATE INDEX IF NOT EXISTS idx_supplier_ncrs_status ON supplier_ncrs(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_supplier_ncrs_assignee ON supplier_ncrs(assignee_id);
+CREATE INDEX IF NOT EXISTS idx_supplier_ncrs_due_date ON supplier_ncrs(tenant_id, due_date);
 
 CREATE TABLE IF NOT EXISTS items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

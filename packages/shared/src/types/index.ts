@@ -159,15 +159,24 @@ export interface SupplierNote {
 export interface SupplierNcr {
   id: string;
   supplierId: string;
+  supplierName?: string;
   ncrNo: string;
   ncrType: 'QUALITY' | 'DELIVERY' | 'QUANTITY' | 'DOCUMENTATION' | 'OTHER';
   status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
   description: string;
   resolution: string | null;
   createdBy: string | null;
+  createdByName?: string;
   resolvedBy: string | null;
+  resolvedByName?: string;
   createdAt: string;
   resolvedAt: string | null;
+  assigneeId: string | null;
+  assigneeName?: string;
+  dueDate: string | null;
+  closedBy: string | null;
+  closedByName?: string;
+  closedAt: string | null;
 }
 
 export interface SupplierItem {

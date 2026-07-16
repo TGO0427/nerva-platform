@@ -247,11 +247,11 @@ function getExceptionQueues(stats: DashboardStats): ExceptionQueue[] {
     },
     {
       title: 'Open NCRs',
-      description: 'Quality issues awaiting disposition',
+      description: 'Supplier quality issues awaiting disposition',
       value: stats.openNCRs ?? 0,
-      href: '/manufacturing/quality?status=OPEN',
+      href: '/procurement/supplier-ncrs?status=OPEN',
       tone: (stats.openNCRs ?? 0) > 0 ? 'warning' : 'success',
-      group: 'Manufacturing',
+      group: 'Procurement',
     },
     {
       title: 'Pending Approvals',
