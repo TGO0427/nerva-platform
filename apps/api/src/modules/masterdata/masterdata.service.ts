@@ -567,13 +567,22 @@ export class MasterDataService {
   async resolveSupplierNcr(
     tenantId: string,
     id: string,
-    data: { resolution: string; resolvedBy: string },
+    data: {
+      resolution: string;
+      resolvedBy: string;
+      outcome: string;
+      rootCause: string;
+      correctiveAction: string;
+    },
   ): Promise<SupplierNcr> {
     const ncr = await this.repository.updateSupplierNcr(tenantId, id, {
       status: "RESOLVED",
       resolution: data.resolution,
       resolvedBy: data.resolvedBy,
       resolvedAt: new Date(),
+      outcome: data.outcome,
+      rootCause: data.rootCause,
+      correctiveAction: data.correctiveAction,
     });
     if (!ncr) throw new NotFoundException("NCR not found");
     return ncr;

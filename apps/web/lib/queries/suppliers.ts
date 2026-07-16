@@ -298,12 +298,26 @@ export function useCreateSupplierNcr() {
 }
 
 // Resolve supplier NCR
+interface ResolveNcrData {
+  ncrId: string;
+  supplierId: string;
+  outcome: 'ACCEPTED' | 'REJECTED' | 'ACCEPTED_WITH_CONCESSION';
+  rootCause: string;
+  correctiveAction: string;
+  resolution: string;
+}
+
 export function useResolveSupplierNcr() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ ncrId, resolution, supplierId }: { ncrId: string; resolution: string; supplierId: string }) => {
-      const response = await api.post<SupplierNcr>(`/masterdata/suppliers/ncrs/${ncrId}/resolve`, { resolution });
+    mutationFn: async ({ ncrId, outcome, rootCause, correctiveAction, resolution }: ResolveNcrData) => {
+      const response = await api.post<SupplierNcr>(`/masterdata/suppliers/ncrs/${ncrId}/resolve`, {
+        outcome,
+        rootCause,
+        correctiveAction,
+        resolution,
+      });
       return response.data;
     },
     onSuccess: (_, variables) => {

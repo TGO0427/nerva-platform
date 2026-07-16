@@ -866,7 +866,45 @@ describe("MasterDataService", () => {
       dueDate: null,
       closedBy: null,
       closedAt: null,
+      outcome: null,
+      rootCause: null,
+      correctiveAction: null,
     };
+
+    describe("resolveSupplierNcr", () => {
+      it("resolves with outcome, root cause, and corrective action", async () => {
+        repository.updateSupplierNcr.mockResolvedValue({
+          ...baseNcr,
+          status: "RESOLVED",
+          outcome: "ACCEPTED_WITH_CONCESSION",
+          rootCause: "Packing line lacked a moisture barrier",
+          correctiveAction: "Supplier added a moisture barrier step",
+          resolution: "Replacement shipped and received",
+        } as any);
+
+        const result = await service.resolveSupplierNcr(tenantId, ncrId, {
+          resolution: "Replacement shipped and received",
+          resolvedBy: "user-3",
+          outcome: "ACCEPTED_WITH_CONCESSION",
+          rootCause: "Packing line lacked a moisture barrier",
+          correctiveAction: "Supplier added a moisture barrier step",
+        });
+
+        expect(result.status).toBe("RESOLVED");
+        expect(result.outcome).toBe("ACCEPTED_WITH_CONCESSION");
+        expect(repository.updateSupplierNcr).toHaveBeenCalledWith(
+          tenantId,
+          ncrId,
+          expect.objectContaining({
+            status: "RESOLVED",
+            outcome: "ACCEPTED_WITH_CONCESSION",
+            rootCause: "Packing line lacked a moisture barrier",
+            correctiveAction: "Supplier added a moisture barrier step",
+            resolvedBy: "user-3",
+          }),
+        );
+      });
+    });
 
     describe("assignSupplierNcr", () => {
       it("assigns and advances OPEN to IN_PROGRESS", async () => {

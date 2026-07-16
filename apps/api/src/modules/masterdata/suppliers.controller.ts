@@ -283,6 +283,9 @@ export class SuppliersController {
     return this.service.resolveSupplierNcr(tenantId, ncrId, {
       resolution: data.resolution,
       resolvedBy: user.id,
+      outcome: data.outcome,
+      rootCause: data.rootCause,
+      correctiveAction: data.correctiveAction,
     });
   }
 

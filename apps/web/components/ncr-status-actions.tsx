@@ -9,6 +9,7 @@ import {
   useCloseSupplierNcr,
   useReopenSupplierNcr,
 } from '@/lib/queries/suppliers';
+import { ResolveNcrModal, type ResolveNcrFormData } from '@/components/resolve-ncr-modal';
 import type { SupplierNcr } from '@nerva/shared';
 
 interface NcrStatusActionsProps {
@@ -21,8 +22,7 @@ export function NcrStatusActions({ ncr }: NcrStatusActionsProps) {
   const resolve = useResolveSupplierNcr();
   const close = useCloseSupplierNcr();
   const reopen = useReopenSupplierNcr();
-  const [resolution, setResolution] = useState('');
-  const [showResolveForm, setShowResolveForm] = useState(false);
+  const [showResolveModal, setShowResolveModal] = useState(false);
 
   const args = { ncrId: ncr.id, supplierId: ncr.supplierId };
 
@@ -35,13 +35,11 @@ export function NcrStatusActions({ ncr }: NcrStatusActionsProps) {
     }
   };
 
-  const handleResolve = async () => {
-    if (!resolution.trim()) return;
+  const handleResolve = async (data: ResolveNcrFormData) => {
     try {
-      await resolve.mutateAsync({ ncrId: ncr.id, supplierId: ncr.supplierId, resolution: resolution.trim() });
+      await resolve.mutateAsync({ ncrId: ncr.id, supplierId: ncr.supplierId, ...data });
       addToast('NCR resolved', 'success');
-      setShowResolveForm(false);
-      setResolution('');
+      setShowResolveModal(false);
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Failed to resolve NCR', 'error');
     }
@@ -74,27 +72,18 @@ export function NcrStatusActions({ ncr }: NcrStatusActionsProps) {
       );
 
     case 'IN_PROGRESS':
-      if (showResolveForm) {
-        return (
-          <div className="flex items-center gap-1">
-            <input
-              value={resolution}
-              onChange={(e) => setResolution(e.target.value)}
-              placeholder="Resolution..."
-              className="w-40 rounded-md border border-slate-300 px-2 py-1 text-xs"
-              autoFocus
-            />
-            <Button size="sm" onClick={handleResolve} isLoading={resolve.isPending} disabled={!resolution.trim()}>
-              Save
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => setShowResolveForm(false)}>Cancel</Button>
-          </div>
-        );
-      }
       return (
-        <Button size="sm" onClick={() => setShowResolveForm(true)}>
-          Resolve
-        </Button>
+        <>
+          <Button size="sm" onClick={() => setShowResolveModal(true)}>
+            Resolve
+          </Button>
+          <ResolveNcrModal
+            isOpen={showResolveModal}
+            onClose={() => setShowResolveModal(false)}
+            onSubmit={handleResolve}
+            isSubmitting={resolve.isPending}
+          />
+        </>
       );
 
     case 'RESOLVED':

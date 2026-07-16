@@ -112,6 +112,9 @@ export interface SupplierNcr {
   closedBy: string | null;
   closedByName?: string;
   closedAt: Date | null;
+  outcome: string | null;
+  rootCause: string | null;
+  correctiveAction: string | null;
 }
 
 export interface SupplierItem {
@@ -1220,6 +1223,9 @@ export class MasterDataRepository extends BaseRepository {
       assigneeId: string | null;
       closedBy: string | null;
       closedAt: Date | null;
+      outcome: string;
+      rootCause: string;
+      correctiveAction: string;
     }>,
   ): Promise<SupplierNcr | null> {
     const fields: string[] = [];
@@ -1253,6 +1259,18 @@ export class MasterDataRepository extends BaseRepository {
     if (data.closedAt !== undefined) {
       fields.push(`closed_at = $${idx++}`);
       values.push(data.closedAt);
+    }
+    if (data.outcome !== undefined) {
+      fields.push(`outcome = $${idx++}`);
+      values.push(data.outcome);
+    }
+    if (data.rootCause !== undefined) {
+      fields.push(`root_cause = $${idx++}`);
+      values.push(data.rootCause);
+    }
+    if (data.correctiveAction !== undefined) {
+      fields.push(`corrective_action = $${idx++}`);
+      values.push(data.correctiveAction);
     }
 
     if (fields.length === 0) return this.findSupplierNcrById(tenantId, id);
@@ -1652,6 +1670,9 @@ export class MasterDataRepository extends BaseRepository {
       closedBy: row.closed_by as string | null,
       closedByName: row.closed_by_name as string | undefined,
       closedAt: row.closed_at as Date | null,
+      outcome: row.outcome as string | null,
+      rootCause: row.root_cause as string | null,
+      correctiveAction: row.corrective_action as string | null,
     };
   }
 

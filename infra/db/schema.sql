@@ -283,6 +283,9 @@ CREATE TABLE IF NOT EXISTS supplier_ncrs (
   due_date date,
   closed_by uuid REFERENCES users(id) ON DELETE SET NULL,
   closed_at timestamptz,
+  outcome text,  -- ACCEPTED, REJECTED, ACCEPTED_WITH_CONCESSION
+  root_cause text,
+  corrective_action text,
   UNIQUE (tenant_id, ncr_no)
 );
 

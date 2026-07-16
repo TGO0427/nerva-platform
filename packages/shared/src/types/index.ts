@@ -177,6 +177,9 @@ export interface SupplierNcr {
   closedBy: string | null;
   closedByName?: string;
   closedAt: string | null;
+  outcome: 'ACCEPTED' | 'REJECTED' | 'ACCEPTED_WITH_CONCESSION' | null;
+  rootCause: string | null;
+  correctiveAction: string | null;
 }
 
 export interface SupplierItem {

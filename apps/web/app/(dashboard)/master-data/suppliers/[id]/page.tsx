@@ -755,11 +755,31 @@ function NcrsTab({ supplierId }: { supplierId: string }) {
                     </div>
                     <p className="mt-2 text-slate-700">{ncr.description}</p>
                     {ncr.resolution && (
-                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
-                        <div className="text-sm font-medium text-green-800">Resolution:</div>
-                        <p className="text-sm text-green-700">{ncr.resolution}</p>
+                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md space-y-2">
+                        {ncr.outcome && (
+                          <div>
+                            <div className="text-xs font-medium text-green-800 uppercase tracking-wide">Outcome</div>
+                            <p className="text-sm text-green-700">{NCR_OUTCOME_LABELS[ncr.outcome] || ncr.outcome}</p>
+                          </div>
+                        )}
+                        {ncr.rootCause && (
+                          <div>
+                            <div className="text-xs font-medium text-green-800 uppercase tracking-wide">Root Cause</div>
+                            <p className="text-sm text-green-700">{ncr.rootCause}</p>
+                          </div>
+                        )}
+                        {ncr.correctiveAction && (
+                          <div>
+                            <div className="text-xs font-medium text-green-800 uppercase tracking-wide">Corrective / Preventive Action</div>
+                            <p className="text-sm text-green-700">{ncr.correctiveAction}</p>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-xs font-medium text-green-800 uppercase tracking-wide">Conclusion</div>
+                          <p className="text-sm text-green-700">{ncr.resolution}</p>
+                        </div>
                         {ncr.resolvedAt && (
-                          <div className="text-xs text-green-600 mt-1">
+                          <div className="text-xs text-green-600">
                             Resolved on {formatDate(ncr.resolvedAt)}
                           </div>
                         )}
@@ -1274,6 +1294,12 @@ function getContractStatusVariant(status: string): 'success' | 'warning' | 'dang
       return 'default';
   }
 }
+
+const NCR_OUTCOME_LABELS: Record<string, string> = {
+  ACCEPTED: 'Accepted',
+  REJECTED: 'Rejected',
+  ACCEPTED_WITH_CONCESSION: 'Accepted with Concession',
+};
 
 function getNcrStatusVariant(status: string): 'success' | 'warning' | 'danger' | 'default' {
   switch (status) {
