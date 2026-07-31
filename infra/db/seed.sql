@@ -851,6 +851,70 @@ INSERT INTO supplier_ncrs (id, tenant_id, supplier_id, ncr_no, ncr_type, status,
   ('e0e0e0e0-e0e0-e0e0-e0e0-e0e0e0e00017', '11111111-1111-1111-1111-111111111111', '99999999-9999-9999-9999-999999999901', 'NCR-2024-0017', 'DOCUMENTATION', 'IN_PROGRESS', 'Missing test certificates for Premium Widgets', '44444444-4444-4444-4444-444444444401', CURRENT_TIMESTAMP - INTERVAL '45 days')
 ON CONFLICT (tenant_id, ncr_no) DO NOTHING;
 
+-- ================
+-- Trade Compliance (HS codes / country of origin)
+-- Imported electronics get real HS codes; the domestically-sourced widget
+-- is left with a local code to show the field is optional, not mandatory.
+-- ================
+UPDATE items SET hs_code = '8543.70.90', country_of_origin = 'CN'
+  WHERE tenant_id = '11111111-1111-1111-1111-111111111111' AND sku = 'GADGET-001';
+UPDATE items SET hs_code = '8517.62.00', country_of_origin = 'CN'
+  WHERE tenant_id = '11111111-1111-1111-1111-111111111111' AND sku = 'GADGET-002';
+UPDATE items SET hs_code = '8544.42.90', country_of_origin = 'CN'
+  WHERE tenant_id = '11111111-1111-1111-1111-111111111111' AND sku = 'CABLE-USB';
+UPDATE items SET hs_code = '8544.42.90', country_of_origin = 'CN'
+  WHERE tenant_id = '11111111-1111-1111-1111-111111111111' AND sku = 'CABLE-HDMI';
+UPDATE items SET hs_code = '3926.90.99', country_of_origin = 'ZA'
+  WHERE tenant_id = '11111111-1111-1111-1111-111111111111' AND sku = 'WIDGET-001';
+
+-- ================
+-- Import Shipment with Landed Cost
+-- Flags PO-2024-0002 (China Electronics Ltd, cables) as an import order and
+-- gives it a matching shipping-schedule entry with per-line landed cost, so
+-- the shipment detail, edit, and linked-PO pages all have real cost data.
+-- ================
+UPDATE purchase_orders SET is_import = true
+  WHERE id = '89b1a6b8-89b1-89b1-89b1-89b1a6bc26b5';
+
+INSERT INTO import_shipments (id, tenant_id, site_id, reference, supplier_id, incoterm, notes, purchase_order_id, created_by) VALUES
+  ('c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c20001', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222201', 'SHIP-2024-0001', '99999999-9999-9999-9999-999999999902', 'FOB', 'Electronics import from China Electronics Ltd', '89b1a6b8-89b1-89b1-89b1-89b1a6bc26b5', '44444444-4444-4444-4444-444444444401')
+ON CONFLICT (tenant_id, reference) DO NOTHING;
+
+INSERT INTO import_shipment_lines (id, tenant_id, import_shipment_id, line_no, product_description, item_id, quantity, cbm, pallet_qty, transport_mode, carrier, vessel_or_awb, destination_port, status, week_start_date, week_end_date, unit_cost, freight_cost, duty_cost, clearing_cost, landed_cost) VALUES
+  ('c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c10001', '11111111-1111-1111-1111-111111111111', 'c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c20001', 1, 'USB-C Cable 2m', '77777777-7777-7777-7777-777777777707', 500, 2.5, 4, 'SEA', 'Maersk', 'MSC BELLISSIMA', 'Durban', 'PLANNED_SEAFREIGHT', CURRENT_DATE + INTERVAL '7 days', CURRENT_DATE + INTERVAL '10 days', 15.00, 750.00, 375.00, 200.00, 8825.00),
+  ('c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c10002', '11111111-1111-1111-1111-111111111111', 'c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c20001', 2, 'HDMI Cable 3m', '77777777-7777-7777-7777-777777777708', 250, 1.8, 3, 'SEA', 'Maersk', 'MSC BELLISSIMA', 'Durban', 'PLANNED_SEAFREIGHT', CURRENT_DATE + INTERVAL '7 days', CURRENT_DATE + INTERVAL '10 days', 20.00, 400.00, 250.00, 150.00, 5800.00)
+ON CONFLICT (tenant_id, import_shipment_id, line_no) DO NOTHING;
+
+UPDATE purchase_orders SET linked_import_shipment_id = 'c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c20001'
+  WHERE id = '89b1a6b8-89b1-89b1-89b1-89b1a6bc26b5';
+
+-- ================
+-- Batch Quality Status (demo of the QC hold lifecycle)
+-- New batches on top of existing stock, one per lifecycle stage, so
+-- inventory/stock, putaway, and allocation/shipping all have something to
+-- gate on. Existing stock stays untouched (backfilled APPROVED in
+-- migration 036).
+-- ================
+INSERT INTO stock_snapshot (tenant_id, bin_id, item_id, batch_no, qty_on_hand, qty_reserved) VALUES
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666640', '77777777-7777-7777-7777-777777777701', 'BATCH-2024-AWQC', 20, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666640', '77777777-7777-7777-7777-777777777702', 'BATCH-2024-HOLD', 15, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666640', '77777777-7777-7777-7777-777777777703', 'BATCH-2024-REJ', 10, 0),
+  ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666610', '77777777-7777-7777-7777-777777777704', 'BATCH-2024-REL', 30, 0)
+ON CONFLICT (tenant_id, bin_id, item_id, batch_no) DO UPDATE SET
+  qty_on_hand = EXCLUDED.qty_on_hand,
+  qty_reserved = EXCLUDED.qty_reserved;
+
+INSERT INTO batch_quality_status (tenant_id, item_id, batch_no, quality_status, source, set_by, notes) VALUES
+  ('11111111-1111-1111-1111-111111111111', '77777777-7777-7777-7777-777777777701', 'BATCH-2024-AWQC', 'AWAITING_QC', 'PRODUCTION', '44444444-4444-4444-4444-444444444401', 'Fresh production output, pending first QC pass'),
+  ('11111111-1111-1111-1111-111111111111', '77777777-7777-7777-7777-777777777702', 'BATCH-2024-HOLD', 'ON_HOLD', 'PRODUCTION', '44444444-4444-4444-4444-444444444401', 'Held pending investigation of a customer complaint on the same run'),
+  ('11111111-1111-1111-1111-111111111111', '77777777-7777-7777-7777-777777777703', 'BATCH-2024-REJ', 'REJECTED', 'PRODUCTION', '44444444-4444-4444-4444-444444444401', 'Failed dimensional check, quarantined for disposal'),
+  ('11111111-1111-1111-1111-111111111111', '77777777-7777-7777-7777-777777777704', 'BATCH-2024-REL', 'RELEASED', 'PRODUCTION', '44444444-4444-4444-4444-444444444401', 'Passed QC, cleared for allocation and dispatch')
+ON CONFLICT (tenant_id, item_id, batch_no) DO UPDATE SET
+  quality_status = EXCLUDED.quality_status,
+  source = EXCLUDED.source,
+  set_by = EXCLUDED.set_by,
+  notes = EXCLUDED.notes;
+
 COMMIT;
 
 -- Summary of seeded data:
@@ -873,3 +937,6 @@ COMMIT;
 -- 2 RMAs (K58 site)
 -- 2 GRNs (K58 site)
 -- 17 Supplier NCRs (decreasing trend over 12 months)
+-- 5 Items with HS code / country of origin (trade compliance)
+-- 1 Import Shipment with landed cost, linked to an is_import PO
+-- 4 Batches across the QC lifecycle (AWAITING_QC, ON_HOLD, REJECTED, RELEASED)
