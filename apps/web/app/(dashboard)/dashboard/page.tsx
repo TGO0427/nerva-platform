@@ -147,10 +147,10 @@ export default function DashboardPage() {
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
           <div>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-text-muted dark:text-text-dark-muted">
               Welcome back, {user?.displayName?.split(' ')[0] || 'User'}
             </p>
-            <h1 className="text-2xl font-bold text-slate-900 mt-0.5">
+            <h1 className="text-2xl font-semibold text-text-primary dark:text-text-dark-primary mt-0.5">
               Operations Overview
             </h1>
           </div>
@@ -232,8 +232,8 @@ export default function DashboardPage() {
                 <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: ct.tick }} />
                 <Tooltip contentStyle={tooltipStyle(ct)} />
                 <Legend wrapperStyle={{ fontSize: 13 }} />
-                <Line type="monotone" dataKey="orders" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Orders" />
-                <Line type="monotone" dataKey="shipments" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Shipments" />
+                <Line type="monotone" dataKey="orders" stroke="#2c5282" strokeWidth={2} dot={{ r: 4 }} name="Orders" />
+                <Line type="monotone" dataKey="shipments" stroke="#16a34a" strokeWidth={2} dot={{ r: 4 }} name="Shipments" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -281,7 +281,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="warehouse" tick={{ fontSize: 11, fill: ct.tick }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: ct.tick }} />
                 <Tooltip contentStyle={tooltipStyle(ct)} />
-                <Line type="monotone" dataKey="orders" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} name="Orders" />
+                <Line type="monotone" dataKey="orders" stroke="#2c5282" strokeWidth={2} dot={{ r: 4 }} name="Orders" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -300,10 +300,10 @@ export default function DashboardPage() {
                 return (
                   <div key={c.name}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-slate-700 truncate mr-2">{c.name}</span>
-                      <span className="text-sm font-semibold text-slate-900">{formatNumber(c.orders)}</span>
+                      <span className="text-sm text-text-secondary dark:text-text-dark-secondary truncate mr-2">{c.name}</span>
+                      <span className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">{formatNumber(c.orders)}</span>
                     </div>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-surface-secondary dark:bg-surface-dark-secondary rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full ${colors[i % colors.length]}`}
                         style={{ width: `${pct}%` }}
@@ -322,8 +322,8 @@ export default function DashboardPage() {
       {/* Bottom section: Performance + Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Performance Metrics */}
-        <div className="lg:col-span-2 rounded-2xl bg-white border border-slate-200/70 shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-tight mb-4">Performance</h3>
+        <div className="lg:col-span-2 rounded-lg bg-surface-card dark:bg-surface-dark-card border border-surface-border dark:border-surface-dark-border shadow-xs p-5">
+          <h3 className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-tight mb-4">Performance</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <MetricCard
               label="OTIF"
@@ -352,12 +352,12 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick Actions Row */}
-          <div className="mt-5 pt-5 border-t border-slate-100">
+          <div className="mt-5 pt-5 border-t border-surface-border dark:border-surface-dark-border">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {quickActions.map((action) => (
                 <Link key={action.title} href={action.href}>
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-sm text-slate-700 hover:text-slate-900">
-                    <div className="text-slate-500">{action.icon}</div>
+                  <div className="flex items-center gap-2 p-3 rounded-md bg-surface-secondary dark:bg-surface-dark-secondary hover:bg-surface-border/60 dark:hover:bg-surface-dark-border/60 transition-colors text-sm text-text-secondary dark:text-text-dark-secondary hover:text-text-primary dark:hover:text-text-dark-primary">
+                    <div className="text-text-muted dark:text-text-dark-muted">{action.icon}</div>
                     <span className="font-medium truncate">{action.title}</span>
                   </div>
                 </Link>
@@ -367,9 +367,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Activity */}
-        <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm">
-          <div className="p-4 border-b border-slate-100">
-            <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-tight">Recent Activity</h3>
+        <div className="rounded-lg bg-surface-card dark:bg-surface-dark-card border border-surface-border dark:border-surface-dark-border shadow-xs">
+          <div className="p-4 border-b border-surface-border dark:border-surface-dark-border">
+            <h3 className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-tight">Recent Activity</h3>
           </div>
           <div className="p-4">
             {activityLoading ? (
@@ -381,19 +381,19 @@ export default function DashboardPage() {
                 {activity.map((item) => (
                   <div
                     key={`${item.type}-${item.id}`}
-                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors"
+                    className="flex items-start gap-3 p-2.5 rounded-md hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors"
                   >
                     <ActivityIcon type={item.type} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-800 leading-snug">{item.message}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{getTimeAgo(item.createdAt)}</p>
+                      <p className="text-sm text-text-primary dark:text-text-dark-primary leading-snug">{item.message}</p>
+                      <p className="text-xs text-text-muted dark:text-text-dark-muted mt-0.5">{getTimeAgo(item.createdAt)}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-6">
-                <p className="text-slate-400 text-sm">No recent activity</p>
+                <p className="text-text-muted dark:text-text-dark-muted text-sm">No recent activity</p>
               </div>
             )}
           </div>
@@ -415,10 +415,10 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl bg-white border border-slate-200/70 shadow-sm p-5">
+    <div className="rounded-lg bg-surface-card dark:bg-surface-dark-card border border-surface-border dark:border-surface-dark-border shadow-xs p-5">
       <div className="flex items-baseline gap-2 mb-4">
-        <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-        <span className="text-xs text-slate-400">{subtitle}</span>
+        <h3 className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">{title}</h3>
+        <span className="text-xs text-text-muted dark:text-text-dark-muted">{subtitle}</span>
       </div>
       {children}
     </div>
@@ -427,7 +427,7 @@ function ChartCard({
 
 function ChartEmpty({ label }: { label: string }) {
   return (
-    <div className="flex items-center justify-center h-[260px] text-slate-400 text-sm">
+    <div className="flex items-center justify-center h-[260px] text-text-muted dark:text-text-dark-muted text-sm">
       {label}
     </div>
   );
@@ -446,12 +446,12 @@ function MetricCard({
   good: boolean;
 }) {
   return (
-    <div className="text-center p-3 rounded-xl bg-slate-50">
-      <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</div>
-      <div className={`text-2xl font-bold mt-1 ${good ? 'text-emerald-600' : 'text-amber-600'}`}>
+    <div className="text-center p-3 rounded-md bg-surface-secondary dark:bg-surface-dark-secondary">
+      <div className="text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase tracking-wider">{label}</div>
+      <div className={`text-2xl font-semibold mt-1 ${good ? 'text-success' : 'text-warning'}`}>
         {value}
       </div>
-      <div className="text-xs text-slate-400 mt-0.5">{sub}</div>
+      <div className="text-xs text-text-muted dark:text-text-dark-muted mt-0.5">{sub}</div>
     </div>
   );
 }

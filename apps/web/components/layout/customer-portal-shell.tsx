@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutDashboard, ClipboardList, Users, FileText, Clock, Settings, ArrowLeft, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { springs } from '@/lib/motion';
 
@@ -31,31 +32,11 @@ export function CustomerPortalShell({ children, customer, isLoading }: CustomerP
   const customerId = customer?.id || '';
 
   const navigation: NavItem[] = [
-    {
-      name: 'Dashboard',
-      href: `/customers/${customerId}`,
-      icon: <DashboardIcon />,
-    },
-    {
-      name: 'Orders',
-      href: `/customers/${customerId}/orders`,
-      icon: <OrdersIcon />,
-    },
-    {
-      name: 'Contacts',
-      href: `/customers/${customerId}/contacts`,
-      icon: <ContactsIcon />,
-    },
-    {
-      name: 'Notes',
-      href: `/customers/${customerId}/notes`,
-      icon: <NotesIcon />,
-    },
-    {
-      name: 'Activity',
-      href: `/customers/${customerId}/activity`,
-      icon: <ActivityIcon />,
-    },
+    { name: 'Dashboard', href: `/customers/${customerId}`, icon: <LayoutDashboard className="h-full w-full" strokeWidth={1.5} /> },
+    { name: 'Orders', href: `/customers/${customerId}/orders`, icon: <ClipboardList className="h-full w-full" strokeWidth={1.5} /> },
+    { name: 'Contacts', href: `/customers/${customerId}/contacts`, icon: <Users className="h-full w-full" strokeWidth={1.5} /> },
+    { name: 'Notes', href: `/customers/${customerId}/notes`, icon: <FileText className="h-full w-full" strokeWidth={1.5} /> },
+    { name: 'Activity', href: `/customers/${customerId}/activity`, icon: <Clock className="h-full w-full" strokeWidth={1.5} /> },
   ];
 
   const isActive = (href: string) => {
@@ -66,10 +47,7 @@ export function CustomerPortalShell({ children, customer, isLoading }: CustomerP
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Brand Strip */}
-      <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-emerald-500 to-blue-500 fixed top-0 left-0 right-0 z-[60]" />
-
+    <div className="min-h-screen bg-surface dark:bg-surface-dark">
       {/* Mobile sidebar backdrop */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -87,24 +65,24 @@ export function CustomerPortalShell({ children, customer, isLoading }: CustomerP
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200/70 transform transition-transform duration-200 ease-in-out lg:translate-x-0 pt-1',
+          'fixed inset-y-0 left-0 z-50 w-64 bg-primary-950 transform transition-transform duration-200 ease-in-out lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <div className="flex flex-col h-full">
           {/* Customer Header */}
-          <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-blue-600 to-emerald-600">
+          <div className="p-5 border-b border-white/10">
             {isLoading ? (
               <div className="animate-pulse">
-                <div className="h-5 bg-white/30 rounded w-3/4 mb-2" />
-                <div className="h-4 bg-white/20 rounded w-1/2" />
+                <div className="h-5 bg-white/20 rounded w-3/4 mb-2" />
+                <div className="h-4 bg-white/10 rounded w-1/2" />
               </div>
             ) : customer ? (
               <>
                 <h2 className="text-lg font-semibold text-white truncate">
                   {customer.name}
                 </h2>
-                <p className="text-sm text-blue-100 truncate">
+                <p className="text-sm text-primary-subtitle truncate">
                   {customer.email || customer.code || 'No email'}
                 </p>
               </>
@@ -114,23 +92,20 @@ export function CustomerPortalShell({ children, customer, isLoading }: CustomerP
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
                   isActive(item.href)
-                    ? 'bg-blue-50 text-blue-700 shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    ? 'bg-white/10 text-white'
+                    : 'text-primary-subtitle/80 hover:bg-white/10 hover:text-white'
                 )}
               >
-                <span className={cn(
-                  'w-5 h-5',
-                  isActive(item.href) ? 'text-blue-600' : 'text-slate-400'
-                )}>
+                <span className="w-5 h-5 shrink-0">
                   {item.icon}
                 </span>
                 {item.name}
@@ -139,19 +114,19 @@ export function CustomerPortalShell({ children, customer, isLoading }: CustomerP
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-slate-100">
+          <div className="p-3 border-t border-white/10">
             <Link
               href={`/master-data/customers/${customerId}`}
-              className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
+              className="flex items-center gap-3 px-3 py-2.5 text-sm text-primary-subtitle/80 hover:text-white hover:bg-white/10 rounded-md transition-colors"
             >
-              <SettingsIcon className="w-5 h-5 text-slate-400" />
+              <Settings className="w-5 h-5 shrink-0" strokeWidth={1.5} />
               Edit Customer
             </Link>
             <Link
               href="/master-data/customers"
-              className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all mt-1"
+              className="flex items-center gap-3 px-3 py-2.5 text-sm text-primary-subtitle/80 hover:text-white hover:bg-white/10 rounded-md transition-colors mt-0.5"
             >
-              <BackIcon className="w-5 h-5 text-slate-400" />
+              <ArrowLeft className="w-5 h-5 shrink-0" strokeWidth={1.5} />
               Back to Customers
             </Link>
           </div>
@@ -159,18 +134,18 @@ export function CustomerPortalShell({ children, customer, isLoading }: CustomerP
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-64 pt-1">
+      <div className="lg:pl-64">
         {/* Top bar */}
-        <header className="sticky top-1 z-30 bg-white/80 backdrop-blur-sm border-b border-slate-200/70">
+        <header className="sticky top-0 z-30 bg-surface-card dark:bg-surface-dark-card border-b border-surface-border dark:border-surface-dark-border">
           <div className="flex items-center justify-between h-14 px-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100"
+              className="lg:hidden p-2 -ml-2 text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:hover:text-text-dark-primary rounded-md hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary"
             >
-              <MenuIcon className="w-6 h-6" />
+              <Menu className="w-6 h-6" strokeWidth={1.5} />
             </button>
             <div className="flex-1 lg:hidden text-center">
-              <span className="font-semibold text-slate-900 truncate">
+              <span className="font-semibold text-text-primary dark:text-text-dark-primary truncate">
                 {customer?.name || 'Customer Portal'}
               </span>
             </div>
@@ -179,76 +154,10 @@ export function CustomerPortalShell({ children, customer, isLoading }: CustomerP
         </header>
 
         {/* Page content */}
-        <main className="p-6">
+        <main className="p-6 text-text-primary dark:text-text-dark-primary">
           {children}
         </main>
       </div>
     </div>
-  );
-}
-
-// Icons
-function DashboardIcon() {
-  return (
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-    </svg>
-  );
-}
-
-function OrdersIcon() {
-  return (
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-    </svg>
-  );
-}
-
-function ContactsIcon() {
-  return (
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-    </svg>
-  );
-}
-
-function NotesIcon() {
-  return (
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-    </svg>
-  );
-}
-
-function ActivityIcon() {
-  return (
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function SettingsIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  );
-}
-
-function BackIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-    </svg>
-  );
-}
-
-function MenuIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-    </svg>
   );
 }
