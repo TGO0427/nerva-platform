@@ -75,8 +75,8 @@ export default function CompanyProfilePage() {
     <div>
       <Breadcrumbs />
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Company Profile</h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">Company Profile</h1>
+        <p className="text-sm text-text-muted dark:text-text-dark-muted mt-1">
           These details appear on your PDF documents (purchase orders, invoices, credit notes, etc.)
         </p>
       </div>
@@ -92,8 +92,8 @@ export default function CompanyProfilePage() {
               <div className="space-y-4">
                 <div>
                   <Label>Company Name</Label>
-                  <Input value={profile?.name || ''} disabled className="bg-slate-50" />
-                  <p className="text-xs text-slate-400 mt-1">Company name is managed in tenant settings</p>
+                  <Input value={profile?.name || ''} disabled className="bg-surface-secondary dark:bg-surface-dark-secondary" />
+                  <p className="text-xs text-text-muted dark:text-text-dark-muted mt-1">Company name is managed in tenant settings</p>
                 </div>
               </div>
             </CardContent>
@@ -174,7 +174,7 @@ export default function CompanyProfilePage() {
               <CardTitle>Bank Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-500 mb-4">
+              <p className="text-sm text-text-muted dark:text-text-dark-muted mb-4">
                 Bank details will appear on invoices and credit notes for payment reference.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

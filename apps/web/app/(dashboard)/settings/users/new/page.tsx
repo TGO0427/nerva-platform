@@ -50,8 +50,8 @@ export default function NewUserPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">New User</h1>
-        <p className="text-slate-500 mt-1">Create a new user account</p>
+        <h1 className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">New User</h1>
+        <p className="text-text-muted dark:text-text-dark-muted mt-1">Create a new user account</p>
       </div>
 
       <Card className="max-w-2xl">
@@ -67,7 +67,7 @@ export default function NewUserPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                 Display Name *
               </label>
               <Input
@@ -79,7 +79,7 @@ export default function NewUserPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                 Email *
               </label>
               <Input
@@ -93,7 +93,7 @@ export default function NewUserPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                   Password *
                 </label>
                 <Input
@@ -106,7 +106,7 @@ export default function NewUserPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                   Confirm Password *
                 </label>
                 <Input

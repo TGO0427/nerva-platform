@@ -113,8 +113,8 @@ export default function SecurityPage() {
     <div>
       <Breadcrumbs />
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Security</h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">Security</h1>
+        <p className="text-sm text-text-muted dark:text-text-dark-muted mt-1">
           Manage two-factor authentication and other security settings
         </p>
       </div>
@@ -141,7 +141,7 @@ export default function SecurityPage() {
                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                   mfaEnabled
                     ? 'bg-green-100 text-green-800'
-                    : 'bg-slate-100 text-slate-600'
+                    : 'bg-surface-secondary dark:bg-surface-dark-secondary text-text-secondary dark:text-text-dark-secondary'
                 }`}
               >
                 {mfaEnabled ? 'Enabled' : 'Disabled'}
@@ -149,7 +149,7 @@ export default function SecurityPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-500 mb-4">
+            <p className="text-sm text-text-muted dark:text-text-dark-muted mb-4">
               Add an extra layer of security to your account by requiring a
               time-based one-time password (TOTP) from an authenticator app like
               Google Authenticator, Authy, or 1Password.
@@ -184,7 +184,7 @@ export default function SecurityPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-text-muted dark:text-text-dark-muted">
                   Scan this QR code with your authenticator app, then enter the
                   6-digit code below to verify.
                 </p>
@@ -194,15 +194,15 @@ export default function SecurityPage() {
                   <img
                     src={qrCodeUrl}
                     alt="QR Code for MFA setup"
-                    className="w-48 h-48 rounded-lg border border-slate-200"
+                    className="w-48 h-48 rounded-lg border border-surface-border dark:border-surface-dark-border"
                   />
                 </div>
 
-                <div className="bg-slate-50 rounded-lg p-4">
-                  <p className="text-xs text-slate-500 mb-1">
+                <div className="bg-surface-secondary dark:bg-surface-dark-secondary rounded-lg p-4">
+                  <p className="text-xs text-text-muted dark:text-text-dark-muted mb-1">
                     Can&apos;t scan? Enter this key manually:
                   </p>
-                  <code className="text-sm font-mono font-medium text-slate-900 break-all select-all">
+                  <code className="text-sm font-mono font-medium text-text-primary dark:text-text-dark-primary break-all select-all">
                     {manualSecret}
                   </code>
                 </div>
@@ -257,7 +257,7 @@ export default function SecurityPage() {
               <CardTitle>Disable Two-Factor Authentication</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-500 mb-4">
+              <p className="text-sm text-text-muted dark:text-text-dark-muted mb-4">
                 Enter a code from your authenticator app to confirm disabling
                 two-factor authentication.
               </p>

@@ -85,8 +85,8 @@ export default function PrivacyPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Privacy & Data</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <h1 className="text-2xl font-bold text-text-primary dark:text-text-dark-primary dark:text-white">Privacy & Data</h1>
+        <p className="text-sm text-text-muted dark:text-text-dark-muted dark:text-text-muted dark:text-text-dark-muted mt-1">
           Manage your personal data and account. In accordance with GDPR, you can export or delete your data at any time.
         </p>
       </div>
@@ -98,21 +98,21 @@ export default function PrivacyPage() {
             <CardTitle>Download My Data</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            <p className="text-sm text-text-muted dark:text-text-dark-muted dark:text-text-muted dark:text-text-dark-muted mb-4">
               Download a copy of all personal data we store about you, including your profile information,
               activity history, and session data. The export is provided as a JSON file.
             </p>
 
             {statusLoading ? (
-              <div className="flex items-center gap-2 text-sm text-slate-400 mb-4">
+              <div className="flex items-center gap-2 text-sm text-text-muted dark:text-text-dark-muted mb-4">
                 <Spinner size="sm" /> Loading...
               </div>
             ) : exportStatus?.lastExportDate ? (
-              <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">
+              <p className="text-xs text-text-muted dark:text-text-dark-muted dark:text-text-muted dark:text-text-dark-muted mb-4">
                 Last exported: {formatDateTime(exportStatus.lastExportDate)}
               </p>
             ) : (
-              <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">
+              <p className="text-xs text-text-muted dark:text-text-dark-muted dark:text-text-muted dark:text-text-dark-muted mb-4">
                 You have not exported your data before.
               </p>
             )}
@@ -127,7 +127,7 @@ export default function PrivacyPage() {
               )}
             </Button>
 
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+            <p className="text-xs text-text-muted dark:text-text-dark-muted dark:text-text-muted dark:text-text-dark-muted mt-2">
               Data export is limited to once per hour.
             </p>
           </CardContent>

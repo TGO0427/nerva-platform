@@ -100,8 +100,8 @@ export default function SitesPage() {
       <Breadcrumbs />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Sites</h1>
-          <p className="text-slate-500 mt-1">Manage warehouse sites and locations</p>
+          <h1 className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">Sites</h1>
+          <p className="text-text-muted dark:text-text-dark-muted mt-1">Manage warehouse sites and locations</p>
         </div>
         {!showCreateForm && (
           <Button onClick={() => setShowCreateForm(true)}>
@@ -143,7 +143,7 @@ export default function SitesPage() {
             <form onSubmit={handleCreateSite} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                     Site Name *
                   </label>
                   <Input
@@ -154,7 +154,7 @@ export default function SitesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                     Site Code
                   </label>
                   <Input
@@ -199,7 +199,7 @@ export default function SitesPage() {
                 {editingSite?.id === site.id ? (
                   <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1">
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                         Name
                       </label>
                       <Input
@@ -208,7 +208,7 @@ export default function SitesPage() {
                       />
                     </div>
                     <div className="sm:w-32">
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                         Code
                       </label>
                       <Input
@@ -229,17 +229,17 @@ export default function SitesPage() {
                 ) : (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="p-2 bg-slate-100 rounded-lg">
+                      <div className="p-2 bg-surface-secondary dark:bg-surface-dark-secondary rounded-lg">
                         <BuildingIcon />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-slate-900">{site.name}</h3>
+                          <h3 className="font-medium text-text-primary dark:text-text-dark-primary">{site.name}</h3>
                           <Badge variant={site.isActive ? 'success' : 'danger'}>
                             {site.isActive ? 'Active' : 'Inactive'}
                           </Badge>
                         </div>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-text-muted dark:text-text-dark-muted">
                           Code: {site.code} | Created {formatDate(site.createdAt)}
                         </p>
                       </div>
@@ -272,8 +272,8 @@ export default function SitesPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <BuildingIconLarge />
-            <h3 className="mt-4 font-medium text-slate-900">No sites found</h3>
-            <p className="text-sm text-slate-500 mt-1">Create a site to manage warehouse locations</p>
+            <h3 className="mt-4 font-medium text-text-primary dark:text-text-dark-primary">No sites found</h3>
+            <p className="text-sm text-text-muted dark:text-text-dark-muted mt-1">Create a site to manage warehouse locations</p>
             <Button className="mt-4" onClick={() => setShowCreateForm(true)}>
               Create Site
             </Button>
@@ -326,7 +326,7 @@ function EditIcon() {
 
 function BuildingIcon() {
   return (
-    <svg className="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className="h-6 w-6 text-text-secondary dark:text-text-dark-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
     </svg>
   );
@@ -334,7 +334,7 @@ function BuildingIcon() {
 
 function BuildingIconLarge() {
   return (
-    <svg className="h-12 w-12 mx-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+    <svg className="h-12 w-12 mx-auto text-text-muted dark:text-text-dark-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
     </svg>
   );

@@ -285,7 +285,7 @@ export default function RoleDetailPage() {
   if (!role) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-slate-900">Role not found</h2>
+        <h2 className="text-lg font-medium text-text-primary dark:text-text-dark-primary">Role not found</h2>
         <Button className="mt-4" onClick={() => router.push('/settings/roles')}>
           Back to Roles
         </Button>
@@ -299,8 +299,8 @@ export default function RoleDetailPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{role.name}</h1>
-          <p className="text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">{role.name}</h1>
+          <p className="text-text-muted dark:text-text-dark-muted mt-1">
             {role.description || 'No description'}
           </p>
         </div>
@@ -324,7 +324,7 @@ export default function RoleDetailPage() {
             {isEditingDetails ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                     Role Name
                   </label>
                   <Input
@@ -333,7 +333,7 @@ export default function RoleDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                     Description
                   </label>
                   <Input
@@ -360,21 +360,21 @@ export default function RoleDetailPage() {
             ) : (
               <dl className="space-y-3 text-sm">
                 <div>
-                  <dt className="text-slate-500">Name</dt>
+                  <dt className="text-text-muted dark:text-text-dark-muted">Name</dt>
                   <dd className="font-medium">{role.name}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">Description</dt>
+                  <dt className="text-text-muted dark:text-text-dark-muted">Description</dt>
                   <dd className="font-medium">{role.description || '-'}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">Created</dt>
+                  <dt className="text-text-muted dark:text-text-dark-muted">Created</dt>
                   <dd className="font-medium">
                     {formatDate(role.createdAt)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">Permissions</dt>
+                  <dt className="text-text-muted dark:text-text-dark-muted">Permissions</dt>
                   <dd className="font-medium">{selectedPermissions.size} assigned</dd>
                 </div>
               </dl>
@@ -402,7 +402,7 @@ export default function RoleDetailPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search permissions..."
-                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full pl-9 pr-3 py-2 border border-surface-border dark:border-surface-dark-border rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
             </div>
@@ -415,9 +415,9 @@ export default function RoleDetailPage() {
             ) : groupedPermissions.length > 0 ? (
               <div className="space-y-6">
                 {groupedPermissions.map((module) => (
-                  <div key={module.moduleKey} className="border border-slate-200 rounded-lg overflow-hidden">
-                    <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200">
-                      <h4 className="text-sm font-semibold text-slate-800">
+                  <div key={module.moduleKey} className="border border-surface-border dark:border-surface-dark-border rounded-lg overflow-hidden">
+                    <div className="bg-surface-secondary dark:bg-surface-dark-secondary px-4 py-2.5 border-b border-surface-border dark:border-surface-dark-border">
+                      <h4 className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
                         {module.label}
                       </h4>
                     </div>
@@ -433,9 +433,9 @@ export default function RoleDetailPage() {
                                 checked={allChecked}
                                 ref={(el) => { if (el) el.indeterminate = someChecked && !allChecked; }}
                                 onChange={() => handleToggleCategory(cat.permissions, allChecked)}
-                                className="h-4 w-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
+                                className="h-4 w-4 text-primary-600 border-surface-border dark:border-surface-dark-border rounded focus:ring-primary-500"
                               />
-                              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                              <span className="text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-dark-muted">
                                 {cat.label}
                               </span>
                             </div>
@@ -446,20 +446,20 @@ export default function RoleDetailPage() {
                                   className={`flex items-center gap-2.5 px-3 py-2 border rounded-md cursor-pointer transition-colors text-sm ${
                                     selectedPermissions.has(permission.id)
                                       ? 'border-primary-300 bg-primary-50 text-primary-800'
-                                      : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                                      : 'border-surface-border dark:border-surface-dark-border hover:border-text-muted dark:hover:border-text-dark-muted text-text-secondary dark:text-text-dark-secondary'
                                   }`}
                                 >
                                   <input
                                     type="checkbox"
                                     checked={selectedPermissions.has(permission.id)}
                                     onChange={() => handleTogglePermission(permission.id)}
-                                    className="h-3.5 w-3.5 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
+                                    className="h-3.5 w-3.5 text-primary-600 border-surface-border dark:border-surface-dark-border rounded focus:ring-primary-500"
                                   />
                                   <div className="min-w-0">
                                     <div className="font-medium truncate">
                                       {permission.description || permission.code}
                                     </div>
-                                    <div className="text-xs text-slate-400">{permission.code}</div>
+                                    <div className="text-xs text-text-muted dark:text-text-dark-muted">{permission.code}</div>
                                   </div>
                                 </label>
                               ))}
@@ -472,7 +472,7 @@ export default function RoleDetailPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-slate-500 text-center py-8">
+              <p className="text-text-muted dark:text-text-dark-muted text-center py-8">
                 {search ? 'No permissions match your search' : 'No permissions available'}
               </p>
             )}
@@ -501,7 +501,7 @@ function SaveIcon() {
 
 function SearchIcon() {
   return (
-    <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted dark:text-text-dark-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
     </svg>
   );

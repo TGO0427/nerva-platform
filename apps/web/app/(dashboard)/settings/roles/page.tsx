@@ -70,8 +70,8 @@ export default function RolesPage() {
       <Breadcrumbs />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Roles & Permissions</h1>
-          <p className="text-slate-500 mt-1">Manage roles and their permissions</p>
+          <h1 className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">Roles & Permissions</h1>
+          <p className="text-text-muted dark:text-text-dark-muted mt-1">Manage roles and their permissions</p>
         </div>
         {!showCreateForm && (
           <Button onClick={() => setShowCreateForm(true)}>
@@ -112,7 +112,7 @@ export default function RolesPage() {
             <form onSubmit={handleCreateRole} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                     Role Name *
                   </label>
                   <Input
@@ -123,7 +123,7 @@ export default function RolesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                     Description
                   </label>
                   <Input
@@ -166,14 +166,14 @@ export default function RolesPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="font-medium text-slate-900">{role.name}</h3>
+                    <h3 className="font-medium text-text-primary dark:text-text-dark-primary">{role.name}</h3>
                     {role.description && (
-                      <p className="text-sm text-slate-500 mt-1">{role.description}</p>
+                      <p className="text-sm text-text-muted dark:text-text-dark-muted mt-1">{role.description}</p>
                     )}
                   </div>
                   <Badge variant="default">Role</Badge>
                 </div>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-xs text-text-muted dark:text-text-dark-muted mb-4">
                   Created {formatDate(role.createdAt)}
                 </p>
                 <div className="flex gap-2">
@@ -202,8 +202,8 @@ export default function RolesPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <ShieldIcon />
-            <h3 className="mt-4 font-medium text-slate-900">No roles found</h3>
-            <p className="text-sm text-slate-500 mt-1">Create a role to assign permissions</p>
+            <h3 className="mt-4 font-medium text-text-primary dark:text-text-dark-primary">No roles found</h3>
+            <p className="text-sm text-text-muted dark:text-text-dark-muted mt-1">Create a role to assign permissions</p>
             <Button className="mt-4" onClick={() => setShowCreateForm(true)}>
               Create Role
             </Button>
@@ -264,7 +264,7 @@ function TrashIcon() {
 
 function ShieldIcon() {
   return (
-    <svg className="h-12 w-12 mx-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+    <svg className="h-12 w-12 mx-auto text-text-muted dark:text-text-dark-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
     </svg>
   );

@@ -101,8 +101,8 @@ export default function BillingPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Plan & Billing</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your subscription and usage</p>
+        <h1 className="text-2xl font-bold text-text-primary dark:text-text-dark-primary dark:text-white">Plan & Billing</h1>
+        <p className="text-text-muted dark:text-text-dark-muted dark:text-text-muted dark:text-text-dark-muted mt-1">Manage your subscription and usage</p>
       </div>
 
       {/* Payment verification banner */}
@@ -170,26 +170,26 @@ export default function BillingPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <div className="text-sm text-slate-500 dark:text-slate-400">Monthly Price</div>
+              <div className="text-sm text-text-muted dark:text-text-dark-muted dark:text-text-muted dark:text-text-dark-muted">Monthly Price</div>
               <div className="text-2xl font-bold mt-1">
                 {formatZar(current.billingCycle === 'monthly'
                   ? current.monthlyPriceZar
                   : Math.round(current.annualPriceZar / 12)
                 )}
-                <span className="text-sm font-normal text-slate-500">/mo</span>
+                <span className="text-sm font-normal text-text-muted dark:text-text-dark-muted">/mo</span>
               </div>
               {current.billingCycle === 'annual' && (
-                <div className="text-xs text-slate-500 mt-0.5">
+                <div className="text-xs text-text-muted dark:text-text-dark-muted mt-0.5">
                   {formatZar(current.annualPriceZar)} billed annually
                 </div>
               )}
             </div>
             <div>
-              <div className="text-sm text-slate-500 dark:text-slate-400">Billing Cycle</div>
+              <div className="text-sm text-text-muted dark:text-text-dark-muted dark:text-text-muted dark:text-text-dark-muted">Billing Cycle</div>
               <div className="text-lg font-semibold mt-1 capitalize">{current.billingCycle}</div>
             </div>
             <div>
-              <div className="text-sm text-slate-500 dark:text-slate-400">Plan Started</div>
+              <div className="text-sm text-text-muted dark:text-text-dark-muted dark:text-text-muted dark:text-text-dark-muted">Plan Started</div>
               <div className="text-lg font-semibold mt-1">
                 {formatDate(current.planStartedAt)}
               </div>
@@ -207,12 +207,12 @@ export default function BillingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-slate-600 dark:text-slate-400">Users</span>
+                <span className="text-text-secondary dark:text-text-dark-secondary dark:text-text-muted dark:text-text-dark-muted">Users</span>
                 <span className="font-medium">
                   {current.usage.userCount} / {current.maxUsers >= 9999 ? 'Unlimited' : current.maxUsers}
                 </span>
               </div>
-              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-2 bg-surface-secondary dark:bg-surface-dark-secondary rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${usersPercent > 80 ? 'bg-orange-500' : 'bg-blue-600'}`}
                   style={{ width: `${current.maxUsers >= 9999 ? 5 : usersPercent}%` }}
@@ -221,12 +221,12 @@ export default function BillingPage() {
             </div>
             <div>
               <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-slate-600 dark:text-slate-400">Warehouses</span>
+                <span className="text-text-secondary dark:text-text-dark-secondary dark:text-text-muted dark:text-text-dark-muted">Warehouses</span>
                 <span className="font-medium">
                   {current.usage.warehouseCount} / {current.maxWarehouses >= 9999 ? 'Unlimited' : current.maxWarehouses}
                 </span>
               </div>
-              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-2 bg-surface-secondary dark:bg-surface-dark-secondary rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${warehousesPercent > 80 ? 'bg-orange-500' : 'bg-blue-600'}`}
                   style={{ width: `${current.maxWarehouses >= 9999 ? 5 : warehousesPercent}%` }}
@@ -238,7 +238,7 @@ export default function BillingPage() {
       </Card>
 
       {/* Available Plans */}
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Available Plans</h2>
+      <h2 className="text-lg font-semibold text-text-primary dark:text-text-dark-primary dark:text-white mb-4">Available Plans</h2>
       <div className="grid md:grid-cols-3 gap-6 mb-8">
         {planOrder.map((planKey) => {
           const plan = PLANS[planKey];
@@ -261,12 +261,12 @@ export default function BillingPage() {
               <CardContent>
                 <div className="mb-4">
                   <span className="text-3xl font-bold">{formatZar(price)}</span>
-                  <span className="text-sm text-slate-500">/mo</span>
+                  <span className="text-sm text-text-muted dark:text-text-dark-muted">/mo</span>
                 </div>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{plan.description}</p>
+                <p className="text-sm text-text-secondary dark:text-text-dark-secondary dark:text-text-muted dark:text-text-dark-muted mb-4">{plan.description}</p>
                 <ul className="space-y-2 mb-6">
                   {plan.features.slice(0, 5).map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <li key={f} className="flex items-start gap-2 text-sm text-text-secondary dark:text-text-dark-secondary">
                       <svg className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
@@ -301,18 +301,18 @@ export default function BillingPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-700">
-                    <th className="text-left py-2 pr-4 font-medium text-slate-500">Date</th>
-                    <th className="text-left py-2 pr-4 font-medium text-slate-500">Plan</th>
-                    <th className="text-left py-2 pr-4 font-medium text-slate-500">Cycle</th>
-                    <th className="text-right py-2 pr-4 font-medium text-slate-500">Amount</th>
-                    <th className="text-left py-2 pr-4 font-medium text-slate-500">Status</th>
-                    <th className="text-left py-2 font-medium text-slate-500"></th>
+                  <tr className="border-b border-surface-border dark:border-surface-dark-border dark:border-surface-dark-border">
+                    <th className="text-left py-2 pr-4 font-medium text-text-muted dark:text-text-dark-muted">Date</th>
+                    <th className="text-left py-2 pr-4 font-medium text-text-muted dark:text-text-dark-muted">Plan</th>
+                    <th className="text-left py-2 pr-4 font-medium text-text-muted dark:text-text-dark-muted">Cycle</th>
+                    <th className="text-right py-2 pr-4 font-medium text-text-muted dark:text-text-dark-muted">Amount</th>
+                    <th className="text-left py-2 pr-4 font-medium text-text-muted dark:text-text-dark-muted">Status</th>
+                    <th className="text-left py-2 font-medium text-text-muted dark:text-text-dark-muted"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {history.map((tx) => (
-                    <tr key={tx.id} className="border-b border-slate-100 dark:border-slate-800">
+                    <tr key={tx.id} className="border-b border-surface-border dark:border-surface-dark-border">
                       <td className="py-2 pr-4">{formatDate(tx.createdAt)}</td>
                       <td className="py-2 pr-4 capitalize">{tx.plan}</td>
                       <td className="py-2 pr-4 capitalize">{tx.billingCycle}</td>
@@ -345,15 +345,15 @@ export default function BillingPage() {
       {/* Checkout Confirm Modal */}
       {showConfirm && selectedPlan && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowConfirm(false)}>
-          <div className="bg-white dark:bg-slate-900 rounded-lg p-6 w-full max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          <div className="bg-surface-card dark:bg-surface-dark-card rounded-lg p-6 w-full max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-text-primary dark:text-text-dark-primary dark:text-white mb-4">
               Confirm Plan Change
             </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+            <p className="text-sm text-text-secondary dark:text-text-dark-secondary dark:text-text-muted dark:text-text-dark-muted mb-4">
               Switch to <strong>{PLANS[selectedPlan].name}</strong> plan? You&apos;ll be redirected to PayStack to complete payment.
             </p>
 
-            <div className="rounded-lg bg-slate-50 dark:bg-slate-800 p-4 mb-4">
+            <div className="rounded-lg bg-surface-secondary dark:bg-surface-dark-secondary p-4 mb-4">
               <div className="flex items-center justify-between text-sm">
                 <span>Amount</span>
                 <span className="font-semibold">
@@ -367,14 +367,14 @@ export default function BillingPage() {
             </div>
 
             <div className="mb-4">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Billing Cycle</label>
+              <label className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">Billing Cycle</label>
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => setSelectedCycle('monthly')}
                   className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
                     selectedCycle === 'monthly'
                       ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950/30'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                      : 'border-surface-border dark:border-surface-dark-border dark:border-surface-dark-border text-text-secondary dark:text-text-dark-secondary dark:text-text-muted dark:text-text-dark-muted'
                   }`}
                 >
                   Monthly
@@ -384,7 +384,7 @@ export default function BillingPage() {
                   className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
                     selectedCycle === 'annual'
                       ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950/30'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                      : 'border-surface-border dark:border-surface-dark-border dark:border-surface-dark-border text-text-secondary dark:text-text-dark-secondary dark:text-text-muted dark:text-text-dark-muted'
                   }`}
                 >
                   Annual (save 2 months)

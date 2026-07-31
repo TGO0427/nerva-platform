@@ -167,7 +167,7 @@ export default function UserDetailPage() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-lg font-medium text-slate-900">User not found</h2>
+        <h2 className="text-lg font-medium text-text-primary dark:text-text-dark-primary">User not found</h2>
         <Button className="mt-4" onClick={() => router.push('/settings/users')}>
           Back to Users
         </Button>
@@ -189,12 +189,12 @@ export default function UserDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">{user.email}</h1>
+            <h1 className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">{user.email}</h1>
             <Badge variant={user.isActive ? 'success' : 'danger'}>
               {user.isActive ? 'Active' : 'Inactive'}
             </Badge>
           </div>
-          <p className="text-slate-500 mt-1">
+          <p className="text-text-muted dark:text-text-dark-muted mt-1">
             Created {formatDate(user.createdAt)}
           </p>
         </div>
@@ -227,7 +227,7 @@ export default function UserDetailPage() {
             {isEditing ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                     Display Name
                   </label>
                   <Input
@@ -253,29 +253,29 @@ export default function UserDetailPage() {
             ) : (
               <dl className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <dt className="text-slate-500">Email</dt>
+                  <dt className="text-text-muted dark:text-text-dark-muted">Email</dt>
                   <dd className="font-medium">{user.email}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">Name</dt>
+                  <dt className="text-text-muted dark:text-text-dark-muted">Name</dt>
                   <dd className="font-medium">{user.displayName}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">Status</dt>
+                  <dt className="text-text-muted dark:text-text-dark-muted">Status</dt>
                   <dd className="font-medium">{user.isActive ? 'Active' : 'Inactive'}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">User Type</dt>
+                  <dt className="text-text-muted dark:text-text-dark-muted">User Type</dt>
                   <dd className="font-medium capitalize">{user.userType}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">Last Login</dt>
+                  <dt className="text-text-muted dark:text-text-dark-muted">Last Login</dt>
                   <dd className="font-medium">
                     {formatDate(user.lastLoginAt, 'Never')}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">Last Updated</dt>
+                  <dt className="text-text-muted dark:text-text-dark-muted">Last Updated</dt>
                   <dd className="font-medium">{formatDate(user.updatedAt)}</dd>
                 </div>
               </dl>
@@ -301,17 +301,17 @@ export default function UserDetailPage() {
                     {userRoles.map((role) => (
                       <div
                         key={role.id}
-                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-surface-secondary dark:bg-surface-dark-secondary rounded-lg"
                       >
                         <div>
                           <div className="font-medium">{role.name}</div>
                           {role.description && (
-                            <div className="text-sm text-slate-500">{role.description}</div>
+                            <div className="text-sm text-text-muted dark:text-text-dark-muted">{role.description}</div>
                           )}
                         </div>
                         <button
                           onClick={() => handleRemoveRole(role.id)}
-                          className="text-slate-400 hover:text-red-500 transition-colors"
+                          className="text-text-muted dark:text-text-dark-muted hover:text-red-500 transition-colors"
                           title="Remove role"
                         >
                           <XIcon />
@@ -320,12 +320,12 @@ export default function UserDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-slate-500 text-sm mb-4">No roles assigned</p>
+                  <p className="text-text-muted dark:text-text-dark-muted text-sm mb-4">No roles assigned</p>
                 )}
 
                 {availableRoles.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-slate-700 mb-2">Add Role</h4>
+                    <h4 className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-2">Add Role</h4>
                     <div className="flex flex-wrap gap-2">
                       {availableRoles.map((role) => (
                         <Button
@@ -364,15 +364,15 @@ export default function UserDetailPage() {
                     {userSites.map((site) => (
                       <div
                         key={site.id}
-                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-surface-secondary dark:bg-surface-dark-secondary rounded-lg"
                       >
                         <div>
                           <div className="font-medium">{site.name}</div>
-                          <div className="text-xs text-slate-500">{site.code}</div>
+                          <div className="text-xs text-text-muted dark:text-text-dark-muted">{site.code}</div>
                         </div>
                         <button
                           onClick={() => handleRemoveSite(site.id)}
-                          className="text-slate-400 hover:text-red-500 transition-colors"
+                          className="text-text-muted dark:text-text-dark-muted hover:text-red-500 transition-colors"
                           title="Remove site"
                         >
                           <XIcon />
@@ -381,14 +381,14 @@ export default function UserDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-slate-500 text-sm mb-4">
+                  <p className="text-text-muted dark:text-text-dark-muted text-sm mb-4">
                     No sites assigned — user can access all sites
                   </p>
                 )}
 
                 {availableSites.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-slate-700 mb-2">Add Site</h4>
+                    <h4 className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-2">Add Site</h4>
                     <div className="flex flex-wrap gap-2">
                       {availableSites.map((site) => (
                         <Button
@@ -427,18 +427,18 @@ export default function UserDetailPage() {
                     {userWarehouses.map((wh) => (
                       <div
                         key={wh.id}
-                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-surface-secondary dark:bg-surface-dark-secondary rounded-lg"
                       >
                         <div>
                           <div className="font-medium">{wh.name}</div>
-                          <div className="text-xs text-slate-500">
+                          <div className="text-xs text-text-muted dark:text-text-dark-muted">
                             {wh.code && <span className="mr-2">{wh.code}</span>}
                             {wh.siteName}
                           </div>
                         </div>
                         <button
                           onClick={() => handleRemoveWarehouse(wh.id)}
-                          className="text-slate-400 hover:text-red-500 transition-colors"
+                          className="text-text-muted dark:text-text-dark-muted hover:text-red-500 transition-colors"
                           title="Remove warehouse"
                         >
                           <XIcon />
@@ -447,14 +447,14 @@ export default function UserDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-slate-500 text-sm mb-4">
+                  <p className="text-text-muted dark:text-text-dark-muted text-sm mb-4">
                     No warehouses assigned — user can access all warehouses
                   </p>
                 )}
 
                 {availableWarehouses.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-slate-700 mb-2">Add Warehouse</h4>
+                    <h4 className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-2">Add Warehouse</h4>
                     <div className="flex flex-wrap gap-2">
                       {availableWarehouses.map((wh) => (
                         <Button
