@@ -81,7 +81,7 @@ function formatRelativeTime(dateStr: string | null): string {
 
 // Board column config
 const BOARD_COLUMNS = [
-  { status: 'PLANNED' as TripStatus, label: 'Planned', color: 'bg-slate-100' },
+  { status: 'PLANNED' as TripStatus, label: 'Planned', color: 'bg-surface-secondary dark:bg-surface-dark-secondary' },
   { status: 'ASSIGNED' as TripStatus, label: 'Assigned', color: 'bg-blue-50' },
   { status: 'IN_PROGRESS' as TripStatus, label: 'In Progress', color: 'bg-yellow-50' },
   { status: 'COMPLETE' as TripStatus, label: 'Completed', color: 'bg-green-50' },
@@ -288,12 +288,12 @@ export default function DispatchPage() {
     {
       key: 'driverName',
       header: 'Driver',
-      render: (row) => row.driverName || <span className="text-slate-400">Unassigned</span>,
+      render: (row) => row.driverName || <span className="text-text-muted dark:text-text-dark-muted">Unassigned</span>,
     },
     {
       key: 'vehiclePlate',
       header: 'Vehicle',
-      render: (row) => row.vehiclePlate || <span className="text-slate-400">-</span>,
+      render: (row) => row.vehiclePlate || <span className="text-text-muted dark:text-text-dark-muted">-</span>,
     },
     {
       key: 'totalStops',
@@ -318,7 +318,7 @@ export default function DispatchPage() {
             <ExclamationIcon />
           </span>
         ) : (
-          <span className="text-slate-300">-</span>
+          <span className="text-text-muted dark:text-text-dark-muted">-</span>
         );
       },
     },
@@ -371,7 +371,7 @@ export default function DispatchPage() {
               setSelectedShipments(new Set());
             }
           }}
-          className="h-4 w-4 rounded border-slate-300"
+          className="h-4 w-4 rounded border-surface-border dark:border-surface-dark-border"
         />
       ),
       width: '50px',
@@ -388,7 +388,7 @@ export default function DispatchPage() {
             }
             setSelectedShipments(newSelected);
           }}
-          className="h-4 w-4 rounded border-slate-300"
+          className="h-4 w-4 rounded border-surface-border dark:border-surface-dark-border"
         />
       ),
     },
@@ -552,15 +552,15 @@ export default function DispatchPage() {
                 className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
                   isLive
                     ? 'bg-green-100 text-green-700'
-                    : 'bg-slate-100 text-slate-500'
+                    : 'bg-surface-secondary dark:bg-surface-dark-secondary text-text-muted dark:text-text-dark-muted'
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`} />
+                <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-text-muted dark:bg-text-dark-muted'}`} />
                 {isLive ? 'Live' : 'Paused'}
               </button>
               <button
                 onClick={handleRefresh}
-                className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-md text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:text-text-dark-secondary hover:bg-surface-secondary dark:bg-surface-dark-secondary transition-colors"
                 title="Refresh now"
               >
                 <RefreshIcon />
@@ -636,7 +636,7 @@ export default function DispatchPage() {
         {/* Main content area */}
         <div className="flex-1 min-w-0">
           {/* Tabs */}
-          <div className="border-b border-slate-200 mb-4">
+          <div className="border-b border-surface-border dark:border-surface-dark-border mb-4">
             <div className="flex items-center justify-between">
               <nav className="-mb-px flex space-x-8">
                 <button
@@ -644,7 +644,7 @@ export default function DispatchPage() {
                   className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === 'trips'
                       ? 'border-primary-500 text-primary-600'
-                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                      : 'border-transparent text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:text-text-dark-secondary hover:border-surface-border dark:border-surface-dark-border'
                   }`}
                 >
                   Trips
@@ -654,7 +654,7 @@ export default function DispatchPage() {
                   className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
                     activeTab === 'ready-shipments'
                       ? 'border-primary-500 text-primary-600'
-                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                      : 'border-transparent text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:text-text-dark-secondary hover:border-surface-border dark:border-surface-dark-border'
                   }`}
                 >
                   Ready for Dispatch
@@ -675,13 +675,13 @@ export default function DispatchPage() {
                     onApply={applySavedView}
                   />
                   <ExportActions onExport={handleExportTrips} />
-                  <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+                  <div className="flex items-center bg-surface-secondary dark:bg-surface-dark-secondary rounded-lg p-0.5">
                     <button
                       onClick={() => setViewMode('board')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         viewMode === 'board'
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
+                          ? 'bg-white text-text-primary dark:text-text-dark-primary shadow-sm'
+                          : 'text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:text-text-dark-secondary'
                       }`}
                     >
                       <BoardIcon className="h-4 w-4 inline mr-1.5" />
@@ -691,8 +691,8 @@ export default function DispatchPage() {
                       onClick={() => setViewMode('table')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         viewMode === 'table'
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
+                          ? 'bg-white text-text-primary dark:text-text-dark-primary shadow-sm'
+                          : 'text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:text-text-dark-secondary'
                       }`}
                     >
                       <TableIcon className="h-4 w-4 inline mr-1.5" />
@@ -707,7 +707,7 @@ export default function DispatchPage() {
       {activeTab === 'trips' && viewMode === 'table' && (
         <>
           {/* Sticky filter bar */}
-          <div className="sticky top-0 z-10 bg-white border-b border-slate-100 -mx-6 px-6 py-3 mb-4 flex flex-wrap items-center gap-4">
+          <div className="sticky top-0 z-10 bg-white border-b border-surface-border dark:border-surface-dark-border -mx-6 px-6 py-3 mb-4 flex flex-wrap items-center gap-4">
             <Input
               placeholder="Search trips..."
               value={search}
@@ -747,7 +747,7 @@ export default function DispatchPage() {
               onReset={resetColumns}
               alwaysVisible={['tripNo']}
             />
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-text-muted dark:text-text-dark-muted">
               {totalTrips} trip{totalTrips !== 1 ? 's' : ''}
             </span>
           </div>
@@ -799,8 +799,8 @@ export default function DispatchPage() {
             <div key={column.status} className="flex-shrink-0 w-72">
               <div className={`rounded-lg ${column.color} p-3`}>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium text-slate-700">{column.label}</h3>
-                  <span className="text-sm font-medium text-slate-500 bg-white px-2 py-0.5 rounded-full">
+                  <h3 className="font-medium text-text-secondary dark:text-text-dark-secondary">{column.label}</h3>
+                  <span className="text-sm font-medium text-text-muted dark:text-text-dark-muted bg-white px-2 py-0.5 rounded-full">
                     {tripsByStatus[column.status].length}
                   </span>
                 </div>
@@ -815,23 +815,23 @@ export default function DispatchPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         onClick={() => setSelectedTripId(trip.id)}
-                        className="bg-white rounded-lg p-3 shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition-shadow"
+                        className="bg-white rounded-lg p-3 shadow-sm border border-surface-border dark:border-surface-dark-border cursor-pointer hover:shadow-md transition-shadow"
                       >
                         <div className="flex items-start justify-between mb-2">
-                          <span className="font-medium text-slate-900">{trip.tripNo}</span>
+                          <span className="font-medium text-text-primary dark:text-text-dark-primary">{trip.tripNo}</span>
                           {trip.status === 'CANCELLED' && (
                             <span className="w-2 h-2 rounded-full bg-red-500" title="Has issues" />
                           )}
                         </div>
 
-                        <div className="text-sm text-slate-600 mb-2">
+                        <div className="text-sm text-text-secondary dark:text-text-dark-secondary mb-2">
                           <div className="flex items-center gap-1.5">
-                            <UserIcon className="h-3.5 w-3.5 text-slate-400" />
+                            <UserIcon className="h-3.5 w-3.5 text-text-muted dark:text-text-dark-muted" />
                             {trip.driverName || 'Unassigned'}
                           </div>
                           {trip.vehiclePlate && (
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <TruckSmIcon2 className="h-3.5 w-3.5 text-slate-400" />
+                              <TruckSmIcon2 className="h-3.5 w-3.5 text-text-muted dark:text-text-dark-muted" />
                               {trip.vehiclePlate}
                             </div>
                           )}
@@ -843,7 +843,7 @@ export default function DispatchPage() {
                           className="mb-2"
                         />
 
-                        <div className="flex items-center justify-between text-xs text-slate-400">
+                        <div className="flex items-center justify-between text-xs text-text-muted dark:text-text-dark-muted">
                           <div className="flex items-center gap-2">
                             <span>{formatRelativeTime(trip.updatedAt)}</span>
                             {/* POD indicator for completed trips */}
@@ -879,7 +879,7 @@ export default function DispatchPage() {
                   </AnimatePresence>
 
                   {tripsByStatus[column.status].length === 0 && (
-                    <div className="text-center py-6 text-sm text-slate-400">
+                    <div className="text-center py-6 text-sm text-text-muted dark:text-text-dark-muted">
                       No trips
                     </div>
                   )}
@@ -907,7 +907,7 @@ export default function DispatchPage() {
               <CardContent>
                 <div className="flex flex-wrap items-end gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                       Selected Shipments
                     </label>
                     <div className="text-2xl font-bold text-primary-600">
@@ -915,7 +915,7 @@ export default function DispatchPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                       Total Weight
                     </label>
                     <div className="text-lg font-medium">
@@ -923,7 +923,7 @@ export default function DispatchPage() {
                     </div>
                   </div>
                   <div className="flex-1 min-w-[200px]">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                       Planned Date
                     </label>
                     <Input
@@ -1005,7 +1005,7 @@ export default function DispatchPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500 text-center py-4">
+                <p className="text-sm text-text-muted dark:text-text-dark-muted text-center py-4">
                   No recent activity
                 </p>
               )}
@@ -1026,26 +1026,26 @@ export default function DispatchPage() {
           <div className="space-y-6">
             {/* Quick stats */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-sm text-slate-500">Driver</p>
-                <p className="font-medium text-slate-900">
+              <div className="bg-surface-secondary dark:bg-surface-dark-secondary rounded-lg p-4">
+                <p className="text-sm text-text-muted dark:text-text-dark-muted">Driver</p>
+                <p className="font-medium text-text-primary dark:text-text-dark-primary">
                   {drawerTrip.driverName || 'Unassigned'}
                 </p>
               </div>
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-sm text-slate-500">Vehicle</p>
-                <p className="font-medium text-slate-900">
+              <div className="bg-surface-secondary dark:bg-surface-dark-secondary rounded-lg p-4">
+                <p className="text-sm text-text-muted dark:text-text-dark-muted">Vehicle</p>
+                <p className="font-medium text-text-primary dark:text-text-dark-primary">
                   {drawerTrip.vehiclePlate || '-'}
                 </p>
               </div>
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-sm text-slate-500">Total Weight</p>
-                <p className="font-medium text-slate-900">
+              <div className="bg-surface-secondary dark:bg-surface-dark-secondary rounded-lg p-4">
+                <p className="text-sm text-text-muted dark:text-text-dark-muted">Total Weight</p>
+                <p className="font-medium text-text-primary dark:text-text-dark-primary">
                   {drawerTrip.totalWeight || 0} kg
                 </p>
               </div>
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-sm text-slate-500">Stops Progress</p>
+              <div className="bg-surface-secondary dark:bg-surface-dark-secondary rounded-lg p-4">
+                <p className="text-sm text-text-muted dark:text-text-dark-muted">Stops Progress</p>
                 <StopsProgress
                   completed={drawerTrip.completedStops || 0}
                   total={drawerTrip.totalStops}
@@ -1107,7 +1107,7 @@ export default function DispatchPage() {
 
             {/* All stops list */}
             <div>
-              <h3 className="text-sm font-medium text-slate-900 mb-3">All Delivery Stops</h3>
+              <h3 className="text-sm font-medium text-text-primary dark:text-text-dark-primary mb-3">All Delivery Stops</h3>
               {stopsLoading ? (
                 <div className="flex justify-center py-4">
                   <Spinner />
@@ -1120,21 +1120,21 @@ export default function DispatchPage() {
                       className={`flex items-center gap-3 p-3 rounded-lg ${
                         stop.status === 'DELIVERED' ? 'bg-green-50' :
                         ['FAILED', 'SKIPPED'].includes(stop.status) ? 'bg-red-50' :
-                        'bg-slate-50'
+                        'bg-surface-secondary dark:bg-surface-dark-secondary'
                       }`}
                     >
                       <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
                         stop.status === 'DELIVERED' ? 'bg-green-200 text-green-700' :
                         ['FAILED', 'SKIPPED'].includes(stop.status) ? 'bg-red-200 text-red-700' :
-                        'bg-slate-200 text-slate-600'
+                        'bg-surface-border dark:bg-surface-dark-border text-text-secondary dark:text-text-dark-secondary'
                       }`}>
                         {stop.sequence}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-900 truncate">
+                        <p className="font-medium text-text-primary dark:text-text-dark-primary truncate">
                           {stop.customerName || 'Unknown Customer'}
                         </p>
-                        <p className="text-sm text-slate-500 truncate">
+                        <p className="text-sm text-text-muted dark:text-text-dark-muted truncate">
                           {stop.addressLine1}
                           {stop.city && `, ${stop.city}`}
                         </p>
@@ -1166,12 +1166,12 @@ export default function DispatchPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">No stops in this trip</p>
+                <p className="text-sm text-text-muted dark:text-text-dark-muted">No stops in this trip</p>
               )}
             </div>
 
             {/* Actions */}
-            <div className="pt-4 border-t border-slate-200">
+            <div className="pt-4 border-t border-surface-border dark:border-surface-dark-border">
               <Button onClick={handleViewFullDetails} className="w-full">
                 View Full Details
                 <ArrowRightIcon />
@@ -1401,13 +1401,13 @@ function ActivityItem({ entry }: { entry: AuditEntryWithActor }) {
               description = `Trip ${entityId} completed`;
             } else {
               icon = <EditActivityIcon />;
-              color = 'bg-slate-100 text-slate-600';
+              color = 'bg-surface-secondary dark:bg-surface-dark-secondary text-text-secondary dark:text-text-dark-secondary';
               description = `Trip ${entityId} updated`;
             }
             break;
           default:
             icon = <TruckActivityIcon />;
-            color = 'bg-slate-100 text-slate-600';
+            color = 'bg-surface-secondary dark:bg-surface-dark-secondary text-text-secondary dark:text-text-dark-secondary';
             description = `Trip ${entityId} ${action?.toLowerCase()}`;
         }
         break;
@@ -1427,7 +1427,7 @@ function ActivityItem({ entry }: { entry: AuditEntryWithActor }) {
           description = `Driver arrived at stop`;
         } else {
           icon = <LocationActivityIcon />;
-          color = 'bg-slate-100 text-slate-600';
+          color = 'bg-surface-secondary dark:bg-surface-dark-secondary text-text-secondary dark:text-text-dark-secondary';
           description = `Stop updated`;
         }
         break;
@@ -1440,7 +1440,7 @@ function ActivityItem({ entry }: { entry: AuditEntryWithActor }) {
         break;
       default:
         icon = <EditActivityIcon />;
-        color = 'bg-slate-100 text-slate-600';
+        color = 'bg-surface-secondary dark:bg-surface-dark-secondary text-text-secondary dark:text-text-dark-secondary';
         description = `${entityType} ${action?.toLowerCase()}`;
     }
 
@@ -1455,8 +1455,8 @@ function ActivityItem({ entry }: { entry: AuditEntryWithActor }) {
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-900 truncate">{description}</p>
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+        <p className="text-sm text-text-primary dark:text-text-dark-primary truncate">{description}</p>
+        <div className="flex items-center gap-2 text-xs text-text-muted dark:text-text-dark-muted">
           <span>{entry.actorName || 'System'}</span>
           <span>•</span>
           <span>{formatRelativeTime(entry.createdAt)}</span>

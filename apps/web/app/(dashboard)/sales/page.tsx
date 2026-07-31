@@ -277,14 +277,14 @@ export default function SalesOrdersPage() {
             options={STATUS_OPTIONS}
             className="max-w-xs"
           />
-          <label className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-colors ${
-            lateOnly ? 'bg-red-50 border-red-200 text-red-700' : 'border-slate-200 hover:bg-slate-50'
+          <label className={`flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-pointer transition-colors ${
+            lateOnly ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900 text-danger dark:text-red-400' : 'border-surface-border dark:border-surface-dark-border hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary'
           }`}>
             <input
               type="checkbox"
               checked={lateOnly}
               onChange={(e) => setLateOnly(e.target.checked)}
-              className="rounded border-slate-300 text-red-600 focus:ring-red-500"
+              className="rounded border-surface-border dark:border-surface-dark-border text-danger focus:ring-danger"
             />
             <span className="text-sm font-medium">Late only</span>
           </label>

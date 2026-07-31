@@ -66,13 +66,13 @@ export default function InventoryPage() {
     {
       key: 'batchNo',
       header: 'Batch No.',
-      render: (row) => row.batchNo || <span className="text-slate-400">-</span>,
+      render: (row) => row.batchNo || <span className="text-text-muted dark:text-text-dark-muted">-</span>,
     },
     {
       key: 'expiryDate',
       header: 'Expiry Date',
       render: (row) => {
-        if (!row.expiryDate) return <span className="text-slate-400">-</span>;
+        if (!row.expiryDate) return <span className="text-text-muted dark:text-text-dark-muted">-</span>;
         const date = new Date(row.expiryDate);
         const now = new Date();
         const daysUntil = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -106,7 +106,7 @@ export default function InventoryPage() {
       header: 'Reserved',
       width: '100px',
       render: (row) => (
-        <span className={row.qtyReserved > 0 ? 'text-orange-600' : 'text-slate-400'}>
+        <span className={row.qtyReserved > 0 ? 'text-orange-600' : 'text-text-muted dark:text-text-dark-muted'}>
           {formatQuantity(row.qtyReserved)}
         </span>
       ),
@@ -116,7 +116,7 @@ export default function InventoryPage() {
       header: 'Available',
       width: '100px',
       render: (row) => (
-        <span className={row.qtyAvailable > 0 ? 'text-green-600 font-medium' : 'text-slate-400'}>
+        <span className={row.qtyAvailable > 0 ? 'text-green-600 font-medium' : 'text-text-muted dark:text-text-dark-muted'}>
           {formatQuantity(row.qtyAvailable)}
         </span>
       ),

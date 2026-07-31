@@ -158,7 +158,7 @@ export default function FulfilmentPage() {
               setSelectedOrders(new Set());
             }
           }}
-          className="h-4 w-4 rounded border-slate-300"
+          className="h-4 w-4 rounded border-surface-border dark:border-surface-dark-border"
         />
       ),
       width: '50px',
@@ -175,7 +175,7 @@ export default function FulfilmentPage() {
             }
             setSelectedOrders(newSelected);
           }}
-          className="h-4 w-4 rounded border-slate-300"
+          className="h-4 w-4 rounded border-surface-border dark:border-surface-dark-border"
         />
       ),
     },
@@ -437,14 +437,14 @@ export default function FulfilmentPage() {
       </MetricGrid>
 
       {/* Tabs */}
-      <div className="mb-4 flex flex-col gap-3 border-b border-slate-200 pb-2 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-4 flex flex-col gap-3 border-b border-surface-border dark:border-surface-dark-border pb-2 lg:flex-row lg:items-end lg:justify-between">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('allocated-orders')}
             className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
               activeTab === 'allocated-orders'
                 ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                : 'border-transparent text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:hover:text-text-dark-primary hover:border-surface-border dark:hover:border-surface-dark-border'
             }`}
           >
             Allocated Orders
@@ -459,7 +459,7 @@ export default function FulfilmentPage() {
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'pick-waves'
                 ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                : 'border-transparent text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:hover:text-text-dark-primary hover:border-surface-border dark:hover:border-surface-dark-border'
             }`}
           >
             Pick Waves
@@ -469,7 +469,7 @@ export default function FulfilmentPage() {
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'shipments'
                 ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                : 'border-transparent text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:hover:text-text-dark-primary hover:border-surface-border dark:hover:border-surface-dark-border'
             }`}
           >
             Shipments
@@ -518,7 +518,7 @@ export default function FulfilmentPage() {
               <CardContent>
                 <div className="flex flex-wrap items-center gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                       Selected Orders
                     </label>
                     <div className="text-2xl font-bold text-primary-600">
@@ -526,7 +526,7 @@ export default function FulfilmentPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                       Warehouse
                     </label>
                     <div className="text-lg font-medium">
@@ -671,7 +671,7 @@ export default function FulfilmentPage() {
                 )}
                 <div className="flex flex-wrap items-end gap-4">
                   <div className="min-w-[250px]">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
                       Select Order
                     </label>
                     <Select
@@ -686,7 +686,7 @@ export default function FulfilmentPage() {
                       ]}
                     />
                     {shippableOrders?.length === 0 && (
-                      <p className="text-sm text-slate-500 mt-1">No orders ready for shipping</p>
+                      <p className="text-sm text-text-muted dark:text-text-dark-muted mt-1">No orders ready for shipping</p>
                     )}
                   </div>
                   <Button
