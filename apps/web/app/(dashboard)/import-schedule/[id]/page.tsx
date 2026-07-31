@@ -17,7 +17,7 @@ import {
   useUpdateImportShipmentLineStatus,
   useDeleteImportShipment,
 } from '@/lib/queries';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatCurrency } from '@/lib/format';
 import {
   ALL_IMPORT_SHIPMENT_STATUSES,
   STATUS_LABELS,
@@ -109,6 +109,9 @@ export default function ImportShipmentDetailPage() {
           <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
             <Field label="Incoterm" value={shipment.incoterm || '—'} />
             <Field label="Lines" value={String(shipment.lines.length)} />
+            {totalLandedCost(shipment.lines) != null && (
+              <Field label="Total Landed Cost (est.)" value={formatCurrency(totalLandedCost(shipment.lines)!)} />
+            )}
             {shipment.notes && (
               <div className="md:col-span-3">
                 <Field label="Notes" value={shipment.notes} />
@@ -165,6 +168,17 @@ export default function ImportShipmentDetailPage() {
                   </div>
                 )}
               </dl>
+
+              {hasCostData(line) && (
+                <dl className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-x-6 gap-y-4 mb-4 pt-4 border-t border-slate-100">
+                  <Field label="Unit Cost" value={line.unitCost != null ? formatCurrency(line.unitCost) : '—'} />
+                  <Field label="Freight Cost" value={line.freightCost != null ? formatCurrency(line.freightCost) : '—'} />
+                  <Field label="Duty Cost" value={line.dutyCost != null ? formatCurrency(line.dutyCost) : '—'} />
+                  <Field label="Clearing Cost" value={line.clearingCost != null ? formatCurrency(line.clearingCost) : '—'} />
+                  <Field label="Landed Cost" value={line.landedCost != null ? formatCurrency(line.landedCost) : '—'} />
+                </dl>
+              )}
+
               <div className="mb-4 pb-4 border-b border-slate-100">
                 <LineWorkflowActions shipmentId={shipment.id} line={line} />
               </div>
@@ -184,6 +198,22 @@ export default function ImportShipmentDetailPage() {
       </div>
     </div>
   );
+}
+
+function hasCostData(line: ImportShipmentLine): boolean {
+  return (
+    line.unitCost != null ||
+    line.freightCost != null ||
+    line.dutyCost != null ||
+    line.clearingCost != null ||
+    line.landedCost != null
+  );
+}
+
+function totalLandedCost(lines: ImportShipmentLine[]): number | null {
+  const values = lines.map((l) => l.landedCost).filter((v): v is number => v != null);
+  if (values.length === 0) return null;
+  return values.reduce((sum, v) => sum + v, 0);
 }
 
 function Field({ label, value }: { label: string; value: string }) {

@@ -39,6 +39,11 @@ interface LineDraft {
   weekStartDate: string;
   weekEndDate: string;
   notes: string;
+  unitCost: string;
+  freightCost: string;
+  dutyCost: string;
+  clearingCost: string;
+  landedCost: string;
 }
 
 function emptyLine(): LineDraft {
@@ -54,6 +59,11 @@ function emptyLine(): LineDraft {
     weekStartDate: '',
     weekEndDate: '',
     notes: '',
+    unitCost: '',
+    freightCost: '',
+    dutyCost: '',
+    clearingCost: '',
+    landedCost: '',
   };
 }
 
@@ -101,6 +111,11 @@ export default function EditImportShipmentPage() {
         weekStartDate: line.weekStartDate ? line.weekStartDate.slice(0, 10) : '',
         weekEndDate: line.weekEndDate ? line.weekEndDate.slice(0, 10) : '',
         notes: line.notes || '',
+        unitCost: line.unitCost != null ? String(line.unitCost) : '',
+        freightCost: line.freightCost != null ? String(line.freightCost) : '',
+        dutyCost: line.dutyCost != null ? String(line.dutyCost) : '',
+        clearingCost: line.clearingCost != null ? String(line.clearingCost) : '',
+        landedCost: line.landedCost != null ? String(line.landedCost) : '',
       }))
     );
     if (shipment.supplierName) {
@@ -164,6 +179,11 @@ export default function EditImportShipmentPage() {
       cbm: line.cbm ? parseFloat(line.cbm) : undefined,
       palletQty: line.palletQty ? parseFloat(line.palletQty) : undefined,
       notes: line.notes || undefined,
+      unitCost: line.unitCost ? parseFloat(line.unitCost) : undefined,
+      freightCost: line.freightCost ? parseFloat(line.freightCost) : undefined,
+      dutyCost: line.dutyCost ? parseFloat(line.dutyCost) : undefined,
+      clearingCost: line.clearingCost ? parseFloat(line.clearingCost) : undefined,
+      landedCost: line.landedCost ? parseFloat(line.landedCost) : undefined,
     }));
 
     try {
@@ -395,6 +415,35 @@ export default function EditImportShipmentPage() {
                 <div className="lg:col-span-3">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Line Notes</label>
                   <Input value={line.notes} onChange={(e) => updateLine(index, { notes: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <h4 className="text-sm font-medium text-slate-700 mb-1">Landed Cost (optional)</h4>
+                <p className="text-xs text-slate-500 mb-3">
+                  Independently entered cost figures for operational visibility — not an auto-apportioned costing engine.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Unit Cost</label>
+                    <Input type="number" value={line.unitCost} onChange={(e) => updateLine(index, { unitCost: e.target.value })} min="0" step="0.01" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Freight Cost</label>
+                    <Input type="number" value={line.freightCost} onChange={(e) => updateLine(index, { freightCost: e.target.value })} min="0" step="0.01" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Duty Cost</label>
+                    <Input type="number" value={line.dutyCost} onChange={(e) => updateLine(index, { dutyCost: e.target.value })} min="0" step="0.01" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Clearing Cost</label>
+                    <Input type="number" value={line.clearingCost} onChange={(e) => updateLine(index, { clearingCost: e.target.value })} min="0" step="0.01" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Landed Cost (total)</label>
+                    <Input type="number" value={line.landedCost} onChange={(e) => updateLine(index, { landedCost: e.target.value })} min="0" step="0.01" />
+                  </div>
                 </div>
               </div>
             </CardContent>

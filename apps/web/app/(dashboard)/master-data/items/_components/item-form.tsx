@@ -22,6 +22,8 @@ export interface ItemFormData {
   lengthCm: number | null;
   widthCm: number | null;
   heightCm: number | null;
+  hsCode: string | null;
+  countryOfOrigin: string | null;
   isActive?: boolean;
 }
 
@@ -49,6 +51,8 @@ export function ItemForm({ item, onSubmit, isSubmitting }: ItemFormProps) {
     lengthCm: null,
     widthCm: null,
     heightCm: null,
+    hsCode: item?.hsCode ?? null,
+    countryOfOrigin: item?.countryOfOrigin ?? null,
     isActive: item?.isActive ?? true,
   });
 
@@ -179,6 +183,28 @@ export function ItemForm({ item, onSubmit, isSubmitting }: ItemFormProps) {
               value={formData.heightCm ?? ''}
               onChange={(e) => handleChange('heightCm', parseNumber(e.target.value))}
               placeholder="0.0"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Trade Compliance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="HS Code"
+              value={formData.hsCode ?? ''}
+              onChange={(e) => handleChange('hsCode', e.target.value || null)}
+              placeholder="e.g., 8481.80"
+            />
+            <Input
+              label="Country of Origin"
+              value={formData.countryOfOrigin ?? ''}
+              onChange={(e) => handleChange('countryOfOrigin', e.target.value || null)}
+              placeholder="e.g., South Africa"
             />
           </div>
         </CardContent>

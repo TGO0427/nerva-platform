@@ -73,6 +73,13 @@ export class SalesController {
     return this.service.getOrderStats(tenantId);
   }
 
+  @Get("margin-estimate/weekly")
+  @RequirePermissions("sales_order.read")
+  @ApiOperation({ summary: "Get tenant-wide estimated margin for the last 7 days" })
+  async weeklyMarginEstimate(@TenantId() tenantId: string) {
+    return this.service.getWeeklyMarginEstimate(tenantId);
+  }
+
   @Post("next-number")
   @RequirePermissions("sales_order.create")
   @ApiOperation({ summary: "Generate next order number" })
@@ -103,6 +110,16 @@ export class SalesController {
   @ApiOperation({ summary: "Get sales order with lines" })
   async get(@Param("id", UuidValidationPipe) id: string) {
     return this.service.getOrderWithLines(id);
+  }
+
+  @Get(":id/margin-estimate")
+  @RequirePermissions("sales_order.read")
+  @ApiOperation({ summary: "Get an estimated margin for this order, based on purchase history" })
+  async getMarginEstimate(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.getOrderMarginEstimate(tenantId, id);
   }
 
   @Get(":id/pdf")

@@ -96,6 +96,58 @@ export function useOrder(id: string | undefined) {
   });
 }
 
+export interface OrderMarginEstimateLine {
+  lineId: string;
+  itemId: string;
+  itemSku: string;
+  itemDescription: string;
+  revenue: number;
+  estimatedCost: number | null;
+  estimatedMargin: number | null;
+  estimatedMarginPct: number | null;
+  costSource: 'purchase_order' | 'supplier_item' | null;
+}
+
+export interface OrderMarginEstimate {
+  lines: OrderMarginEstimateLine[];
+  totalRevenue: number;
+  totalEstimatedCost: number | null;
+  totalEstimatedMargin: number | null;
+  totalEstimatedMarginPct: number | null;
+  linesWithoutCostData: number;
+  totalLines: number;
+}
+
+export function useOrderMarginEstimate(id: string | undefined) {
+  return useQuery({
+    queryKey: [ORDERS_KEY, id, 'margin-estimate'],
+    queryFn: async () => {
+      const response = await api.get<OrderMarginEstimate>(`/sales/orders/${id}/margin-estimate`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+}
+
+export interface WeeklyMarginEstimate {
+  totalRevenue: number;
+  totalEstimatedCost: number | null;
+  totalEstimatedMargin: number | null;
+  totalEstimatedMarginPct: number | null;
+  linesWithoutCostData: number;
+  totalLines: number;
+}
+
+export function useWeeklyMarginEstimate() {
+  return useQuery({
+    queryKey: [ORDERS_KEY, 'margin-estimate', 'weekly'],
+    queryFn: async () => {
+      const response = await api.get<WeeklyMarginEstimate>('/sales/orders/margin-estimate/weekly');
+      return response.data;
+    },
+  });
+}
+
 // Generate next order number
 export function useGenerateOrderNumber() {
   return useMutation({

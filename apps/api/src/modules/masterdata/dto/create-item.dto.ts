@@ -54,4 +54,16 @@ export class CreateItemDto {
   @IsNumber()
   @Min(0)
   heightCm?: number;
+
+  @ApiPropertyOptional({ description: "Harmonized System (customs) code", example: "8481.80" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  hsCode?: string;
+
+  @ApiPropertyOptional({ description: "Country of origin", example: "South Africa" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  countryOfOrigin?: string;
 }

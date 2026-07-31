@@ -45,6 +45,11 @@ export interface ImportShipmentLineRow {
   receivedAt: Date | null;
   grnId: string | null;
   ncrId: string | null;
+  unitCost: number | null;
+  freightCost: number | null;
+  dutyCost: number | null;
+  clearingCost: number | null;
+  landedCost: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,6 +79,11 @@ export interface ImportShipmentLineInput {
   weekStartDate?: Date | null;
   weekEndDate?: Date | null;
   notes?: string | null;
+  unitCost?: number | null;
+  freightCost?: number | null;
+  dutyCost?: number | null;
+  clearingCost?: number | null;
+  landedCost?: number | null;
 }
 
 export interface ImportShipmentFilters {
@@ -131,8 +141,9 @@ export class ImportShipmentsRepository extends BaseRepository {
           `INSERT INTO import_shipment_lines (
             tenant_id, import_shipment_id, line_no, product_description, item_id,
             quantity, cbm, pallet_qty, transport_mode, carrier, vessel_or_awb,
-            destination_port, status, week_start_date, week_end_date, notes
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            destination_port, status, week_start_date, week_end_date, notes,
+            unit_cost, freight_cost, duty_cost, clearing_cost, landed_cost
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
           RETURNING *`,
           [
             tenantId,
@@ -151,6 +162,11 @@ export class ImportShipmentsRepository extends BaseRepository {
             line.weekStartDate || null,
             line.weekEndDate || null,
             line.notes || null,
+            line.unitCost ?? null,
+            line.freightCost ?? null,
+            line.dutyCost ?? null,
+            line.clearingCost ?? null,
+            line.landedCost ?? null,
           ],
         );
         lineRows.push(result.rows[0]);
@@ -307,8 +323,9 @@ export class ImportShipmentsRepository extends BaseRepository {
           `INSERT INTO import_shipment_lines (
             tenant_id, import_shipment_id, line_no, product_description, item_id,
             quantity, cbm, pallet_qty, transport_mode, carrier, vessel_or_awb,
-            destination_port, status, week_start_date, week_end_date, notes
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+            destination_port, status, week_start_date, week_end_date, notes,
+            unit_cost, freight_cost, duty_cost, clearing_cost, landed_cost
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
           [
             tenantId,
             shipmentId,
@@ -326,6 +343,11 @@ export class ImportShipmentsRepository extends BaseRepository {
             line.weekStartDate || null,
             line.weekEndDate || null,
             line.notes || null,
+            line.unitCost ?? null,
+            line.freightCost ?? null,
+            line.dutyCost ?? null,
+            line.clearingCost ?? null,
+            line.landedCost ?? null,
           ],
         );
       }
@@ -469,6 +491,11 @@ export class ImportShipmentsRepository extends BaseRepository {
       week_start_date: data.weekStartDate,
       week_end_date: data.weekEndDate,
       notes: data.notes,
+      unit_cost: data.unitCost,
+      freight_cost: data.freightCost,
+      duty_cost: data.dutyCost,
+      clearing_cost: data.clearingCost,
+      landed_cost: data.landedCost,
     };
 
     for (const [column, value] of Object.entries(fieldMap)) {
@@ -568,6 +595,11 @@ export class ImportShipmentsRepository extends BaseRepository {
       receivedAt: row.received_at as Date | null,
       grnId: row.grn_id as string | null,
       ncrId: row.ncr_id as string | null,
+      unitCost: row.unit_cost != null ? parseFloat(row.unit_cost as string) : null,
+      freightCost: row.freight_cost != null ? parseFloat(row.freight_cost as string) : null,
+      dutyCost: row.duty_cost != null ? parseFloat(row.duty_cost as string) : null,
+      clearingCost: row.clearing_cost != null ? parseFloat(row.clearing_cost as string) : null,
+      landedCost: row.landed_cost != null ? parseFloat(row.landed_cost as string) : null,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,
     };

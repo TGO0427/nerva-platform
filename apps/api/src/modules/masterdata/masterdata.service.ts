@@ -70,6 +70,8 @@ export class MasterDataService {
     description: string;
     uom?: string;
     weightKg?: number;
+    hsCode?: string;
+    countryOfOrigin?: string;
   }): Promise<Item> {
     const existing = await this.repository.findItemBySku(
       data.tenantId,
@@ -87,6 +89,8 @@ export class MasterDataService {
       description: string;
       uom: string;
       weightKg: number;
+      hsCode: string;
+      countryOfOrigin: string;
       isActive: boolean;
     }>,
   ): Promise<Item> {

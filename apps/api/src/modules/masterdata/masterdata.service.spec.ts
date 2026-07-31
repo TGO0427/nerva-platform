@@ -29,6 +29,8 @@ describe("MasterDataService", () => {
     uom: "EA",
     weightKg: 1.5,
     isActive: true,
+    hsCode: null,
+    countryOfOrigin: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

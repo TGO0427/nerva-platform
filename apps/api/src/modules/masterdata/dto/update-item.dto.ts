@@ -55,4 +55,16 @@ export class UpdateItemDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: "Harmonized System (customs) code", example: "8481.80" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  hsCode?: string;
+
+  @ApiPropertyOptional({ description: "Country of origin", example: "South Africa" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  countryOfOrigin?: string;
 }

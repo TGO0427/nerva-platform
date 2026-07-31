@@ -96,6 +96,36 @@ export class CreateImportShipmentLineDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  @ApiPropertyOptional({ description: "Per-unit purchase cost" })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitCost?: number;
+
+  @ApiPropertyOptional({ description: "This line's share of freight cost" })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  freightCost?: number;
+
+  @ApiPropertyOptional({ description: "This line's share of customs duty" })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  dutyCost?: number;
+
+  @ApiPropertyOptional({ description: "This line's share of clearing/handling cost" })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  clearingCost?: number;
+
+  @ApiPropertyOptional({ description: "Total landed cost for this line" })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  landedCost?: number;
 }
 
 export class CreateImportShipmentDto {
@@ -246,6 +276,36 @@ export class UpdateImportShipmentLineDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  @ApiPropertyOptional({ description: "Per-unit purchase cost" })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitCost?: number;
+
+  @ApiPropertyOptional({ description: "This line's share of freight cost" })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  freightCost?: number;
+
+  @ApiPropertyOptional({ description: "This line's share of customs duty" })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  dutyCost?: number;
+
+  @ApiPropertyOptional({ description: "This line's share of clearing/handling cost" })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  clearingCost?: number;
+
+  @ApiPropertyOptional({ description: "Total landed cost for this line" })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  landedCost?: number;
 }
 
 export class CompleteInspectionDto {

@@ -58,6 +58,8 @@ export interface Item {
   description: string;
   uom: string;
   weightKg: number | null;
+  hsCode: string | null;
+  countryOfOrigin: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -497,6 +499,11 @@ export interface ImportShipmentLine {
   receivedAt: string | null;
   grnId: string | null;
   ncrId: string | null;
+  unitCost: number | null;
+  freightCost: number | null;
+  dutyCost: number | null;
+  clearingCost: number | null;
+  landedCost: number | null;
   createdAt: string;
   updatedAt: string;
 }

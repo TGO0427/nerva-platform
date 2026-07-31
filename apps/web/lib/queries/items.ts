@@ -13,6 +13,8 @@ interface CreateItemData {
   lengthCm?: number | null;
   widthCm?: number | null;
   heightCm?: number | null;
+  hsCode?: string | null;
+  countryOfOrigin?: string | null;
 }
 
 interface UpdateItemData extends Partial<CreateItemData> {

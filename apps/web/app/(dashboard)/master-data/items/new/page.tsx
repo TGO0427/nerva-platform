@@ -22,6 +22,8 @@ export default function NewItemPage() {
         lengthCm: data.lengthCm,
         widthCm: data.widthCm,
         heightCm: data.heightCm,
+        hsCode: data.hsCode,
+        countryOfOrigin: data.countryOfOrigin,
       });
       addToast('Item created successfully', 'success');
     } catch (err) {

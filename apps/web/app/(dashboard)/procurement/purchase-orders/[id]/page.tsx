@@ -26,6 +26,7 @@ import {
   useReopenPurchaseOrder,
   useDeletePurchaseOrder,
   useItems,
+  useImportShipment,
 } from '@/lib/queries';
 import { formatCurrency, formatDate, formatQuantity } from '@/lib/format';
 import type { PurchaseOrderStatus, PurchaseOrderLine } from '@nerva/shared';
@@ -41,6 +42,14 @@ export default function PurchaseOrderDetailPage() {
   const { data: po, isLoading } = usePurchaseOrder(id);
   const { data: lines } = usePurchaseOrderLines(id);
   const deletePurchaseOrder = useDeletePurchaseOrder();
+  const { data: linkedShipment } = useImportShipment(po?.linkedImportShipmentId ?? undefined);
+
+  const landedCostValues = (linkedShipment?.lines || [])
+    .map((l) => l.landedCost)
+    .filter((v): v is number => v != null);
+  const totalLandedCost = landedCostValues.length > 0
+    ? landedCostValues.reduce((sum, v) => sum + v, 0)
+    : null;
 
   const handleDelete = async () => {
     const confirmed = await confirm({
@@ -176,6 +185,17 @@ export default function PurchaseOrderDetailPage() {
             </div>
           </CardContent>
         </Card>
+        {totalLandedCost != null && (
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-sm text-slate-500">Landed Cost (est.)</div>
+              <div className="font-medium text-lg">
+                {formatCurrency(totalLandedCost)}
+              </div>
+              <div className="text-xs text-slate-400 mt-0.5">From linked import shipment</div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Order Lines */}

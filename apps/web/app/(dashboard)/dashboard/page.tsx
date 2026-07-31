@@ -13,6 +13,7 @@ import {
   useStatusDistribution,
   useOrdersByWarehouse,
   useTopCustomers,
+  useWeeklyMarginEstimate,
 } from '@/lib/queries';
 import { PERMISSIONS } from '@nerva/shared';
 import {
@@ -61,6 +62,7 @@ export default function DashboardPage() {
   const { data: statusDist } = useStatusDistribution();
   const { data: warehouseData } = useOrdersByWarehouse();
   const { data: topCustomers } = useTopCustomers();
+  const { data: weeklyMargin } = useWeeklyMarginEstimate();
   const { showBanner, dismissBanner } = useOnboarding();
 
   const weeklySalesDisplay = formatCurrency((stats?.weeklySalesValue ?? 0) / 100);
@@ -213,6 +215,17 @@ export default function DashboardPage() {
               icon={<WarningIcon />}
               iconColor={activeExceptionTotal > 0 ? 'red' : 'green'}
               href="/exceptions"
+            />
+            <StatCard
+              title="Gross Margin (est.)"
+              value={weeklyMargin?.totalEstimatedMarginPct != null ? formatPercent(weeklyMargin.totalEstimatedMarginPct) : '-'}
+              subtitle={
+                weeklyMargin && weeklyMargin.linesWithoutCostData > 0
+                  ? `Est. · ${weeklyMargin.linesWithoutCostData}/${weeklyMargin.totalLines} lines no cost data`
+                  : 'Estimated from purchase history'
+              }
+              icon={<CurrencyIcon />}
+              iconColor="purple"
             />
           </div>
         )}

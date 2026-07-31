@@ -111,6 +111,83 @@ export class SalesService {
     return { ...order, lines };
   }
 
+  /** Tenant-wide estimated margin over the last 7 days, for the dashboard KPI. */
+  async getWeeklyMarginEstimate(tenantId: string) {
+    const { totalRevenue, totalEstimatedCost, linesWithoutCostData, totalLines } =
+      await this.repository.getWeeklyMarginEstimate(tenantId);
+    const hasAnyCostData = linesWithoutCostData < totalLines;
+    const totalMargin = hasAnyCostData ? totalRevenue - totalEstimatedCost! : null;
+    const totalMarginPct = hasAnyCostData && totalRevenue > 0 ? (totalMargin! / totalRevenue) * 100 : null;
+    return {
+      totalRevenue,
+      totalEstimatedCost,
+      totalEstimatedMargin: totalMargin,
+      totalEstimatedMarginPct: totalMarginPct,
+      linesWithoutCostData,
+      totalLines,
+    };
+  }
+
+  /**
+   * Estimated margin for an order -- NOT booked cost, since nothing in the
+   * sales/receiving path captures cost today. Uses each line's most recent
+   * purchase cost (falling back to the preferred supplier's quoted cost);
+   * lines with no cost history anywhere return a null cost/margin rather
+   * than a misleading zero, and are called out separately in the totals.
+   */
+  async getOrderMarginEstimate(tenantId: string, id: string) {
+    await this.getOrder(id);
+    const lines = await this.repository.getOrderLineCostEstimates(tenantId, id);
+
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let linesWithoutCostData = 0;
+
+    const lineEstimates = lines.map((line) => {
+      const netUnitPrice = (line.unitPrice ?? 0) * (1 - line.discountPct / 100);
+      const lineRevenue = netUnitPrice * line.qtyOrdered;
+      const lineCost =
+        line.estimatedUnitCost != null ? line.estimatedUnitCost * line.qtyOrdered : null;
+      const lineMargin = lineCost != null ? lineRevenue - lineCost : null;
+      const marginPct =
+        lineCost != null && lineRevenue > 0 ? (lineMargin! / lineRevenue) * 100 : null;
+
+      totalRevenue += lineRevenue;
+      if (lineCost != null) {
+        totalCost += lineCost;
+      } else {
+        linesWithoutCostData++;
+      }
+
+      return {
+        lineId: line.lineId,
+        itemId: line.itemId,
+        itemSku: line.itemSku,
+        itemDescription: line.itemDescription,
+        revenue: lineRevenue,
+        estimatedCost: lineCost,
+        estimatedMargin: lineMargin,
+        estimatedMarginPct: marginPct,
+        costSource: line.costSource,
+      };
+    });
+
+    const hasAnyCostData = linesWithoutCostData < lines.length;
+    const totalMargin = hasAnyCostData ? totalRevenue - totalCost : null;
+    const totalMarginPct =
+      hasAnyCostData && totalRevenue > 0 ? (totalMargin! / totalRevenue) * 100 : null;
+
+    return {
+      lines: lineEstimates,
+      totalRevenue,
+      totalEstimatedCost: hasAnyCostData ? totalCost : null,
+      totalEstimatedMargin: totalMargin,
+      totalEstimatedMarginPct: totalMarginPct,
+      linesWithoutCostData,
+      totalLines: lines.length,
+    };
+  }
+
   async listOrders(
     tenantId: string,
     filters: {

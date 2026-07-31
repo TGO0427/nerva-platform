@@ -214,6 +214,136 @@ export class SalesRepository extends BaseRepository {
     return rows.map(this.mapOrderLine);
   }
 
+  /**
+   * Tenant-wide estimated margin over the last 7 days (matches the
+   * dashboard's existing weeklySalesValue window). Same cost-lookup logic
+   * as getOrderLineCostEstimates, aggregated instead of per-line.
+   */
+  async getWeeklyMarginEstimate(
+    tenantId: string,
+  ): Promise<{ totalRevenue: number; totalEstimatedCost: number | null; linesWithoutCostData: number; totalLines: number }> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `SELECT
+        COALESCE(SUM(sol.qty_ordered * COALESCE(sol.unit_price, 0) * (1 - COALESCE(sol.discount_pct, 0) / 100)), 0) as total_revenue,
+        COALESCE(SUM(sol.qty_ordered * COALESCE(po_cost.unit_cost, si_cost.unit_cost)), 0) as total_cost,
+        COUNT(*) FILTER (WHERE po_cost.unit_cost IS NULL AND si_cost.unit_cost IS NULL) as lines_without_cost,
+        COUNT(*) as total_lines
+      FROM sales_order_lines sol
+      JOIN sales_orders so ON so.id = sol.sales_order_id
+      LEFT JOIN LATERAL (
+        SELECT pol.unit_cost
+        FROM purchase_order_lines pol
+        JOIN purchase_orders po ON po.id = pol.purchase_order_id
+        WHERE pol.item_id = sol.item_id
+          AND po.tenant_id = $1
+          AND po.status NOT IN ('DRAFT', 'CANCELLED')
+          AND pol.unit_cost IS NOT NULL
+        ORDER BY po.order_date DESC
+        LIMIT 1
+      ) po_cost ON true
+      LEFT JOIN LATERAL (
+        SELECT si.unit_cost
+        FROM supplier_items si
+        WHERE si.item_id = sol.item_id
+          AND si.tenant_id = $1
+          AND si.is_active = true
+          AND si.unit_cost IS NOT NULL
+        ORDER BY si.is_preferred DESC
+        LIMIT 1
+      ) si_cost ON true
+      WHERE so.tenant_id = $1 AND so.created_at >= NOW() - INTERVAL '7 days'`,
+      [tenantId],
+    );
+
+    const linesWithoutCostData = parseInt((row?.lines_without_cost as string) || "0", 10);
+    const totalLines = parseInt((row?.total_lines as string) || "0", 10);
+    return {
+      totalRevenue: parseFloat((row?.total_revenue as string) || "0"),
+      totalEstimatedCost: linesWithoutCostData < totalLines ? parseFloat((row?.total_cost as string) || "0") : null,
+      linesWithoutCostData,
+      totalLines,
+    };
+  }
+
+  /**
+   * Estimated cost per line, since no cost is ever captured on the sales
+   * path itself: falls back from the most recent non-cancelled PO's
+   * unit_cost for that item, to the preferred active supplier's quoted
+   * unit_cost. Either or both can be null if there's no purchase history --
+   * callers must treat a null estimatedUnitCost as "unknown", not zero.
+   */
+  async getOrderLineCostEstimates(
+    tenantId: string,
+    salesOrderId: string,
+  ): Promise<
+    Array<{
+      lineId: string;
+      itemId: string;
+      itemSku: string;
+      itemDescription: string;
+      qtyOrdered: number;
+      unitPrice: number | null;
+      discountPct: number;
+      estimatedUnitCost: number | null;
+      costSource: "purchase_order" | "supplier_item" | null;
+    }>
+  > {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT
+        sol.id as line_id,
+        sol.item_id,
+        i.sku as item_sku,
+        i.description as item_description,
+        sol.qty_ordered,
+        sol.unit_price,
+        sol.discount_pct,
+        po_cost.unit_cost as po_unit_cost,
+        si_cost.unit_cost as si_unit_cost
+      FROM sales_order_lines sol
+      JOIN items i ON i.id = sol.item_id
+      LEFT JOIN LATERAL (
+        SELECT pol.unit_cost
+        FROM purchase_order_lines pol
+        JOIN purchase_orders po ON po.id = pol.purchase_order_id
+        WHERE pol.item_id = sol.item_id
+          AND po.tenant_id = $1
+          AND po.status NOT IN ('DRAFT', 'CANCELLED')
+          AND pol.unit_cost IS NOT NULL
+        ORDER BY po.order_date DESC
+        LIMIT 1
+      ) po_cost ON true
+      LEFT JOIN LATERAL (
+        SELECT si.unit_cost
+        FROM supplier_items si
+        WHERE si.item_id = sol.item_id
+          AND si.tenant_id = $1
+          AND si.is_active = true
+          AND si.unit_cost IS NOT NULL
+        ORDER BY si.is_preferred DESC
+        LIMIT 1
+      ) si_cost ON true
+      WHERE sol.sales_order_id = $2
+      ORDER BY sol.line_no`,
+      [tenantId, salesOrderId],
+    );
+
+    return rows.map((row) => {
+      const poUnitCost = row.po_unit_cost != null ? parseFloat(row.po_unit_cost as string) : null;
+      const siUnitCost = row.si_unit_cost != null ? parseFloat(row.si_unit_cost as string) : null;
+      return {
+        lineId: row.line_id as string,
+        itemId: row.item_id as string,
+        itemSku: row.item_sku as string,
+        itemDescription: row.item_description as string,
+        qtyOrdered: parseFloat(row.qty_ordered as string),
+        unitPrice: row.unit_price != null ? parseFloat(row.unit_price as string) : null,
+        discountPct: row.discount_pct != null ? parseFloat(row.discount_pct as string) : 0,
+        estimatedUnitCost: poUnitCost ?? siUnitCost,
+        costSource: poUnitCost != null ? "purchase_order" : siUnitCost != null ? "supplier_item" : null,
+      };
+    });
+  }
+
   async updateOrderLineQty(
     lineId: string,
     field: "qty_allocated" | "qty_picked" | "qty_packed" | "qty_shipped",

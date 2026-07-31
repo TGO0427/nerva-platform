@@ -8,6 +8,8 @@ export interface Item {
   description: string;
   uom: string;
   weightKg: number | null;
+  hsCode: string | null;
+  countryOfOrigin: string | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -370,10 +372,12 @@ export class MasterDataRepository extends BaseRepository {
     description: string;
     uom?: string;
     weightKg?: number;
+    hsCode?: string;
+    countryOfOrigin?: string;
   }): Promise<Item> {
     const row = await this.queryOne<Record<string, unknown>>(
-      `INSERT INTO items (tenant_id, sku, description, uom, weight_kg)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO items (tenant_id, sku, description, uom, weight_kg, hs_code, country_of_origin)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
       [
         data.tenantId,
@@ -381,6 +385,8 @@ export class MasterDataRepository extends BaseRepository {
         data.description,
         data.uom || "EA",
         data.weightKg || null,
+        data.hsCode || null,
+        data.countryOfOrigin || null,
       ],
     );
     return this.mapItem(row!);
@@ -394,6 +400,8 @@ export class MasterDataRepository extends BaseRepository {
       description: string;
       uom: string;
       weightKg: number;
+      hsCode: string;
+      countryOfOrigin: string;
       isActive: boolean;
     }>,
   ): Promise<Item | null> {
@@ -416,6 +424,14 @@ export class MasterDataRepository extends BaseRepository {
     if (data.weightKg !== undefined) {
       fields.push(`weight_kg = $${idx++}`);
       values.push(data.weightKg);
+    }
+    if (data.hsCode !== undefined) {
+      fields.push(`hs_code = $${idx++}`);
+      values.push(data.hsCode);
+    }
+    if (data.countryOfOrigin !== undefined) {
+      fields.push(`country_of_origin = $${idx++}`);
+      values.push(data.countryOfOrigin);
     }
     if (data.isActive !== undefined) {
       fields.push(`is_active = $${idx++}`);
@@ -1531,6 +1547,8 @@ export class MasterDataRepository extends BaseRepository {
       description: row.description as string,
       uom: row.uom as string,
       weightKg: row.weight_kg as number | null,
+      hsCode: row.hs_code as string | null,
+      countryOfOrigin: row.country_of_origin as string | null,
       isActive: row.is_active as boolean,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,

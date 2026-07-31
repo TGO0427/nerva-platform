@@ -31,7 +31,11 @@ import {
   useDocuments,
 } from '@/lib/queries';
 
-const documentTypes = ['All', 'COA', 'Export', 'SGS', 'Invoice', 'POD', 'Quality', 'SADC'] as const;
+const documentTypes = [
+  'All', 'COA', 'Export', 'SGS', 'Invoice', 'POD', 'Quality', 'SADC',
+  'EUR.1', 'AfCFTA', 'PVOC', 'COC', 'Certificate of Origin', 'Veterinary/Health Certificate',
+  'Import Permit', 'Export Permit',
+] as const;
 const linkedEntities = ['All', 'supplier', 'customer', 'shipment', 'product', 'purchase_order', 'pod', 'invoice'] as const;
 const statuses = ['All', 'APPROVED', 'PENDING', 'MISSING', 'REJECTED'] as const;
 const expiryStatuses = ['All', 'VALID', 'EXPIRING_SOON', 'EXPIRED', 'NO_EXPIRY'] as const;

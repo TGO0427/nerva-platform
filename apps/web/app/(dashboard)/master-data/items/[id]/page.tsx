@@ -34,6 +34,8 @@ export default function EditItemPage() {
           lengthCm: data.lengthCm,
           widthCm: data.widthCm,
           heightCm: data.heightCm,
+          hsCode: data.hsCode,
+          countryOfOrigin: data.countryOfOrigin,
           isActive: data.isActive,
         },
       });

@@ -59,6 +59,11 @@ export interface ImportShipmentLineData {
   weekStartDate?: string;
   weekEndDate?: string;
   notes?: string;
+  unitCost?: number;
+  freightCost?: number;
+  dutyCost?: number;
+  clearingCost?: number;
+  landedCost?: number;
 }
 
 export interface CreateImportShipmentData {
@@ -142,6 +147,11 @@ export interface UpdateImportShipmentLineData {
   weekStartDate?: string;
   weekEndDate?: string;
   notes?: string;
+  unitCost?: number;
+  freightCost?: number;
+  dutyCost?: number;
+  clearingCost?: number;
+  landedCost?: number;
 }
 
 export function useUpdateImportShipmentLine() {

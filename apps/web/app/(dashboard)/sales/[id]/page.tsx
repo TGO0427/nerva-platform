@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
 import { downloadPdf } from '@/lib/utils/export';
-import { formatCurrency, formatDate, formatNumber, formatQuantity } from '@/lib/format';
+import { formatCurrency, formatDate, formatNumber, formatQuantity, formatPercent } from '@/lib/format';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { EntityHistory } from '@/components/ui/entity-history';
@@ -34,6 +34,7 @@ import {
   useCreateInvoiceFromOrder,
   useWorkOrders,
   useStockOnHand,
+  useOrderMarginEstimate,
   SalesOrderLineWithItem,
   Shipment,
 } from '@/lib/queries';
@@ -53,6 +54,7 @@ export default function SalesOrderDetailPage() {
     page: 1,
     limit: 20,
   });
+  const { data: marginEstimate, isLoading: marginLoading } = useOrderMarginEstimate(orderId);
   const confirmOrder = useConfirmOrder();
   const allocateOrder = useAllocateOrder();
   const cancelOrder = useCancelOrder();
@@ -436,7 +438,7 @@ export default function SalesOrderDetailPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">{formatQuantity(totalOrdered)}</div>
@@ -473,7 +475,34 @@ export default function SalesOrderDetailPage() {
             <p className="text-sm text-text-muted dark:text-text-dark-muted">Order Value</p>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="pt-6">
+            {marginLoading ? (
+              <Spinner size="sm" />
+            ) : marginEstimate && marginEstimate.totalEstimatedMarginPct != null ? (
+              <div
+                className={`text-2xl font-bold ${marginEstimate.totalEstimatedMarginPct >= 20 ? 'text-success' : marginEstimate.totalEstimatedMarginPct >= 0 ? 'text-warning' : 'text-danger'}`}
+                title={marginEstimate.linesWithoutCostData > 0 ? `${marginEstimate.linesWithoutCostData} of ${marginEstimate.totalLines} line(s) have no cost history` : undefined}
+              >
+                {formatPercent(marginEstimate.totalEstimatedMarginPct)}
+              </div>
+            ) : (
+              <div className="text-2xl font-bold text-text-muted dark:text-text-dark-muted">-</div>
+            )}
+            <p className="text-sm text-text-muted dark:text-text-dark-muted">
+              Margin (est.)
+              {marginEstimate && marginEstimate.linesWithoutCostData > 0 && (
+                <span className="text-text-muted dark:text-text-dark-muted"> *</span>
+              )}
+            </p>
+          </CardContent>
+        </Card>
       </div>
+      {marginEstimate && marginEstimate.linesWithoutCostData > 0 && marginEstimate.totalEstimatedMarginPct != null && (
+        <p className="text-xs text-text-muted dark:text-text-dark-muted -mt-4 mb-6">
+          * Estimated from purchase history; {marginEstimate.linesWithoutCostData} of {marginEstimate.totalLines} line item(s) have no cost data on file.
+        </p>
+      )}
 
       {/* Order details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
