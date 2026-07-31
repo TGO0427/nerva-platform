@@ -9,9 +9,31 @@ import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useMrpRequirements } from '@/lib/queries';
-import { formatNumber, formatQuantity } from '@/lib/format';
+import { formatNumber, formatQuantity, formatDate } from '@/lib/format';
 
 type TabView = 'by-item' | 'by-work-order';
+
+function ResupplyHint({ item }: {
+  item: {
+    itemId: string;
+    nearestPoNo?: string | null;
+    nearestPoExpectedDate?: string | null;
+    supplierLeadTimeDays?: number | null;
+  };
+}) {
+  if (item.nearestPoNo) {
+    return (
+      <span className="text-xs">
+        PO <span className="font-medium text-slate-700">{item.nearestPoNo}</span>
+        {item.nearestPoExpectedDate && <> &middot; due {formatDate(item.nearestPoExpectedDate)}</>}
+      </span>
+    );
+  }
+  if (item.supplierLeadTimeDays != null) {
+    return <span className="text-xs">No open PO &middot; ~{item.supplierLeadTimeDays}d lead time</span>;
+  }
+  return <span className="text-xs text-slate-400">No open PO or supplier lead time on file</span>;
+}
 
 export default function MrpPage() {
   const [activeTab, setActiveTab] = useState<TabView>('by-item');
@@ -159,12 +181,13 @@ export default function MrpPage() {
                     <th className="text-right py-3 px-4 font-medium text-slate-600">Outstanding</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-600">Available Stock</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-600">Net Shortage</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">Resupply</th>
                   </tr>
                 </thead>
                 <tbody>
                   {itemSummary.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-slate-500">
+                      <td colSpan={7} className="text-center py-8 text-slate-500">
                         No material requirements found
                       </td>
                     </tr>
@@ -186,6 +209,9 @@ export default function MrpPage() {
                         }`}>
                           {item.netShortage > 0 ? `-${formatQuantity(item.netShortage)}` : formatQuantity(item.netShortage)}
                         </td>
+                        <td className="py-3 px-4 text-slate-600">
+                          {item.netShortage > 0 ? <ResupplyHint item={item} /> : '-'}
+                        </td>
                       </tr>
                     ))
                   )}
@@ -205,12 +231,13 @@ export default function MrpPage() {
                     <th className="text-right py-3 px-4 font-medium text-slate-600">Outstanding</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-600">Available</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-600">Shortage</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">Resupply</th>
                   </tr>
                 </thead>
                 <tbody>
                   {workOrderDemand.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-8 text-slate-500">
+                      <td colSpan={9} className="text-center py-8 text-slate-500">
                         No work order demand found
                       </td>
                     </tr>
@@ -244,6 +271,9 @@ export default function MrpPage() {
                           wo.shortage > 0 ? 'text-red-600' : 'text-slate-900'
                         }`}>
                           {wo.shortage > 0 ? `-${formatQuantity(wo.shortage)}` : formatQuantity(wo.shortage)}
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">
+                          {wo.shortage > 0 ? <ResupplyHint item={wo} /> : '-'}
                         </td>
                       </tr>
                     ))

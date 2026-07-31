@@ -279,6 +279,26 @@ export function useShipmentLines(shipmentId: string | undefined) {
   });
 }
 
+export interface ShipmentQualityBlocker {
+  itemId: string;
+  itemSku: string;
+  batchNo: string;
+  qualityStatus: string;
+}
+
+export function useShipmentQualityBlockers(shipmentId: string | undefined) {
+  return useQuery({
+    queryKey: [SHIPMENTS_KEY, shipmentId, 'quality-blockers'],
+    queryFn: async () => {
+      const response = await api.get<ShipmentQualityBlocker[]>(
+        `/fulfilment/shipments/${shipmentId}/quality-blockers`
+      );
+      return response.data;
+    },
+    enabled: !!shipmentId,
+  });
+}
+
 export function useShippableOrders() {
   return useQuery({
     queryKey: [SHIPMENTS_KEY, 'shippable-orders'],

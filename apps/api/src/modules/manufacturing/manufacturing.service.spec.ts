@@ -13,11 +13,16 @@ import { ProductionLedgerRepository } from "./repositories/production-ledger.rep
 import { ProductionDataRepository } from "./repositories/production-data.repository";
 import { MrpRepository } from "./repositories/mrp.repository";
 import { StockLedgerService } from "../inventory/stock-ledger.service";
+import {
+  BatchQualityRepository,
+  BatchQuality,
+} from "../inventory/batch-quality.repository";
 import { MasterDataService } from "../masterdata/masterdata.service";
 
 describe("ManufacturingService - Non-Conformances", () => {
   let service: ManufacturingService;
   let ncRepo: jest.Mocked<NonConformanceRepository>;
+  let batchQualityRepo: jest.Mocked<BatchQualityRepository>;
 
   const tenantId = "tenant-123";
   const ncId = "nc-123";
@@ -29,6 +34,7 @@ describe("ManufacturingService - Non-Conformances", () => {
     ncNo: "NC-000001",
     workOrderId: null,
     itemId: null,
+    batchNo: null,
     reportedBy: "user-reporter",
     defectType: "VISUAL",
     severity: "MINOR",
@@ -70,12 +76,23 @@ describe("ManufacturingService - Non-Conformances", () => {
         { provide: ProductionDataRepository, useValue: {} },
         { provide: MrpRepository, useValue: {} },
         { provide: StockLedgerService, useValue: {} },
+        {
+          provide: BatchQualityRepository,
+          useValue: {
+            isAllowedTransition: jest.fn(),
+            ensureStatusRecord: jest.fn(),
+            findStatus: jest.fn(),
+            findStatusesForWorkOrderOutput: jest.fn(),
+            setStatus: jest.fn(),
+          },
+        },
         { provide: MasterDataService, useValue: {} },
       ],
     }).compile();
 
     service = module.get<ManufacturingService>(ManufacturingService);
     ncRepo = module.get(NonConformanceRepository);
+    batchQualityRepo = module.get(BatchQualityRepository);
   });
 
   afterEach(() => {
@@ -232,6 +249,85 @@ describe("ManufacturingService - Non-Conformances", () => {
           resolvedBy: userId,
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe("setBatchQualityStatus", () => {
+    const itemId = "item-123";
+    const batchNo = "BATCH-001";
+
+    const makeBatchQuality = (
+      qualityStatus: BatchQuality["qualityStatus"],
+    ): BatchQuality => ({
+      id: "bq-1",
+      tenantId,
+      itemId,
+      batchNo,
+      qualityStatus,
+      source: "PRODUCTION",
+      setBy: null,
+      notes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    it("throws if no quality record exists for the item/batch", async () => {
+      batchQualityRepo.findStatus.mockResolvedValue(null);
+      await expect(
+        service.setBatchQualityStatus(
+          tenantId,
+          itemId,
+          batchNo,
+          "APPROVED",
+          userId,
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it("rejects a disallowed transition (e.g. REJECTED -> APPROVED)", async () => {
+      batchQualityRepo.findStatus.mockResolvedValue(
+        makeBatchQuality("REJECTED"),
+      );
+      batchQualityRepo.isAllowedTransition.mockReturnValue(false);
+      await expect(
+        service.setBatchQualityStatus(
+          tenantId,
+          itemId,
+          batchNo,
+          "APPROVED",
+          userId,
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(batchQualityRepo.setStatus).not.toHaveBeenCalled();
+    });
+
+    it("allows AWAITING_QC -> ON_HOLD and persists it", async () => {
+      batchQualityRepo.findStatus.mockResolvedValue(
+        makeBatchQuality("AWAITING_QC"),
+      );
+      batchQualityRepo.isAllowedTransition.mockReturnValue(true);
+      batchQualityRepo.setStatus.mockResolvedValue(
+        makeBatchQuality("ON_HOLD"),
+      );
+
+      const result = await service.setBatchQualityStatus(
+        tenantId,
+        itemId,
+        batchNo,
+        "ON_HOLD",
+        userId,
+        "Failed visual inspection",
+      );
+
+      expect(batchQualityRepo.setStatus).toHaveBeenCalledWith(
+        tenantId,
+        itemId,
+        batchNo,
+        "ON_HOLD",
+        userId,
+        "Failed visual inspection",
+      );
+      expect(result.qualityStatus).toBe("ON_HOLD");
     });
   });
 });

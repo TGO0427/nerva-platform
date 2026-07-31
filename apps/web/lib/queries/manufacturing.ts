@@ -21,6 +21,8 @@ import type {
   BackwardTraceResult,
   MrpData,
   NonConformance,
+  BatchQuality,
+  BatchQualityStatus,
   PaginatedResult,
 } from '@nerva/shared';
 import type { QueryParams } from './use-query-params';
@@ -38,6 +40,7 @@ const MFG_REPORTS_KEY = 'manufacturing-reports';
 const TRACEABILITY_KEY = 'traceability';
 const MRP_KEY = 'mrp';
 const NON_CONFORMANCES_KEY = 'non-conformances';
+const BATCH_QUALITY_KEY = 'batch-quality';
 
 // ============ Workstations ============
 interface WorkstationFilters {
@@ -426,6 +429,7 @@ interface WorkOrderFilters {
   status?: string;
   itemId?: string;
   warehouseId?: string;
+  salesOrderId?: string;
   search?: string;
 }
 
@@ -446,9 +450,10 @@ export function useWorkOrders(params: QueryParams & WorkOrderFilters) {
       if (params.status) searchParams.set('status', params.status);
       if (params.itemId) searchParams.set('itemId', params.itemId);
       if (params.warehouseId) searchParams.set('warehouseId', params.warehouseId);
+      if (params.salesOrderId) searchParams.set('salesOrderId', params.salesOrderId);
       if (params.search) searchParams.set('search', params.search);
 
-      const response = await api.get<PaginatedResult<WorkOrder & { itemSku?: string; itemDescription?: string; warehouseName?: string }>>(
+      const response = await api.get<PaginatedResult<WorkOrder & { itemSku?: string; itemDescription?: string; warehouseName?: string; salesOrderNo?: string }>>(
         `/manufacturing/work-orders?${searchParams.toString()}`
       );
       return response.data;
@@ -1088,6 +1093,7 @@ export function useCreateNonConformance() {
     mutationFn: async (data: {
       workOrderId?: string;
       itemId?: string;
+      batchNo?: string;
       defectType: string;
       severity: string;
       description: string;
@@ -1198,6 +1204,51 @@ export function useReopenNonConformance() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY] });
       queryClient.invalidateQueries({ queryKey: [NON_CONFORMANCES_KEY, id] });
+    },
+  });
+}
+
+// ============ Batch Quality Status ============
+export function useBatchQualityStatus(itemId: string | undefined, batchNo: string | undefined) {
+  return useQuery({
+    queryKey: [BATCH_QUALITY_KEY, itemId, batchNo],
+    queryFn: async () => {
+      const response = await api.get<BatchQuality | null>(
+        `/manufacturing/batch-quality?itemId=${itemId}&batchNo=${encodeURIComponent(batchNo!)}`
+      );
+      return response.data;
+    },
+    enabled: !!itemId && !!batchNo,
+  });
+}
+
+export function useWorkOrderBatchQuality(workOrderId: string | undefined) {
+  return useQuery({
+    queryKey: [BATCH_QUALITY_KEY, 'work-order', workOrderId],
+    queryFn: async () => {
+      const response = await api.get<BatchQuality[]>(
+        `/manufacturing/work-orders/${workOrderId}/batch-quality`
+      );
+      return response.data;
+    },
+    enabled: !!workOrderId,
+  });
+}
+
+export function useSetBatchQualityStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      itemId: string;
+      batchNo: string;
+      qualityStatus: BatchQualityStatus;
+      notes?: string;
+    }) => {
+      const response = await api.patch<BatchQuality>('/manufacturing/batch-quality', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [BATCH_QUALITY_KEY] });
     },
   });
 }

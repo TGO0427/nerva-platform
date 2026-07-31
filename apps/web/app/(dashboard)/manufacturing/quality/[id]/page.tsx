@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
+import { BatchQualityControl } from '@/components/ui/batch-quality-badge';
 import { EntityHistory } from '@/components/ui/entity-history';
 import { RecordDocumentsPanel, RelatedRecordsPanel } from '@/components/ui/record-panels';
 import { useToast } from '@/components/ui/toast';
@@ -21,6 +22,7 @@ import {
   useStartReviewNonConformance,
   useAssignNonConformance,
   useReopenNonConformance,
+  useBatchQualityStatus,
 } from '@/lib/queries';
 import { useUsers } from '@/lib/queries/settings';
 import { formatDate, formatDateTime, formatQuantity } from '@/lib/format';
@@ -72,6 +74,7 @@ export default function NcDetailPage() {
   const { addToast } = useToast();
 
   const { data: nc, isLoading, error } = useNonConformance(id);
+  const { data: batchQuality } = useBatchQualityStatus(nc?.itemId ?? undefined, nc?.batchNo ?? undefined);
   const updateNc = useUpdateNonConformance();
   const resolveNc = useResolveNonConformance();
   const closeNc = useCloseNonConformance();
@@ -296,6 +299,23 @@ export default function NcDetailPage() {
               <Label>Qty Affected</Label>
               <p className="mt-1 text-slate-900 font-medium">{formatQuantity(nc.qtyAffected)}</p>
             </div>
+            {nc.batchNo && (
+              <div>
+                <Label>Batch</Label>
+                <div className="mt-1">
+                  <p className="text-slate-900 font-medium mb-2">{nc.batchNo}</p>
+                  {nc.itemId && batchQuality ? (
+                    <BatchQualityControl
+                      itemId={nc.itemId}
+                      batchNo={nc.batchNo}
+                      status={batchQuality.qualityStatus}
+                    />
+                  ) : (
+                    <span className="text-slate-500 text-sm">No quality record for this batch</span>
+                  )}
+                </div>
+              </div>
+            )}
             <div>
               <Label htmlFor="assignee">Assignee</Label>
               <Select

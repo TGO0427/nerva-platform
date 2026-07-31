@@ -10,6 +10,7 @@ import { IbtService } from "./ibt.service";
 import { StockLedgerService } from "./stock-ledger.service";
 import { InventoryRepository } from "./inventory.repository";
 import { BatchRepository } from "./batch.repository";
+import { BatchQualityRepository } from "./batch-quality.repository";
 import { CycleCountRepository } from "./cycle-count.repository";
 import { PutawayRepository } from "./putaway.repository";
 import { IbtRepository } from "./ibt.repository";
@@ -33,12 +34,18 @@ import { MasterDataModule } from "../masterdata/masterdata.module";
     StockLedgerService,
     InventoryRepository,
     BatchRepository,
+    BatchQualityRepository,
     CycleCountRepository,
     PutawayRepository,
     IbtRepository,
     GrnPdfService,
     CycleCountPdfService,
   ],
-  exports: [InventoryService, StockLedgerService, BatchRepository],
+  exports: [
+    InventoryService,
+    StockLedgerService,
+    BatchRepository,
+    BatchQualityRepository,
+  ],
 })
 export class InventoryModule {}

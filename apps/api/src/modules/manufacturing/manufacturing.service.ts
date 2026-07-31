@@ -31,6 +31,10 @@ import { ProductionDataRepository } from "./repositories/production-data.reposit
 import { MrpRepository } from "./repositories/mrp.repository";
 import { NonConformanceRepository } from "./repositories/non-conformance.repository";
 import { StockLedgerService } from "../inventory/stock-ledger.service";
+import {
+  BatchQualityRepository,
+  BatchQualityStatusValue,
+} from "../inventory/batch-quality.repository";
 import { MasterDataService } from "../masterdata/masterdata.service";
 import type { ImportResult } from "../masterdata/dto/import.dto";
 import type { WorkOrderImportRowDto } from "./dto/wo-import.dto";
@@ -50,6 +54,7 @@ export class ManufacturingService {
     private readonly mrpRepo: MrpRepository,
     private readonly ncRepo: NonConformanceRepository,
     private readonly stockLedgerService: StockLedgerService,
+    private readonly batchQualityRepo: BatchQualityRepository,
     private readonly masterDataService: MasterDataService,
   ) {}
 
@@ -535,6 +540,7 @@ export class ManufacturingService {
       status?: string;
       itemId?: string;
       warehouseId?: string;
+      salesOrderId?: string;
       search?: string;
     },
     page = 1,
@@ -1219,6 +1225,18 @@ export class ManufacturingService {
       qtyCompleted: workOrder.qtyCompleted + data.qty,
     });
 
+    // Newly-produced batches start life awaiting QC -- this is what makes
+    // "on hold" a real, system-enforced state instead of just a convention.
+    if (data.batchNo) {
+      await this.batchQualityRepo.ensureStatusRecord({
+        tenantId: workOrder.tenantId,
+        itemId: workOrder.itemId,
+        batchNo: data.batchNo,
+        initialStatus: "AWAITING_QC",
+        source: "PRODUCTION",
+      });
+    }
+
     return this.getWorkOrder(workOrderId);
   }
 
@@ -1472,6 +1490,7 @@ export class ManufacturingService {
     tenantId: string;
     workOrderId?: string;
     itemId?: string;
+    batchNo?: string;
     reportedBy: string;
     defectType: string;
     severity: string;
@@ -1575,5 +1594,52 @@ export class ManufacturingService {
       closedBy: null,
       closedAt: null,
     });
+  }
+
+  // ============ Batch Quality Status ============
+  async getBatchQualityStatus(tenantId: string, itemId: string, batchNo: string) {
+    return this.batchQualityRepo.findStatus(tenantId, itemId, batchNo);
+  }
+
+  async listBatchQualityForWorkOrder(tenantId: string, workOrderId: string) {
+    const workOrder = await this.workOrderRepo.findById(workOrderId);
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    return this.batchQualityRepo.findStatusesForWorkOrderOutput(
+      tenantId,
+      workOrderId,
+    );
+  }
+
+  async setBatchQualityStatus(
+    tenantId: string,
+    itemId: string,
+    batchNo: string,
+    newStatus: BatchQualityStatusValue,
+    userId: string,
+    notes?: string,
+  ) {
+    const current = await this.batchQualityRepo.findStatus(
+      tenantId,
+      itemId,
+      batchNo,
+    );
+    if (!current) {
+      throw new NotFoundException(
+        "No quality record for this item/batch combination",
+      );
+    }
+    if (!this.batchQualityRepo.isAllowedTransition(current.qualityStatus, newStatus)) {
+      throw new BadRequestException(
+        `Cannot move a batch from ${current.qualityStatus} to ${newStatus}`,
+      );
+    }
+    return this.batchQualityRepo.setStatus(
+      tenantId,
+      itemId,
+      batchNo,
+      newStatus,
+      userId,
+      notes,
+    );
   }
 }

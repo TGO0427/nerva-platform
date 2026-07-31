@@ -441,6 +441,33 @@ export class FulfilmentRepository extends BaseRepository {
     }));
   }
 
+  /** Shipment lines whose batch isn't cleared for dispatch (on hold, awaiting QC, or rejected). */
+  async findBlockedBatchesByShipment(shipmentId: string): Promise<
+    Array<{
+      itemId: string;
+      itemSku: string;
+      batchNo: string;
+      qualityStatus: string;
+    }>
+  > {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT sl.item_id, i.sku as item_sku, sl.batch_no, bqs.quality_status
+       FROM shipment_lines sl
+       JOIN items i ON i.id = sl.item_id
+       JOIN batch_quality_status bqs
+         ON bqs.tenant_id = sl.tenant_id AND bqs.item_id = sl.item_id AND bqs.batch_no = sl.batch_no
+       WHERE sl.shipment_id = $1
+         AND bqs.quality_status NOT IN ('APPROVED', 'RELEASED')`,
+      [shipmentId],
+    );
+    return rows.map((row) => ({
+      itemId: row.item_id as string,
+      itemSku: row.item_sku as string,
+      batchNo: row.batch_no as string,
+      qualityStatus: row.quality_status as string,
+    }));
+  }
+
   async sumShipmentWeight(shipmentId: string): Promise<number> {
     const result = await this.queryOne<{ total_weight: string }>(
       `SELECT COALESCE(SUM(COALESCE(i.weight_kg, 0) * sl.qty), 0) AS total_weight

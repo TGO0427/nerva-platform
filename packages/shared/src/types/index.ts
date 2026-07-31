@@ -1030,6 +1030,9 @@ export interface MrpData {
     qtyOutstanding: number;
     availableStock: number;
     shortage: number;
+    nearestPoNo?: string | null;
+    nearestPoExpectedDate?: string | null;
+    supplierLeadTimeDays?: number | null;
   }>;
   itemSummary: Array<{
     itemId: string;
@@ -1039,6 +1042,9 @@ export interface MrpData {
     totalOutstanding: number;
     availableStock: number;
     netShortage: number;
+    nearestPoNo?: string | null;
+    nearestPoExpectedDate?: string | null;
+    supplierLeadTimeDays?: number | null;
   }>;
 }
 
@@ -1054,6 +1060,7 @@ export interface NonConformance {
   ncNo: string;
   workOrderId: string | null;
   itemId: string | null;
+  batchNo: string | null;
   reportedBy: string;
   defectType: NcDefectType;
   severity: NcSeverity;
@@ -1079,4 +1086,29 @@ export interface NonConformance {
   resolvedByName?: string;
   assigneeName?: string;
   closedByName?: string;
+}
+
+// Batch quality status (production-output QC gate)
+export type BatchQualityStatus =
+  | 'AWAITING_QC'
+  | 'ON_HOLD'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'RELEASED';
+
+export interface BatchQuality {
+  id: string;
+  tenantId: string;
+  itemId: string;
+  batchNo: string;
+  qualityStatus: BatchQualityStatus;
+  source: 'PRODUCTION' | 'RECEIVING';
+  setBy: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Joined fields
+  itemSku?: string;
+  itemDescription?: string;
+  setByName?: string;
 }

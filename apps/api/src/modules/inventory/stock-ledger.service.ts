@@ -226,10 +226,13 @@ export class StockLedgerService {
       qty_reserved: string;
       qty_available: string;
     }>(
-      `SELECT item_id, bin_id, batch_no, expiry_date, qty_on_hand, qty_reserved, qty_available
-       FROM stock_snapshot
-       WHERE tenant_id = $1 AND item_id = $2 AND qty_available > 0
-       ORDER BY expiry_date ASC NULLS LAST, created_at ASC`,
+      `SELECT ss.item_id, ss.bin_id, ss.batch_no, ss.expiry_date, ss.qty_on_hand, ss.qty_reserved, ss.qty_available
+       FROM stock_snapshot ss
+       LEFT JOIN batch_quality_status bqs
+         ON bqs.tenant_id = ss.tenant_id AND bqs.item_id = ss.item_id AND bqs.batch_no = ss.batch_no
+       WHERE ss.tenant_id = $1 AND ss.item_id = $2 AND ss.qty_available > 0
+         AND (ss.batch_no IS NULL OR bqs.quality_status IS NULL OR bqs.quality_status IN ('APPROVED', 'RELEASED'))
+       ORDER BY ss.expiry_date ASC NULLS LAST, ss.created_at ASC`,
       [tenantId, itemId],
     );
 
@@ -314,10 +317,16 @@ export class StockLedgerService {
    * Get total available qty for an item (across all bins)
    */
   async getTotalAvailable(tenantId: string, itemId: string): Promise<number> {
+    // Excludes stock whose batch is on hold / awaiting QC / rejected --
+    // must stay consistent with getAvailableStockFEFO's filter, since
+    // allocateOrder() uses this to cap how much it tries to reserve via FEFO.
     const result = await this.pool.query<{ total: string }>(
-      `SELECT COALESCE(SUM(qty_available), 0) as total
-       FROM stock_snapshot
-       WHERE tenant_id = $1 AND item_id = $2`,
+      `SELECT COALESCE(SUM(ss.qty_available), 0) as total
+       FROM stock_snapshot ss
+       LEFT JOIN batch_quality_status bqs
+         ON bqs.tenant_id = ss.tenant_id AND bqs.item_id = ss.item_id AND bqs.batch_no = ss.batch_no
+       WHERE ss.tenant_id = $1 AND ss.item_id = $2
+         AND (ss.batch_no IS NULL OR bqs.quality_status IS NULL OR bqs.quality_status IN ('APPROVED', 'RELEASED'))`,
       [tenantId, itemId],
     );
     return parseFloat(result.rows[0]?.total || "0");

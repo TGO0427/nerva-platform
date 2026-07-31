@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Alert } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -24,7 +25,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { DownloadIcon } from '@/components/ui/export-actions';
 import { downloadPdf } from '@/lib/utils/export';
 import { formatDate, formatDateTime, formatQuantity } from '@/lib/format';
-import type { ShipmentLine } from '@/lib/queries/fulfilment';
+import { useShipmentQualityBlockers, type ShipmentLine } from '@/lib/queries/fulfilment';
 
 const shipmentLineColumns: Column<ShipmentLine>[] = [
   {
@@ -55,6 +56,7 @@ export default function ShipmentDetailPage() {
   const shipmentId = params.id as string;
 
   const { data: shipment, isLoading } = useShipment(shipmentId);
+  const { data: qualityBlockers } = useShipmentQualityBlockers(shipmentId);
   const { data: lines } = useShipmentLines(shipmentId);
   const { addToast } = useToast();
   const { confirm } = useConfirm();
@@ -202,6 +204,11 @@ export default function ShipmentDetailPage() {
           <p className="text-slate-500 mt-1">
             Created {formatDate(shipment.createdAt)}
           </p>
+          {qualityBlockers && qualityBlockers.length > 0 && (
+            <Alert variant="error" className="mt-3">
+              This shipment cannot be dispatched: {qualityBlockers.map((b) => `${b.itemSku} (${b.batchNo}) is ${b.qualityStatus.replace(/_/g, ' ').toLowerCase()}`).join('; ')}.
+            </Alert>
+          )}
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => downloadPdf(`/fulfilment/shipments/${shipmentId}/delivery-note`, `DN-${shipment.shipmentNo}.pdf`)} className="print:hidden">

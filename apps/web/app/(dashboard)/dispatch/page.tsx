@@ -37,6 +37,7 @@ import {
   TripStop,
   useDispatchActivity,
   AuditEntryWithActor,
+  useShipmentQualityBlockers,
 } from '@/lib/queries';
 import { exportToCSV, generateExportFilename, formatDateForExport } from '@/lib/utils/export';
 import { formatDate } from '@/lib/format';
@@ -57,6 +58,16 @@ const SHORT_DATE_FORMAT: Intl.DateTimeFormatOptions = {
   month: 'short',
   year: 'numeric',
 };
+
+function ShipmentQcBlockerBadge({ shipmentId }: { shipmentId: string }) {
+  const { data: blockers } = useShipmentQualityBlockers(shipmentId);
+  if (!blockers || blockers.length === 0) return null;
+  return (
+    <span title={blockers.map((b) => `${b.itemSku} (${b.batchNo}): ${b.qualityStatus}`).join(', ')}>
+      <Badge variant="danger">QC Hold</Badge>
+    </span>
+  );
+}
 
 type Tab = 'trips' | 'ready-shipments';
 type ViewMode = 'table' | 'board';
@@ -410,7 +421,10 @@ export default function DispatchPage() {
       key: 'status',
       header: 'Status',
       render: (row) => (
-        <Badge variant="warning">{formatStatus(row.status)}</Badge>
+        <div className="flex items-center gap-1.5">
+          <Badge variant="warning">{formatStatus(row.status)}</Badge>
+          <ShipmentQcBlockerBadge shipmentId={row.id} />
+        </div>
       ),
     },
     {

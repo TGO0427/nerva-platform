@@ -115,14 +115,17 @@ export class WorkOrderRepository extends BaseRepository {
         itemSku?: string;
         itemDescription?: string;
         warehouseName?: string;
+        salesOrderNo?: string;
       })
     | null
   > {
     const row = await this.queryOne<Record<string, unknown>>(
-      `SELECT wo.*, i.sku as item_sku, i.description as item_description, w.name as warehouse_name
+      `SELECT wo.*, i.sku as item_sku, i.description as item_description, w.name as warehouse_name,
+              so.order_no as sales_order_no
        FROM work_orders wo
        LEFT JOIN items i ON i.id = wo.item_id
        LEFT JOIN warehouses w ON w.id = wo.warehouse_id
+       LEFT JOIN sales_orders so ON so.id = wo.sales_order_id
        WHERE wo.id = $1`,
       [id],
     );
@@ -132,6 +135,7 @@ export class WorkOrderRepository extends BaseRepository {
       itemSku: row.item_sku as string,
       itemDescription: row.item_description as string,
       warehouseName: row.warehouse_name as string,
+      salesOrderNo: row.sales_order_no as string | undefined,
     };
   }
 
@@ -141,6 +145,7 @@ export class WorkOrderRepository extends BaseRepository {
       status?: string;
       itemId?: string;
       warehouseId?: string;
+      salesOrderId?: string;
       search?: string;
     },
     limit = 50,
@@ -150,14 +155,17 @@ export class WorkOrderRepository extends BaseRepository {
       itemSku?: string;
       itemDescription?: string;
       warehouseName?: string;
+      salesOrderNo?: string;
     })[];
     total: number;
   }> {
     let sql = `
-      SELECT wo.*, i.sku as item_sku, i.description as item_description, w.name as warehouse_name
+      SELECT wo.*, i.sku as item_sku, i.description as item_description, w.name as warehouse_name,
+             so.order_no as sales_order_no
       FROM work_orders wo
       JOIN items i ON i.id = wo.item_id
       JOIN warehouses w ON w.id = wo.warehouse_id
+      LEFT JOIN sales_orders so ON so.id = wo.sales_order_id
       WHERE wo.tenant_id = $1
     `;
     let countSql = `
@@ -190,6 +198,13 @@ export class WorkOrderRepository extends BaseRepository {
       countParams.push(filters.warehouseId);
       idx++;
     }
+    if (filters.salesOrderId) {
+      sql += ` AND wo.sales_order_id = $${idx}`;
+      countSql += ` AND wo.sales_order_id = $${idx}`;
+      params.push(filters.salesOrderId);
+      countParams.push(filters.salesOrderId);
+      idx++;
+    }
     if (filters.search) {
       sql += ` AND (wo.work_order_no ILIKE $${idx} OR i.sku ILIKE $${idx} OR i.description ILIKE $${idx})`;
       countSql += ` AND (wo.work_order_no ILIKE $${idx} OR i.sku ILIKE $${idx} OR i.description ILIKE $${idx})`;
@@ -212,6 +227,7 @@ export class WorkOrderRepository extends BaseRepository {
         itemSku: r.item_sku as string,
         itemDescription: r.item_description as string,
         warehouseName: r.warehouse_name as string,
+        salesOrderNo: r.sales_order_no as string | undefined,
       })),
       total: parseInt(countResult?.count || "0", 10),
     };

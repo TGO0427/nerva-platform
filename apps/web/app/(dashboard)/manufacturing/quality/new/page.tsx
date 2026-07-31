@@ -37,6 +37,7 @@ export default function NewNonConformancePage() {
   const [formData, setFormData] = useState({
     itemId: '',
     workOrderId: '',
+    batchNo: '',
     defectType: '' as NcDefectType | '',
     severity: '' as NcSeverity | '',
     description: '',
@@ -71,6 +72,7 @@ export default function NewNonConformancePage() {
       const result = await createNc.mutateAsync({
         itemId: formData.itemId || undefined,
         workOrderId: formData.workOrderId || undefined,
+        batchNo: formData.batchNo || undefined,
         defectType: formData.defectType as NcDefectType,
         severity: formData.severity as NcSeverity,
         description: formData.description.trim(),
@@ -134,6 +136,18 @@ export default function NewNonConformancePage() {
                   onChange={(e) => updateField('workOrderId', e.target.value)}
                 />
                 <p className="text-xs text-slate-400 mt-1">Optional - the related work order</p>
+              </div>
+
+              {/* Batch No */}
+              <div>
+                <Label htmlFor="batchNo">Batch No</Label>
+                <Input
+                  id="batchNo"
+                  placeholder="Enter batch number (optional)"
+                  value={formData.batchNo}
+                  onChange={(e) => updateField('batchNo', e.target.value)}
+                />
+                <p className="text-xs text-slate-400 mt-1">Optional - the specific batch this concerns</p>
               </div>
 
               {/* Defect Type */}

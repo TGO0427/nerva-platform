@@ -57,7 +57,9 @@ import {
   UpdateNonConformanceDto,
   ResolveNonConformanceDto,
   AssignNonConformanceDto,
+  SetBatchQualityStatusDto,
 } from "./dto/manufacturing.dto";
+import { BatchQualityStatusValue } from "../inventory/batch-quality.repository";
 import { ImportWorkOrdersDto } from "./dto/wo-import.dto";
 import { ImportWorkstationsDto } from "./dto/workstation-import.dto";
 import { ImportBomsDto } from "./dto/bom-import.dto";
@@ -418,13 +420,14 @@ export class ManufacturingController {
     @Query("status") status?: string,
     @Query("itemId") itemId?: string,
     @Query("warehouseId") warehouseId?: string,
+    @Query("salesOrderId") salesOrderId?: string,
     @Query("search") search?: string,
     @Query("page") page?: number,
     @Query("limit") limit?: number,
   ) {
     return this.service.listWorkOrders(
       tenantId,
-      { status, itemId, warehouseId, search },
+      { status, itemId, warehouseId, salesOrderId, search },
       page,
       limit,
     );
@@ -452,6 +455,16 @@ export class ManufacturingController {
   @ApiOperation({ summary: "Get work order with operations and materials" })
   async getWorkOrder(@Param("id", UuidValidationPipe) id: string) {
     return this.service.getWorkOrder(id);
+  }
+
+  @Get("work-orders/:id/batch-quality")
+  @RequirePermissions("work_order.view")
+  @ApiOperation({ summary: "List quality status of batches produced by this work order" })
+  async listWorkOrderBatchQuality(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.listBatchQualityForWorkOrder(tenantId, id);
   }
 
   @Get("work-orders/:id/pdf")
@@ -921,6 +934,36 @@ export class ManufacturingController {
     @Param("id", UuidValidationPipe) id: string,
   ) {
     return this.service.reopenNonConformance(tenantId, id);
+  }
+
+  // ============ Batch Quality Status ============
+  @Get("batch-quality")
+  @RequirePermissions("quality.view")
+  @ApiOperation({ summary: "Get quality status for a specific item/batch" })
+  async getBatchQualityStatus(
+    @TenantId() tenantId: string,
+    @Query("itemId", UuidValidationPipe) itemId: string,
+    @Query("batchNo") batchNo: string,
+  ) {
+    return this.service.getBatchQualityStatus(tenantId, itemId, batchNo);
+  }
+
+  @Patch("batch-quality")
+  @RequirePermissions("quality.edit")
+  @ApiOperation({ summary: "Transition a batch's quality status" })
+  async setBatchQualityStatus(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: SetBatchQualityStatusDto,
+  ) {
+    return this.service.setBatchQualityStatus(
+      tenantId,
+      data.itemId,
+      data.batchNo,
+      data.qualityStatus as BatchQualityStatusValue,
+      user.id,
+      data.notes,
+    );
   }
 
   // ============ Production Ledger ============

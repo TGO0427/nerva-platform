@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { BatchQualityControl } from '@/components/ui/batch-quality-badge';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { DetailPageTemplate } from '@/components/templates';
 import { DownloadIcon } from '@/components/ui/export-actions';
@@ -26,6 +27,8 @@ import {
   useCompleteOperation,
   useUpsertWorkOrderChecks,
   useUpsertWorkOrderProcess,
+  useWorkOrderBatchQuality,
+  useSetBatchQualityStatus,
 } from '@/lib/queries/manufacturing';
 import { useBins } from '@/lib/queries/warehouses';
 import { Input } from '@/components/ui/input';
@@ -40,6 +43,7 @@ export default function WorkOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: workOrder, isLoading, error } = useWorkOrder(id);
+  const { data: batchQuality } = useWorkOrderBatchQuality(id);
   const [activeTab, setActiveTab] = useState<'operations' | 'materials' | 'checks' | 'process'>('materials');
 
   const [issuingMaterialId, setIssuingMaterialId] = useState<string | null>(null);
@@ -523,6 +527,21 @@ export default function WorkOrderDetailPage() {
                 <div className="mt-1 font-medium">{workOrder.batchNo || '-'}</div>
               </div>
               <div>
+                <div className="text-sm text-slate-500">Sales Order</div>
+                <div className="mt-1">
+                  {workOrder.salesOrderId ? (
+                    <Link
+                      href={`/sales/${workOrder.salesOrderId}`}
+                      className="font-medium text-primary-600 hover:underline"
+                    >
+                      {(workOrder as any).salesOrderNo || 'View order'}
+                    </Link>
+                  ) : (
+                    <span className="text-slate-400">Not linked to an order (stock build)</span>
+                  )}
+                </div>
+              </div>
+              <div>
                 <div className="text-sm text-slate-500">Planned Start</div>
                 <div className="mt-1">
                   {formatDate(workOrder.plannedStart)}
@@ -554,6 +573,25 @@ export default function WorkOrderDetailPage() {
               )}
             </div>
           </Card>
+
+          {/* Batch Quality */}
+          {batchQuality && batchQuality.length > 0 && (
+            <Card className="p-6">
+              <h3 className="text-lg font-medium mb-4">Batch Quality</h3>
+              <div className="space-y-3">
+                {batchQuality.map((bq) => (
+                  <div key={bq.batchNo} className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-sm font-medium">{bq.batchNo}</span>
+                    <BatchQualityControl
+                      itemId={bq.itemId}
+                      batchNo={bq.batchNo}
+                      status={bq.qualityStatus}
+                    />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
           {/* Tabs for Operations & Materials */}
           <Card>

@@ -242,6 +242,10 @@ export class FulfilmentService {
     return this.repository.findShipmentLinesByShipment(shipmentId);
   }
 
+  async getShipmentQualityBlockers(shipmentId: string) {
+    return this.repository.findBlockedBatchesByShipment(shipmentId);
+  }
+
   async getShippableOrders(tenantId: string): Promise<ShippableOrder[]> {
     return this.repository.findShippableOrders(tenantId);
   }
@@ -404,6 +408,14 @@ export class FulfilmentService {
       shipment.status !== "PACKED"
     ) {
       throw new BadRequestException("Shipment must be ready for dispatch");
+    }
+
+    const blockers = await this.repository.findBlockedBatchesByShipment(id);
+    if (blockers.length > 0) {
+      const batchList = blockers.map((b) => `${b.itemSku} (${b.batchNo})`).join(", ");
+      throw new BadRequestException(
+        `Cannot ship: batch not cleared for dispatch -- ${batchList}`,
+      );
     }
 
     const updated = await this.repository.updateShipmentCarrier(

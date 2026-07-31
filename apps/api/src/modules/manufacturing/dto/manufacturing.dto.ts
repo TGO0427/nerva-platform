@@ -769,6 +769,11 @@ export class CreateNonConformanceDto {
   @IsUUID()
   itemId?: string;
 
+  @ApiPropertyOptional({ description: "Specific batch this NC concerns, if known" })
+  @IsOptional()
+  @IsString()
+  batchNo?: string;
+
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
@@ -789,6 +794,27 @@ export class CreateNonConformanceDto {
   @IsNumber()
   @Min(0)
   qtyAffected?: number;
+}
+
+export class SetBatchQualityStatusDto {
+  @ApiProperty()
+  @IsUUID()
+  itemId: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  batchNo: string;
+
+  @ApiProperty({ enum: ["AWAITING_QC", "ON_HOLD", "APPROVED", "REJECTED", "RELEASED"] })
+  @IsString()
+  @IsNotEmpty()
+  qualityStatus: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
 
 export class UpdateNonConformanceDto {

@@ -248,6 +248,13 @@ export class FulfilmentController {
     return this.service.getShipmentLines(id);
   }
 
+  @Get("shipments/:id/quality-blockers")
+  @RequirePermissions("shipment.read")
+  @ApiOperation({ summary: "Get batches on this shipment that aren't cleared for dispatch" })
+  async getShipmentQualityBlockers(@Param("id", UuidValidationPipe) id: string) {
+    return this.service.getShipmentQualityBlockers(id);
+  }
+
   @Get("shipments/:id/packing-slip")
   @RequirePermissions("shipment.read")
   @ApiOperation({ summary: "Download packing slip PDF" })

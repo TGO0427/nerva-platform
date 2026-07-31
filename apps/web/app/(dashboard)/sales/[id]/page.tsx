@@ -32,6 +32,8 @@ import {
   useCreateShipment,
   useOrderShipments,
   useCreateInvoiceFromOrder,
+  useWorkOrders,
+  useStockOnHand,
   SalesOrderLineWithItem,
   Shipment,
 } from '@/lib/queries';
@@ -46,6 +48,11 @@ export default function SalesOrderDetailPage() {
 
   const { data: order, isLoading } = useOrder(orderId);
   const { data: shipments, isLoading: shipmentsLoading } = useOrderShipments(orderId);
+  const { data: linkedWorkOrders, isLoading: workOrdersLoading } = useWorkOrders({
+    salesOrderId: orderId,
+    page: 1,
+    limit: 20,
+  });
   const confirmOrder = useConfirmOrder();
   const allocateOrder = useAllocateOrder();
   const cancelOrder = useCancelOrder();
@@ -520,6 +527,60 @@ export default function SalesOrderDetailPage() {
         </Card>
       </div>
 
+      {/* Production & Stock */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Stock Availability</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {lines.map((line) => (
+                <LineAvailability
+                  key={line.id}
+                  itemId={line.itemId}
+                  itemLabel={line.itemSku || line.itemId.slice(0, 8)}
+                  qtyOutstanding={line.qtyOrdered - line.qtyAllocated}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Production</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {workOrdersLoading ? (
+              <div className="flex justify-center py-4">
+                <Spinner size="sm" />
+              </div>
+            ) : linkedWorkOrders && linkedWorkOrders.data.length > 0 ? (
+              <div className="space-y-2">
+                {linkedWorkOrders.data.map((wo) => (
+                  <Link
+                    key={wo.id}
+                    href={`/manufacturing/work-orders/${wo.id}`}
+                    className="flex items-center justify-between p-2.5 rounded-md border border-surface-border dark:border-surface-dark-border hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text-primary dark:text-text-dark-primary truncate">{wo.workOrderNo}</p>
+                      <p className="text-xs text-text-muted dark:text-text-dark-muted">
+                        {formatQuantity(wo.qtyCompleted)}/{formatQuantity(wo.qtyOrdered)} completed
+                      </p>
+                    </div>
+                    <Badge variant={getWorkOrderStatusVariant(wo.status)}>{wo.status.replace(/_/g, ' ')}</Badge>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-text-muted dark:text-text-dark-muted">No production linked to this order.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Shipments section */}
       {(hasShipments || canCreateShipment) && (
         <Card className="mb-6">
@@ -619,6 +680,49 @@ function ProgressBar({ label, current, total }: { label: string; current: number
       </div>
     </div>
   );
+}
+
+function LineAvailability({
+  itemId,
+  itemLabel,
+  qtyOutstanding,
+}: {
+  itemId: string;
+  itemLabel: string;
+  qtyOutstanding: number;
+}) {
+  const { data: stock, isLoading } = useStockOnHand(itemId);
+  const available = (stock ?? []).reduce((sum, s) => sum + s.qtyAvailable, 0);
+  const isShort = qtyOutstanding > 0 && available < qtyOutstanding;
+
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-text-secondary dark:text-text-dark-secondary truncate mr-2">{itemLabel}</span>
+      {isLoading ? (
+        <Spinner size="sm" />
+      ) : (
+        <span className={isShort ? 'font-medium text-danger' : 'font-medium text-success'}>
+          {formatQuantity(available)} available
+        </span>
+      )}
+    </div>
+  );
+}
+
+function getWorkOrderStatusVariant(status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' {
+  switch (status) {
+    case 'COMPLETED':
+      return 'success';
+    case 'IN_PROGRESS':
+    case 'RELEASED':
+      return 'info';
+    case 'ON_HOLD':
+      return 'warning';
+    case 'CANCELLED':
+      return 'danger';
+    default:
+      return 'default';
+  }
 }
 
 function getStatusVariant(status: SalesOrderStatus): 'default' | 'success' | 'warning' | 'danger' | 'info' {

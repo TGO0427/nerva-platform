@@ -7,6 +7,7 @@ export interface NonConformance {
   ncNo: string;
   workOrderId: string | null;
   itemId: string | null;
+  batchNo: string | null;
   reportedBy: string;
   defectType: string;
   severity: string;
@@ -191,6 +192,7 @@ export class NonConformanceRepository extends BaseRepository {
     ncNo: string;
     workOrderId?: string;
     itemId?: string;
+    batchNo?: string;
     reportedBy: string;
     defectType: string;
     severity: string;
@@ -199,15 +201,16 @@ export class NonConformanceRepository extends BaseRepository {
   }): Promise<NonConformance> {
     const row = await this.queryOne<Record<string, unknown>>(
       `INSERT INTO non_conformances (
-        tenant_id, nc_no, work_order_id, item_id, reported_by,
+        tenant_id, nc_no, work_order_id, item_id, batch_no, reported_by,
         defect_type, severity, description, qty_affected
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *`,
       [
         data.tenantId,
         data.ncNo,
         data.workOrderId || null,
         data.itemId || null,
+        data.batchNo || null,
         data.reportedBy,
         data.defectType,
         data.severity,
@@ -315,6 +318,7 @@ export class NonConformanceRepository extends BaseRepository {
       ncNo: row.nc_no as string,
       workOrderId: row.work_order_id as string | null,
       itemId: row.item_id as string | null,
+      batchNo: row.batch_no as string | null,
       reportedBy: row.reported_by as string,
       defectType: row.defect_type as string,
       severity: row.severity as string,

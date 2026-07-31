@@ -2,6 +2,7 @@
 export * from './alert';
 export * from './animated-number';
 export * from './badge';
+export * from './batch-quality-badge';
 export * from './bulk-action-bar';
 export * from './button';
 export * from './card';

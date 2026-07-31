@@ -10,6 +10,7 @@ import { ExportActions } from '@/components/ui/export-actions';
 import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { BatchQualityCell } from '@/components/ui/batch-quality-badge';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
@@ -157,6 +158,11 @@ export default function PutawayPage() {
       key: 'batchNo',
       header: 'Batch',
       render: (t) => t.batchNo || '-',
+    },
+    {
+      key: 'qcStatus',
+      header: 'QC Status',
+      render: (t) => <BatchQualityCell itemId={t.itemId} batchNo={t.batchNo} />,
     },
     {
       key: 'status',
