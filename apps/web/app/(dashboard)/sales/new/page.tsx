@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { RequiredMark } from '@/components/ui/form-section';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
@@ -225,8 +228,8 @@ export default function NewSalesOrderPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">New Sales Order</h1>
-          <p className="text-slate-500 mt-1">Create an order and add line items</p>
+          <h1 className="text-2xl font-semibold text-text-primary dark:text-text-dark-primary">New Sales Order</h1>
+          <p className="text-text-muted dark:text-text-dark-muted mt-1">Create an order and add line items</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -259,11 +262,11 @@ export default function NewSalesOrderPage() {
           </CardHeader>
           <CardContent>
             {selectedCustomer ? (
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-surface-secondary dark:bg-surface-dark-secondary rounded-lg">
                 <div>
-                  <div className="font-medium text-slate-900">{selectedCustomer.name}</div>
+                  <div className="font-medium text-text-primary dark:text-text-dark-primary">{selectedCustomer.name}</div>
                   {selectedCustomer.code && (
-                    <div className="text-sm text-slate-500">{selectedCustomer.code}</div>
+                    <div className="text-sm text-text-muted dark:text-text-dark-muted">{selectedCustomer.code}</div>
                   )}
                 </div>
                 <Button variant="secondary" size="sm" onClick={handleClearCustomer}>
@@ -283,13 +286,13 @@ export default function NewSalesOrderPage() {
                   className="w-full"
                 />
                 {showCustomerDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-auto">
+                  <div className="absolute z-10 w-full mt-1 bg-surface-card dark:bg-surface-dark-card border border-surface-border dark:border-surface-dark-border rounded-lg shadow-lg max-h-64 overflow-auto">
                     {customersLoading ? (
                       <div className="p-4 text-center">
                         <Spinner size="sm" />
                       </div>
                     ) : customers.length === 0 ? (
-                      <div className="p-4 text-center text-slate-500 text-sm">
+                      <div className="p-4 text-center text-text-muted dark:text-text-dark-muted text-sm">
                         No customers found
                       </div>
                     ) : (
@@ -297,12 +300,12 @@ export default function NewSalesOrderPage() {
                         <button
                           key={customer.id}
                           type="button"
-                          className="w-full px-4 py-3 text-left hover:bg-slate-50 border-b last:border-b-0"
+                          className="w-full px-4 py-3 text-left hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary border-b last:border-b-0"
                           onClick={() => handleSelectCustomer(customer)}
                         >
-                          <div className="font-medium text-slate-900">{customer.name}</div>
+                          <div className="font-medium text-text-primary dark:text-text-dark-primary">{customer.name}</div>
                           {customer.code && (
-                            <div className="text-sm text-slate-500">{customer.code}</div>
+                            <div className="text-sm text-text-muted dark:text-text-dark-muted">{customer.code}</div>
                           )}
                         </button>
                       ))
@@ -322,9 +325,7 @@ export default function NewSalesOrderPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Order No.
-                </label>
+                <Label>Order No.</Label>
                 <div className="flex gap-2">
                   <Input
                     value={orderNo}
@@ -350,27 +351,17 @@ export default function NewSalesOrderPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Warehouse <span className="text-red-500">*</span>
-                </label>
-                <select
+                <Label>Warehouse<RequiredMark /></Label>
+                <Select
                   value={warehouseId}
                   onChange={(e) => setWarehouseId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   disabled={warehousesLoading}
-                >
-                  <option value="">Select warehouse...</option>
-                  {warehouses?.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Select warehouse..."
+                  options={(warehouses ?? []).map((w) => ({ value: w.id, label: w.name }))}
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Requested Ship Date
-                </label>
+                <Label>Requested Ship Date</Label>
                 <Input
                   type="date"
                   value={requestedShipDate}
@@ -378,9 +369,7 @@ export default function NewSalesOrderPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Notes
-                </label>
+                <Label>Notes</Label>
                 <Input
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -396,7 +385,7 @@ export default function NewSalesOrderPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Line Items</CardTitle>
-              <span className="text-sm text-slate-500">{totals.lineCount} items</span>
+              <span className="text-sm text-text-muted dark:text-text-dark-muted">{totals.lineCount} items</span>
             </div>
           </CardHeader>
           <CardContent>
@@ -413,13 +402,13 @@ export default function NewSalesOrderPage() {
                 className="w-full"
               />
               {showItemDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-auto">
+                <div className="absolute z-10 w-full mt-1 bg-surface-card dark:bg-surface-dark-card border border-surface-border dark:border-surface-dark-border rounded-lg shadow-lg max-h-64 overflow-auto">
                   {itemsLoading ? (
                     <div className="p-4 text-center">
                       <Spinner size="sm" />
                     </div>
                   ) : items.length === 0 ? (
-                    <div className="p-4 text-center text-slate-500 text-sm">
+                    <div className="p-4 text-center text-text-muted dark:text-text-dark-muted text-sm">
                       No items found
                     </div>
                   ) : (
@@ -427,14 +416,14 @@ export default function NewSalesOrderPage() {
                       <button
                         key={item.id}
                         type="button"
-                        className="w-full px-4 py-3 text-left hover:bg-slate-50 border-b last:border-b-0"
+                        className="w-full px-4 py-3 text-left hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary border-b last:border-b-0"
                         onClick={() => handleAddItem(item)}
                       >
                         <div className="flex justify-between">
-                          <span className="font-medium text-slate-900">{item.sku}</span>
-                          <span className="text-sm text-slate-500">{item.uom}</span>
+                          <span className="font-medium text-text-primary dark:text-text-dark-primary">{item.sku}</span>
+                          <span className="text-sm text-text-muted dark:text-text-dark-muted">{item.uom}</span>
                         </div>
-                        <div className="text-sm text-slate-600">{item.description}</div>
+                        <div className="text-sm text-text-secondary dark:text-text-dark-secondary">{item.description}</div>
                       </button>
                     ))
                   )}
@@ -444,29 +433,29 @@ export default function NewSalesOrderPage() {
 
             {/* Lines Table */}
             {lines.length === 0 ? (
-              <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
-                <BoxIcon className="mx-auto h-12 w-12 text-slate-400 mb-3" />
-                <p className="text-slate-500">No items added yet</p>
-                <p className="text-sm text-slate-400">Search and select items above</p>
+              <div className="text-center py-12 border-2 border-dashed border-surface-border dark:border-surface-dark-border rounded-lg">
+                <BoxIcon className="mx-auto h-12 w-12 text-text-muted dark:text-text-dark-muted mb-3" />
+                <p className="text-text-muted dark:text-text-dark-muted">No items added yet</p>
+                <p className="text-sm text-text-muted dark:text-text-dark-muted">Search and select items above</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-2 text-xs font-medium text-slate-500 uppercase">
+                    <tr className="border-b border-surface-border dark:border-surface-dark-border">
+                      <th className="text-left py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase">
                         Item
                       </th>
-                      <th className="text-left py-3 px-2 text-xs font-medium text-slate-500 uppercase">
+                      <th className="text-left py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase">
                         Description
                       </th>
-                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-28">
+                      <th className="text-right py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase w-28">
                         Qty
                       </th>
-                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-32">
+                      <th className="text-right py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase w-32">
                         Unit Price
                       </th>
-                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-32">
+                      <th className="text-right py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase w-32">
                         Total
                       </th>
                       <th className="w-12"></th>
@@ -474,11 +463,11 @@ export default function NewSalesOrderPage() {
                   </thead>
                   <tbody>
                     {lines.map((line) => (
-                      <tr key={line.tempId} className="border-b">
+                      <tr key={line.tempId} className="border-b border-surface-border dark:border-surface-dark-border">
                         <td className="py-3 px-2">
                           <span className="font-medium">{line.itemSku}</span>
                         </td>
-                        <td className="py-3 px-2 text-slate-600">
+                        <td className="py-3 px-2 text-text-secondary dark:text-text-dark-secondary">
                           {line.itemDescription}
                         </td>
                         <td className="py-3 px-2">
@@ -509,7 +498,7 @@ export default function NewSalesOrderPage() {
                           <button
                             type="button"
                             onClick={() => handleRemoveLine(line.tempId)}
-                            className="text-slate-400 hover:text-red-600 transition-colors"
+                            className="text-text-muted dark:text-text-dark-muted hover:text-red-600 transition-colors"
                           >
                             <TrashIcon />
                           </button>
@@ -531,15 +520,15 @@ export default function NewSalesOrderPage() {
           <CardContent>
             <div className="flex justify-between items-center">
               <div className="space-y-1">
-                <div className="text-sm text-slate-500">
-                  <span className="font-medium text-slate-900">{totals.lineCount}</span> line items
+                <div className="text-sm text-text-muted dark:text-text-dark-muted">
+                  <span className="font-medium text-text-primary dark:text-text-dark-primary">{totals.lineCount}</span> line items
                 </div>
-                <div className="text-sm text-slate-500">
-                  <span className="font-medium text-slate-900">{totals.totalQty}</span> total quantity
+                <div className="text-sm text-text-muted dark:text-text-dark-muted">
+                  <span className="font-medium text-text-primary dark:text-text-dark-primary">{totals.totalQty}</span> total quantity
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm text-slate-500">Total Value</div>
+                <div className="text-sm text-text-muted dark:text-text-dark-muted">Total Value</div>
                 <div className="text-2xl font-bold text-primary-600">
                   R {totals.totalValue.toFixed(2)}
                 </div>

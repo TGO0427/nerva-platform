@@ -7,6 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert } from '@/components/ui/alert';
+import { RequiredMark } from '@/components/ui/form-section';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { useSuppliers, useWarehouses, useItems, useCreatePurchaseOrder } from '@/lib/queries';
@@ -139,14 +143,14 @@ export default function NewPurchaseOrderPage() {
       <Breadcrumbs />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">New Purchase Order</h1>
-        <p className="text-slate-500 mt-1">Create a new purchase order for a supplier.</p>
+        <h1 className="text-2xl font-semibold text-text-primary dark:text-text-dark-primary">New Purchase Order</h1>
+        <p className="text-text-muted dark:text-text-dark-muted mt-1">Create a new purchase order for a supplier.</p>
       </div>
 
       {error && (
-        <div className="mb-6 rounded-md bg-red-50 p-4">
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
+        <Alert variant="error" className="mb-6">
+          {error}
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -156,21 +160,18 @@ export default function NewPurchaseOrderPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="supplierId">Supplier *</Label>
-              <select
+              <Label htmlFor="supplierId">Supplier<RequiredMark /></Label>
+              <Select
                 id="supplierId"
                 value={formData.supplierId}
                 onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 required
-              >
-                <option value="">Select a supplier...</option>
-                {suppliersData?.data?.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.code ? `${supplier.code} - ` : ''}{supplier.name}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select a supplier..."
+                options={(suppliersData?.data ?? []).map((supplier) => ({
+                  value: supplier.id,
+                  label: supplier.code ? `${supplier.code} - ${supplier.name}` : supplier.name,
+                }))}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -196,28 +197,25 @@ export default function NewPurchaseOrderPage() {
 
             <div>
               <Label htmlFor="shipToWarehouseId">Ship To Warehouse</Label>
-              <select
+              <Select
                 id="shipToWarehouseId"
                 value={formData.shipToWarehouseId}
                 onChange={(e) => setFormData({ ...formData, shipToWarehouseId: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">Select warehouse...</option>
-                {warehouses?.map((wh) => (
-                  <option key={wh.id} value={wh.id}>
-                    {wh.code ? `${wh.code} - ` : ''}{wh.name}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select warehouse..."
+                options={(warehouses ?? []).map((wh) => ({
+                  value: wh.id,
+                  label: wh.code ? `${wh.code} - ${wh.name}` : wh.name,
+                }))}
+              />
             </div>
 
             <div>
               <Label htmlFor="notes">Notes</Label>
-              <textarea
+              <Textarea
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full h-24 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="h-24"
                 placeholder="Add any notes or special instructions..."
               />
             </div>
@@ -228,11 +226,11 @@ export default function NewPurchaseOrderPage() {
                 type="checkbox"
                 checked={formData.isImport}
                 onChange={(e) => setFormData({ ...formData, isImport: e.target.checked })}
-                className="mt-1"
+                className="mt-1 rounded border-surface-border dark:border-surface-dark-border text-primary-600 focus:ring-primary-500"
               />
               <div>
                 <Label htmlFor="isImport">This is an import order</Label>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-text-muted dark:text-text-dark-muted">
                   Automatically creates a shipping schedule entry in Import Schedule once this order is confirmed.
                 </p>
               </div>
@@ -245,7 +243,7 @@ export default function NewPurchaseOrderPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Line Items</CardTitle>
-              <span className="text-sm text-slate-500">{totals.lineCount} items</span>
+              <span className="text-sm text-text-muted dark:text-text-dark-muted">{totals.lineCount} items</span>
             </div>
           </CardHeader>
           <CardContent>
@@ -261,24 +259,24 @@ export default function NewPurchaseOrderPage() {
                 className="w-full"
               />
               {showItemDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-auto">
+                <div className="absolute z-10 w-full mt-1 bg-surface-card dark:bg-surface-dark-card border border-surface-border dark:border-surface-dark-border rounded-lg shadow-lg max-h-64 overflow-auto">
                   {itemsLoading ? (
                     <div className="p-4 text-center"><Spinner size="sm" /></div>
                   ) : items.length === 0 ? (
-                    <div className="p-4 text-center text-slate-500 text-sm">No items found</div>
+                    <div className="p-4 text-center text-text-muted dark:text-text-dark-muted text-sm">No items found</div>
                   ) : (
                     items.map((item) => (
                       <button
                         key={item.id}
                         type="button"
-                        className="w-full px-4 py-3 text-left hover:bg-slate-50 border-b last:border-b-0"
+                        className="w-full px-4 py-3 text-left hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary border-b last:border-b-0"
                         onClick={() => handleAddItem(item)}
                       >
                         <div className="flex justify-between">
-                          <span className="font-medium text-slate-900">{item.sku}</span>
-                          <span className="text-sm text-slate-500">{item.uom}</span>
+                          <span className="font-medium text-text-primary dark:text-text-dark-primary">{item.sku}</span>
+                          <span className="text-sm text-text-muted dark:text-text-dark-muted">{item.uom}</span>
                         </div>
-                        <div className="text-sm text-slate-600">{item.description}</div>
+                        <div className="text-sm text-text-secondary dark:text-text-dark-secondary">{item.description}</div>
                       </button>
                     ))
                   )}
@@ -287,28 +285,28 @@ export default function NewPurchaseOrderPage() {
             </div>
 
             {lines.length === 0 ? (
-              <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-lg">
-                <p className="text-slate-500">No items added yet</p>
-                <p className="text-sm text-slate-400">Search and select items above, or add them after creating the PO</p>
+              <div className="text-center py-8 border-2 border-dashed border-surface-border dark:border-surface-dark-border rounded-lg">
+                <p className="text-text-muted dark:text-text-dark-muted">No items added yet</p>
+                <p className="text-sm text-text-muted dark:text-text-dark-muted">Search and select items above, or add them after creating the PO</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-2 text-xs font-medium text-slate-500 uppercase">Item</th>
-                      <th className="text-left py-3 px-2 text-xs font-medium text-slate-500 uppercase">Description</th>
-                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-28">Qty</th>
-                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-32">Unit Cost</th>
-                      <th className="text-right py-3 px-2 text-xs font-medium text-slate-500 uppercase w-32">Total</th>
+                    <tr className="border-b border-surface-border dark:border-surface-dark-border">
+                      <th className="text-left py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase">Item</th>
+                      <th className="text-left py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase">Description</th>
+                      <th className="text-right py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase w-28">Qty</th>
+                      <th className="text-right py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase w-32">Unit Cost</th>
+                      <th className="text-right py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase w-32">Total</th>
                       <th className="w-12"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {lines.map((line) => (
-                      <tr key={line.tempId} className="border-b">
+                      <tr key={line.tempId} className="border-b border-surface-border dark:border-surface-dark-border">
                         <td className="py-3 px-2"><span className="font-medium">{line.itemSku}</span></td>
-                        <td className="py-3 px-2 text-slate-600">{line.itemDescription}</td>
+                        <td className="py-3 px-2 text-text-secondary dark:text-text-dark-secondary">{line.itemDescription}</td>
                         <td className="py-3 px-2">
                           <Input
                             type="number"
@@ -337,7 +335,7 @@ export default function NewPurchaseOrderPage() {
                           <button
                             type="button"
                             onClick={() => handleRemoveLine(line.tempId)}
-                            className="text-slate-400 hover:text-red-600 transition-colors"
+                            className="text-text-muted dark:text-text-dark-muted hover:text-red-600 transition-colors"
                           >
                             <TrashIcon />
                           </button>
@@ -350,13 +348,13 @@ export default function NewPurchaseOrderPage() {
             )}
 
             {lines.length > 0 && (
-              <div className="flex justify-between items-center mt-4 pt-4 border-t">
-                <div className="text-sm text-slate-500">
-                  <span className="font-medium text-slate-900">{totals.totalQty}</span> total quantity
+              <div className="flex justify-between items-center mt-4 pt-4 border-t border-surface-border dark:border-surface-dark-border">
+                <div className="text-sm text-text-muted dark:text-text-dark-muted">
+                  <span className="font-medium text-text-primary dark:text-text-dark-primary">{totals.totalQty}</span> total quantity
                 </div>
                 <div className="text-right">
-                  <span className="text-sm text-slate-500">Subtotal: </span>
-                  <span className="text-lg font-bold text-slate-900">
+                  <span className="text-sm text-text-muted dark:text-text-dark-muted">Subtotal: </span>
+                  <span className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
                     R {totals.totalValue.toFixed(2)}
                   </span>
                 </div>

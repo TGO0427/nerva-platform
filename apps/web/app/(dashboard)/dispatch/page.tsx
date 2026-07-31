@@ -560,7 +560,7 @@ export default function DispatchPage() {
               </button>
               <button
                 onClick={handleRefresh}
-                className="p-1.5 rounded-md text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:text-text-dark-secondary hover:bg-surface-secondary dark:bg-surface-dark-secondary transition-colors"
+                className="p-1.5 rounded-md text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:hover:text-text-dark-secondary hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors"
                 title="Refresh now"
               >
                 <RefreshIcon />
@@ -644,7 +644,7 @@ export default function DispatchPage() {
                   className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === 'trips'
                       ? 'border-primary-500 text-primary-600'
-                      : 'border-transparent text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:text-text-dark-secondary hover:border-surface-border dark:border-surface-dark-border'
+                      : 'border-transparent text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:hover:text-text-dark-secondary hover:border-surface-border dark:hover:border-surface-dark-border'
                   }`}
                 >
                   Trips
@@ -654,7 +654,7 @@ export default function DispatchPage() {
                   className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
                     activeTab === 'ready-shipments'
                       ? 'border-primary-500 text-primary-600'
-                      : 'border-transparent text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:text-text-dark-secondary hover:border-surface-border dark:border-surface-dark-border'
+                      : 'border-transparent text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:hover:text-text-dark-secondary hover:border-surface-border dark:hover:border-surface-dark-border'
                   }`}
                 >
                   Ready for Dispatch
@@ -681,7 +681,7 @@ export default function DispatchPage() {
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         viewMode === 'board'
                           ? 'bg-white text-text-primary dark:text-text-dark-primary shadow-sm'
-                          : 'text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:text-text-dark-secondary'
+                          : 'text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:hover:text-text-dark-secondary'
                       }`}
                     >
                       <BoardIcon className="h-4 w-4 inline mr-1.5" />
@@ -692,7 +692,7 @@ export default function DispatchPage() {
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         viewMode === 'table'
                           ? 'bg-white text-text-primary dark:text-text-dark-primary shadow-sm'
-                          : 'text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:text-text-dark-secondary'
+                          : 'text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:hover:text-text-dark-secondary'
                       }`}
                     >
                       <TableIcon className="h-4 w-4 inline mr-1.5" />
