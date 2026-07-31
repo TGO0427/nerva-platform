@@ -92,7 +92,7 @@ export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
     return (
       <div className="w-full" ref={containerRef}>
         {label && (
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+          <label className="block text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-1.5">
             {label}
           </label>
         )}
@@ -110,37 +110,38 @@ export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
             placeholder={placeholder}
             disabled={disabled}
             className={cn(
-              'block w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 pr-8',
+              'block w-full h-9 rounded-md border bg-surface-card px-3 pr-8 text-sm text-text-primary transition-colors focus:outline-none focus:ring-1',
+              'dark:bg-surface-dark-card dark:text-text-dark-primary',
               error
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500',
-              disabled && 'bg-slate-100 cursor-not-allowed',
+                ? 'border-danger focus:border-danger focus:ring-danger'
+                : 'border-surface-border focus:border-primary-500 focus:ring-primary-500 dark:border-surface-dark-border',
+              disabled && 'bg-surface-secondary dark:bg-surface-dark-secondary cursor-not-allowed opacity-50',
               className
             )}
           />
           <button
             type="button"
             onClick={() => !disabled && setIsOpen(!isOpen)}
-            className="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400"
+            className="absolute inset-y-0 right-0 flex items-center px-2 text-text-muted dark:text-text-dark-muted"
             tabIndex={-1}
           >
             <ChevronIcon className={cn('h-4 w-4 transition-transform', isOpen && 'rotate-180')} />
           </button>
 
           {isOpen && (
-            <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-auto">
+            <div className="absolute z-50 mt-1 w-full bg-surface-card dark:bg-surface-dark-card border border-surface-border dark:border-surface-dark-border rounded-md shadow-md max-h-60 overflow-auto">
               {filteredOptions.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-slate-500">No results found</div>
+                <div className="px-3 py-2 text-sm text-text-muted dark:text-text-dark-muted">No results found</div>
               ) : (
                 filteredOptions.map((option, index) => (
                   <div
                     key={option.value}
                     onClick={() => handleSelect(option)}
                     className={cn(
-                      'px-3 py-2 text-sm cursor-pointer',
-                      index === highlightedIndex && 'bg-primary-50',
-                      option.value === value && 'bg-primary-100 font-medium',
-                      index !== highlightedIndex && option.value !== value && 'hover:bg-slate-50'
+                      'px-3 py-2 text-sm text-text-primary dark:text-text-dark-primary cursor-pointer',
+                      index === highlightedIndex && 'bg-primary-50 dark:bg-primary-900/30',
+                      option.value === value && 'bg-primary-100 dark:bg-primary-900/50 font-medium',
+                      index !== highlightedIndex && option.value !== value && 'hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary'
                     )}
                   >
                     {option.label}
@@ -150,7 +151,7 @@ export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
             </div>
           )}
         </div>
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-1.5 text-sm text-danger">{error}</p>}
       </div>
     );
   }

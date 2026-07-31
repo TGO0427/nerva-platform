@@ -16,33 +16,25 @@ export interface StatCardProps {
   href?: string;
   alert?: boolean;
   emptyHint?: string;
+  /** Optional trend sparkline, rendered under the value */
+  sparkline?: number[];
   className?: string;
 }
 
-const borderColors: Record<IconColor, string> = {
-  gray: 'border-b-slate-400',
-  blue: 'border-b-blue-500',
-  green: 'border-b-sky-400',
-  red: 'border-b-red-500',
-  yellow: 'border-b-amber-500',
-  purple: 'border-b-violet-500',
-  orange: 'border-b-orange-500',
-};
-
-const bgTints: Record<IconColor, string> = {
-  gray: 'bg-gradient-to-br from-slate-50/80 to-white',
-  blue: 'bg-gradient-to-br from-blue-50/60 to-white',
-  green: 'bg-gradient-to-br from-sky-50/70 to-white',
-  red: 'bg-gradient-to-br from-red-50/60 to-white',
-  yellow: 'bg-gradient-to-br from-amber-50/60 to-white',
-  purple: 'bg-gradient-to-br from-violet-50/60 to-white',
-  orange: 'bg-gradient-to-br from-orange-50/60 to-white',
-};
-
 const subtitleColors = {
-  positive: 'text-sky-600',
-  negative: 'text-red-600',
-  neutral: 'text-slate-400',
+  positive: 'text-success',
+  negative: 'text-danger',
+  neutral: 'text-text-muted dark:text-text-dark-muted',
+};
+
+const sparklineColors: Record<IconColor, string> = {
+  gray: '#667085',
+  blue: '#2563eb',
+  green: '#16a34a',
+  red: '#dc2626',
+  yellow: '#d97706',
+  purple: '#7c3aed',
+  orange: '#ea580c',
 };
 
 export function StatCard({
@@ -55,6 +47,7 @@ export function StatCard({
   href,
   alert = false,
   emptyHint,
+  sparkline,
   className,
 }: StatCardProps) {
   const showEmpty = value === 0 && emptyHint;
@@ -63,36 +56,43 @@ export function StatCard({
   const content = (
     <div
       className={cn(
-        'relative min-h-[106px] rounded-md border border-slate-200/70 border-b-[3px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-2.5',
-        href && 'hover:shadow-md hover:-translate-y-0.5 transition-all',
-        alert ? 'border-b-red-500 bg-gradient-to-br from-red-50/60 to-white' : cn(borderColors[iconColor], bgTints[iconColor]),
+        'relative min-h-[106px] rounded-lg border bg-surface-card dark:bg-surface-dark-card shadow-xs p-3',
+        alert
+          ? 'border-danger/40 dark:border-danger/40'
+          : 'border-surface-border dark:border-surface-dark-border',
+        href && 'hover:shadow-md hover:border-surface-border/80 dark:hover:border-surface-dark-border/80 transition-shadow',
         href && 'cursor-pointer',
         className,
       )}
     >
       {alert && (
-        <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-500" aria-hidden="true" />
+        <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-danger" aria-hidden="true" />
       )}
       {icon && (
-        <div className="mb-1.5">
+        <div className="mb-2">
           <IconBadge icon={icon} color={alert ? 'red' : iconColor} size="sm" />
         </div>
       )}
-      <p className="truncate text-lg font-bold text-slate-900" title={String(value)}>
+      <p className="truncate text-lg font-semibold text-text-primary dark:text-text-dark-primary" title={String(value)}>
         {isNumeric ? (
           <AnimatedNumber value={value} duration={400} />
         ) : (
           value
         )}
       </p>
-      <p className="mt-0.5 truncate text-[10.5px] font-medium uppercase tracking-wider text-slate-500" title={title}>{title}</p>
+      <p className="mt-0.5 truncate text-[10.5px] font-medium uppercase tracking-wider text-text-muted dark:text-text-dark-muted" title={title}>{title}</p>
       {showEmpty ? (
-        <p className="mt-0.5 truncate text-[10.5px] text-slate-400" title={emptyHint}>{emptyHint}</p>
+        <p className="mt-0.5 truncate text-[10.5px] text-text-muted dark:text-text-dark-muted" title={emptyHint}>{emptyHint}</p>
       ) : subtitle ? (
         <p className={cn('mt-0.5 truncate text-[10.5px]', subtitleColors[subtitleType])} title={subtitle}>
           {subtitle}
         </p>
       ) : null}
+      {sparkline && sparkline.length > 1 && (
+        <div className="mt-2">
+          <Sparkline data={sparkline} color={sparklineColors[alert ? 'red' : iconColor]} />
+        </div>
+      )}
     </div>
   );
 
@@ -101,4 +101,40 @@ export function StatCard({
   }
 
   return content;
+}
+
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+
+  const width = 80;
+  const height = 22;
+  const padding = 2;
+
+  const points = data.map((value, index) => {
+    const x = padding + (index / (data.length - 1)) * (width - padding * 2);
+    const y = height - padding - ((value - min) / range) * (height - padding * 2);
+    return { x, y };
+  });
+
+  const pathD = points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+    .join(' ');
+
+  const areaD = `${pathD} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`;
+
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <path d={areaD} fill={color} opacity="0.1" />
+      <path
+        d={pathD}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }

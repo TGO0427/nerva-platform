@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
-import { KpiCard } from '@/components/ui/kpi-card';
+import { StatCard } from '@/components/ui/stat-card';
 import { useCustomerPortal } from '@/lib/contexts/customer-portal-context';
 import { useOrders } from '@/lib/queries/sales';
 
@@ -65,11 +65,11 @@ export default function CustomerPortalDashboard() {
     );
   }
 
-  // Determine tones
-  const totalOrdersTone = totalOrders > 0 ? 'blue' : 'neutral';
-  const completedTone = completedOrders > 0 ? 'green' : 'neutral';
-  const pendingTone = pendingOrders > 0 ? 'amber' : 'green';
-  const cancelledTone = cancelledOrders > 0 ? 'red' : 'green';
+  // Determine icon colors
+  const totalOrdersColor = totalOrders > 0 ? 'blue' : 'gray';
+  const completedColor = completedOrders > 0 ? 'green' : 'gray';
+  const pendingColor = pendingOrders > 0 ? 'yellow' : 'green';
+  const cancelledColor = cancelledOrders > 0 ? 'red' : 'green';
 
   return (
     <div className="space-y-6">
@@ -95,40 +95,40 @@ export default function CustomerPortalDashboard() {
           }}
         >
           <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
-            <KpiCard
+            <StatCard
               title="Total Orders"
               value={totalOrders}
-              sub="All time"
+              subtitle="All time"
               icon={<OrdersIcon />}
-              tone={totalOrdersTone as 'blue' | 'neutral'}
+              iconColor={totalOrdersColor}
               sparkline={ordersByMonth}
             />
           </motion.div>
           <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
-            <KpiCard
+            <StatCard
               title="Completed"
               value={completedOrders}
-              sub="Shipped & delivered"
+              subtitle="Shipped & delivered"
               icon={<CheckIcon />}
-              tone={completedTone as 'green' | 'neutral'}
+              iconColor={completedColor}
             />
           </motion.div>
           <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
-            <KpiCard
+            <StatCard
               title="Pending"
               value={pendingOrders}
-              sub={pendingOrders > 0 ? 'In progress' : 'All clear'}
+              subtitle={pendingOrders > 0 ? 'In progress' : 'All clear'}
               icon={<ClockIcon />}
-              tone={pendingTone as 'amber' | 'green'}
+              iconColor={pendingColor}
             />
           </motion.div>
           <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
-            <KpiCard
+            <StatCard
               title="Cancelled"
               value={cancelledOrders}
-              sub={cancelledOrders > 0 ? 'Cancelled orders' : 'No cancellations'}
+              subtitle={cancelledOrders > 0 ? 'Cancelled orders' : 'No cancellations'}
               icon={<XIcon />}
-              tone={cancelledTone as 'red' | 'green'}
+              iconColor={cancelledColor}
             />
           </motion.div>
         </motion.div>

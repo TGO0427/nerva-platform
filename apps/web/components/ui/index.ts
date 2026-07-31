@@ -11,6 +11,7 @@ export * from './dropdown-menu';
 export * from './drawer';
 export * from './empty-state';
 export * from './filter-bar';
+export * from './form-section';
 export * from './icon-badge';
 export * from './input';
 export * from './label';

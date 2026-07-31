@@ -4,27 +4,27 @@
 @import 'tw-animate-css';
 
 :root {
-  --foreground-rgb: 15, 23, 42; /* #0f172a primary text */
-  --background-start-rgb: 245, 247, 251; /* #f5f7fb app bg */
-  --background-end-rgb: 245, 247, 251;
+  --foreground-rgb: 16, 24, 40; /* #101828 primary text */
+  --background-start-rgb: 244, 245, 247; /* #f4f5f7 app bg */
+  --background-end-rgb: 244, 245, 247;
 
   /* Surface tokens */
-  --surface-bg: 245, 247, 251;      /* #f5f7fb app background */
+  --surface-bg: 244, 245, 247;      /* #f4f5f7 app background */
   --surface-card: 255, 255, 255;    /* #ffffff surface/card */
-  --surface-border: 229, 233, 242;  /* #e5e9f2 border */
-  --surface-hover: 240, 243, 249;   /* #f0f3f9 secondary surface */
+  --surface-border: 226, 228, 233;  /* #e2e4e9 border */
+  --surface-hover: 244, 245, 247;   /* #f4f5f7 secondary surface */
 }
 
 .dark {
-  --foreground-rgb: 241, 245, 249; /* #f1f5f9 dark text */
-  --background-start-rgb: 15, 23, 42; /* #0f172a dark bg */
-  --background-end-rgb: 15, 23, 42;
+  --foreground-rgb: 240, 242, 245; /* #f0f2f5 dark text */
+  --background-start-rgb: 11, 18, 32; /* #0b1220 dark bg */
+  --background-end-rgb: 11, 18, 32;
 
   /* Dark surface tokens */
-  --surface-bg: 15, 23, 42;         /* #0f172a dark background */
-  --surface-card: 30, 41, 59;       /* #1e293b dark surface */
-  --surface-border: 71, 85, 105;    /* #475569 dark border */
-  --surface-hover: 51, 65, 85;      /* #334155 dark secondary surface */
+  --surface-bg: 11, 18, 32;         /* #0b1220 dark background */
+  --surface-card: 20, 27, 45;       /* #141b2d dark surface */
+  --surface-border: 42, 51, 72;     /* #2a3348 dark border */
+  --surface-hover: 28, 36, 54;      /* #1c2436 dark secondary surface */
 }
 
 body {
@@ -59,164 +59,164 @@ body {
   }
 
   .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset;
   }
 
   .badge-success {
-    @apply badge bg-sky-100 text-sky-800;
+    @apply badge bg-green-50 text-green-700 ring-green-200 dark:bg-green-950/40 dark:text-green-400 dark:ring-green-900;
   }
 
   .badge-warning {
-    @apply badge bg-yellow-100 text-yellow-800;
+    @apply badge bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:ring-amber-900;
   }
 
   .badge-danger {
-    @apply badge bg-red-100 text-red-800;
+    @apply badge bg-red-50 text-red-700 ring-red-200 dark:bg-red-950/40 dark:text-red-400 dark:ring-red-900;
   }
 
   .badge-info {
-    @apply badge bg-blue-100 text-blue-800;
+    @apply badge bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:ring-blue-900;
   }
 }
 
 /* ── Dark mode ─────────────────────────────────────────────────────────────── */
 .dark {
-  --foreground-rgb: 241, 245, 249;
-  --surface-bg: 15 23 42;          /* #0f172a */
-  --surface-card: 30 41 59;        /* #1e293b */
-  --surface-border: 71 85 105;     /* #475569 */
-  --surface-hover: 51 65 85;       /* #334155 */
+  --foreground-rgb: 240, 242, 245;
+  --surface-bg: 11 18 32;          /* #0b1220 */
+  --surface-card: 20 27 45;        /* #141b2d */
+  --surface-border: 42 51 72;      /* #2a3348 */
+  --surface-hover: 28 36 54;       /* #1c2436 */
 }
 
 .dark body,
 html.dark body {
-  color: rgb(241 245 249);
-  background: rgb(15 23 42);
+  color: rgb(240 242 245);
+  background: rgb(11 18 32);
 }
 
 /* ── Surfaces ────────────────────────────────────────────────────────────── */
 .dark .card,
 .dark .bg-white {
-  background-color: rgb(30 41 59) !important;
-  border-color: rgb(71 85 105) !important;
+  background-color: rgb(20 27 45) !important;
+  border-color: rgb(42 51 72) !important;
 }
 
 .dark .bg-surface {
-  background-color: rgb(15 23 42) !important;
+  background-color: rgb(11 18 32) !important;
 }
 
 .dark .bg-slate-50,
 .dark .bg-gray-50 {
-  background-color: rgb(30 41 59) !important;
+  background-color: rgb(20 27 45) !important;
 }
 
 .dark .bg-slate-100,
 .dark .bg-gray-100 {
-  background-color: rgb(51 65 85) !important;
+  background-color: rgb(28 36 54) !important;
 }
 
 .dark .bg-slate-200,
 .dark .bg-gray-200 {
-  background-color: rgb(51 65 85) !important;
+  background-color: rgb(28 36 54) !important;
 }
 
 .dark .hover\:bg-slate-200:hover,
 .dark .hover\:bg-gray-200:hover {
-  background-color: rgb(71 85 105) !important;
+  background-color: rgb(42 51 72) !important;
 }
 
 .dark .hover\:bg-slate-300:hover,
 .dark .hover\:bg-gray-300:hover {
-  background-color: rgb(71 85 105) !important;
+  background-color: rgb(42 51 72) !important;
 }
 
 /* ── Text ────────────────────────────────────────────────────────────────── */
 .dark .text-slate-900,
 .dark .text-gray-900 {
-  color: rgb(241 245 249) !important;
+  color: rgb(240 242 245) !important;
 }
 
 .dark .text-slate-700,
 .dark .text-gray-700 {
-  color: rgb(203 213 225) !important;
+  color: rgb(170 178 197) !important;
 }
 
 .dark .text-slate-800,
 .dark .text-gray-800 {
-  color: rgb(241 245 249) !important;
+  color: rgb(240 242 245) !important;
 }
 
 .dark .text-slate-600,
 .dark .text-gray-600 {
-  color: rgb(148 163 184) !important;
+  color: rgb(135 145 168) !important;
 }
 
 .dark .text-slate-500,
 .dark .text-gray-500 {
-  color: rgb(148 163 184) !important;
+  color: rgb(135 145 168) !important;
 }
 
 .dark .text-slate-400,
 .dark .text-gray-400 {
-  color: rgb(100 116 139) !important;
+  color: rgb(103 112 133) !important;
 }
 
 /* ── Borders ─────────────────────────────────────────────────────────────── */
 .dark .border-gray-200,
 .dark .border-slate-200 {
-  border-color: rgb(71 85 105) !important;
+  border-color: rgb(42 51 72) !important;
 }
 
 .dark .border-gray-50,
 .dark .border-slate-50 {
-  border-color: rgb(30 41 59) !important;
+  border-color: rgb(20 27 45) !important;
 }
 
 .dark .border-gray-100,
 .dark .border-slate-100 {
-  border-color: rgb(51 65 85) !important;
+  border-color: rgb(28 36 54) !important;
 }
 
 .dark .border-gray-300,
 .dark .border-slate-300 {
-  border-color: rgb(71 85 105) !important;
+  border-color: rgb(42 51 72) !important;
 }
 
 .dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
 .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
 .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
 .dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
-  border-color: rgb(51 65 85) !important;
+  border-color: rgb(28 36 54) !important;
 }
 
 /* ── Forms ───────────────────────────────────────────────────────────────── */
 .dark input,
 .dark select,
 .dark textarea {
-  background-color: rgb(30 41 59);
-  border-color: rgb(51 65 85);
-  color: rgb(226 232 240);
+  background-color: rgb(20 27 45);
+  border-color: rgb(28 36 54);
+  color: rgb(224 227 233);
 }
 
 /* ── Hover states ────────────────────────────────────────────────────────── */
 .dark .hover\:bg-slate-50:hover,
 .dark .hover\:bg-gray-50:hover {
-  background-color: rgb(51 65 85) !important;
+  background-color: rgb(28 36 54) !important;
 }
 
 .dark .hover\:bg-slate-100:hover,
 .dark .hover\:bg-gray-100:hover {
-  background-color: rgb(51 65 85) !important;
+  background-color: rgb(28 36 54) !important;
 }
 
 .dark .hover\:text-slate-600:hover,
 .dark .hover\:text-gray-600:hover {
-  color: rgb(203 213 225) !important;
+  color: rgb(170 178 197) !important;
 }
 
 .dark .hover\:text-slate-700:hover,
 .dark .hover\:text-gray-700:hover {
-  color: rgb(226 232 240) !important;
+  color: rgb(224 227 233) !important;
 }
 
 .dark .hover\:bg-red-50:hover {
@@ -226,13 +226,13 @@ html.dark body {
 .dark .hover\:border-slate-300:hover,
 .dark .hover\:border-gray-300:hover,
 .dark .hover\:border-gray-400:hover {
-  border-color: rgb(100 116 139) !important;
+  border-color: rgb(103 112 133) !important;
 }
 
 /* ── Rings (badge outlines, pagination) ──────────────────────────────────── */
 .dark .ring-slate-200,
 .dark .ring-slate-300 {
-  --tw-ring-color: rgb(71 85 105) !important;
+  --tw-ring-color: rgb(42 51 72) !important;
 }
 
 .dark .ring-blue-200 {
@@ -343,17 +343,17 @@ html.dark body {
 .dark [class*="from-amber-50"],
 .dark [class*="from-violet-50"],
 .dark [class*="from-orange-50"] {
-  --tw-gradient-from: rgb(30 41 59) !important;
+  --tw-gradient-from: rgb(20 27 45) !important;
 }
 
 .dark [class*="to-white"] {
-  --tw-gradient-to: rgb(30 41 59) !important;
+  --tw-gradient-to: rgb(20 27 45) !important;
 }
 
 /* ── Scrollbar styling ───────────────────────────────────────────────────── */
 /* ── Focus ring offset ────────────────────────────────────────────────────── */
 .dark .focus\:ring-offset-2:focus {
-  --tw-ring-offset-color: rgb(30 41 59) !important;
+  --tw-ring-offset-color: rgb(20 27 45) !important;
 }
 
 /* ── Toast ────────────────────────────────────────────────────────────────── */
@@ -366,14 +366,14 @@ html.dark body {
   width: 6px;
 }
 .dark ::-webkit-scrollbar-track {
-  background: rgb(15 23 42);
+  background: rgb(11 18 32);
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: rgb(51 65 85);
+  background: rgb(28 36 54);
   border-radius: 3px;
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: rgb(71 85 105);
+  background: rgb(42 51 72);
 }
 
 /* Print styles */

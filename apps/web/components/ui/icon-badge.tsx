@@ -14,13 +14,13 @@ interface IconBadgeProps {
 }
 
 const colorClasses: Record<IconColor, string> = {
-  gray: 'bg-slate-100 text-slate-500',
-  blue: 'bg-blue-50 text-blue-500',
-  green: 'bg-sky-50 text-sky-500',
-  red: 'bg-red-50 text-red-500',
-  yellow: 'bg-yellow-50 text-yellow-500',
-  purple: 'bg-purple-50 text-purple-500',
-  orange: 'bg-orange-50 text-orange-500',
+  gray: 'bg-surface-secondary text-text-muted dark:bg-surface-dark-secondary dark:text-text-dark-muted',
+  blue: 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400',
+  green: 'bg-green-50 text-green-600 dark:bg-green-950/40 dark:text-green-400',
+  red: 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400',
+  yellow: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400',
+  purple: 'bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400',
+  orange: 'bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400',
 };
 
 const sizeClasses: Record<IconSize, string> = {

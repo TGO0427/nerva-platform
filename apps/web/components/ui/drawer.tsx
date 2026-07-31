@@ -72,7 +72,7 @@ export function Drawer({ isOpen, onClose, children, title, subtitle, size = 'md'
 
           {/* Drawer content */}
           <motion.div
-            className={`relative w-full ${sizeClasses[size]} h-full bg-white shadow-xl flex flex-col`}
+            className={`relative w-full ${sizeClasses[size]} h-full bg-surface-card dark:bg-surface-dark-card shadow-md flex flex-col`}
             variants={drawerVariants}
             initial="initial"
             animate="animate"
@@ -83,20 +83,20 @@ export function Drawer({ isOpen, onClose, children, title, subtitle, size = 'md'
             aria-labelledby={title ? 'drawer-title' : undefined}
           >
             {/* Header */}
-            <div className="flex items-start justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+            <div className="flex items-start justify-between px-6 py-4 border-b border-surface-border dark:border-surface-dark-border flex-shrink-0">
               <div>
                 {title && (
-                  <h2 id="drawer-title" className="text-lg font-semibold text-gray-900">
+                  <h2 id="drawer-title" className="text-lg font-semibold text-text-primary dark:text-text-dark-primary">
                     {title}
                   </h2>
                 )}
                 {subtitle && (
-                  <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>
+                  <p className="text-sm text-text-muted dark:text-text-dark-muted mt-0.5">{subtitle}</p>
                 )}
               </div>
               <button
                 onClick={onClose}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors ml-auto"
+                className="p-1 text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:hover:text-text-dark-primary rounded-md hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors ml-auto"
               >
                 <CloseIcon />
               </button>
@@ -134,21 +134,21 @@ export function StopsProgress({ completed, total, failed = 0, className }: Stops
 
   return (
     <div className={`flex items-center gap-2 ${className || ''}`}>
-      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden flex min-w-[60px]">
+      <div className="flex-1 h-2 bg-surface-secondary dark:bg-surface-dark-secondary rounded-full overflow-hidden flex min-w-[60px]">
         {completedPct > 0 && (
           <div
-            className="bg-green-500 transition-all"
+            className="bg-success transition-all"
             style={{ width: `${completedPct}%` }}
           />
         )}
         {failedPct > 0 && (
           <div
-            className="bg-red-400 transition-all"
+            className="bg-danger transition-all"
             style={{ width: `${failedPct}%` }}
           />
         )}
       </div>
-      <span className="text-xs font-medium text-slate-600 tabular-nums whitespace-nowrap">
+      <span className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary tabular-nums whitespace-nowrap">
         {completed}/{total}
       </span>
     </div>

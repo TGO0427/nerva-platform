@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useCallback, ReactNode } from 'rea
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { Button } from './button';
+import { modalOverlayVariants, modalContentVariants, transitions } from '@/lib/motion';
 
 interface ConfirmOptions {
   title: string;
@@ -65,20 +66,21 @@ export function ConfirmProvider({ children }: ConfirmProviderProps) {
                 {/* Backdrop */}
                 <motion.div
                   className="absolute inset-0 bg-black/50"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
+                  variants={modalOverlayVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={transitions.fast}
                   onClick={handleCancel}
                 />
 
                 {/* Dialog */}
                 <motion.div
-                  className="relative w-full max-w-md bg-white rounded-2xl shadow-xl"
-                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  transition={{ duration: 0.15 }}
+                  className="relative w-full max-w-md bg-surface-card dark:bg-surface-dark-card rounded-lg shadow-md"
+                  variants={modalContentVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
                   role="alertdialog"
                   aria-modal="true"
                   aria-labelledby="confirm-title"
@@ -87,21 +89,23 @@ export function ConfirmProvider({ children }: ConfirmProviderProps) {
                   <div className="p-6">
                     {/* Icon */}
                     <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${
-                      options.variant === 'danger' ? 'bg-red-100' : 'bg-blue-100'
+                      options.variant === 'danger'
+                        ? 'bg-red-50 dark:bg-red-950/40'
+                        : 'bg-primary-50 dark:bg-primary-900/30'
                     }`}>
                       {options.variant === 'danger' ? (
-                        <WarningIcon className="h-6 w-6 text-red-600" />
+                        <WarningIcon className="h-6 w-6 text-danger dark:text-red-400" />
                       ) : (
-                        <QuestionIcon className="h-6 w-6 text-blue-600" />
+                        <QuestionIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
                       )}
                     </div>
 
                     {/* Content */}
                     <div className="mt-4 text-center">
-                      <h3 id="confirm-title" className="text-lg font-semibold text-slate-900">
+                      <h3 id="confirm-title" className="text-lg font-semibold text-text-primary dark:text-text-dark-primary">
                         {options.title}
                       </h3>
-                      <p id="confirm-message" className="mt-2 text-sm text-slate-500">
+                      <p id="confirm-message" className="mt-2 text-sm text-text-muted dark:text-text-dark-muted">
                         {options.message}
                       </p>
                     </div>

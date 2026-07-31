@@ -24,7 +24,7 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 const typeConfig: Record<ToastVariant, { color: string; title: string; icon: ReactNode }> = {
   success: {
-    color: '#22c55e',
+    color: '#16a34a',
     title: 'Success',
     icon: (
       <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -33,7 +33,7 @@ const typeConfig: Record<ToastVariant, { color: string; title: string; icon: Rea
     ),
   },
   error: {
-    color: '#ef4444',
+    color: '#dc2626',
     title: 'Error',
     icon: (
       <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -42,7 +42,7 @@ const typeConfig: Record<ToastVariant, { color: string; title: string; icon: Rea
     ),
   },
   warning: {
-    color: '#f59e0b',
+    color: '#d97706',
     title: 'Warning',
     icon: (
       <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -51,7 +51,7 @@ const typeConfig: Record<ToastVariant, { color: string; title: string; icon: Rea
     ),
   },
   info: {
-    color: '#3b82f6',
+    color: '#2563eb',
     title: 'Info',
     icon: (
       <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -120,7 +120,7 @@ function ToastItem({ toast, removeToast }: { toast: Toast; removeToast: (id: str
       animate="animate"
       exit="exit"
       role="alert"
-      className="pointer-events-auto relative overflow-hidden rounded-lg bg-white dark:bg-slate-800"
+      className="pointer-events-auto relative overflow-hidden rounded-lg bg-surface-card dark:bg-surface-dark-card"
       style={{
         boxShadow: 'var(--toast-shadow, 0 4px 12px rgba(0,0,0,0.08))',
         minHeight: 48,
@@ -140,10 +140,10 @@ function ToastItem({ toast, removeToast }: { toast: Toast; removeToast: (id: str
 
         {/* Title + message */}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-slate-900" style={{ fontSize: 13, lineHeight: '18px' }}>
+          <p className="font-semibold text-text-primary dark:text-text-dark-primary" style={{ fontSize: 13, lineHeight: '18px' }}>
             {config.title}
           </p>
-          <p className="text-slate-500 mt-0.5" style={{ fontSize: 12, lineHeight: '16px' }}>
+          <p className="text-text-muted dark:text-text-dark-muted mt-0.5" style={{ fontSize: 12, lineHeight: '16px' }}>
             {toast.message}
           </p>
         </div>
@@ -151,7 +151,7 @@ function ToastItem({ toast, removeToast }: { toast: Toast; removeToast: (id: str
         {/* Close button */}
         <button
           onClick={(e) => { e.currentTarget.blur(); removeToast(toast.id); }}
-          className="absolute top-2 right-2 flex-shrink-0 p-0.5 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          className="absolute top-2 right-2 flex-shrink-0 p-0.5 rounded text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:hover:text-text-dark-primary hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />

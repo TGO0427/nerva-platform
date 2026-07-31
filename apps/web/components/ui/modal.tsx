@@ -71,7 +71,7 @@ export function Modal({ isOpen, onClose, children, title, size = 'md' }: ModalPr
 
           {/* Modal content */}
           <motion.div
-            className={`relative w-full ${sizeClasses[size]} bg-white rounded-lg shadow-xl`}
+            className={`relative w-full ${sizeClasses[size]} bg-surface-card dark:bg-surface-dark-card rounded-lg shadow-md`}
             variants={modalContentVariants}
             initial="initial"
             animate="animate"
@@ -82,13 +82,13 @@ export function Modal({ isOpen, onClose, children, title, size = 'md' }: ModalPr
             aria-labelledby={title ? 'modal-title' : undefined}
           >
             {title && (
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                <h2 id="modal-title" className="text-lg font-semibold text-gray-900">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border dark:border-surface-dark-border">
+                <h2 id="modal-title" className="text-lg font-semibold text-text-primary dark:text-text-dark-primary">
                   {title}
                 </h2>
                 <button
                   onClick={onClose}
-                  className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors"
+                  className="p-1 text-text-muted dark:text-text-dark-muted hover:text-text-secondary dark:hover:text-text-dark-primary rounded-md hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors"
                 >
                   <CloseIcon />
                 </button>

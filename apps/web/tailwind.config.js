@@ -7,52 +7,63 @@ module.exports = {
   ],
   theme: {
     extend: {
+      borderRadius: {
+        sm: '0.25rem',   // 4px — inputs, badges, small controls
+        DEFAULT: '0.375rem', // 6px — default
+        md: '0.375rem',  // 6px — buttons, inputs, cards
+        lg: '0.5rem',    // 8px — panels, modals (cap for UI chrome)
+      },
+      boxShadow: {
+        xs: '0 1px 2px 0 rgb(16 24 40 / 0.04)',
+        sm: '0 1px 2px 0 rgb(16 24 40 / 0.06), 0 1px 1px 0 rgb(16 24 40 / 0.04)',
+        md: '0 2px 4px -1px rgb(16 24 40 / 0.06), 0 1px 2px -1px rgb(16 24 40 / 0.04)',
+      },
       colors: {
         surface: {
-          DEFAULT: '#f5f7fb',  // app background
+          DEFAULT: '#f4f5f7',  // app background — cool light grey
           card: '#ffffff',     // surface/card
-          secondary: '#f0f3f9', // secondary surface
-          border: '#e5e9f2',    // border
+          secondary: '#f4f5f7', // secondary surface
+          border: '#e2e4e9',    // border
           dark: {
-            DEFAULT: '#0f172a',  // dark background
-            card: '#1e293b',     // dark surface
-            secondary: '#334155', // dark secondary surface
-            border: '#475569',    // dark border
+            DEFAULT: '#0b1220',  // dark background
+            card: '#141b2d',     // dark surface
+            secondary: '#1c2436', // dark secondary surface
+            border: '#2a3348',    // dark border
           },
         },
         text: {
-          primary: '#0f172a',    // primary text
-          secondary: '#334155',  // secondary text
-          muted: '#64748b',      // muted text
+          primary: '#101828',    // primary text
+          secondary: '#344054',  // secondary text
+          muted: '#667085',      // muted text
           dark: {
-            primary: '#f1f5f9',  // dark text
-            secondary: '#94a3b8', // dark secondary text
-            muted: '#94a3b8',    // dark muted text
+            primary: '#f0f2f5',  // dark text
+            secondary: '#aab2c5', // dark secondary text
+            muted: '#8791a8',    // dark muted text
           },
         },
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#38bdf8',     // brand accent light blue
-          600: '#0ea5e9',     // primary action
-          700: '#0284c7',     // accent hover
-          800: '#0369a1',
-          900: '#075985',
-          950: '#082f49',
-          hover: '#0284c7',      // accent hover
-          tint: '#f0f9ff',       // accent tint
-          sidebar: '#075985',    // sidebar background
-          active: '#7dd3fc',     // sidebar active highlight
-          subtitle: '#bae6fd',   // sidebar subtitle light blue
-          dark: '#38bdf8',       // dark accent
+          50: '#eef3f8',
+          100: '#dbe6f0',
+          200: '#b3c9dd',
+          300: '#8aabc9',
+          400: '#5d84a8',
+          500: '#3d6690',
+          600: '#2c5282',     // primary action / accent
+          700: '#234166',     // accent hover
+          800: '#1e3a5f',     // sidebar hover state
+          900: '#16293f',
+          950: '#101828',     // sidebar background (near-black navy)
+          hover: '#234166',      // accent hover
+          tint: '#eef3f8',       // accent tint
+          sidebar: '#101828',    // sidebar background
+          active: '#5d84a8',     // sidebar active highlight
+          subtitle: '#8aabc9',   // sidebar subtitle text
+          dark: '#5d84a8',       // dark-mode accent
         },
-        success: '#38bdf8',
-        warning: '#f59e0b',
-        danger: '#ef4444',
-        info: '#3b82f6',
+        success: '#16a34a',
+        warning: '#d97706',
+        danger: '#dc2626',
+        info: '#2563eb',
       },
       keyframes: {
         'slide-in': {

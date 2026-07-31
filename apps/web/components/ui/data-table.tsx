@@ -84,7 +84,7 @@ export function DataTable<T extends object>({
 }: DataTableProps<T>) {
   const containerClass = variant === 'embedded'
     ? cn(className)
-    : cn('bg-white rounded-lg border border-slate-200/80 shadow-sm ring-1 ring-black/[0.02] overflow-hidden', className);
+    : cn('bg-surface-card dark:bg-surface-dark-card rounded-lg border border-surface-border dark:border-surface-dark-border shadow-xs overflow-hidden', className);
 
   const getRowId = (row: T): string => String(row[keyField]);
   const isRowSelected = (row: T): boolean => selectedIds?.has(getRowId(row)) ?? false;
@@ -176,8 +176,8 @@ export function DataTable<T extends object>({
   return (
     <div className={containerClass}>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200/80">
-          <thead className="bg-slate-50/80">
+        <table className="min-w-full divide-y divide-surface-border dark:divide-surface-dark-border">
+          <thead className="bg-surface-secondary dark:bg-surface-dark-secondary">
             <tr>
               {selectable && (
                 <th scope="col" className="w-12 px-4 py-3">
@@ -188,7 +188,7 @@ export function DataTable<T extends object>({
                       if (el) el.indeterminate = isSomeSelected && !isAllSelected;
                     }}
                     onChange={() => onSelectAll?.()}
-                    className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    className="h-4 w-4 rounded border-surface-border dark:border-surface-dark-border text-primary-600 focus:ring-primary-500"
                   />
                 </th>
               )}
@@ -205,9 +205,9 @@ export function DataTable<T extends object>({
                       style={{ width: column.width }}
                       className={cn(
                         headerPadding,
-                        'text-xs font-semibold uppercase tracking-wider text-slate-500',
+                        'text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-dark-muted',
                         getAlignClass(align),
-                        column.sortable && 'cursor-pointer select-none hover:bg-slate-100',
+                        column.sortable && 'cursor-pointer select-none hover:bg-surface-border/60 dark:hover:bg-surface-dark-border/60',
                         column.className
                       )}
                       onClick={() => column.sortable && handleSort(column.key)}
@@ -227,15 +227,15 @@ export function DataTable<T extends object>({
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-slate-100">
+          <tbody className="bg-surface-card dark:bg-surface-dark-card divide-y divide-surface-border dark:divide-surface-dark-border">
             {sortedData.map((row) => (
               <tr
                 key={String(row[keyField])}
                 onClick={() => onRowClick?.(row)}
                 className={cn(
-                  'hover:bg-slate-50/80 transition-colors',
+                  'hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors',
                   onRowClick && 'cursor-pointer',
-                  selectable && isRowSelected(row) && 'bg-primary-50'
+                  selectable && isRowSelected(row) && 'bg-primary-50 dark:bg-primary-900/30'
                 )}
               >
                 {selectable && (
@@ -245,7 +245,7 @@ export function DataTable<T extends object>({
                       checked={isRowSelected(row)}
                       onChange={() => onSelectionChange?.(getRowId(row))}
                       onClick={(e) => e.stopPropagation()}
-                      className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                      className="h-4 w-4 rounded border-surface-border dark:border-surface-dark-border text-primary-600 focus:ring-primary-500"
                     />
                   </td>
                 )}
@@ -254,7 +254,7 @@ export function DataTable<T extends object>({
                     key={column.key}
                     className={cn(
                       cellPadding,
-                      'whitespace-nowrap text-sm text-slate-900',
+                      'whitespace-nowrap text-sm text-text-primary dark:text-text-dark-primary',
                       getAlignClass(getColumnAlign(column)),
                       column.className
                     )}
@@ -286,7 +286,7 @@ interface SortIconProps {
 function SortIcon({ active, order }: SortIconProps) {
   return (
     <svg
-      className={cn('h-4 w-4', active ? 'text-slate-700' : 'text-slate-400')}
+      className={cn('h-4 w-4', active ? 'text-text-secondary dark:text-text-dark-secondary' : 'text-text-muted dark:text-text-dark-muted')}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -339,21 +339,21 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
   };
 
   return (
-    <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-slate-200 sm:px-6">
+    <div className="bg-surface-card dark:bg-surface-dark-card px-4 py-3 flex items-center justify-between border-t border-surface-border dark:border-surface-dark-border sm:px-6">
       <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm text-slate-700">
+          <p className="text-sm text-text-secondary dark:text-text-dark-secondary">
             Showing <span className="font-medium">{formatNumber(start)}</span> to{' '}
             <span className="font-medium">{formatNumber(end)}</span> of{' '}
             <span className="font-medium">{formatNumber(total)}</span> results
           </p>
         </div>
         <div>
-          <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+          <nav className="isolate inline-flex -space-x-px rounded-md shadow-xs" aria-label="Pagination">
             <button
               onClick={() => onPageChange?.(page - 1)}
               disabled={page === 1}
-              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-text-muted dark:text-text-dark-muted ring-1 ring-inset ring-surface-border dark:ring-surface-dark-border hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="sr-only">Previous</span>
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -365,7 +365,7 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
               pageNum === 'ellipsis' ? (
                 <span
                   key={`ellipsis-${idx}`}
-                  className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-300"
+                  className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-text-secondary dark:text-text-dark-secondary ring-1 ring-inset ring-surface-border dark:ring-surface-dark-border"
                 >
                   ...
                 </span>
@@ -374,10 +374,10 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
                   key={pageNum}
                   onClick={() => onPageChange?.(pageNum)}
                   className={cn(
-                    'relative inline-flex items-center px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-slate-300 focus:z-20',
+                    'relative inline-flex items-center px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-surface-border dark:ring-surface-dark-border focus:z-20',
                     page === pageNum
                       ? 'z-10 bg-primary-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600'
-                      : 'text-slate-900 hover:bg-slate-50'
+                      : 'text-text-primary dark:text-text-dark-primary hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary'
                   )}
                 >
                   {pageNum}
@@ -388,7 +388,7 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
             <button
               onClick={() => onPageChange?.(page + 1)}
               disabled={page === totalPages}
-              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-text-muted dark:text-text-dark-muted ring-1 ring-inset ring-surface-border dark:ring-surface-dark-border hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="sr-only">Next</span>
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -404,17 +404,17 @@ function Pagination({ meta, onPageChange }: PaginationProps) {
         <button
           onClick={() => onPageChange?.(page - 1)}
           disabled={page === 1}
-          className="relative inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="relative inline-flex items-center rounded-md border border-surface-border dark:border-surface-dark-border bg-surface-card dark:bg-surface-dark-card px-4 py-2 text-sm font-medium text-text-secondary dark:text-text-dark-secondary hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary disabled:opacity-50"
         >
           Previous
         </button>
-        <span className="text-sm text-slate-700 self-center">
+        <span className="text-sm text-text-secondary dark:text-text-dark-secondary self-center">
           Page {formatNumber(page)} of {formatNumber(totalPages)}
         </span>
         <button
           onClick={() => onPageChange?.(page + 1)}
           disabled={page === totalPages}
-          className="relative ml-3 inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="relative ml-3 inline-flex items-center rounded-md border border-surface-border dark:border-surface-dark-border bg-surface-card dark:bg-surface-dark-card px-4 py-2 text-sm font-medium text-text-secondary dark:text-text-dark-secondary hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary disabled:opacity-50"
         >
           Next
         </button>

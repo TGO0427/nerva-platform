@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
+import { Menu, ChevronDown, Check, Bell, BellOff, Building2, CheckCircle2, AlertTriangle, XCircle, Info } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { useNotifications, useUnreadNotificationCount, useMarkNotificationAsRead, useMarkAllNotificationsAsRead } from '@/lib/queries';
@@ -104,9 +105,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           onClick={onMenuClick}
         >
           <span className="sr-only">Open menu</span>
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+          <Menu className="h-6 w-6" strokeWidth={2} />
         </button>
       </div>
 
@@ -130,12 +129,10 @@ export function Header({ onMenuClick }: HeaderProps) {
                   {currentSite?.name || 'Select site'}
                 </p>
               </div>
-              <svg
+              <ChevronDown
                 className={cn('h-3.5 w-3.5 text-text-muted dark:text-text-dark-muted transition-transform', isSiteMenuOpen && 'rotate-180')}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+                strokeWidth={2}
+              />
             </button>
 
             {isSiteMenuOpen && (
@@ -158,9 +155,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                       {site.code && <p className="text-xs text-text-muted dark:text-text-dark-muted">{site.code}</p>}
                     </div>
                     {site.id === currentSiteId && (
-                      <svg className="h-4 w-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
+                      <Check className="h-4 w-4 text-primary-600" strokeWidth={2} />
                     )}
                   </button>
                 ))}
@@ -269,9 +264,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                   {user?.email}
                 </p>
               </div>
-              <svg className="h-4 w-4 text-text-muted dark:text-text-dark-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <ChevronDown className="h-4 w-4 text-text-muted dark:text-text-dark-muted" strokeWidth={2} />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -309,60 +302,32 @@ function formatTimeAgo(dateString: string): string {
 }
 
 function BellIcon() {
-  return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-    </svg>
-  );
+  return <Bell className="h-6 w-6" strokeWidth={1.5} />;
 }
 
 function BellOffIcon() {
-  return (
-    <svg className="h-12 w-12 mx-auto text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.143 17.082a24.248 24.248 0 003.714.318 23.997 23.997 0 003.143-.318m-6.857 0a23.998 23.998 0 01-3.643-.987c.166-.23.323-.469.47-.716A8.986 8.986 0 004 9.75V9A6 6 0 0116 9v.75c0 1.89.577 3.64 1.562 5.086m-10.419 2.246a3 3 0 005.714 0M3 3l18 18" />
-    </svg>
-  );
+  return <BellOff className="h-12 w-12 mx-auto text-text-muted dark:text-text-dark-muted" strokeWidth={1} />;
 }
 
 function SiteIcon() {
-  return (
-    <svg className="h-4 w-4 text-text-muted dark:text-text-dark-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
-    </svg>
-  );
+  return <Building2 className="h-4 w-4 text-text-muted dark:text-text-dark-muted" strokeWidth={1.5} />;
 }
 
+const notificationIcons: Record<string, { icon: typeof CheckCircle2; color: string }> = {
+  SUCCESS: { icon: CheckCircle2, color: 'text-success' },
+  WARNING: { icon: AlertTriangle, color: 'text-warning' },
+  ERROR: { icon: XCircle, color: 'text-danger' },
+  INFO: { icon: Info, color: 'text-info' },
+};
+
 function NotificationIcon({ type }: { type: string }) {
-  const colors = {
-    INFO: 'text-blue-500',
-    WARNING: 'text-yellow-500',
-    ERROR: 'text-red-500',
-    SUCCESS: 'text-green-500',
-  };
-  const color = colors[type as keyof typeof colors] || 'text-text-muted dark:text-text-dark-muted';
+  const config = notificationIcons[type];
+  const Icon = config?.icon;
+  const color = config?.color || 'text-text-muted dark:text-text-dark-muted';
 
   return (
-    <div className={`h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center ${color}`}>
-      {type === 'SUCCESS' && (
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-      )}
-      {type === 'WARNING' && (
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      )}
-      {type === 'ERROR' && (
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      )}
-      {type === 'INFO' && (
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )}
+    <div className={`h-8 w-8 rounded-full bg-surface-secondary dark:bg-surface-dark-secondary flex items-center justify-center ${color}`}>
+      {Icon && <Icon className="h-4 w-4" strokeWidth={2} />}
     </div>
   );
 }
