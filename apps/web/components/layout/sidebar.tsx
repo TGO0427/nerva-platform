@@ -11,7 +11,7 @@ import {
   Wrench, Factory, Users, Building2, Star, Search, ChevronDown, ChevronLeft,
   ChevronRight, HelpCircle, Settings, Bell, Server, LogOut, Moon, Sun,
   LayoutDashboard, HardHat, CalendarClock, Boxes, CheckCircle2, BarChart3,
-  PackageCheck, PackageOpen, BookOpen,
+  PackageCheck, PackageOpen, BookOpen, Gauge,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, hasAnyPermission, hasPermission } from '@/lib/auth';
@@ -103,6 +103,7 @@ const navigation: NavGroup[] = [
       { name: 'Adjustments', href: '/inventory/adjustments', icon: <AdjustIcon />, permissions: [PERMISSIONS.INVENTORY_ADJUST] },
       { name: 'Cycle Counts', href: '/inventory/cycle-counts', icon: <CycleCountIcon />, permissions: [PERMISSIONS.CYCLE_COUNT_MANAGE] },
       { name: 'Expiry Alerts', href: '/inventory/expiry-alerts', icon: <ClockIcon />, permissions: [PERMISSIONS.INVENTORY_READ] },
+      { name: 'Capacity Planning', href: '/inventory/capacity', icon: <CapacityIcon />, permissions: [PERMISSIONS.WAREHOUSE_MANAGE] },
     ],
   },
   {
@@ -905,6 +906,10 @@ function BoxIcon() {
 
 function ClockIcon() {
   return <Clock className="h-full w-full" strokeWidth={1.5} />;
+}
+
+function CapacityIcon() {
+  return <Gauge className="h-full w-full" strokeWidth={1.5} />;
 }
 
 function ClipboardIcon() {

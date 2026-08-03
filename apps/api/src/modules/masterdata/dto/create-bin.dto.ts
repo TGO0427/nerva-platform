@@ -3,6 +3,8 @@ import {
   IsNotEmpty,
   IsOptional,
   IsIn,
+  IsInt,
+  Min,
   MaxLength,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
@@ -33,4 +35,14 @@ export class CreateBinDto {
   @IsString()
   @IsIn(BIN_TYPES)
   binType?: string;
+
+  @ApiPropertyOptional({
+    description: "Pallet-position capacity of this bin",
+    default: 1,
+    example: 1,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  capacityPallets?: number;
 }

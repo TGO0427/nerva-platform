@@ -45,6 +45,13 @@ export class WarehousesController {
     );
   }
 
+  @Get("capacity")
+  @RequirePermissions("warehouse.manage")
+  @ApiOperation({ summary: "Get pallet-position capacity utilization for every warehouse" })
+  async getCapacitySummary(@TenantId() tenantId: string) {
+    return this.service.getWarehouseCapacitySummary(tenantId);
+  }
+
   @Get(":id")
   @RequirePermissions("warehouse.manage")
   @ApiOperation({ summary: "Get warehouse by ID" })
@@ -53,6 +60,16 @@ export class WarehousesController {
     @Param("id", UuidValidationPipe) id: string,
   ) {
     return this.service.getWarehouse(tenantId, id);
+  }
+
+  @Get(":id/capacity/zones")
+  @RequirePermissions("warehouse.manage")
+  @ApiOperation({ summary: "Get pallet-position capacity utilization by zone (bin type) for a warehouse" })
+  async getZoneCapacity(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) warehouseId: string,
+  ) {
+    return this.service.getZoneCapacity(tenantId, warehouseId);
   }
 
   @Post()
@@ -107,6 +124,7 @@ export class WarehousesController {
       warehouseId,
       code: data.code,
       binType: data.binType,
+      capacityPallets: data.capacityPallets,
     });
   }
 

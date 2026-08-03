@@ -362,6 +362,7 @@ CREATE TABLE IF NOT EXISTS bins (
   aisle text,
   rack text,
   level text,
+  capacity_pallets integer NOT NULL DEFAULT 1,
   is_active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),

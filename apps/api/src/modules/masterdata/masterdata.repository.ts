@@ -291,9 +291,27 @@ export interface Bin {
   aisle: string | null;
   rack: string | null;
   level: string | null;
+  capacityPallets: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface WarehouseCapacity {
+  warehouseId: string;
+  warehouseName: string;
+  capacityPallets: number;
+  occupiedPallets: number;
+  availablePallets: number;
+  utilizationPct: number;
+}
+
+export interface ZoneCapacity {
+  binType: string;
+  capacityPallets: number;
+  occupiedPallets: number;
+  availablePallets: number;
+  utilizationPct: number;
 }
 
 @Injectable()
@@ -1487,10 +1505,11 @@ export class MasterDataRepository extends BaseRepository {
     aisle?: string;
     rack?: string;
     level?: string;
+    capacityPallets?: number;
   }): Promise<Bin> {
     const row = await this.queryOne<Record<string, unknown>>(
-      `INSERT INTO bins (tenant_id, warehouse_id, code, bin_type, aisle, rack, level)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO bins (tenant_id, warehouse_id, code, bin_type, aisle, rack, level, capacity_pallets)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
         data.tenantId,
@@ -1500,6 +1519,7 @@ export class MasterDataRepository extends BaseRepository {
         data.aisle || null,
         data.rack || null,
         data.level || null,
+        data.capacityPallets ?? 1,
       ],
     );
     return this.mapBin(row!);
@@ -1508,7 +1528,7 @@ export class MasterDataRepository extends BaseRepository {
   async updateBin(
     tenantId: string,
     id: string,
-    data: { code?: string; binType?: string; isActive?: boolean },
+    data: { code?: string; binType?: string; capacityPallets?: number; isActive?: boolean },
   ): Promise<Bin> {
     const setClauses: string[] = [];
     const params: unknown[] = [];
@@ -1521,6 +1541,10 @@ export class MasterDataRepository extends BaseRepository {
     if (data.binType !== undefined) {
       setClauses.push(`bin_type = $${paramIndex++}`);
       params.push(data.binType);
+    }
+    if (data.capacityPallets !== undefined) {
+      setClauses.push(`capacity_pallets = $${paramIndex++}`);
+      params.push(data.capacityPallets);
     }
     if (data.isActive !== undefined) {
       setClauses.push(`is_active = $${paramIndex++}`);
@@ -1537,6 +1561,72 @@ export class MasterDataRepository extends BaseRepository {
       params,
     );
     return this.mapBin(row!);
+  }
+
+  async getWarehouseCapacitySummary(tenantId: string): Promise<WarehouseCapacity[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT
+        w.id as warehouse_id,
+        w.name as warehouse_name,
+        COALESCE(SUM(b.capacity_pallets), 0) as capacity_pallets,
+        COALESCE(SUM(b.capacity_pallets) FILTER (WHERE occ.bin_id IS NOT NULL), 0) as occupied_pallets
+       FROM warehouses w
+       LEFT JOIN bins b ON b.warehouse_id = w.id AND b.is_active = true
+       LEFT JOIN LATERAL (
+         SELECT 1 as bin_id FROM stock_snapshot ss WHERE ss.bin_id = b.id AND ss.qty_on_hand > 0 LIMIT 1
+       ) occ ON true
+       WHERE w.tenant_id = $1 AND w.is_active = true
+       GROUP BY w.id, w.name
+       ORDER BY w.name`,
+      [tenantId],
+    );
+    return rows.map((row) => this.mapCapacityRow(row, "warehouse")) as WarehouseCapacity[];
+  }
+
+  async getZoneCapacity(tenantId: string, warehouseId: string): Promise<ZoneCapacity[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT
+        b.bin_type,
+        COALESCE(SUM(b.capacity_pallets), 0) as capacity_pallets,
+        COALESCE(SUM(b.capacity_pallets) FILTER (WHERE occ.bin_id IS NOT NULL), 0) as occupied_pallets
+       FROM bins b
+       LEFT JOIN LATERAL (
+         SELECT 1 as bin_id FROM stock_snapshot ss WHERE ss.bin_id = b.id AND ss.qty_on_hand > 0 LIMIT 1
+       ) occ ON true
+       WHERE b.tenant_id = $1 AND b.warehouse_id = $2 AND b.is_active = true
+       GROUP BY b.bin_type
+       ORDER BY b.bin_type`,
+      [tenantId, warehouseId],
+    );
+    return rows.map((row) => this.mapCapacityRow(row, "zone")) as ZoneCapacity[];
+  }
+
+  private mapCapacityRow(
+    row: Record<string, unknown>,
+    kind: "warehouse" | "zone",
+  ): WarehouseCapacity | ZoneCapacity {
+    const capacityPallets = Number(row.capacity_pallets) || 0;
+    const occupiedPallets = Number(row.occupied_pallets) || 0;
+    const availablePallets = capacityPallets - occupiedPallets;
+    const utilizationPct = capacityPallets > 0 ? (occupiedPallets / capacityPallets) * 100 : 0;
+
+    if (kind === "warehouse") {
+      return {
+        warehouseId: row.warehouse_id as string,
+        warehouseName: row.warehouse_name as string,
+        capacityPallets,
+        occupiedPallets,
+        availablePallets,
+        utilizationPct,
+      };
+    }
+    return {
+      binType: row.bin_type as string,
+      capacityPallets,
+      occupiedPallets,
+      availablePallets,
+      utilizationPct,
+    };
   }
 
   private mapItem(row: Record<string, unknown>): Item {
@@ -1630,6 +1720,7 @@ export class MasterDataRepository extends BaseRepository {
       aisle: row.aisle as string | null,
       rack: row.rack as string | null,
       level: row.level as string | null,
+      capacityPallets: Number(row.capacity_pallets),
       isActive: row.is_active as boolean,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,

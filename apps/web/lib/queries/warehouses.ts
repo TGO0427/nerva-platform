@@ -1,8 +1,29 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { Warehouse, Bin } from '@nerva/shared';
+import type { Warehouse, Bin, WarehouseCapacity, ZoneCapacity } from '@nerva/shared';
 
 const WAREHOUSES_KEY = 'warehouses';
+
+export function useWarehouseCapacity() {
+  return useQuery({
+    queryKey: [WAREHOUSES_KEY, 'capacity'],
+    queryFn: async () => {
+      const response = await api.get<WarehouseCapacity[]>('/masterdata/warehouses/capacity');
+      return response.data;
+    },
+  });
+}
+
+export function useZoneCapacity(warehouseId: string | undefined) {
+  return useQuery({
+    queryKey: [WAREHOUSES_KEY, warehouseId, 'capacity', 'zones'],
+    queryFn: async () => {
+      const response = await api.get<ZoneCapacity[]>(`/masterdata/warehouses/${warehouseId}/capacity/zones`);
+      return response.data;
+    },
+    enabled: !!warehouseId,
+  });
+}
 
 export function useWarehouses() {
   return useQuery({
@@ -104,6 +125,7 @@ export function useDeleteWarehouse() {
 interface CreateBinData {
   code: string;
   binType?: string;
+  capacityPallets?: number;
 }
 
 export function useCreateBin(warehouseId: string) {
@@ -123,6 +145,7 @@ export function useCreateBin(warehouseId: string) {
 interface UpdateBinData {
   code?: string;
   binType?: string;
+  capacityPallets?: number;
   isActive?: boolean;
 }
 

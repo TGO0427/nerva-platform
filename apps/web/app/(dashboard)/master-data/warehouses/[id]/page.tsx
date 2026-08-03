@@ -47,6 +47,7 @@ export default function WarehouseDetailPage() {
   const [showBinForm, setShowBinForm] = useState(false);
   const [newBinCode, setNewBinCode] = useState('');
   const [newBinType, setNewBinType] = useState<string>('STORAGE');
+  const [newBinCapacity, setNewBinCapacity] = useState('1');
 
   const siteName = sites?.find(s => s.id === warehouse?.siteId)?.name || 'Unknown';
 
@@ -97,11 +98,13 @@ export default function WarehouseDetailPage() {
       await createBin.mutateAsync({
         code: newBinCode,
         binType: newBinType,
+        capacityPallets: newBinCapacity ? parseInt(newBinCapacity, 10) : undefined,
       });
       addToast('Bin created', 'success');
       setShowBinForm(false);
       setNewBinCode('');
       setNewBinType('STORAGE');
+      setNewBinCapacity('1');
     } catch (error) {
       addToast('Failed to create bin', 'error');
     }
@@ -294,7 +297,7 @@ export default function WarehouseDetailPage() {
           {/* Add Bin Form */}
           {showBinForm && (
             <form onSubmit={handleCreateBin} className="mb-6 p-4 bg-slate-50 rounded-lg">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Bin Code *</label>
                   <Input
@@ -316,6 +319,16 @@ export default function WarehouseDetailPage() {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Capacity (pallets)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={newBinCapacity}
+                    onChange={(e) => setNewBinCapacity(e.target.value)}
+                    placeholder="1"
+                  />
+                </div>
                 <div className="flex items-end gap-2">
                   <Button type="submit" isLoading={createBin.isPending}>
                     Add Bin
@@ -327,6 +340,7 @@ export default function WarehouseDetailPage() {
                       setShowBinForm(false);
                       setNewBinCode('');
                       setNewBinType('STORAGE');
+                      setNewBinCapacity('1');
                     }}
                   >
                     Cancel
@@ -355,6 +369,9 @@ export default function WarehouseDetailPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                       Location
                     </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">
+                      Capacity
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                       Status
                     </th>
@@ -376,6 +393,9 @@ export default function WarehouseDetailPage() {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
                         {[bin.aisle, bin.rack, bin.level].filter(Boolean).join(' / ') || '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500 text-right">
+                        {bin.capacityPallets}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <Badge variant={bin.isActive ? 'success' : 'danger'}>

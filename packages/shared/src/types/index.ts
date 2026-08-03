@@ -293,9 +293,27 @@ export interface Bin {
   aisle: string | null;
   rack: string | null;
   level: string | null;
+  capacityPallets: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface WarehouseCapacity {
+  warehouseId: string;
+  warehouseName: string;
+  capacityPallets: number;
+  occupiedPallets: number;
+  availablePallets: number;
+  utilizationPct: number;
+}
+
+export interface ZoneCapacity {
+  binType: string;
+  capacityPallets: number;
+  occupiedPallets: number;
+  availablePallets: number;
+  utilizationPct: number;
 }
 
 // Adjustments
