@@ -94,8 +94,8 @@ export default function EditSalesOrderPage() {
       setPriority(order.priority);
       setNotes(order.notes || '');
       setSelectedCustomer(
-        order.customer
-          ? { id: order.customer.id, name: order.customer.name, code: order.customer.code }
+        order.customerName
+          ? { id: order.customerId, name: order.customerName, code: order.customerCode ?? null }
           : null
       );
       setLines(

@@ -8,6 +8,9 @@ export interface SalesOrder {
   warehouseId: string;
   customerId: string;
   customerName: string | null;
+  customerCode: string | null;
+  warehouseName: string | null;
+  warehouseCode: string | null;
   orderNo: string;
   externalRef: string | null;
   status: string;
@@ -78,9 +81,11 @@ export class SalesRepository extends BaseRepository {
 
   async findOrderById(id: string): Promise<SalesOrder | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      `SELECT so.*, c.name as customer_name
+      `SELECT so.*, c.name as customer_name, c.code as customer_code,
+              w.name as warehouse_name, w.code as warehouse_code
        FROM sales_orders so
        LEFT JOIN customers c ON c.id = so.customer_id AND c.tenant_id = so.tenant_id
+       LEFT JOIN warehouses w ON w.id = so.warehouse_id AND w.tenant_id = so.tenant_id
        WHERE so.id = $1`,
       [id],
     );
@@ -484,6 +489,9 @@ export class SalesRepository extends BaseRepository {
       warehouseId: row.warehouse_id as string,
       customerId: row.customer_id as string,
       customerName: (row.customer_name as string) || null,
+      customerCode: (row.customer_code as string) || null,
+      warehouseName: (row.warehouse_name as string) || null,
+      warehouseCode: (row.warehouse_code as string) || null,
       orderNo: row.order_no as string,
       externalRef: row.external_ref as string | null,
       status: row.status as string,

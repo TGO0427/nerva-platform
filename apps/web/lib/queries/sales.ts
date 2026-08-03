@@ -15,16 +15,10 @@ export interface SalesOrderDetail extends SalesOrder {
   siteId: string;
   warehouseId: string;
   notes: string | null;
-  customer?: {
-    id: string;
-    code: string | null;
-    name: string;
-  };
-  warehouse?: {
-    id: string;
-    code: string | null;
-    name: string;
-  };
+  customerName?: string | null;
+  customerCode?: string | null;
+  warehouseName?: string | null;
+  warehouseCode?: string | null;
   lines: SalesOrderLineWithItem[];
 }
 

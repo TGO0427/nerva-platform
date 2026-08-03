@@ -341,13 +341,13 @@ export default function SalesOrderDetailPage() {
   const hasShipments = shipments && shipments.length > 0;
   const relatedRecords = [
     {
-      label: order.customer?.name || 'Customer',
-      description: order.customer?.code ? `Customer ${order.customer.code}` : order.customerId,
+      label: order.customerName || 'Customer',
+      description: order.customerCode ? `Customer ${order.customerCode}` : order.customerId,
       href: `/master-data/customers/${order.customerId}`,
       badge: 'Customer',
     },
     {
-      label: order.warehouse?.name || 'Warehouse',
+      label: order.warehouseName || 'Warehouse',
       description: order.warehouseId,
       href: `/master-data/warehouses/${order.warehouseId}`,
       badge: 'Warehouse',
@@ -514,15 +514,15 @@ export default function SalesOrderDetailPage() {
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <dt className="text-text-muted dark:text-text-dark-muted">Customer</dt>
-                <dd className="font-medium">{order.customer?.name || order.customerId}</dd>
+                <dd className="font-medium">{order.customerName || order.customerId}</dd>
               </div>
               <div>
                 <dt className="text-text-muted dark:text-text-dark-muted">Customer Code</dt>
-                <dd className="font-medium">{order.customer?.code || '-'}</dd>
+                <dd className="font-medium">{order.customerCode || '-'}</dd>
               </div>
               <div>
                 <dt className="text-text-muted dark:text-text-dark-muted">Warehouse</dt>
-                <dd className="font-medium">{order.warehouse?.name || 'Main Warehouse'}</dd>
+                <dd className="font-medium">{order.warehouseName || '-'}</dd>
               </div>
               <div>
                 <dt className="text-text-muted dark:text-text-dark-muted">Requested Ship Date</dt>
