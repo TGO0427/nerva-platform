@@ -47,12 +47,13 @@ export class ImportShipmentsController {
     @Query("search") search?: string,
     @Query("weekFrom") weekFrom?: number,
     @Query("weekTo") weekTo?: number,
+    @Query("warehouseId") warehouseId?: string,
     @Query("page") page?: number,
     @Query("limit") limit?: number,
   ) {
     return this.service.list(
       tenantId,
-      { status, search, weekFrom, weekTo },
+      { status, search, weekFrom, weekTo, warehouseId },
       page,
       limit,
     );

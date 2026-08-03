@@ -98,6 +98,7 @@ export interface ImportShipmentFilters {
   search?: string;
   weekFrom?: number;
   weekTo?: number;
+  warehouseId?: string;
 }
 
 const DEFAULT_STATUS_BY_MODE: Record<string, string> = {
@@ -219,6 +220,7 @@ export class ImportShipmentsRepository extends BaseRepository {
        FROM import_shipment_lines l
        JOIN import_shipments s ON s.id = l.import_shipment_id
        LEFT JOIN suppliers sup ON sup.id = s.supplier_id AND sup.tenant_id = s.tenant_id
+       LEFT JOIN purchase_orders po ON po.id = s.purchase_order_id
        ${sql}
        ORDER BY l.week_start_date ASC NULLS LAST, s.created_at DESC, l.line_no ASC
        LIMIT $${idx++} OFFSET $${idx}`;
@@ -238,6 +240,7 @@ export class ImportShipmentsRepository extends BaseRepository {
        FROM import_shipment_lines l
        JOIN import_shipments s ON s.id = l.import_shipment_id
        LEFT JOIN suppliers sup ON sup.id = s.supplier_id AND sup.tenant_id = s.tenant_id
+       LEFT JOIN purchase_orders po ON po.id = s.purchase_order_id
        ${sql}`,
       params,
     );
@@ -268,6 +271,10 @@ export class ImportShipmentsRepository extends BaseRepository {
     if (filters.weekTo != null && !Number.isNaN(filters.weekTo)) {
       sql += ` AND l.week_start_date IS NOT NULL AND EXTRACT(WEEK FROM l.week_start_date) <= $${idx++}`;
       params.push(filters.weekTo);
+    }
+    if (filters.warehouseId) {
+      sql += ` AND po.ship_to_warehouse_id = $${idx++}`;
+      params.push(filters.warehouseId);
     }
 
     return { sql, params };

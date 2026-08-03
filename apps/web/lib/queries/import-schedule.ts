@@ -25,6 +25,7 @@ export function useInboundForecast() {
 interface ImportShipmentFilters {
   status?: ImportShipmentStatus;
   search?: string;
+  warehouseId?: string;
 }
 
 export function useImportShipments(params: QueryParams & ImportShipmentFilters) {
@@ -36,6 +37,7 @@ export function useImportShipments(params: QueryParams & ImportShipmentFilters) 
       searchParams.set('limit', String(params.limit));
       if (params.status) searchParams.set('status', params.status);
       if (params.search) searchParams.set('search', params.search);
+      if (params.warehouseId) searchParams.set('warehouseId', params.warehouseId);
 
       const response = await api.get<PaginatedResult<ImportShipmentLineRow>>(
         `/import-shipments?${searchParams.toString()}`

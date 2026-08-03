@@ -54,7 +54,7 @@ export class ImportShipmentsService {
 
   async list(
     tenantId: string,
-    filters: { status?: string; search?: string; weekFrom?: number; weekTo?: number },
+    filters: { status?: string; search?: string; weekFrom?: number; weekTo?: number; warehouseId?: string },
     rawPage?: number,
     rawLimit?: number,
   ) {

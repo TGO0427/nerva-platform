@@ -89,6 +89,14 @@ export default function IbtListPage() {
     setPage(1);
   }, [searchParams, setPage]);
 
+  useEffect(() => {
+    const fromWarehouseParam = searchParams.get('fromWarehouseId');
+    if (fromWarehouseParam) {
+      setFromWarehouseId(fromWarehouseParam);
+      setShowCreate(true);
+    }
+  }, [searchParams]);
+
   const {
     selectedIds,
     selectedCount,

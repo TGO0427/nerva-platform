@@ -281,6 +281,7 @@ export default function WarehouseDetailPage() {
       </div>
 
       {/* Bins Section */}
+      <div id="bins">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -430,6 +431,7 @@ export default function WarehouseDetailPage() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

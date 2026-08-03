@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Breadcrumbs } from '@/components/layout';
 import { StatCard } from '@/components/ui/stat-card';
 import { Badge } from '@/components/ui/badge';
@@ -117,6 +118,36 @@ export default function WarehouseCapacityPage() {
         <Badge variant={getUtilizationVariant(row.utilizationPct)}>
           {row.utilizationPct > 90 ? 'Over 90%' : row.utilizationPct >= 75 ? 'Near capacity' : 'OK'}
         </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '260px',
+      render: (row) => (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
+          <Link
+            href={`/master-data/warehouses/${row.warehouseId}#bins`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-primary-600 hover:underline whitespace-nowrap"
+          >
+            View Bins
+          </Link>
+          <Link
+            href={`/import-schedule?warehouseId=${row.warehouseId}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-primary-600 hover:underline whitespace-nowrap"
+          >
+            Inbound Shipments
+          </Link>
+          <Link
+            href={`/inventory/ibts?fromWarehouseId=${row.warehouseId}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-primary-600 hover:underline whitespace-nowrap"
+          >
+            Create Transfer
+          </Link>
+        </div>
       ),
     },
   ];

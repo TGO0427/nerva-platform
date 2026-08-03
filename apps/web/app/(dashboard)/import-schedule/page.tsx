@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -42,8 +43,10 @@ interface RowEdits {
 }
 
 export default function ImportSchedulePage() {
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState<ImportShipmentStatus | ''>('');
   const [search, setSearch] = useState('');
+  const [warehouseId, setWarehouseId] = useState(() => searchParams.get('warehouseId') || '');
   const { params, setPage } = useQueryParams();
   const { addToast } = useToast();
   const { propagate } = useSiblingPropagation();
@@ -55,6 +58,7 @@ export default function ImportSchedulePage() {
     ...params,
     status: status || undefined,
     search: search || undefined,
+    warehouseId: warehouseId || undefined,
   });
 
   const rows = data?.data || [];
@@ -306,11 +310,12 @@ export default function ImportSchedulePage() {
     },
   ];
 
-  const hasActiveFilters = Boolean(search || status);
+  const hasActiveFilters = Boolean(search || status || warehouseId);
 
   const clearAllFilters = () => {
     setSearch('');
     setStatus('');
+    setWarehouseId('');
     setPage(1);
   };
 
@@ -340,6 +345,19 @@ export default function ImportSchedulePage() {
             options={STATUS_OPTIONS}
             className="max-w-xs"
           />
+          {warehouseId && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-tint text-primary-700 text-sm px-3 py-1">
+              Filtered to warehouse
+              <button
+                type="button"
+                onClick={() => { setWarehouseId(''); setPage(1); }}
+                className="hover:text-primary-900"
+                aria-label="Clear warehouse filter"
+              >
+                &times;
+              </button>
+            </span>
+          )}
         </div>
       }
     >
