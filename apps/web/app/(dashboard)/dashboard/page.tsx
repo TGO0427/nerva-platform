@@ -18,26 +18,10 @@ import {
 import { PERMISSIONS } from '@nerva/shared';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell,
 } from 'recharts';
-import type { PieLabelRenderProps } from 'recharts';
 import { useChartTheme, tooltipStyle } from '@/lib/hooks/use-chart-theme';
 import { useOnboarding } from '@/lib/hooks/use-onboarding';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format';
-
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: '#94a3b8',
-  PENDING: '#f59e0b',
-  CONFIRMED: '#3b82f6',
-  ALLOCATED: '#8b5cf6',
-  PICKING: '#6366f1',
-  PACKED: '#06b6d4',
-  SHIPPED: '#10b981',
-  DELIVERED: '#22c55e',
-  INVOICED: '#14b8a6',
-};
-
-const PIE_FALLBACK_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#ec4899', '#f97316'];
 
 function getTimeAgo(dateString: string): string {
   const date = new Date(dateString);
@@ -307,31 +291,17 @@ export default function DashboardPage() {
           )}
         </ChartCard>
 
-        {/* Status Distribution Pie Chart */}
+        {/* Status Distribution Line Chart */}
         <ChartCard title="Order Status" subtitle="Distribution">
           {statusDist && statusDist.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie
-                  data={statusDist}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={95}
-                  paddingAngle={3}
-                  dataKey="count"
-                  nameKey="status"
-                  label={(props: PieLabelRenderProps) => `${props.name ?? ''} (${props.value ?? 0})`}
-                >
-                  {statusDist.map((entry, index) => (
-                    <Cell
-                      key={entry.status}
-                      fill={STATUS_COLORS[entry.status] || PIE_FALLBACK_COLORS[index % PIE_FALLBACK_COLORS.length]}
-                    />
-                  ))}
-                </Pie>
+              <LineChart data={statusDist} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                <XAxis dataKey="status" tick={{ fontSize: 11, fill: ct.tick }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: ct.tick }} />
                 <Tooltip contentStyle={tooltipStyle(ct)} />
-              </PieChart>
+                <Line type="monotone" dataKey="count" stroke="#2c5282" strokeWidth={2} dot={{ r: 4 }} name="Orders" />
+              </LineChart>
             </ResponsiveContainer>
           ) : (
             <ChartEmpty label="No orders yet" />
