@@ -27,7 +27,7 @@ export class CycleCountPdfService {
     cycleCountId: string,
     tenantId: string,
   ): Promise<Buffer> {
-    const cc = await this.repository.findById(cycleCountId);
+    const cc = await this.repository.findById(tenantId, cycleCountId);
     if (!cc) throw new NotFoundException("Cycle count not found");
 
     const lines = await this.repository.getLines(cycleCountId);
@@ -112,7 +112,7 @@ export class CycleCountPdfService {
     cycleCountId: string,
     tenantId: string,
   ): Promise<Buffer> {
-    const cc = await this.repository.findById(cycleCountId);
+    const cc = await this.repository.findById(tenantId, cycleCountId);
     if (!cc) throw new NotFoundException("Cycle count not found");
 
     const lines = await this.repository.getLines(cycleCountId);

@@ -1695,25 +1695,25 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   // Supplier Items
-  async findSupplierItems(supplierId: string): Promise<SupplierItem[]> {
+  async findSupplierItems(tenantId: string, supplierId: string): Promise<SupplierItem[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT si.*, i.sku as item_sku, i.description as item_description
        FROM supplier_items si
        JOIN items i ON si.item_id = i.id
-       WHERE si.supplier_id = $1 AND si.is_active = true
+       WHERE si.supplier_id = $1 AND si.tenant_id = $2 AND si.is_active = true
        ORDER BY i.sku`,
-      [supplierId],
+      [supplierId, tenantId],
     );
     return rows.map(this.mapSupplierItem);
   }
 
-  async findSupplierItemById(id: string): Promise<SupplierItem | null> {
+  async findSupplierItemById(tenantId: string, id: string): Promise<SupplierItem | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT si.*, i.sku as item_sku, i.description as item_description
        FROM supplier_items si
        JOIN items i ON si.item_id = i.id
-       WHERE si.id = $1`,
-      [id],
+       WHERE si.id = $1 AND si.tenant_id = $2`,
+      [id, tenantId],
     );
     return row ? this.mapSupplierItem(row) : null;
   }
@@ -1747,6 +1747,7 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   async updateSupplierItem(
+    tenantId: string,
     id: string,
     data: Partial<{
       supplierSku: string;
@@ -1786,37 +1787,37 @@ export class MasterDataRepository extends BaseRepository {
       values.push(data.isActive);
     }
 
-    if (fields.length === 0) return this.findSupplierItemById(id);
+    if (fields.length === 0) return this.findSupplierItemById(tenantId, id);
 
-    values.push(id);
+    values.push(id, tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE supplier_items SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,
+      `UPDATE supplier_items SET ${fields.join(", ")} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapSupplierItem(row) : null;
   }
 
-  async deleteSupplierItem(id: string): Promise<boolean> {
+  async deleteSupplierItem(tenantId: string, id: string): Promise<boolean> {
     const result = await this.queryOne<{ id: string }>(
-      "DELETE FROM supplier_items WHERE id = $1 RETURNING id",
-      [id],
+      "DELETE FROM supplier_items WHERE id = $1 AND tenant_id = $2 RETURNING id",
+      [id, tenantId],
     );
     return !!result;
   }
 
   // Supplier Contracts
-  async findSupplierContracts(supplierId: string): Promise<SupplierContract[]> {
+  async findSupplierContracts(tenantId: string, supplierId: string): Promise<SupplierContract[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      `SELECT * FROM supplier_contracts WHERE supplier_id = $1 ORDER BY created_at DESC`,
-      [supplierId],
+      `SELECT * FROM supplier_contracts WHERE supplier_id = $1 AND tenant_id = $2 ORDER BY created_at DESC`,
+      [supplierId, tenantId],
     );
     return rows.map(this.mapSupplierContract);
   }
 
-  async findSupplierContractById(id: string): Promise<SupplierContract | null> {
+  async findSupplierContractById(tenantId: string, id: string): Promise<SupplierContract | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      "SELECT * FROM supplier_contracts WHERE id = $1",
-      [id],
+      "SELECT * FROM supplier_contracts WHERE id = $1 AND tenant_id = $2",
+      [id, tenantId],
     );
     return row ? this.mapSupplierContract(row) : null;
   }
@@ -1854,6 +1855,7 @@ export class MasterDataRepository extends BaseRepository {
   }
 
   async updateSupplierContract(
+    tenantId: string,
     id: string,
     data: Partial<{
       name: string;
@@ -1893,11 +1895,11 @@ export class MasterDataRepository extends BaseRepository {
       values.push(data.totalValue);
     }
 
-    if (fields.length === 0) return this.findSupplierContractById(id);
+    if (fields.length === 0) return this.findSupplierContractById(tenantId, id);
 
-    values.push(id);
+    values.push(id, tenantId);
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE supplier_contracts SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,
+      `UPDATE supplier_contracts SET ${fields.join(", ")} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       values,
     );
     return row ? this.mapSupplierContract(row) : null;

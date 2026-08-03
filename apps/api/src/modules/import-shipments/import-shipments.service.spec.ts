@@ -272,7 +272,7 @@ describe("ImportShipmentsService", () => {
         "grn-1",
         expect.objectContaining({ tenantId, itemId: "item-1", qtyReceived: 5, receivingBinId: "bin-1" }),
       );
-      expect(inventoryService.completeGrn).toHaveBeenCalledWith("grn-1");
+      expect(inventoryService.completeGrn).toHaveBeenCalledWith(tenantId, "grn-1");
       expect(repository.completeReceiving).toHaveBeenCalledWith(shipmentId, lineId, tenantId, {
         receivedQty: 5,
         receivingBinLocation: undefined,

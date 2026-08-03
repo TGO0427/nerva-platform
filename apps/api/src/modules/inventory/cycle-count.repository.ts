@@ -38,10 +38,11 @@ export interface CycleCountLine {
 
 @Injectable()
 export class CycleCountRepository extends BaseRepository {
-  async deleteCycleCount(id: string): Promise<boolean> {
-    const count = await this.execute("DELETE FROM cycle_counts WHERE id = $1", [
-      id,
-    ]);
+  async deleteCycleCount(tenantId: string, id: string): Promise<boolean> {
+    const count = await this.execute(
+      "DELETE FROM cycle_counts WHERE id = $1 AND tenant_id = $2",
+      [id, tenantId],
+    );
     return count > 0;
   }
 
@@ -77,10 +78,10 @@ export class CycleCountRepository extends BaseRepository {
     return this.mapCycleCount(row!);
   }
 
-  async findById(id: string): Promise<CycleCount | null> {
+  async findById(tenantId: string, id: string): Promise<CycleCount | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      "SELECT * FROM cycle_counts WHERE id = $1",
-      [id],
+      "SELECT * FROM cycle_counts WHERE id = $1 AND tenant_id = $2",
+      [id, tenantId],
     );
     return row ? this.mapCycleCount(row) : null;
   }

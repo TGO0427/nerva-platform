@@ -79,15 +79,15 @@ export class SalesRepository extends BaseRepository {
     return this.mapOrder(row!);
   }
 
-  async findOrderById(id: string): Promise<SalesOrder | null> {
+  async findOrderById(tenantId: string, id: string): Promise<SalesOrder | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT so.*, c.name as customer_name, c.code as customer_code,
               w.name as warehouse_name, w.code as warehouse_code
        FROM sales_orders so
        LEFT JOIN customers c ON c.id = so.customer_id AND c.tenant_id = so.tenant_id
        LEFT JOIN warehouses w ON w.id = so.warehouse_id AND w.tenant_id = so.tenant_id
-       WHERE so.id = $1`,
-      [id],
+       WHERE so.id = $1 AND so.tenant_id = $2`,
+      [id, tenantId],
     );
     return row ? this.mapOrder(row) : null;
   }
@@ -177,12 +177,13 @@ export class SalesRepository extends BaseRepository {
   }
 
   async updateOrderStatus(
+    tenantId: string,
     id: string,
     status: string,
   ): Promise<SalesOrder | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      "UPDATE sales_orders SET status = $1 WHERE id = $2 RETURNING *",
-      [status, id],
+      "UPDATE sales_orders SET status = $1 WHERE id = $2 AND tenant_id = $3 RETURNING *",
+      [status, id, tenantId],
     );
     return row ? this.mapOrder(row) : null;
   }
@@ -361,6 +362,7 @@ export class SalesRepository extends BaseRepository {
   }
 
   async updateOrder(
+    tenantId: string,
     id: string,
     data: {
       customerId?: string;
@@ -395,13 +397,13 @@ export class SalesRepository extends BaseRepository {
       params.push(data.notes);
     }
 
-    if (sets.length === 0) return this.findOrderById(id);
+    if (sets.length === 0) return this.findOrderById(tenantId, id);
 
     sets.push(`updated_at = NOW()`);
-    params.push(id);
+    params.push(id, tenantId);
 
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE sales_orders SET ${sets.join(", ")} WHERE id = $${idx} RETURNING *`,
+      `UPDATE sales_orders SET ${sets.join(", ")} WHERE id = $${idx} AND tenant_id = $${idx + 1} RETURNING *`,
       params,
     );
     return row ? this.mapOrder(row) : null;
@@ -414,10 +416,11 @@ export class SalesRepository extends BaseRepository {
     );
   }
 
-  async deleteOrder(id: string): Promise<boolean> {
-    const count = await this.execute("DELETE FROM sales_orders WHERE id = $1", [
-      id,
-    ]);
+  async deleteOrder(tenantId: string, id: string): Promise<boolean> {
+    const count = await this.execute(
+      "DELETE FROM sales_orders WHERE id = $1 AND tenant_id = $2",
+      [id, tenantId],
+    );
     return count > 0;
   }
 

@@ -97,16 +97,17 @@ export class SalesService {
     return order;
   }
 
-  async getOrder(id: string): Promise<SalesOrder> {
-    const order = await this.repository.findOrderById(id);
+  async getOrder(tenantId: string, id: string): Promise<SalesOrder> {
+    const order = await this.repository.findOrderById(tenantId, id);
     if (!order) throw new NotFoundException("Sales order not found");
     return order;
   }
 
   async getOrderWithLines(
+    tenantId: string,
     id: string,
   ): Promise<SalesOrder & { lines: SalesOrderLine[] }> {
-    const order = await this.getOrder(id);
+    const order = await this.getOrder(tenantId, id);
     const lines = await this.repository.getOrderLines(id);
     return { ...order, lines };
   }
@@ -136,7 +137,7 @@ export class SalesService {
    * than a misleading zero, and are called out separately in the totals.
    */
   async getOrderMarginEstimate(tenantId: string, id: string) {
-    await this.getOrder(id);
+    await this.getOrder(tenantId, id);
     const lines = await this.repository.getOrderLineCostEstimates(tenantId, id);
 
     let totalRevenue = 0;
@@ -209,6 +210,7 @@ export class SalesService {
   }
 
   async updateOrder(
+    tenantId: string,
     id: string,
     data: {
       customerId?: string;
@@ -223,13 +225,13 @@ export class SalesService {
       }>;
     },
   ): Promise<SalesOrder> {
-    const order = await this.getOrder(id);
+    const order = await this.getOrder(tenantId, id);
     if (order.status !== "DRAFT") {
       throw new BadRequestException("Only DRAFT orders can be edited");
     }
 
     // Update header fields
-    const updated = await this.repository.updateOrder(id, {
+    const updated = await this.repository.updateOrder(tenantId, id, {
       customerId: data.customerId,
       warehouseId: data.warehouseId,
       priority: data.priority,
@@ -256,17 +258,17 @@ export class SalesService {
     return updated!;
   }
 
-  async confirmOrder(id: string): Promise<SalesOrder> {
-    const order = await this.getOrder(id);
+  async confirmOrder(tenantId: string, id: string): Promise<SalesOrder> {
+    const order = await this.getOrder(tenantId, id);
     if (order.status !== "DRAFT") {
       throw new BadRequestException("Only draft orders can be confirmed");
     }
-    const updated = await this.repository.updateOrderStatus(id, "CONFIRMED");
+    const updated = await this.repository.updateOrderStatus(tenantId, id, "CONFIRMED");
     return updated!;
   }
 
-  async allocateOrder(id: string): Promise<SalesOrder> {
-    const order = await this.getOrder(id);
+  async allocateOrder(tenantId: string, id: string): Promise<SalesOrder> {
+    const order = await this.getOrder(tenantId, id);
     if (order.status !== "CONFIRMED") {
       throw new BadRequestException("Only confirmed orders can be allocated");
     }
@@ -317,12 +319,12 @@ export class SalesService {
       }
     }
 
-    const updated = await this.repository.updateOrderStatus(id, "ALLOCATED");
+    const updated = await this.repository.updateOrderStatus(tenantId, id, "ALLOCATED");
     return updated!;
   }
 
-  async cancelOrder(id: string): Promise<SalesOrder> {
-    const order = await this.getOrder(id);
+  async cancelOrder(tenantId: string, id: string): Promise<SalesOrder> {
+    const order = await this.getOrder(tenantId, id);
     if (["SHIPPED", "DELIVERED", "CANCELLED"].includes(order.status)) {
       throw new BadRequestException("Cannot cancel order in current status");
     }
@@ -349,12 +351,12 @@ export class SalesService {
       }
     }
 
-    const updated = await this.repository.updateOrderStatus(id, "CANCELLED");
+    const updated = await this.repository.updateOrderStatus(tenantId, id, "CANCELLED");
     return updated!;
   }
 
-  async reopenOrder(id: string): Promise<SalesOrder> {
-    const order = await this.getOrder(id);
+  async reopenOrder(tenantId: string, id: string): Promise<SalesOrder> {
+    const order = await this.getOrder(tenantId, id);
     if (!["CANCELLED", "DELIVERED"].includes(order.status)) {
       throw new BadRequestException(
         "Only cancelled or delivered orders can be reopened",
@@ -362,17 +364,17 @@ export class SalesService {
     }
 
     const newStatus = order.status === "CANCELLED" ? "DRAFT" : "SHIPPED";
-    const updated = await this.repository.updateOrderStatus(id, newStatus);
+    const updated = await this.repository.updateOrderStatus(tenantId, id, newStatus);
     return updated!;
   }
 
-  async deleteOrder(id: string): Promise<void> {
-    const order = await this.repository.findOrderById(id);
+  async deleteOrder(tenantId: string, id: string): Promise<void> {
+    const order = await this.repository.findOrderById(tenantId, id);
     if (!order) throw new NotFoundException("Sales order not found");
     if (order.status !== "DRAFT") {
       throw new BadRequestException("Only DRAFT orders can be deleted");
     }
-    await this.repository.deleteOrder(id);
+    await this.repository.deleteOrder(tenantId, id);
   }
 
   // Bulk import
@@ -490,8 +492,8 @@ export class SalesService {
   }
 
   // Generic status update for internal use (e.g., from fulfilment service)
-  async updateOrderStatus(id: string, status: string): Promise<SalesOrder> {
-    const order = await this.getOrder(id);
+  async updateOrderStatus(tenantId: string, id: string, status: string): Promise<SalesOrder> {
+    const order = await this.getOrder(tenantId, id);
     const validTransitions: Record<string, string[]> = {
       DRAFT: ["CONFIRMED", "CANCELLED"],
       CONFIRMED: ["ALLOCATED", "CANCELLED"],
@@ -512,7 +514,7 @@ export class SalesService {
       );
     }
 
-    const updated = await this.repository.updateOrderStatus(id, status);
+    const updated = await this.repository.updateOrderStatus(tenantId, id, status);
     return updated!;
   }
 }

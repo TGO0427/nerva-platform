@@ -62,8 +62,11 @@ export class CycleCountController {
   @Get(":id")
   @RequirePermissions("cycle_count.manage")
   @ApiOperation({ summary: "Get cycle count by ID" })
-  async get(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.getCycleCount(id);
+  async get(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.getCycleCount(tenantId, id);
   }
 
   @Post()
@@ -85,8 +88,11 @@ export class CycleCountController {
   @Get(":id/lines")
   @RequirePermissions("cycle_count.manage")
   @ApiOperation({ summary: "Get cycle count lines" })
-  async getLines(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.getCycleCountLines(id);
+  async getLines(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.getCycleCountLines(tenantId, id);
   }
 
   @Post(":id/lines")
@@ -128,30 +134,35 @@ export class CycleCountController {
   @RequirePermissions("cycle_count.manage")
   @ApiOperation({ summary: "Remove cycle count line" })
   async removeLine(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @Param("lineId", UuidValidationPipe) lineId: string,
   ) {
-    await this.service.removeCycleCountLine(id, lineId);
+    await this.service.removeCycleCountLine(tenantId, id, lineId);
     return { success: true };
   }
 
   @Post(":id/start")
   @RequirePermissions("cycle_count.manage")
   @ApiOperation({ summary: "Start counting" })
-  async start(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.startCycleCount(id);
+  async start(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.startCycleCount(tenantId, id);
   }
 
   @Post(":id/lines/:lineId/record")
   @RequirePermissions("cycle_count.manage")
   @ApiOperation({ summary: "Record counted quantity for a line" })
   async recordCount(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @Param("lineId", UuidValidationPipe) lineId: string,
     @CurrentUser() user: CurrentUserData,
     @Body() data: RecordCountDto,
   ) {
-    return this.service.recordCount(lineId, {
+    return this.service.recordCount(tenantId, lineId, {
       countedQty: data.countedQty,
       countedBy: user.id,
     });
@@ -160,42 +171,53 @@ export class CycleCountController {
   @Post(":id/complete")
   @RequirePermissions("cycle_count.manage")
   @ApiOperation({ summary: "Complete counting" })
-  async complete(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.completeCycleCount(id);
+  async complete(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.completeCycleCount(tenantId, id);
   }
 
   @Post(":id/generate-adjustment")
   @RequirePermissions("cycle_count.manage")
   @ApiOperation({ summary: "Generate adjustment from variances" })
   async generateAdjustment(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.service.generateAdjustmentFromCycleCount(id, user.id);
+    return this.service.generateAdjustmentFromCycleCount(tenantId, id, user.id);
   }
 
   @Post(":id/close")
   @RequirePermissions("cycle_count.manage")
   @ApiOperation({ summary: "Close cycle count" })
   async close(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.service.closeCycleCount(id, user.id);
+    return this.service.closeCycleCount(tenantId, id, user.id);
   }
 
   @Post(":id/cancel")
   @RequirePermissions("cycle_count.manage")
   @ApiOperation({ summary: "Cancel cycle count" })
-  async cancel(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.cancelCycleCount(id);
+  async cancel(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.cancelCycleCount(tenantId, id);
   }
 
   @Delete(":id")
   @RequirePermissions("cycle_count.manage")
   @ApiOperation({ summary: "Delete cycle count (open only)" })
-  async deleteCycleCount(@Param("id", UuidValidationPipe) id: string) {
-    await this.service.deleteCycleCount(id);
+  async deleteCycleCount(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    await this.service.deleteCycleCount(tenantId, id);
     return { success: true };
   }
 

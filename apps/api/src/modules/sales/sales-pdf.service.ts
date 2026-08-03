@@ -28,7 +28,7 @@ export class SalesPdfService {
   ) {}
 
   async generate(orderId: string, tenantId: string): Promise<Buffer> {
-    const order = await this.repository.findOrderById(orderId);
+    const order = await this.repository.findOrderById(tenantId, orderId);
     if (!order) throw new NotFoundException("Sales order not found");
 
     const lines = await this.repository.getOrderLines(orderId);

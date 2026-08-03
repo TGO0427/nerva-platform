@@ -247,19 +247,19 @@ describe("InventoryService", () => {
     it("should return GRN when found", async () => {
       repository.findGrnById.mockResolvedValue(mockGrn);
 
-      const result = await service.getGrn("grn-123");
+      const result = await service.getGrn("tenant-123", "grn-123");
 
       expect(result).toEqual(mockGrn);
-      expect(repository.findGrnById).toHaveBeenCalledWith("grn-123");
+      expect(repository.findGrnById).toHaveBeenCalledWith("tenant-123", "grn-123");
     });
 
     it("should throw NotFoundException when GRN not found", async () => {
       repository.findGrnById.mockResolvedValue(null);
 
-      await expect(service.getGrn("grn-123")).rejects.toThrow(
+      await expect(service.getGrn("tenant-123", "grn-123")).rejects.toThrow(
         NotFoundException,
       );
-      await expect(service.getGrn("grn-123")).rejects.toThrow("GRN not found");
+      await expect(service.getGrn("tenant-123", "grn-123")).rejects.toThrow("GRN not found");
     });
   });
 
@@ -400,6 +400,7 @@ describe("InventoryService", () => {
       await service.receiveGrnLine("grn-123", receiveData);
 
       expect(repository.updateGrnStatus).toHaveBeenCalledWith(
+        "tenant-123",
         "grn-123",
         "RECEIVED",
       );
@@ -445,10 +446,11 @@ describe("InventoryService", () => {
       repository.findGrnById.mockResolvedValue(receivedGrn);
       repository.updateGrnStatus.mockResolvedValue(completeGrn);
 
-      const result = await service.completeGrn("grn-123");
+      const result = await service.completeGrn("tenant-123", "grn-123");
 
       expect(result).toEqual(completeGrn);
       expect(repository.updateGrnStatus).toHaveBeenCalledWith(
+        "tenant-123",
         "grn-123",
         "COMPLETE",
       );
@@ -457,10 +459,10 @@ describe("InventoryService", () => {
     it("should throw BadRequestException if GRN not in RECEIVED status", async () => {
       repository.findGrnById.mockResolvedValue(mockGrn); // DRAFT status
 
-      await expect(service.completeGrn("grn-123")).rejects.toThrow(
+      await expect(service.completeGrn("tenant-123", "grn-123")).rejects.toThrow(
         BadRequestException,
       );
-      await expect(service.completeGrn("grn-123")).rejects.toThrow(
+      await expect(service.completeGrn("tenant-123", "grn-123")).rejects.toThrow(
         "GRN must be in RECEIVED or PUTAWAY_PENDING status to complete",
       );
     });
@@ -538,7 +540,7 @@ describe("InventoryService", () => {
     it("should return adjustment when found", async () => {
       repository.findAdjustmentById.mockResolvedValue(mockAdjustment);
 
-      const result = await service.getAdjustment("adj-123");
+      const result = await service.getAdjustment("tenant-123", "adj-123");
 
       expect(result).toEqual(mockAdjustment);
     });
@@ -546,10 +548,10 @@ describe("InventoryService", () => {
     it("should throw NotFoundException when adjustment not found", async () => {
       repository.findAdjustmentById.mockResolvedValue(null);
 
-      await expect(service.getAdjustment("adj-123")).rejects.toThrow(
+      await expect(service.getAdjustment("tenant-123", "adj-123")).rejects.toThrow(
         NotFoundException,
       );
-      await expect(service.getAdjustment("adj-123")).rejects.toThrow(
+      await expect(service.getAdjustment("tenant-123", "adj-123")).rejects.toThrow(
         "Adjustment not found",
       );
     });
@@ -565,10 +567,11 @@ describe("InventoryService", () => {
       };
       repository.approveAdjustment.mockResolvedValue(approvedAdjustment);
 
-      const result = await service.approveAdjustment("adj-123", "admin-123");
+      const result = await service.approveAdjustment("tenant-123", "adj-123", "admin-123");
 
       expect(result).toEqual(approvedAdjustment);
       expect(repository.approveAdjustment).toHaveBeenCalledWith(
+        "tenant-123",
         "adj-123",
         "admin-123",
       );
@@ -578,10 +581,10 @@ describe("InventoryService", () => {
       repository.approveAdjustment.mockResolvedValue(null);
 
       await expect(
-        service.approveAdjustment("adj-123", "admin-123"),
+        service.approveAdjustment("tenant-123", "adj-123", "admin-123"),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.approveAdjustment("adj-123", "admin-123"),
+        service.approveAdjustment("tenant-123", "adj-123", "admin-123"),
       ).rejects.toThrow("Adjustment not found or not in SUBMITTED status");
     });
   });

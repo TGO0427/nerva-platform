@@ -346,8 +346,11 @@ export class SuppliersController {
   @Get(":id/items")
   @RequirePermissions("supplier.read")
   @ApiOperation({ summary: "List supplier items" })
-  async listItems(@Param("id", UuidValidationPipe) supplierId: string) {
-    return this.service.listSupplierItems(supplierId);
+  async listItems(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) supplierId: string,
+  ) {
+    return this.service.listSupplierItems(tenantId, supplierId);
   }
 
   @Post(":id/items")
@@ -365,17 +368,21 @@ export class SuppliersController {
   @RequirePermissions("supplier.write")
   @ApiOperation({ summary: "Update supplier item" })
   async updateItem(
+    @TenantId() tenantId: string,
     @Param("itemId", UuidValidationPipe) itemId: string,
     @Body() data: UpdateSupplierItemDto,
   ) {
-    return this.service.updateSupplierItem(itemId, data);
+    return this.service.updateSupplierItem(tenantId, itemId, data);
   }
 
   @Delete("items/:itemId")
   @RequirePermissions("supplier.write")
   @ApiOperation({ summary: "Remove item from supplier" })
-  async removeItem(@Param("itemId", UuidValidationPipe) itemId: string) {
-    await this.service.deleteSupplierItem(itemId);
+  async removeItem(
+    @TenantId() tenantId: string,
+    @Param("itemId", UuidValidationPipe) itemId: string,
+  ) {
+    await this.service.deleteSupplierItem(tenantId, itemId);
     return { success: true };
   }
 
@@ -383,8 +390,11 @@ export class SuppliersController {
   @Get(":id/contracts")
   @RequirePermissions("supplier.read")
   @ApiOperation({ summary: "List supplier contracts" })
-  async listContracts(@Param("id", UuidValidationPipe) supplierId: string) {
-    return this.service.listSupplierContracts(supplierId);
+  async listContracts(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) supplierId: string,
+  ) {
+    return this.service.listSupplierContracts(tenantId, supplierId);
   }
 
   @Post(":id/contracts")
@@ -413,19 +423,21 @@ export class SuppliersController {
   @RequirePermissions("supplier.read")
   @ApiOperation({ summary: "Get supplier contract by ID" })
   async getContract(
+    @TenantId() tenantId: string,
     @Param("contractId", UuidValidationPipe) contractId: string,
   ) {
-    return this.service.getSupplierContract(contractId);
+    return this.service.getSupplierContract(tenantId, contractId);
   }
 
   @Patch("contracts/:contractId")
   @RequirePermissions("supplier.write")
   @ApiOperation({ summary: "Update supplier contract" })
   async updateContract(
+    @TenantId() tenantId: string,
     @Param("contractId", UuidValidationPipe) contractId: string,
     @Body() data: UpdateSupplierContractDto,
   ) {
-    return this.service.updateSupplierContract(contractId, {
+    return this.service.updateSupplierContract(tenantId, contractId, {
       name: data.name,
       status: data.status,
       startDate: data.startDate ? new Date(data.startDate) : undefined,

@@ -22,6 +22,9 @@ describe("SalesService", () => {
     warehouseId: "warehouse-123",
     customerId: "customer-123",
     customerName: "Test Customer",
+    customerCode: "CUST-001",
+    warehouseName: "Main Warehouse",
+    warehouseCode: "WH-1",
     orderNo: "SO-000001",
     status: "DRAFT",
     externalRef: null,
@@ -170,19 +173,19 @@ describe("SalesService", () => {
     it("should return order when found", async () => {
       repository.findOrderById.mockResolvedValue(mockOrder);
 
-      const result = await service.getOrder("order-123");
+      const result = await service.getOrder("tenant-123", "order-123");
 
       expect(result).toEqual(mockOrder);
-      expect(repository.findOrderById).toHaveBeenCalledWith("order-123");
+      expect(repository.findOrderById).toHaveBeenCalledWith("tenant-123", "order-123");
     });
 
     it("should throw NotFoundException when order not found", async () => {
       repository.findOrderById.mockResolvedValue(null);
 
-      await expect(service.getOrder("order-123")).rejects.toThrow(
+      await expect(service.getOrder("tenant-123", "order-123")).rejects.toThrow(
         NotFoundException,
       );
-      await expect(service.getOrder("order-123")).rejects.toThrow(
+      await expect(service.getOrder("tenant-123", "order-123")).rejects.toThrow(
         "Sales order not found",
       );
     });
@@ -193,7 +196,7 @@ describe("SalesService", () => {
       repository.findOrderById.mockResolvedValue(mockOrder);
       repository.getOrderLines.mockResolvedValue([mockOrderLine]);
 
-      const result = await service.getOrderWithLines("order-123");
+      const result = await service.getOrderWithLines("tenant-123", "order-123");
 
       expect(result).toEqual({
         ...mockOrder,
@@ -246,10 +249,11 @@ describe("SalesService", () => {
       repository.findOrderById.mockResolvedValue(mockOrder);
       repository.updateOrderStatus.mockResolvedValue(confirmedOrder);
 
-      const result = await service.confirmOrder("order-123");
+      const result = await service.confirmOrder("tenant-123", "order-123");
 
       expect(result).toEqual(confirmedOrder);
       expect(repository.updateOrderStatus).toHaveBeenCalledWith(
+        "tenant-123",
         "order-123",
         "CONFIRMED",
       );
@@ -259,10 +263,10 @@ describe("SalesService", () => {
       const confirmedOrder = { ...mockOrder, status: "CONFIRMED" };
       repository.findOrderById.mockResolvedValue(confirmedOrder);
 
-      await expect(service.confirmOrder("order-123")).rejects.toThrow(
+      await expect(service.confirmOrder("tenant-123", "order-123")).rejects.toThrow(
         BadRequestException,
       );
-      await expect(service.confirmOrder("order-123")).rejects.toThrow(
+      await expect(service.confirmOrder("tenant-123", "order-123")).rejects.toThrow(
         "Only draft orders can be confirmed",
       );
     });
@@ -291,7 +295,7 @@ describe("SalesService", () => {
       repository.updateOrderLineQty.mockResolvedValue(undefined);
       repository.updateOrderStatus.mockResolvedValue(allocatedOrder);
 
-      const result = await service.allocateOrder("order-123");
+      const result = await service.allocateOrder("tenant-123", "order-123");
 
       expect(result).toEqual(allocatedOrder);
       expect(stockLedger.reserveStockWithBatch).toHaveBeenCalledWith(
@@ -328,7 +332,7 @@ describe("SalesService", () => {
       repository.updateOrderLineQty.mockResolvedValue(undefined);
       repository.updateOrderStatus.mockResolvedValue(allocatedOrder);
 
-      await service.allocateOrder("order-123");
+      await service.allocateOrder("tenant-123", "order-123");
 
       expect(stockLedger.reserveStockWithBatch).toHaveBeenCalledWith(
         "tenant-123",
@@ -373,7 +377,7 @@ describe("SalesService", () => {
       repository.updateOrderLineQty.mockResolvedValue(undefined);
       repository.updateOrderStatus.mockResolvedValue(allocatedOrder);
 
-      await service.allocateOrder("order-123");
+      await service.allocateOrder("tenant-123", "order-123");
 
       expect(stockLedger.reserveStockWithBatch).toHaveBeenCalledTimes(2);
       expect(stockLedger.reserveStockWithBatch).toHaveBeenNthCalledWith(
@@ -399,10 +403,10 @@ describe("SalesService", () => {
     it("should throw BadRequestException for non-confirmed order", async () => {
       repository.findOrderById.mockResolvedValue(mockOrder); // DRAFT status
 
-      await expect(service.allocateOrder("order-123")).rejects.toThrow(
+      await expect(service.allocateOrder("tenant-123", "order-123")).rejects.toThrow(
         BadRequestException,
       );
-      await expect(service.allocateOrder("order-123")).rejects.toThrow(
+      await expect(service.allocateOrder("tenant-123", "order-123")).rejects.toThrow(
         "Only confirmed orders can be allocated",
       );
     });
@@ -415,10 +419,11 @@ describe("SalesService", () => {
       repository.getOrderLines.mockResolvedValue([mockOrderLine]);
       repository.updateOrderStatus.mockResolvedValue(cancelledOrder);
 
-      const result = await service.cancelOrder("order-123");
+      const result = await service.cancelOrder("tenant-123", "order-123");
 
       expect(result).toEqual(cancelledOrder);
       expect(repository.updateOrderStatus).toHaveBeenCalledWith(
+        "tenant-123",
         "order-123",
         "CANCELLED",
       );
@@ -445,7 +450,7 @@ describe("SalesService", () => {
       stockLedger.releaseReservation.mockResolvedValue(undefined);
       repository.updateOrderStatus.mockResolvedValue(cancelledOrder);
 
-      await service.cancelOrder("order-123");
+      await service.cancelOrder("tenant-123", "order-123");
 
       expect(stockLedger.releaseReservation).toHaveBeenCalledWith(
         "tenant-123",
@@ -460,10 +465,10 @@ describe("SalesService", () => {
       const shippedOrder = { ...mockOrder, status: "SHIPPED" };
       repository.findOrderById.mockResolvedValue(shippedOrder);
 
-      await expect(service.cancelOrder("order-123")).rejects.toThrow(
+      await expect(service.cancelOrder("tenant-123", "order-123")).rejects.toThrow(
         BadRequestException,
       );
-      await expect(service.cancelOrder("order-123")).rejects.toThrow(
+      await expect(service.cancelOrder("tenant-123", "order-123")).rejects.toThrow(
         "Cannot cancel order in current status",
       );
     });
@@ -472,7 +477,7 @@ describe("SalesService", () => {
       const deliveredOrder = { ...mockOrder, status: "DELIVERED" };
       repository.findOrderById.mockResolvedValue(deliveredOrder);
 
-      await expect(service.cancelOrder("order-123")).rejects.toThrow(
+      await expect(service.cancelOrder("tenant-123", "order-123")).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -481,7 +486,7 @@ describe("SalesService", () => {
       const cancelledOrder = { ...mockOrder, status: "CANCELLED" };
       repository.findOrderById.mockResolvedValue(cancelledOrder);
 
-      await expect(service.cancelOrder("order-123")).rejects.toThrow(
+      await expect(service.cancelOrder("tenant-123", "order-123")).rejects.toThrow(
         BadRequestException,
       );
     });

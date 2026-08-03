@@ -62,8 +62,11 @@ export class GrnController {
   @Get(":id")
   @RequirePermissions("grn.create")
   @ApiOperation({ summary: "Get GRN by ID" })
-  async get(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.getGrn(id);
+  async get(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.getGrn(tenantId, id);
   }
 
   @Get(":id/pdf")
@@ -104,8 +107,11 @@ export class GrnController {
   @Get(":id/lines")
   @RequirePermissions("grn.receive")
   @ApiOperation({ summary: "Get GRN lines" })
-  async getLines(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.getGrnLines(id);
+  async getLines(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.getGrnLines(tenantId, id);
   }
 
   @Post(":id/scan")
@@ -131,8 +137,11 @@ export class GrnController {
   @Post(":id/complete")
   @RequirePermissions("grn.receive")
   @ApiOperation({ summary: "Complete GRN" })
-  async complete(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.completeGrn(id);
+  async complete(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.completeGrn(tenantId, id);
   }
 
   @Post(":id/generate-putaway")
@@ -148,15 +157,21 @@ export class GrnController {
   @Get(":id/putaway-tasks")
   @RequirePermissions("grn.receive")
   @ApiOperation({ summary: "Get putaway tasks for this GRN" })
-  async getPutawayTasks(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.getPutawayTasksByGrn(id);
+  async getPutawayTasks(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.getPutawayTasksByGrn(tenantId, id);
   }
 
   @Delete(":id")
   @RequirePermissions("grn.delete")
   @ApiOperation({ summary: "Delete GRN (draft only)" })
-  async deleteGrn(@Param("id", UuidValidationPipe) id: string) {
-    await this.service.deleteGrn(id);
+  async deleteGrn(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    await this.service.deleteGrn(tenantId, id);
     return { success: true };
   }
 }

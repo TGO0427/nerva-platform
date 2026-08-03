@@ -67,7 +67,7 @@ export class PutawayRepository extends BaseRepository {
     return results;
   }
 
-  async findById(id: string): Promise<PutawayTaskDetail | null> {
+  async findById(tenantId: string, id: string): Promise<PutawayTaskDetail | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT pt.*,
               i.sku AS item_sku, i.description AS item_description,
@@ -80,8 +80,8 @@ export class PutawayRepository extends BaseRepository {
        LEFT JOIN bins tb ON tb.id = pt.to_bin_id
        LEFT JOIN users u ON u.id = pt.assigned_to
        JOIN grn_lines gl ON gl.id = pt.grn_line_id
-       WHERE pt.id = $1`,
-      [id],
+       WHERE pt.id = $1 AND pt.tenant_id = $2`,
+      [id, tenantId],
     );
     return row ? this.mapTaskDetail(row) : null;
   }

@@ -83,10 +83,10 @@ export class BatchRepository extends BaseRepository {
     return this.createBatch(data);
   }
 
-  async findBatchById(id: string): Promise<Batch | null> {
+  async findBatchById(tenantId: string, id: string): Promise<Batch | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      "SELECT * FROM batches WHERE id = $1",
-      [id],
+      "SELECT * FROM batches WHERE id = $1 AND tenant_id = $2",
+      [id, tenantId],
     );
     return row ? this.mapBatch(row) : null;
   }

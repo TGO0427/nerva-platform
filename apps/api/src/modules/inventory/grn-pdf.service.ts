@@ -25,7 +25,7 @@ export class GrnPdfService {
   ) {}
 
   async generate(grnId: string, tenantId: string): Promise<Buffer> {
-    const grn = await this.repository.findGrnById(grnId);
+    const grn = await this.repository.findGrnById(tenantId, grnId);
     if (!grn) throw new NotFoundException("GRN not found");
 
     const lines = await this.repository.getGrnLines(grnId);

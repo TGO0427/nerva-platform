@@ -40,7 +40,7 @@ export class FulfilmentService {
 
     // Create pick tasks for each order
     for (const orderId of data.orderIds) {
-      const orderData = await this.salesService.getOrderWithLines(orderId);
+      const orderData = await this.salesService.getOrderWithLines(data.tenantId, orderId);
 
       if (orderData.status !== "ALLOCATED") {
         continue; // Skip non-allocated orders
@@ -89,7 +89,7 @@ export class FulfilmentService {
       }
 
       // Update order status to PICKING
-      await this.salesService.updateOrderStatus(orderId, "PICKING");
+      await this.salesService.updateOrderStatus(data.tenantId, orderId, "PICKING");
     }
 
     return wave;
@@ -176,7 +176,7 @@ export class FulfilmentService {
     createdBy?: string;
   }): Promise<Shipment> {
     // Lookup order to get siteId/warehouseId if not provided
-    const order = await this.salesService.getOrder(data.salesOrderId);
+    const order = await this.salesService.getOrder(data.tenantId, data.salesOrderId);
     const siteId = data.siteId || order.siteId;
     const warehouseId = data.warehouseId || order.warehouseId;
 
@@ -193,6 +193,7 @@ export class FulfilmentService {
 
     // Get order lines and create shipment lines from picked quantities
     const orderData = await this.salesService.getOrderWithLines(
+      data.tenantId,
       data.salesOrderId,
     );
     for (const line of orderData.lines) {

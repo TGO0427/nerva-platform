@@ -71,15 +71,21 @@ export class IbtController {
   @Get(":id")
   @RequirePermissions("ibt.create")
   @ApiOperation({ summary: "Get IBT by ID" })
-  async get(@Param("id", UuidValidationPipe) id: string) {
-    return this.ibtService.getIbt(id);
+  async get(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.ibtService.getIbt(tenantId, id);
   }
 
   @Get(":id/lines")
   @RequirePermissions("ibt.create")
   @ApiOperation({ summary: "Get IBT lines" })
-  async getLines(@Param("id", UuidValidationPipe) id: string) {
-    return this.ibtService.getLines(id);
+  async getLines(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.ibtService.getLines(tenantId, id);
   }
 
   @Post(":id/lines")
@@ -97,71 +103,87 @@ export class IbtController {
   @RequirePermissions("ibt.create")
   @ApiOperation({ summary: "Remove line from IBT" })
   async removeLine(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @Param("lineId", UuidValidationPipe) lineId: string,
   ) {
-    await this.ibtService.removeLine(id, lineId);
+    await this.ibtService.removeLine(tenantId, id, lineId);
     return { success: true };
   }
 
   @Post(":id/submit")
   @RequirePermissions("ibt.create")
   @ApiOperation({ summary: "Submit IBT for approval" })
-  async submit(@Param("id", UuidValidationPipe) id: string) {
-    return this.ibtService.submitForApproval(id);
+  async submit(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.ibtService.submitForApproval(tenantId, id);
   }
 
   @Post(":id/approve")
   @RequirePermissions("ibt.approve")
   @ApiOperation({ summary: "Approve IBT" })
   async approve(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.ibtService.approve(id, user.id);
+    return this.ibtService.approve(tenantId, id, user.id);
   }
 
   @Post(":id/start-picking")
   @RequirePermissions("ibt.create")
   @ApiOperation({ summary: "Start picking for IBT" })
-  async startPicking(@Param("id", UuidValidationPipe) id: string) {
-    return this.ibtService.startPicking(id);
+  async startPicking(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.ibtService.startPicking(tenantId, id);
   }
 
   @Post(":id/ship")
   @RequirePermissions("ibt.create")
   @ApiOperation({ summary: "Ship IBT lines" })
   async ship(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
     @Body() data: ShipIbtDto,
   ) {
-    return this.ibtService.shipLines(id, data.lines, user.id);
+    return this.ibtService.shipLines(tenantId, id, data.lines, user.id);
   }
 
   @Post(":id/receive")
   @RequirePermissions("ibt.create")
   @ApiOperation({ summary: "Receive IBT lines" })
   async receive(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
     @Body() data: ReceiveIbtDto,
   ) {
-    return this.ibtService.receiveLines(id, data.lines, user.id);
+    return this.ibtService.receiveLines(tenantId, id, data.lines, user.id);
   }
 
   @Post(":id/cancel")
   @RequirePermissions("ibt.create")
   @ApiOperation({ summary: "Cancel IBT" })
-  async cancel(@Param("id", UuidValidationPipe) id: string) {
-    return this.ibtService.cancel(id);
+  async cancel(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.ibtService.cancel(tenantId, id);
   }
 
   @Delete(":id")
   @RequirePermissions("ibt.delete")
   @ApiOperation({ summary: "Delete IBT (draft only)" })
-  async deleteIbt(@Param("id", UuidValidationPipe) id: string) {
-    await this.ibtService.deleteIbt(id);
+  async deleteIbt(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    await this.ibtService.deleteIbt(tenantId, id);
     return { success: true };
   }
 }

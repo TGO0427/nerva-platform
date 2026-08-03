@@ -92,10 +92,10 @@ export class InventoryRepository extends BaseRepository {
     return this.mapGrn(row!);
   }
 
-  async findGrnById(id: string): Promise<Grn | null> {
+  async findGrnById(tenantId: string, id: string): Promise<Grn | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      "SELECT * FROM grns WHERE id = $1",
-      [id],
+      "SELECT * FROM grns WHERE id = $1 AND tenant_id = $2",
+      [id, tenantId],
     );
     return row ? this.mapGrn(row) : null;
   }
@@ -145,11 +145,11 @@ export class InventoryRepository extends BaseRepository {
     return parseInt(result?.count || "0", 10);
   }
 
-  async updateGrnStatus(id: string, status: string): Promise<Grn | null> {
+  async updateGrnStatus(tenantId: string, id: string, status: string): Promise<Grn | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE grns SET status = $1, received_at = CASE WHEN $1 = 'RECEIVED' THEN NOW() ELSE received_at END
-       WHERE id = $2 RETURNING *`,
-      [status, id],
+       WHERE id = $2 AND tenant_id = $3 RETURNING *`,
+      [status, id, tenantId],
     );
     return row ? this.mapGrn(row) : null;
   }
@@ -221,10 +221,10 @@ export class InventoryRepository extends BaseRepository {
     return this.mapAdjustment(row!);
   }
 
-  async findAdjustmentById(id: string): Promise<Adjustment | null> {
+  async findAdjustmentById(tenantId: string, id: string): Promise<Adjustment | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      "SELECT * FROM adjustments WHERE id = $1",
-      [id],
+      "SELECT * FROM adjustments WHERE id = $1 AND tenant_id = $2",
+      [id, tenantId],
     );
     return row ? this.mapAdjustment(row) : null;
   }
@@ -279,14 +279,15 @@ export class InventoryRepository extends BaseRepository {
   }
 
   async approveAdjustment(
+    tenantId: string,
     id: string,
     approvedBy: string,
   ): Promise<Adjustment | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE adjustments SET status = 'APPROVED', approved_by = $1, approved_at = NOW()
-       WHERE id = $2 AND status = 'SUBMITTED'
+       WHERE id = $2 AND tenant_id = $3 AND status = 'SUBMITTED'
        RETURNING *`,
-      [approvedBy, id],
+      [approvedBy, id, tenantId],
     );
     return row ? this.mapAdjustment(row) : null;
   }
@@ -331,25 +332,30 @@ export class InventoryRepository extends BaseRepository {
   }
 
   async updateAdjustmentStatus(
+    tenantId: string,
     id: string,
     status: string,
   ): Promise<Adjustment | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      `UPDATE adjustments SET status = $1 WHERE id = $2 RETURNING *`,
-      [status, id],
+      `UPDATE adjustments SET status = $1 WHERE id = $2 AND tenant_id = $3 RETURNING *`,
+      [status, id, tenantId],
     );
     return row ? this.mapAdjustment(row) : null;
   }
 
-  async deleteGrn(id: string): Promise<boolean> {
-    const count = await this.execute("DELETE FROM grns WHERE id = $1", [id]);
+  async deleteGrn(tenantId: string, id: string): Promise<boolean> {
+    const count = await this.execute(
+      "DELETE FROM grns WHERE id = $1 AND tenant_id = $2",
+      [id, tenantId],
+    );
     return count > 0;
   }
 
-  async deleteAdjustment(id: string): Promise<boolean> {
-    const count = await this.execute("DELETE FROM adjustments WHERE id = $1", [
-      id,
-    ]);
+  async deleteAdjustment(tenantId: string, id: string): Promise<boolean> {
+    const count = await this.execute(
+      "DELETE FROM adjustments WHERE id = $1 AND tenant_id = $2",
+      [id, tenantId],
+    );
     return count > 0;
   }
 

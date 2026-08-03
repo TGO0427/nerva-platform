@@ -68,16 +68,16 @@ export class InventoryService {
     return this.repository.createGrn({ ...data, siteId, grnNo });
   }
 
-  async deleteGrn(id: string): Promise<void> {
-    const grn = await this.repository.findGrnById(id);
+  async deleteGrn(tenantId: string, id: string): Promise<void> {
+    const grn = await this.repository.findGrnById(tenantId, id);
     if (!grn) throw new NotFoundException("GRN not found");
     if (grn.status !== "DRAFT")
       throw new BadRequestException("Only DRAFT GRNs can be deleted");
-    await this.repository.deleteGrn(id);
+    await this.repository.deleteGrn(tenantId, id);
   }
 
-  async getGrn(id: string): Promise<Grn> {
-    const grn = await this.repository.findGrnById(id);
+  async getGrn(tenantId: string, id: string): Promise<Grn> {
+    const grn = await this.repository.findGrnById(tenantId, id);
     if (!grn) throw new NotFoundException("GRN not found");
     return grn;
   }
@@ -108,7 +108,7 @@ export class InventoryService {
       createdBy?: string;
     },
   ): Promise<GrnLine> {
-    const grn = await this.getGrn(grnId);
+    const grn = await this.getGrn(data.tenantId, grnId);
     if (grn.status === "COMPLETE" || grn.status === "CANCELLED") {
       throw new BadRequestException("GRN is already complete or cancelled");
     }
@@ -151,24 +151,25 @@ export class InventoryService {
 
     // Update GRN status
     if (grn.status === "DRAFT") {
-      await this.repository.updateGrnStatus(grnId, "RECEIVED");
+      await this.repository.updateGrnStatus(data.tenantId, grnId, "RECEIVED");
     }
 
     return line;
   }
 
-  async getGrnLines(grnId: string): Promise<GrnLine[]> {
+  async getGrnLines(tenantId: string, grnId: string): Promise<GrnLine[]> {
+    await this.getGrn(tenantId, grnId);
     return this.repository.getGrnLines(grnId);
   }
 
-  async completeGrn(grnId: string): Promise<Grn> {
-    const grn = await this.getGrn(grnId);
+  async completeGrn(tenantId: string, grnId: string): Promise<Grn> {
+    const grn = await this.getGrn(tenantId, grnId);
     if (grn.status !== "RECEIVED" && grn.status !== "PUTAWAY_PENDING") {
       throw new BadRequestException(
         "GRN must be in RECEIVED or PUTAWAY_PENDING status to complete",
       );
     }
-    const updated = await this.repository.updateGrnStatus(grnId, "COMPLETE");
+    const updated = await this.repository.updateGrnStatus(tenantId, grnId, "COMPLETE");
     return updated!;
   }
 
@@ -267,16 +268,16 @@ export class InventoryService {
     return this.repository.createAdjustment({ ...data, adjustmentNo });
   }
 
-  async deleteAdjustment(id: string): Promise<void> {
-    const adjustment = await this.repository.findAdjustmentById(id);
+  async deleteAdjustment(tenantId: string, id: string): Promise<void> {
+    const adjustment = await this.repository.findAdjustmentById(tenantId, id);
     if (!adjustment) throw new NotFoundException("Adjustment not found");
     if (adjustment.status !== "DRAFT")
       throw new BadRequestException("Only DRAFT adjustments can be deleted");
-    await this.repository.deleteAdjustment(id);
+    await this.repository.deleteAdjustment(tenantId, id);
   }
 
-  async getAdjustment(id: string): Promise<Adjustment> {
-    const adjustment = await this.repository.findAdjustmentById(id);
+  async getAdjustment(tenantId: string, id: string): Promise<Adjustment> {
+    const adjustment = await this.repository.findAdjustmentById(tenantId, id);
     if (!adjustment) throw new NotFoundException("Adjustment not found");
     return adjustment;
   }
@@ -295,8 +296,8 @@ export class InventoryService {
     return buildPaginatedResult(data, total, page, limit);
   }
 
-  async approveAdjustment(id: string, approvedBy: string): Promise<Adjustment> {
-    const adjustment = await this.repository.approveAdjustment(id, approvedBy);
+  async approveAdjustment(tenantId: string, id: string, approvedBy: string): Promise<Adjustment> {
+    const adjustment = await this.repository.approveAdjustment(tenantId, id, approvedBy);
     if (!adjustment) {
       throw new BadRequestException(
         "Adjustment not found or not in SUBMITTED status",
@@ -305,7 +306,8 @@ export class InventoryService {
     return adjustment;
   }
 
-  async getAdjustmentLines(adjustmentId: string): Promise<AdjustmentLine[]> {
+  async getAdjustmentLines(tenantId: string, adjustmentId: string): Promise<AdjustmentLine[]> {
+    await this.getAdjustment(tenantId, adjustmentId);
     return this.repository.getAdjustmentLines(adjustmentId);
   }
 
@@ -319,7 +321,7 @@ export class InventoryService {
       batchNo?: string;
     },
   ): Promise<AdjustmentLine> {
-    const adjustment = await this.getAdjustment(adjustmentId);
+    const adjustment = await this.getAdjustment(data.tenantId, adjustmentId);
     if (adjustment.status !== "DRAFT") {
       throw new BadRequestException("Can only add lines to DRAFT adjustments");
     }
@@ -348,10 +350,11 @@ export class InventoryService {
   }
 
   async removeAdjustmentLine(
+    tenantId: string,
     adjustmentId: string,
     lineId: string,
   ): Promise<void> {
-    const adjustment = await this.getAdjustment(adjustmentId);
+    const adjustment = await this.getAdjustment(tenantId, adjustmentId);
     if (adjustment.status !== "DRAFT") {
       throw new BadRequestException(
         "Can only remove lines from DRAFT adjustments",
@@ -360,8 +363,8 @@ export class InventoryService {
     await this.repository.deleteAdjustmentLine(lineId);
   }
 
-  async submitAdjustment(id: string): Promise<Adjustment> {
-    const adjustment = await this.getAdjustment(id);
+  async submitAdjustment(tenantId: string, id: string): Promise<Adjustment> {
+    const adjustment = await this.getAdjustment(tenantId, id);
     if (adjustment.status !== "DRAFT") {
       throw new BadRequestException("Only DRAFT adjustments can be submitted");
     }
@@ -372,14 +375,15 @@ export class InventoryService {
       );
     }
     const updated = await this.repository.updateAdjustmentStatus(
+      tenantId,
       id,
       "SUBMITTED",
     );
     return updated!;
   }
 
-  async postAdjustment(id: string, userId: string): Promise<Adjustment> {
-    const adjustment = await this.getAdjustment(id);
+  async postAdjustment(tenantId: string, id: string, userId: string): Promise<Adjustment> {
+    const adjustment = await this.getAdjustment(tenantId, id);
     if (adjustment.status !== "APPROVED") {
       throw new BadRequestException("Only APPROVED adjustments can be posted");
     }
@@ -409,7 +413,7 @@ export class InventoryService {
       });
     }
 
-    const updated = await this.repository.updateAdjustmentStatus(id, "POSTED");
+    const updated = await this.repository.updateAdjustmentStatus(tenantId, id, "POSTED");
     return updated!;
   }
 
@@ -537,16 +541,16 @@ export class InventoryService {
     return this.cycleCountRepo.create({ ...data, countNo });
   }
 
-  async deleteCycleCount(id: string): Promise<void> {
-    const cc = await this.cycleCountRepo.findById(id);
+  async deleteCycleCount(tenantId: string, id: string): Promise<void> {
+    const cc = await this.cycleCountRepo.findById(tenantId, id);
     if (!cc) throw new NotFoundException("Cycle count not found");
     if (cc.status !== "OPEN")
       throw new BadRequestException("Only OPEN cycle counts can be deleted");
-    await this.cycleCountRepo.deleteCycleCount(id);
+    await this.cycleCountRepo.deleteCycleCount(tenantId, id);
   }
 
-  async getCycleCount(id: string): Promise<CycleCountEntity> {
-    const cc = await this.cycleCountRepo.findById(id);
+  async getCycleCount(tenantId: string, id: string): Promise<CycleCountEntity> {
+    const cc = await this.cycleCountRepo.findById(tenantId, id);
     if (!cc) throw new NotFoundException("Cycle count not found");
     return cc;
   }
@@ -570,7 +574,7 @@ export class InventoryService {
     cycleCountId: string,
     data: { tenantId: string; binId: string; itemId: string },
   ): Promise<CycleCountLineEntity> {
-    const cc = await this.getCycleCount(cycleCountId);
+    const cc = await this.getCycleCount(data.tenantId, cycleCountId);
     if (cc.status !== "OPEN") {
       throw new BadRequestException("Can only add lines to OPEN cycle counts");
     }
@@ -595,7 +599,7 @@ export class InventoryService {
     cycleCountId: string,
     data: { tenantId: string; binId: string },
   ): Promise<{ count: number }> {
-    const cc = await this.getCycleCount(cycleCountId);
+    const cc = await this.getCycleCount(data.tenantId, cycleCountId);
     if (cc.status !== "OPEN") {
       throw new BadRequestException("Can only add lines to OPEN cycle counts");
     }
@@ -624,7 +628,7 @@ export class InventoryService {
     cycleCountId: string,
     tenantId: string,
   ): Promise<{ count: number }> {
-    const cc = await this.getCycleCount(cycleCountId);
+    const cc = await this.getCycleCount(tenantId, cycleCountId);
     if (cc.status !== "OPEN") {
       throw new BadRequestException("Can only add lines to OPEN cycle counts");
     }
@@ -650,16 +654,19 @@ export class InventoryService {
   }
 
   async getCycleCountLines(
+    tenantId: string,
     cycleCountId: string,
   ): Promise<CycleCountLineEntity[]> {
+    await this.getCycleCount(tenantId, cycleCountId);
     return this.cycleCountRepo.getLines(cycleCountId);
   }
 
   async removeCycleCountLine(
+    tenantId: string,
     cycleCountId: string,
     lineId: string,
   ): Promise<void> {
-    const cc = await this.getCycleCount(cycleCountId);
+    const cc = await this.getCycleCount(tenantId, cycleCountId);
     if (cc.status !== "OPEN") {
       throw new BadRequestException(
         "Can only remove lines from OPEN cycle counts",
@@ -668,8 +675,8 @@ export class InventoryService {
     await this.cycleCountRepo.deleteLine(lineId);
   }
 
-  async startCycleCount(id: string): Promise<CycleCountEntity> {
-    const cc = await this.getCycleCount(id);
+  async startCycleCount(tenantId: string, id: string): Promise<CycleCountEntity> {
+    const cc = await this.getCycleCount(tenantId, id);
     if (cc.status !== "OPEN") {
       throw new BadRequestException("Only OPEN cycle counts can be started");
     }
@@ -684,13 +691,14 @@ export class InventoryService {
   }
 
   async recordCount(
+    tenantId: string,
     lineId: string,
     data: { countedQty: number; countedBy: string },
   ): Promise<CycleCountLineEntity> {
     const line = await this.cycleCountRepo.getLine(lineId);
     if (!line) throw new NotFoundException("Cycle count line not found");
 
-    const cc = await this.getCycleCount(line.cycleCountId);
+    const cc = await this.getCycleCount(tenantId, line.cycleCountId);
     if (cc.status !== "IN_PROGRESS") {
       throw new BadRequestException(
         "Can only record counts on IN_PROGRESS cycle counts",
@@ -705,8 +713,8 @@ export class InventoryService {
     return updated!;
   }
 
-  async completeCycleCount(id: string): Promise<CycleCountEntity> {
-    const cc = await this.getCycleCount(id);
+  async completeCycleCount(tenantId: string, id: string): Promise<CycleCountEntity> {
+    const cc = await this.getCycleCount(tenantId, id);
     if (cc.status !== "IN_PROGRESS") {
       throw new BadRequestException(
         "Only IN_PROGRESS cycle counts can be completed",
@@ -727,10 +735,11 @@ export class InventoryService {
   }
 
   async generateAdjustmentFromCycleCount(
+    tenantId: string,
     id: string,
     userId: string,
   ): Promise<Adjustment> {
-    const cc = await this.getCycleCount(id);
+    const cc = await this.getCycleCount(tenantId, id);
     if (cc.status !== "PENDING_APPROVAL") {
       throw new BadRequestException(
         "Only PENDING_APPROVAL cycle counts can generate adjustments",
@@ -764,10 +773,11 @@ export class InventoryService {
   }
 
   async closeCycleCount(
+    tenantId: string,
     id: string,
     approvedBy: string,
   ): Promise<CycleCountEntity> {
-    const cc = await this.getCycleCount(id);
+    const cc = await this.getCycleCount(tenantId, id);
     if (cc.status !== "PENDING_APPROVAL") {
       throw new BadRequestException(
         "Only PENDING_APPROVAL cycle counts can be closed",
@@ -780,8 +790,8 @@ export class InventoryService {
     return updated!;
   }
 
-  async cancelCycleCount(id: string): Promise<CycleCountEntity> {
-    const cc = await this.getCycleCount(id);
+  async cancelCycleCount(tenantId: string, id: string): Promise<CycleCountEntity> {
+    const cc = await this.getCycleCount(tenantId, id);
     if (cc.status !== "OPEN" && cc.status !== "IN_PROGRESS") {
       throw new BadRequestException(
         "Only OPEN or IN_PROGRESS cycle counts can be cancelled",
@@ -796,7 +806,7 @@ export class InventoryService {
     grnId: string,
     tenantId: string,
   ): Promise<PutawayTaskDetail[]> {
-    const grn = await this.getGrn(grnId);
+    const grn = await this.getGrn(tenantId, grnId);
     if (grn.status !== "RECEIVED") {
       throw new BadRequestException(
         "GRN must be in RECEIVED status to generate putaway tasks",
@@ -817,7 +827,7 @@ export class InventoryService {
     }));
 
     await this.putawayRepo.createMany(tasks);
-    await this.repository.updateGrnStatus(grnId, "PUTAWAY_PENDING");
+    await this.repository.updateGrnStatus(tenantId, grnId, "PUTAWAY_PENDING");
 
     return this.putawayRepo.findByGrn(grnId);
   }
@@ -836,36 +846,39 @@ export class InventoryService {
     return buildPaginatedResult(data, total, page, limit);
   }
 
-  async getPutawayTask(id: string): Promise<PutawayTaskDetail> {
-    const task = await this.putawayRepo.findById(id);
+  async getPutawayTask(tenantId: string, id: string): Promise<PutawayTaskDetail> {
+    const task = await this.putawayRepo.findById(tenantId, id);
     if (!task) {
       throw new NotFoundException("Putaway task not found");
     }
     return task;
   }
 
-  async getPutawayTasksByGrn(grnId: string): Promise<PutawayTaskDetail[]> {
+  async getPutawayTasksByGrn(tenantId: string, grnId: string): Promise<PutawayTaskDetail[]> {
+    await this.getGrn(tenantId, grnId);
     return this.putawayRepo.findByGrn(grnId);
   }
 
   async assignPutawayTask(
+    tenantId: string,
     id: string,
     userId: string,
   ): Promise<PutawayTaskDetail> {
-    const task = await this.getPutawayTask(id);
+    const task = await this.getPutawayTask(tenantId, id);
     if (task.status !== "PENDING") {
       throw new BadRequestException("Only PENDING tasks can be assigned");
     }
     await this.putawayRepo.assignTask(id, userId);
-    return this.getPutawayTask(id);
+    return this.getPutawayTask(tenantId, id);
   }
 
   async completePutawayTask(
+    tenantId: string,
     id: string,
     toBinId: string,
     userId?: string,
   ): Promise<PutawayTaskDetail> {
-    const task = await this.getPutawayTask(id);
+    const task = await this.getPutawayTask(tenantId, id);
     if (task.status !== "PENDING" && task.status !== "ASSIGNED") {
       throw new BadRequestException(
         "Only PENDING or ASSIGNED tasks can be completed",
@@ -902,20 +915,20 @@ export class InventoryService {
     // Check if all tasks for this GRN are complete → auto-finalize
     const pendingCount = await this.putawayRepo.countPendingByGrn(task.grnId);
     if (pendingCount === 0) {
-      await this.repository.updateGrnStatus(task.grnId, "COMPLETE");
+      await this.repository.updateGrnStatus(task.tenantId, task.grnId, "COMPLETE");
     }
 
-    return this.getPutawayTask(id);
+    return this.getPutawayTask(tenantId, id);
   }
 
-  async cancelPutawayTask(id: string): Promise<PutawayTaskDetail> {
-    const task = await this.getPutawayTask(id);
+  async cancelPutawayTask(tenantId: string, id: string): Promise<PutawayTaskDetail> {
+    const task = await this.getPutawayTask(tenantId, id);
     if (task.status !== "PENDING" && task.status !== "ASSIGNED") {
       throw new BadRequestException(
         "Only PENDING or ASSIGNED tasks can be cancelled",
       );
     }
     await this.putawayRepo.cancelTask(id);
-    return this.getPutawayTask(id);
+    return this.getPutawayTask(tenantId, id);
   }
 }

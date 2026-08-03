@@ -66,8 +66,11 @@ export class AdjustmentsController {
   @Get(":id")
   @RequirePermissions("inventory.adjust")
   @ApiOperation({ summary: "Get adjustment by ID" })
-  async get(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.getAdjustment(id);
+  async get(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.getAdjustment(tenantId, id);
   }
 
   @Post()
@@ -88,8 +91,11 @@ export class AdjustmentsController {
   @Get(":id/lines")
   @RequirePermissions("inventory.adjust")
   @ApiOperation({ summary: "Get adjustment lines" })
-  async getLines(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.getAdjustmentLines(id);
+  async getLines(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.getAdjustmentLines(tenantId, id);
   }
 
   @Post(":id/lines")
@@ -107,45 +113,54 @@ export class AdjustmentsController {
   @RequirePermissions("inventory.adjust")
   @ApiOperation({ summary: "Remove adjustment line" })
   async removeLine(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @Param("lineId", UuidValidationPipe) lineId: string,
   ) {
-    await this.service.removeAdjustmentLine(id, lineId);
+    await this.service.removeAdjustmentLine(tenantId, id, lineId);
     return { success: true };
   }
 
   @Post(":id/submit")
   @RequirePermissions("inventory.adjust")
   @ApiOperation({ summary: "Submit adjustment for approval" })
-  async submit(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.submitAdjustment(id);
+  async submit(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.submitAdjustment(tenantId, id);
   }
 
   @Post(":id/approve")
   @RequirePermissions("inventory.adjust.approve")
   @ApiOperation({ summary: "Approve adjustment" })
   async approve(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.service.approveAdjustment(id, user.id);
+    return this.service.approveAdjustment(tenantId, id, user.id);
   }
 
   @Post(":id/post")
   @RequirePermissions("inventory.adjust.approve")
   @ApiOperation({ summary: "Post adjustment to stock" })
   async post(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.service.postAdjustment(id, user.id);
+    return this.service.postAdjustment(tenantId, id, user.id);
   }
 
   @Delete(":id")
   @RequirePermissions("inventory.adjust")
   @ApiOperation({ summary: "Delete adjustment (draft only)" })
-  async deleteAdjustment(@Param("id", UuidValidationPipe) id: string) {
-    await this.service.deleteAdjustment(id);
+  async deleteAdjustment(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    await this.service.deleteAdjustment(tenantId, id);
     return { success: true };
   }
 }

@@ -54,19 +54,19 @@ export class IbtService {
       createdBy: data.createdBy,
     });
 
-    return this.getIbt(ibt.id);
+    return this.getIbt(data.tenantId, ibt.id);
   }
 
-  async deleteIbt(id: string): Promise<void> {
-    const ibt = await this.ibtRepo.findById(id);
+  async deleteIbt(tenantId: string, id: string): Promise<void> {
+    const ibt = await this.ibtRepo.findById(tenantId, id);
     if (!ibt) throw new NotFoundException("IBT not found");
     if (ibt.status !== "DRAFT")
       throw new BadRequestException("Only DRAFT IBTs can be deleted");
-    await this.ibtRepo.deleteIbt(id);
+    await this.ibtRepo.deleteIbt(tenantId, id);
   }
 
-  async getIbt(id: string): Promise<IbtDetail> {
-    const ibt = await this.ibtRepo.findById(id);
+  async getIbt(tenantId: string, id: string): Promise<IbtDetail> {
+    const ibt = await this.ibtRepo.findById(tenantId, id);
     if (!ibt) throw new NotFoundException("IBT not found");
     return ibt;
   }
@@ -80,7 +80,8 @@ export class IbtService {
     return buildPaginatedResult(data, total, page, limit);
   }
 
-  async getLines(ibtId: string): Promise<IbtLineDetail[]> {
+  async getLines(tenantId: string, ibtId: string): Promise<IbtLineDetail[]> {
+    await this.getIbt(tenantId, ibtId);
     return this.ibtRepo.getLines(ibtId);
   }
 
@@ -94,7 +95,7 @@ export class IbtService {
       batchNo?: string;
     },
   ): Promise<IbtLineDetail[]> {
-    const ibt = await this.getIbt(ibtId);
+    const ibt = await this.getIbt(data.tenantId, ibtId);
     if (ibt.status !== "DRAFT") {
       throw new BadRequestException("Can only add lines to DRAFT IBTs");
     }
@@ -128,16 +129,16 @@ export class IbtService {
     return this.ibtRepo.getLines(ibtId);
   }
 
-  async removeLine(ibtId: string, lineId: string): Promise<void> {
-    const ibt = await this.getIbt(ibtId);
+  async removeLine(tenantId: string, ibtId: string, lineId: string): Promise<void> {
+    const ibt = await this.getIbt(tenantId, ibtId);
     if (ibt.status !== "DRAFT") {
       throw new BadRequestException("Can only remove lines from DRAFT IBTs");
     }
     await this.ibtRepo.deleteLine(lineId);
   }
 
-  async submitForApproval(id: string): Promise<IbtDetail> {
-    const ibt = await this.getIbt(id);
+  async submitForApproval(tenantId: string, id: string): Promise<IbtDetail> {
+    const ibt = await this.getIbt(tenantId, id);
     if (ibt.status !== "DRAFT") {
       throw new BadRequestException(
         "Only DRAFT IBTs can be submitted for approval",
@@ -150,11 +151,11 @@ export class IbtService {
     }
 
     await this.ibtRepo.updateStatus(id, "PENDING_APPROVAL");
-    return this.getIbt(id);
+    return this.getIbt(tenantId, id);
   }
 
-  async approve(id: string, userId: string): Promise<IbtDetail> {
-    const ibt = await this.getIbt(id);
+  async approve(tenantId: string, id: string, userId: string): Promise<IbtDetail> {
+    const ibt = await this.getIbt(tenantId, id);
     if (ibt.status !== "PENDING_APPROVAL") {
       throw new BadRequestException(
         "Only PENDING_APPROVAL IBTs can be approved",
@@ -165,25 +166,26 @@ export class IbtService {
       approvedBy: userId,
       approvedAt: new Date(),
     });
-    return this.getIbt(id);
+    return this.getIbt(tenantId, id);
   }
 
-  async startPicking(id: string): Promise<IbtDetail> {
-    const ibt = await this.getIbt(id);
+  async startPicking(tenantId: string, id: string): Promise<IbtDetail> {
+    const ibt = await this.getIbt(tenantId, id);
     if (ibt.status !== "APPROVED") {
       throw new BadRequestException("Only APPROVED IBTs can start picking");
     }
 
     await this.ibtRepo.updateStatus(id, "PICKING");
-    return this.getIbt(id);
+    return this.getIbt(tenantId, id);
   }
 
   async shipLines(
+    tenantId: string,
     id: string,
     lines: Array<{ lineId: string; qtyShipped: number }>,
     userId: string,
   ): Promise<IbtDetail> {
-    const ibt = await this.getIbt(id);
+    const ibt = await this.getIbt(tenantId, id);
     if (ibt.status !== "PICKING") {
       throw new BadRequestException("Only PICKING IBTs can be shipped");
     }
@@ -236,15 +238,16 @@ export class IbtService {
     await this.ibtRepo.updateStatus(id, "IN_TRANSIT", {
       shippedAt: new Date(),
     });
-    return this.getIbt(id);
+    return this.getIbt(tenantId, id);
   }
 
   async receiveLines(
+    tenantId: string,
     id: string,
     lines: Array<{ lineId: string; qtyReceived: number; toBinId: string }>,
     userId: string,
   ): Promise<IbtDetail> {
-    const ibt = await this.getIbt(id);
+    const ibt = await this.getIbt(tenantId, id);
     if (ibt.status !== "IN_TRANSIT") {
       throw new BadRequestException("Only IN_TRANSIT IBTs can be received");
     }
@@ -312,11 +315,11 @@ export class IbtService {
       });
     }
 
-    return this.getIbt(id);
+    return this.getIbt(tenantId, id);
   }
 
-  async cancel(id: string): Promise<IbtDetail> {
-    const ibt = await this.getIbt(id);
+  async cancel(tenantId: string, id: string): Promise<IbtDetail> {
+    const ibt = await this.getIbt(tenantId, id);
     if (!["DRAFT", "PENDING_APPROVAL"].includes(ibt.status)) {
       throw new BadRequestException(
         "Only DRAFT or PENDING_APPROVAL IBTs can be cancelled",
@@ -324,6 +327,6 @@ export class IbtService {
     }
 
     await this.ibtRepo.updateStatus(id, "CANCELLED");
-    return this.getIbt(id);
+    return this.getIbt(tenantId, id);
   }
 }

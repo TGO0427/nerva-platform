@@ -201,7 +201,7 @@ export class ImportShipmentsService {
         receivingBinId: data.binId,
         createdBy: user.id,
       });
-      await this.inventoryService.completeGrn(line.grnId);
+      await this.inventoryService.completeGrn(tenantId, line.grnId);
     }
 
     const updated = await this.repository.completeReceiving(shipmentId, lineId, tenantId, {

@@ -74,8 +74,11 @@ export interface IbtFilters {
 
 @Injectable()
 export class IbtRepository extends BaseRepository {
-  async deleteIbt(id: string): Promise<boolean> {
-    const count = await this.execute("DELETE FROM ibts WHERE id = $1", [id]);
+  async deleteIbt(tenantId: string, id: string): Promise<boolean> {
+    const count = await this.execute(
+      "DELETE FROM ibts WHERE id = $1 AND tenant_id = $2",
+      [id, tenantId],
+    );
     return count > 0;
   }
 
@@ -105,7 +108,7 @@ export class IbtRepository extends BaseRepository {
     return this.mapIbt(row!);
   }
 
-  async findById(id: string): Promise<IbtDetail | null> {
+  async findById(tenantId: string, id: string): Promise<IbtDetail | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT ibt.*,
               fw.name AS from_warehouse_name,
@@ -118,8 +121,8 @@ export class IbtRepository extends BaseRepository {
        JOIN warehouses tw ON tw.id = ibt.to_warehouse_id
        LEFT JOIN users uc ON uc.id = ibt.created_by
        LEFT JOIN users ua ON ua.id = ibt.approved_by
-       WHERE ibt.id = $1`,
-      [id],
+       WHERE ibt.id = $1 AND ibt.tenant_id = $2`,
+      [id, tenantId],
     );
     return row ? this.mapIbtDetail(row) : null;
   }

@@ -710,12 +710,12 @@ export class MasterDataService {
   }
 
   // Supplier Items (Products & Services)
-  async listSupplierItems(supplierId: string): Promise<SupplierItem[]> {
-    return this.repository.findSupplierItems(supplierId);
+  async listSupplierItems(tenantId: string, supplierId: string): Promise<SupplierItem[]> {
+    return this.repository.findSupplierItems(tenantId, supplierId);
   }
 
-  async getSupplierItem(id: string): Promise<SupplierItem> {
-    const item = await this.repository.findSupplierItemById(id);
+  async getSupplierItem(tenantId: string, id: string): Promise<SupplierItem> {
+    const item = await this.repository.findSupplierItemById(tenantId, id);
     if (!item) throw new NotFoundException("Supplier item not found");
     return item;
   }
@@ -734,6 +734,7 @@ export class MasterDataService {
   }
 
   async updateSupplierItem(
+    tenantId: string,
     id: string,
     data: Partial<{
       supplierSku: string;
@@ -744,23 +745,23 @@ export class MasterDataService {
       isActive: boolean;
     }>,
   ): Promise<SupplierItem> {
-    const item = await this.repository.updateSupplierItem(id, data);
+    const item = await this.repository.updateSupplierItem(tenantId, id, data);
     if (!item) throw new NotFoundException("Supplier item not found");
     return item;
   }
 
-  async deleteSupplierItem(id: string): Promise<void> {
-    const deleted = await this.repository.deleteSupplierItem(id);
+  async deleteSupplierItem(tenantId: string, id: string): Promise<void> {
+    const deleted = await this.repository.deleteSupplierItem(tenantId, id);
     if (!deleted) throw new NotFoundException("Supplier item not found");
   }
 
   // Supplier Contracts
-  async listSupplierContracts(supplierId: string): Promise<SupplierContract[]> {
-    return this.repository.findSupplierContracts(supplierId);
+  async listSupplierContracts(tenantId: string, supplierId: string): Promise<SupplierContract[]> {
+    return this.repository.findSupplierContracts(tenantId, supplierId);
   }
 
-  async getSupplierContract(id: string): Promise<SupplierContract> {
-    const contract = await this.repository.findSupplierContractById(id);
+  async getSupplierContract(tenantId: string, id: string): Promise<SupplierContract> {
+    const contract = await this.repository.findSupplierContractById(tenantId, id);
     if (!contract) throw new NotFoundException("Contract not found");
     return contract;
   }
@@ -781,6 +782,7 @@ export class MasterDataService {
   }
 
   async updateSupplierContract(
+    tenantId: string,
     id: string,
     data: Partial<{
       name: string;
@@ -791,7 +793,7 @@ export class MasterDataService {
       totalValue: number;
     }>,
   ): Promise<SupplierContract> {
-    const contract = await this.repository.updateSupplierContract(id, data);
+    const contract = await this.repository.updateSupplierContract(tenantId, id, data);
     if (!contract) throw new NotFoundException("Contract not found");
     return contract;
   }

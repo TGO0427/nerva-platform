@@ -49,35 +49,43 @@ export class PutawayController {
   @Get(":id")
   @RequirePermissions("putaway.execute")
   @ApiOperation({ summary: "Get putaway task" })
-  async get(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.getPutawayTask(id);
+  async get(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.getPutawayTask(tenantId, id);
   }
 
   @Post(":id/assign")
   @RequirePermissions("putaway.execute")
   @ApiOperation({ summary: "Assign putaway task" })
   async assign(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @Body("userId") userId: string,
   ) {
-    return this.service.assignPutawayTask(id, userId);
+    return this.service.assignPutawayTask(tenantId, id, userId);
   }
 
   @Post(":id/complete")
   @RequirePermissions("putaway.execute")
   @ApiOperation({ summary: "Complete putaway task" })
   async complete(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @Body("toBinId") toBinId: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.service.completePutawayTask(id, toBinId, user.id);
+    return this.service.completePutawayTask(tenantId, id, toBinId, user.id);
   }
 
   @Post(":id/cancel")
   @RequirePermissions("putaway.execute")
   @ApiOperation({ summary: "Cancel putaway task" })
-  async cancel(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.cancelPutawayTask(id);
+  async cancel(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.cancelPutawayTask(tenantId, id);
   }
 }

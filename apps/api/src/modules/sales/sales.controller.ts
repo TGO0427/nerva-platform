@@ -108,8 +108,11 @@ export class SalesController {
   @Get(":id")
   @RequirePermissions("sales_order.read")
   @ApiOperation({ summary: "Get sales order with lines" })
-  async get(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.getOrderWithLines(id);
+  async get(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.getOrderWithLines(tenantId, id);
   }
 
   @Get(":id/margin-estimate")
@@ -166,45 +169,61 @@ export class SalesController {
   @RequirePermissions("sales_order.edit")
   @ApiOperation({ summary: "Update sales order (draft only)" })
   async update(
+    @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,
     @Body() data: UpdateSalesOrderDto,
   ) {
-    return this.service.updateOrder(id, data);
+    return this.service.updateOrder(tenantId, id, data);
   }
 
   @Post(":id/confirm")
   @RequirePermissions("sales_order.edit")
   @ApiOperation({ summary: "Confirm sales order" })
-  async confirm(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.confirmOrder(id);
+  async confirm(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.confirmOrder(tenantId, id);
   }
 
   @Post(":id/allocate")
   @RequirePermissions("sales_order.allocate")
   @ApiOperation({ summary: "Allocate stock to order" })
-  async allocate(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.allocateOrder(id);
+  async allocate(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.allocateOrder(tenantId, id);
   }
 
   @Post(":id/cancel")
   @RequirePermissions("sales_order.cancel")
   @ApiOperation({ summary: "Cancel sales order" })
-  async cancel(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.cancelOrder(id);
+  async cancel(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.cancelOrder(tenantId, id);
   }
 
   @Post(":id/reopen")
   @RequirePermissions("sales_order.edit")
   @ApiOperation({ summary: "Reopen cancelled or delivered order" })
-  async reopen(@Param("id", UuidValidationPipe) id: string) {
-    return this.service.reopenOrder(id);
+  async reopen(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    return this.service.reopenOrder(tenantId, id);
   }
 
   @Delete(":id")
   @RequirePermissions("sales_order.delete")
   @ApiOperation({ summary: "Delete sales order (draft only)" })
-  async deleteOrder(@Param("id", UuidValidationPipe) id: string) {
-    await this.service.deleteOrder(id);
+  async deleteOrder(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+  ) {
+    await this.service.deleteOrder(tenantId, id);
     return { success: true };
   }
 }
