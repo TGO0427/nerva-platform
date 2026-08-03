@@ -20,7 +20,10 @@ export interface PickTask {
   salesOrderLineId: string;
   reservationId: string | null;
   itemId: string;
+  itemSku?: string;
+  itemDescription?: string | null;
   fromBinId: string;
+  fromBinCode?: string;
   qtyToPick: number;
   qtyPicked: number;
   status: string;
@@ -149,7 +152,12 @@ export class FulfilmentRepository extends BaseRepository {
 
   async findPickTasksByWave(waveId: string): Promise<PickTask[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      "SELECT * FROM pick_tasks WHERE pick_wave_id = $1 ORDER BY from_bin_id, item_id",
+      `SELECT pt.*, i.sku as item_sku, i.description as item_description, b.code as bin_code
+       FROM pick_tasks pt
+       JOIN items i ON i.id = pt.item_id
+       JOIN bins b ON b.id = pt.from_bin_id
+       WHERE pt.pick_wave_id = $1
+       ORDER BY pt.from_bin_id, pt.item_id`,
       [waveId],
     );
     return rows.map(this.mapPickTask);
@@ -159,15 +167,19 @@ export class FulfilmentRepository extends BaseRepository {
     userId: string,
     status?: string,
   ): Promise<PickTask[]> {
-    let sql = "SELECT * FROM pick_tasks WHERE assigned_to = $1";
+    let sql = `SELECT pt.*, i.sku as item_sku, i.description as item_description, b.code as bin_code
+       FROM pick_tasks pt
+       JOIN items i ON i.id = pt.item_id
+       JOIN bins b ON b.id = pt.from_bin_id
+       WHERE pt.assigned_to = $1`;
     const params: unknown[] = [userId];
 
     if (status) {
-      sql += " AND status = $2";
+      sql += " AND pt.status = $2";
       params.push(status);
     }
 
-    sql += " ORDER BY created_at";
+    sql += " ORDER BY pt.created_at";
     const rows = await this.queryMany<Record<string, unknown>>(sql, params);
     return rows.map(this.mapPickTask);
   }
@@ -546,7 +558,10 @@ export class FulfilmentRepository extends BaseRepository {
       salesOrderLineId: row.sales_order_line_id as string,
       reservationId: row.reservation_id as string | null,
       itemId: row.item_id as string,
+      itemSku: row.item_sku as string | undefined,
+      itemDescription: row.item_description as string | null | undefined,
       fromBinId: row.from_bin_id as string,
+      fromBinCode: row.bin_code as string | undefined,
       qtyToPick: parseFloat(row.qty_to_pick as string),
       qtyPicked: parseFloat(row.qty_picked as string),
       status: row.status as string,

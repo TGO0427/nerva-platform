@@ -19,6 +19,10 @@ export interface PickWave {
   updatedAt: string;
 }
 
+export interface CreatePickWaveResult extends PickWave {
+  warnings: { orderId: string; orderNo: string; reason: string }[];
+}
+
 export interface PickTask {
   id: string;
   tenantId: string;
@@ -139,7 +143,7 @@ export function useCreatePickWave() {
 
   return useMutation({
     mutationFn: async (data: { warehouseId: string; orderIds: string[] }) => {
-      const response = await api.post<PickWave>('/fulfilment/pick-waves', data);
+      const response = await api.post<CreatePickWaveResult>('/fulfilment/pick-waves', data);
       return response.data;
     },
     onSuccess: () => {

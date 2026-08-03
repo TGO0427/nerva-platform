@@ -250,6 +250,10 @@ export default function PickWaveDetailPage() {
   };
 
   const handlePrintPickSlip = async () => {
+    if (totalTasks === 0) {
+      addToast('This wave has no pick tasks yet.', 'warning');
+      return;
+    }
     try {
       const response = await api.get(`/fulfilment/pick-waves/${waveId}/pick-slip`, {
         responseType: 'blob',

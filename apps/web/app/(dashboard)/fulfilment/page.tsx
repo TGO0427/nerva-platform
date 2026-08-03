@@ -137,7 +137,14 @@ export default function FulfilmentPage() {
         orderIds: Array.from(selectedOrders),
       });
       setSelectedOrders(new Set());
-      addToast('Pick wave created', 'success');
+      if (wave.warnings && wave.warnings.length > 0) {
+        addToast(
+          wave.warnings.map(w => `${w.orderNo}: ${w.reason}`).join(' | '),
+          'warning',
+        );
+      } else {
+        addToast('Pick wave created', 'success');
+      }
       router.push(`/fulfilment/pick-waves/${wave.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create pick wave');

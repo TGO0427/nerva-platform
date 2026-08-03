@@ -29,7 +29,7 @@ export class FulfilmentService {
     warehouseId: string;
     orderIds: string[];
     createdBy?: string;
-  }): Promise<PickWave> {
+  }): Promise<PickWave & { warnings: { orderId: string; orderNo: string; reason: string }[] }> {
     const waveNo = await this.repository.generateWaveNo(data.tenantId);
     const wave = await this.repository.createPickWave({
       tenantId: data.tenantId,
@@ -38,13 +38,22 @@ export class FulfilmentService {
       createdBy: data.createdBy,
     });
 
+    const warnings: { orderId: string; orderNo: string; reason: string }[] = [];
+
     // Create pick tasks for each order
     for (const orderId of data.orderIds) {
       const orderData = await this.salesService.getOrderWithLines(data.tenantId, orderId);
 
       if (orderData.status !== "ALLOCATED") {
+        warnings.push({
+          orderId,
+          orderNo: orderData.orderNo,
+          reason: "Order is not allocated — no pick tasks were created",
+        });
         continue; // Skip non-allocated orders
       }
+
+      let orderShort = false;
 
       for (const line of orderData.lines) {
         if (line.qtyAllocated > line.qtyPicked) {
@@ -81,6 +90,7 @@ export class FulfilmentService {
 
           // Log warning if we couldn't allocate all qty
           if (remaining > 0) {
+            orderShort = true;
             console.warn(
               `Could not allocate full qty for order line ${line.id}: ${remaining} units remaining`,
             );
@@ -88,11 +98,19 @@ export class FulfilmentService {
         }
       }
 
+      if (orderShort) {
+        warnings.push({
+          orderId,
+          orderNo: orderData.orderNo,
+          reason: "Insufficient stock — some quantity could not be picked",
+        });
+      }
+
       // Update order status to PICKING
       await this.salesService.updateOrderStatus(data.tenantId, orderId, "PICKING");
     }
 
-    return wave;
+    return { ...wave, warnings };
   }
 
   // Get allocated orders ready for picking
