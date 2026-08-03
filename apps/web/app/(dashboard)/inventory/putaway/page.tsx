@@ -240,7 +240,7 @@ export default function PutawayPage() {
     },
   ];
 
-  const totalPages = data ? Math.ceil(data.total / limit) : 0;
+  const totalPages = data?.meta?.totalPages || 0;
   const activeFilterLabels = [
     statusFilter ? `Status: ${STATUS_TABS.find((tab) => tab.value === statusFilter)?.label ?? statusFilter}` : null,
     warehouseFilter ? `Warehouse: ${warehouses?.find((warehouse) => warehouse.id === warehouseFilter)?.name ?? warehouseFilter}` : null,
@@ -368,10 +368,10 @@ export default function PutawayPage() {
         </CardContent>
       </Card>
 
-      {data && data.total > 0 && (
+      {data && data.meta.total > 0 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-slate-500">
-            Page {page} of {totalPages} ({data.total} total)
+            Page {page} of {totalPages} ({data.meta.total} total)
           </p>
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>

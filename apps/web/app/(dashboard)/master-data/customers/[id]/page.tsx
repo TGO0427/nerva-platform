@@ -79,9 +79,6 @@ export default function CustomerDetailPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold">{customer.name}</h1>
-            <p className="text-blue-100 text-sm mt-1">
-              Dashboard &gt; Customers &gt; {customer.name}
-            </p>
           </div>
           <div className="flex gap-2">
             <Button

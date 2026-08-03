@@ -764,7 +764,10 @@ export function usePutawayTasks(params: {
       if (params.status) query.set('status', params.status);
       if (params.warehouseId) query.set('warehouseId', params.warehouseId);
       if (params.assignedTo) query.set('assignedTo', params.assignedTo);
-      const { data } = await api.get<{ data: PutawayTaskDetail[]; total: number }>(`/inventory/putaway?${query.toString()}`);
+      const { data } = await api.get<{
+        data: PutawayTaskDetail[];
+        meta: { page: number; limit: number; total: number; totalPages: number; hasNext: boolean; hasPrev: boolean };
+      }>(`/inventory/putaway?${query.toString()}`);
       return data;
     },
   });

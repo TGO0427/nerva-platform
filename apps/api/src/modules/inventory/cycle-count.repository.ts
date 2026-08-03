@@ -117,6 +117,30 @@ export class CycleCountRepository extends BaseRepository {
     return rows.map((row) => this.mapCycleCount(row));
   }
 
+  async countByTenant(
+    tenantId: string,
+    status?: string,
+    search?: string,
+  ): Promise<number> {
+    let sql = `SELECT COUNT(*)::int AS total
+      FROM cycle_counts cc
+      LEFT JOIN warehouses w ON w.id = cc.warehouse_id
+      WHERE cc.tenant_id = $1`;
+    const params: unknown[] = [tenantId];
+
+    if (status) {
+      params.push(status);
+      sql += ` AND cc.status = $${params.length}`;
+    }
+    if (search) {
+      params.push(`%${search}%`);
+      sql += ` AND (cc.count_no ILIKE $${params.length} OR w.name ILIKE $${params.length})`;
+    }
+
+    const row = await this.queryOne<Record<string, unknown>>(sql, params);
+    return (row?.total as number) || 0;
+  }
+
   async updateStatus(
     id: string,
     status: string,

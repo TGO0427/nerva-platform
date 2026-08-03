@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { BaseRepository } from "../../common/db/base.repository";
 
 export interface Item {
@@ -3624,7 +3624,7 @@ export class MasterDataRepository extends BaseRepository {
         data.link || null,
       ],
     );
-    if (!row) throw new Error("Failed to create notification");
+    if (!row) throw new InternalServerErrorException("Failed to create notification");
     return this.mapNotification(row);
   }
 

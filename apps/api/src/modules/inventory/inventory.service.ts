@@ -559,14 +559,11 @@ export class InventoryService {
     search?: string,
   ) {
     const offset = (page - 1) * limit;
-    const data = await this.cycleCountRepo.findByTenant(
-      tenantId,
-      status,
-      limit,
-      offset,
-      search,
-    );
-    return { data, meta: { page, limit } };
+    const [data, total] = await Promise.all([
+      this.cycleCountRepo.findByTenant(tenantId, status, limit, offset, search),
+      this.cycleCountRepo.countByTenant(tenantId, status, search),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async addCycleCountLine(
@@ -830,13 +827,13 @@ export class InventoryService {
     filters: PutawayFilters,
     page = 1,
     limit = 25,
-  ): Promise<{ data: PutawayTaskDetail[]; total: number }> {
+  ) {
     const offset = (page - 1) * limit;
     const [data, total] = await Promise.all([
       this.putawayRepo.findByTenant(tenantId, filters, limit, offset),
       this.putawayRepo.countByTenant(tenantId, filters),
     ]);
-    return { data, total };
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async getPutawayTask(id: string): Promise<PutawayTaskDetail> {

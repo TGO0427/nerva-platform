@@ -95,9 +95,6 @@ export default function SupplierDetailPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold">{supplier.name}</h1>
-            <p className="text-green-100 text-sm mt-1">
-              Dashboard &gt; Suppliers &gt; {supplier.name}
-            </p>
           </div>
           <div className="flex gap-2">
             <Button
