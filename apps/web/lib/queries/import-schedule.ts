@@ -5,11 +5,22 @@ import type {
   ImportShipmentLineRow,
   ImportShipmentStatus,
   ImportShipmentTransportMode,
+  InboundForecast,
   PaginatedResult,
 } from '@nerva/shared';
 import type { QueryParams } from './use-query-params';
 
 const SHIPMENTS_KEY = 'import-shipments';
+
+export function useInboundForecast() {
+  return useQuery({
+    queryKey: [SHIPMENTS_KEY, 'inbound-forecast'],
+    queryFn: async () => {
+      const response = await api.get<InboundForecast[]>('/import-shipments/inbound-forecast');
+      return response.data;
+    },
+  });
+}
 
 interface ImportShipmentFilters {
   status?: ImportShipmentStatus;

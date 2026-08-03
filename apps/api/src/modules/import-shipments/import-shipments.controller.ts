@@ -58,6 +58,13 @@ export class ImportShipmentsController {
     );
   }
 
+  @Get("inbound-forecast")
+  @RequirePermissions("import_shipment.read")
+  @ApiOperation({ summary: "Get 7/14/30-day inbound pallet forecast per warehouse" })
+  async getInboundForecast(@TenantId() tenantId: string) {
+    return this.service.getInboundForecastByWarehouse(tenantId);
+  }
+
   @Get(":id")
   @RequirePermissions("import_shipment.read")
   @ApiOperation({ summary: "Get import shipment with lines" })

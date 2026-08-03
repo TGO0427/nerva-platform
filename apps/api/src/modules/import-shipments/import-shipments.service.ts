@@ -5,12 +5,13 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
-import { ALL_IMPORT_SHIPMENT_STATUSES, INSPECTION_FAILURE_REASONS } from "@nerva/shared";
+import { ALL_IMPORT_SHIPMENT_STATUSES, IN_TRANSIT_STATUSES, INSPECTION_FAILURE_REASONS } from "@nerva/shared";
 import {
   ImportShipmentsRepository,
   ImportShipmentDetail,
   ImportShipmentLineInput,
   ImportShipmentLineRow,
+  InboundForecastRow,
 } from "./import-shipments.repository";
 import { buildPaginatedResult, normalizePagination } from "../../common/utils/pagination";
 import { InventoryService } from "../inventory/inventory.service";
@@ -232,5 +233,9 @@ export class ImportShipmentsService {
   async delete(id: string, tenantId: string): Promise<void> {
     await this.get(id, tenantId);
     await this.repository.delete(id, tenantId);
+  }
+
+  async getInboundForecastByWarehouse(tenantId: string): Promise<InboundForecastRow[]> {
+    return this.repository.getInboundForecastByWarehouse(tenantId, IN_TRANSIT_STATUSES);
   }
 }

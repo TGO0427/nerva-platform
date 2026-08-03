@@ -316,6 +316,13 @@ export interface ZoneCapacity {
   utilizationPct: number;
 }
 
+export interface InboundForecast {
+  warehouseId: string | null;
+  due7d: number;
+  due14d: number;
+  due30d: number;
+}
+
 // Adjustments
 export interface Adjustment {
   id: string;

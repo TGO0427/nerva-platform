@@ -58,6 +58,13 @@ export type ImportShipmentDetail = ImportShipmentHeaderRow & {
   lines: ImportShipmentLineRow[];
 };
 
+export interface InboundForecastRow {
+  warehouseId: string | null;
+  due7d: number;
+  due14d: number;
+  due30d: number;
+}
+
 export type FlattenedImportShipmentLine = ImportShipmentLineRow & {
   reference: string;
   supplierId: string;
@@ -535,6 +542,33 @@ export class ImportShipmentsRepository extends BaseRepository {
       [id, tenantId],
     );
     return count > 0;
+  }
+
+  async getInboundForecastByWarehouse(
+    tenantId: string,
+    eligibleStatuses: string[],
+  ): Promise<InboundForecastRow[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT
+        po.ship_to_warehouse_id AS warehouse_id,
+        COALESCE(SUM(isl.pallet_qty) FILTER (WHERE isl.week_start_date <= CURRENT_DATE + 7), 0) AS due_7d,
+        COALESCE(SUM(isl.pallet_qty) FILTER (WHERE isl.week_start_date <= CURRENT_DATE + 14), 0) AS due_14d,
+        COALESCE(SUM(isl.pallet_qty) FILTER (WHERE isl.week_start_date <= CURRENT_DATE + 30), 0) AS due_30d
+       FROM import_shipment_lines isl
+       JOIN import_shipments ish ON ish.id = isl.import_shipment_id
+       LEFT JOIN purchase_orders po ON po.id = ish.purchase_order_id
+       WHERE isl.tenant_id = $1
+         AND isl.status = ANY($2)
+         AND isl.week_start_date IS NOT NULL
+       GROUP BY po.ship_to_warehouse_id`,
+      [tenantId, eligibleStatuses],
+    );
+    return rows.map((row) => ({
+      warehouseId: (row.warehouse_id as string) || null,
+      due7d: Number(row.due_7d) || 0,
+      due14d: Number(row.due_14d) || 0,
+      due30d: Number(row.due_30d) || 0,
+    }));
   }
 
   private mapDetail(
