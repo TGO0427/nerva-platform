@@ -10,7 +10,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useItem, useDeleteItem } from '@/lib/queries';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatQuantity } from '@/lib/format';
 
 export default function ItemDetailPage() {
   const params = useParams();
@@ -109,7 +109,7 @@ export default function ItemDetailPage() {
               </div>
               <div>
                 <div className="text-sm font-medium text-slate-500">Weight</div>
-                <div className="mt-1">{item.weightKg !== null ? `${item.weightKg} kg` : '-'}</div>
+                <div className="mt-1">{item.weightKg !== null ? `${formatQuantity(item.weightKg)} kg` : '-'}</div>
               </div>
               <div>
                 <div className="text-sm font-medium text-slate-500">Status</div>
