@@ -94,8 +94,10 @@ function formatRelativeTime(dateStr: string | null): string {
 const BOARD_COLUMNS = [
   { status: 'PLANNED' as TripStatus, label: 'Planned', color: 'bg-surface-secondary dark:bg-surface-dark-secondary' },
   { status: 'ASSIGNED' as TripStatus, label: 'Assigned', color: 'bg-blue-50' },
+  { status: 'LOADING' as TripStatus, label: 'Loading', color: 'bg-orange-50' },
   { status: 'IN_PROGRESS' as TripStatus, label: 'In Progress', color: 'bg-yellow-50' },
   { status: 'COMPLETE' as TripStatus, label: 'Completed', color: 'bg-green-50' },
+  { status: 'CANCELLED' as TripStatus, label: 'Cancelled', color: 'bg-red-50' },
 ];
 
 export default function DispatchPage() {
@@ -109,6 +111,7 @@ export default function DispatchPage() {
   const [status, setStatus] = useState<TripStatus | ''>('');
   const [date, setDate] = useState('');
   const [search, setSearch] = useState('');
+  const [showAll, setShowAll] = useState(false);
   const [selectedShipments, setSelectedShipments] = useState<Set<string>>(new Set());
   const [plannedDate, setPlannedDate] = useState('');
   const [error, setError] = useState('');
@@ -148,6 +151,7 @@ export default function DispatchPage() {
     status: status || undefined,
     date: date || undefined,
     search: search || undefined,
+    showAll,
   });
 
   const { data: readyShipments, isLoading: shipmentsLoading, refetch: refetchShipments } = useReadyForDispatchShipments();
@@ -740,6 +744,15 @@ export default function DispatchPage() {
               onChange={(e) => setDate(e.target.value)}
               className="w-48"
             />
+            <label className="flex items-center gap-1.5 text-sm text-text-secondary dark:text-text-dark-secondary whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={showAll}
+                onChange={(e) => setShowAll(e.target.checked)}
+                className="h-4 w-4 rounded border-surface-border dark:border-surface-dark-border text-primary-600 focus:ring-primary-500"
+              />
+              Show trips older than 30 days
+            </label>
             {(status || date || search) && (
               <Button
                 variant="ghost"
@@ -808,6 +821,18 @@ export default function DispatchPage() {
       )}
 
       {activeTab === 'trips' && viewMode === 'board' && (
+        <>
+          <div className="flex items-center justify-end mb-3">
+            <label className="flex items-center gap-1.5 text-sm text-text-secondary dark:text-text-dark-secondary whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={showAll}
+                onChange={(e) => setShowAll(e.target.checked)}
+                className="h-4 w-4 rounded border-surface-border dark:border-surface-dark-border text-primary-600 focus:ring-primary-500"
+              />
+              Show trips older than 30 days
+            </label>
+          </div>
         <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2">
           {BOARD_COLUMNS.map((column) => (
             <div key={column.status} className="flex-shrink-0 w-72">
@@ -902,6 +927,7 @@ export default function DispatchPage() {
             </div>
           ))}
         </div>
+        </>
       )}
 
       {activeTab === 'ready-shipments' && (

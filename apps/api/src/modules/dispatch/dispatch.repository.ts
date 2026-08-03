@@ -115,6 +115,7 @@ export class DispatchRepository extends BaseRepository {
       driverId?: string;
       date?: Date;
       search?: string;
+      sinceDate?: Date | null;
     },
     limit = 50,
     offset = 0,
@@ -140,6 +141,10 @@ export class DispatchRepository extends BaseRepository {
       params.push(`%${filters.search}%`);
       idx++;
     }
+    if (filters.sinceDate) {
+      sql += ` AND (status IN ('COMPLETE', 'CANCELLED') OR created_at >= $${idx++})`;
+      params.push(filters.sinceDate);
+    }
 
     sql += ` ORDER BY planned_date DESC, created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
     params.push(limit, offset);
@@ -155,6 +160,7 @@ export class DispatchRepository extends BaseRepository {
       driverId?: string;
       date?: Date;
       search?: string;
+      sinceDate?: Date | null;
     },
   ): Promise<number> {
     let sql =
@@ -178,6 +184,10 @@ export class DispatchRepository extends BaseRepository {
       sql += ` AND (trip_no ILIKE $${idx} OR vehicle_reg ILIKE $${idx} OR driver_name ILIKE $${idx})`;
       params.push(`%${filters.search}%`);
       idx++;
+    }
+    if (filters.sinceDate) {
+      sql += ` AND (status IN ('COMPLETE', 'CANCELLED') OR created_at >= $${idx++})`;
+      params.push(filters.sinceDate);
     }
 
     const result = await this.queryOne<{ count: string }>(sql, params);

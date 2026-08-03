@@ -218,14 +218,23 @@ export class DispatchService {
       driverId?: string;
       date?: Date;
       search?: string;
+      showAll?: boolean;
     },
     page = 1,
     limit = 50,
   ) {
     const offset = (page - 1) * limit;
+    // Non-terminal trips (planned/assigned/loading/in progress) default to a
+    // 30-day window so long-stuck trips don't clutter the board forever;
+    // completed/cancelled trips are unaffected regardless. showAll removes
+    // the cutoff entirely.
+    const sinceDate = filters.showAll
+      ? null
+      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const queryFilters = { ...filters, sinceDate };
     const [data, total] = await Promise.all([
-      this.repository.findTripsByTenant(tenantId, filters, limit, offset),
-      this.repository.countTripsByTenant(tenantId, filters),
+      this.repository.findTripsByTenant(tenantId, queryFilters, limit, offset),
+      this.repository.countTripsByTenant(tenantId, queryFilters),
     ]);
     return buildPaginatedResult(data, total, page, limit);
   }

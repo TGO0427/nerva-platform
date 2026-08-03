@@ -69,7 +69,7 @@ export interface Driver {
 }
 
 // Trip queries
-export function useTrips(params: QueryParams & { status?: TripStatus; date?: string; search?: string }) {
+export function useTrips(params: QueryParams & { status?: TripStatus; date?: string; search?: string; showAll?: boolean }) {
   return useQuery({
     queryKey: [TRIPS_KEY, params],
     queryFn: async () => {
@@ -79,6 +79,7 @@ export function useTrips(params: QueryParams & { status?: TripStatus; date?: str
       if (params.status) searchParams.set('status', params.status);
       if (params.date) searchParams.set('date', params.date);
       if (params.search) searchParams.set('search', params.search);
+      if (params.showAll) searchParams.set('showAll', 'true');
 
       const response = await api.get<PaginatedResult<Trip>>(
         `/dispatch/trips?${searchParams.toString()}`
@@ -107,6 +108,26 @@ export function useTripStops(tripId: string | undefined) {
       return response.data;
     },
     enabled: !!tripId,
+  });
+}
+
+export function useVehicles() {
+  return useQuery({
+    queryKey: ['dispatch-vehicles'],
+    queryFn: async () => {
+      const response = await api.get<Vehicle[]>('/dispatch/vehicles');
+      return response.data;
+    },
+  });
+}
+
+export function useDrivers() {
+  return useQuery({
+    queryKey: ['dispatch-drivers'],
+    queryFn: async () => {
+      const response = await api.get<Driver[]>('/dispatch/drivers');
+      return response.data;
+    },
   });
 }
 

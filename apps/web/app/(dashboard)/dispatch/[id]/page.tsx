@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast';
 import { useCopy } from '@/lib/hooks/use-copy';
 import { Drawer, StopsProgress } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { formatDate, formatDateTime, formatTime } from '@/lib/format';
 import {
   useTrip,
@@ -28,6 +29,8 @@ import {
   useCompleteStop,
   useFailStop,
   useSkipStop,
+  useVehicles,
+  useDrivers,
   TripStop,
 } from '@/lib/queries';
 import type { TripStatus, StopStatus } from '@nerva/shared';
@@ -69,6 +72,8 @@ export default function TripDetailPage() {
   const startTrip = useStartTrip();
   const completeTrip = useCompleteTrip();
   const cancelTrip = useCancelTrip();
+  const { data: vehicles } = useVehicles();
+  const { data: drivers } = useDrivers();
 
   // Stop mutations
   const arriveAtStop = useArriveAtStop();
@@ -76,8 +81,8 @@ export default function TripDetailPage() {
   const failStop = useFailStop();
   const skipStop = useSkipStop();
 
-  const [selectedVehicle, setSelectedVehicle] = useState('');
-  const [selectedDriver, setSelectedDriver] = useState('');
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [selectedDriverId, setSelectedDriverId] = useState('');
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
@@ -308,15 +313,19 @@ export default function TripDetailPage() {
   ];
 
   const handleAssign = async () => {
-    if (!selectedVehicle || !selectedDriver) {
-      addToast('Please enter both vehicle and driver', 'error');
+    if (!selectedVehicleId || !selectedDriverId) {
+      addToast('Please select both a vehicle and a driver', 'error');
       return;
     }
+    const vehicle = vehicles?.find((v) => v.id === selectedVehicleId);
+    const driver = drivers?.find((d) => d.id === selectedDriverId);
     try {
       await assignTrip.mutateAsync({
         tripId,
-        vehiclePlate: selectedVehicle,
-        driverName: selectedDriver,
+        vehicleId: selectedVehicleId,
+        driverId: selectedDriverId,
+        vehiclePlate: vehicle?.plateNo,
+        driverName: driver?.name,
       });
       setShowAssignForm(false);
       addToast('Trip assigned successfully', 'success');
@@ -513,20 +522,22 @@ export default function TripDetailPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Vehicle *
                 </label>
-                <Input
-                  value={selectedVehicle}
-                  onChange={(e) => setSelectedVehicle(e.target.value)}
-                  placeholder="Enter vehicle plate number..."
+                <Select
+                  value={selectedVehicleId}
+                  onChange={(e) => setSelectedVehicleId(e.target.value)}
+                  options={(vehicles || []).map((v) => ({ value: v.id, label: v.plateNo }))}
+                  placeholder="Select a vehicle..."
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Driver *
                 </label>
-                <Input
-                  value={selectedDriver}
-                  onChange={(e) => setSelectedDriver(e.target.value)}
-                  placeholder="Enter driver name..."
+                <Select
+                  value={selectedDriverId}
+                  onChange={(e) => setSelectedDriverId(e.target.value)}
+                  options={(drivers || []).map((d) => ({ value: d.id, label: d.name }))}
+                  placeholder="Select a driver..."
                 />
               </div>
             </div>

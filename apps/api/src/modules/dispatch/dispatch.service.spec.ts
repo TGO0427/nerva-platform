@@ -197,9 +197,63 @@ describe("DispatchService", () => {
       expect(result.meta.limit).toBe(10);
       expect(repository.findTripsByTenant).toHaveBeenCalledWith(
         "tenant-123",
-        {},
+        { sinceDate: expect.any(Date) },
         10,
         0,
+      );
+    });
+
+    it("should default to a 30-day sinceDate cutoff when showAll is not set", async () => {
+      repository.findTripsByTenant.mockResolvedValue([mockTrip]);
+      repository.countTripsByTenant.mockResolvedValue(1);
+
+      await service.listTrips("tenant-123", {}, 1, 10);
+
+      const [, filters] = repository.findTripsByTenant.mock.calls[0];
+      const expectedCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      expect(filters.sinceDate).toBeInstanceOf(Date);
+      expect(
+        Math.abs(filters.sinceDate!.getTime() - expectedCutoff),
+      ).toBeLessThan(5000);
+
+      const [, countFilters] = repository.countTripsByTenant.mock.calls[0];
+      expect(countFilters.sinceDate).toEqual(filters.sinceDate);
+    });
+
+    it("should pass a null sinceDate when showAll is true", async () => {
+      repository.findTripsByTenant.mockResolvedValue([mockTrip]);
+      repository.countTripsByTenant.mockResolvedValue(1);
+
+      await service.listTrips("tenant-123", { showAll: true }, 1, 10);
+
+      expect(repository.findTripsByTenant).toHaveBeenCalledWith(
+        "tenant-123",
+        { showAll: true, sinceDate: null },
+        10,
+        0,
+      );
+      expect(repository.countTripsByTenant).toHaveBeenCalledWith(
+        "tenant-123",
+        { showAll: true, sinceDate: null },
+      );
+    });
+
+    it("should preserve other filters alongside sinceDate", async () => {
+      repository.findTripsByTenant.mockResolvedValue([mockTrip]);
+      repository.countTripsByTenant.mockResolvedValue(1);
+
+      await service.listTrips(
+        "tenant-123",
+        { status: "PLANNED", search: "abc" },
+        2,
+        20,
+      );
+
+      expect(repository.findTripsByTenant).toHaveBeenCalledWith(
+        "tenant-123",
+        { status: "PLANNED", search: "abc", sinceDate: expect.any(Date) },
+        20,
+        20,
       );
     });
   });
