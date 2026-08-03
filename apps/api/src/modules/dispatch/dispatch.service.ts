@@ -363,6 +363,12 @@ export class DispatchService {
       );
     }
 
+    // Keep the completed-stops counter in sync with actual stop statuses --
+    // force-completing otherwise leaves it frozen at whatever it was before
+    // (e.g. showing "0/1" next to a COMPLETE trip that skipped its only stop).
+    const completedCount = stops.filter((s) => s.status === "DELIVERED").length;
+    await this.repository.updateTripCompletedStops(tripId, completedCount);
+
     const updated = await this.repository.updateTripStatus(tripId, "COMPLETE");
     await this.auditService.log({
       tenantId: updated!.tenantId,

@@ -342,6 +342,10 @@ describe("DispatchService", () => {
       const result = await service.completeTrip("trip-123");
 
       expect(result.status).toBe("COMPLETE");
+      expect(repository.updateTripCompletedStops).toHaveBeenCalledWith(
+        "trip-123",
+        1,
+      );
     });
 
     it("should throw BadRequestException with pending stops", async () => {
@@ -371,6 +375,12 @@ describe("DispatchService", () => {
       expect(repository.updateStopStatus).toHaveBeenCalledWith(
         "stop-123",
         "SKIPPED",
+      );
+      // The only stop was force-skipped (not delivered), so the completed-stops
+      // counter must reflect 0 delivered -- not be left stale from before.
+      expect(repository.updateTripCompletedStops).toHaveBeenCalledWith(
+        "trip-123",
+        0,
       );
     });
 
