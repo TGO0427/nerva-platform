@@ -170,77 +170,69 @@ export default function InvoiceDetailPage() {
       <Breadcrumbs />
 
       {/* Header */}
-      <div className="bg-indigo-700 text-white p-6 rounded-lg mb-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{invoice.invoiceNo}</h1>
-              <Badge
-                variant={getStatusVariant(invoice.status)}
-                className="text-white bg-opacity-30"
-              >
-                {formatStatus(invoice.status)}
-              </Badge>
-            </div>
-            <p className="text-indigo-100 text-sm mt-1">
-              {invoice.customerName}
-              {invoice.orderNo && (
-                <span className="ml-2">
-                  &middot; SO: {invoice.orderNo}
-                </span>
-              )}
-            </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-text-primary dark:text-text-dark-primary">{invoice.invoiceNo}</h1>
+            <Badge variant={getStatusVariant(invoice.status)}>
+              {formatStatus(invoice.status)}
+            </Badge>
           </div>
-          <div className="flex gap-2 items-start">
+          <p className="text-text-muted dark:text-text-dark-muted mt-1">
+            {invoice.customerName}
+            {invoice.orderNo && (
+              <span className="ml-2">
+                &middot; SO: {invoice.orderNo}
+              </span>
+            )}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 items-start print:hidden">
+          <Button
+            variant="secondary"
+            onClick={() => downloadPdf(`/finance/invoices/${id}/pdf`, `INV-${invoice.invoiceNo}.pdf`)}
+          >
+            <DownloadIcon />
+            Download PDF
+          </Button>
+          {invoice.status === 'DRAFT' && (
             <Button
               variant="secondary"
-              onClick={() => downloadPdf(`/finance/invoices/${id}/pdf`, `INV-${invoice.invoiceNo}.pdf`)}
-              className="print:hidden bg-white text-indigo-700 hover:bg-indigo-50"
+              onClick={handleSend}
+              isLoading={sendInvoice.isPending}
             >
-              <DownloadIcon />
-              Download PDF
+              <SendIcon />
+              Send Invoice
             </Button>
-            {invoice.status === 'DRAFT' && (
-              <Button
-                variant="secondary"
-                className="bg-white text-indigo-700 hover:bg-indigo-50"
-                onClick={handleSend}
-                isLoading={sendInvoice.isPending}
-              >
-                <SendIcon />
-                Send Invoice
-              </Button>
-            )}
-            {['SENT', 'PARTIALLY_PAID'].includes(invoice.status) && (
-              <Button
-                variant="secondary"
-                className="bg-white text-indigo-700 hover:bg-indigo-50"
-                onClick={() => setShowPaymentForm(!showPaymentForm)}
-              >
-                <PaymentIcon />
-                Record Payment
-              </Button>
-            )}
-            {invoice.status === 'DRAFT' && (
-              <Button
-                variant="secondary"
-                className="bg-red-100 text-red-700 hover:bg-red-200"
-                onClick={handleCancel}
-                isLoading={cancelInvoice.isPending}
-              >
-                Cancel
-              </Button>
-            )}
-            {['SENT', 'PARTIALLY_PAID'].includes(invoice.status) && (
-              <Button
-                variant="danger"
-                onClick={handleVoid}
-                isLoading={voidInvoice.isPending}
-              >
-                Void
-              </Button>
-            )}
-          </div>
+          )}
+          {['SENT', 'PARTIALLY_PAID'].includes(invoice.status) && (
+            <Button
+              variant="secondary"
+              onClick={() => setShowPaymentForm(!showPaymentForm)}
+            >
+              <PaymentIcon />
+              Record Payment
+            </Button>
+          )}
+          {invoice.status === 'DRAFT' && (
+            <Button
+              variant="secondary"
+              className="bg-red-100 text-red-700 hover:bg-red-200"
+              onClick={handleCancel}
+              isLoading={cancelInvoice.isPending}
+            >
+              Cancel
+            </Button>
+          )}
+          {['SENT', 'PARTIALLY_PAID'].includes(invoice.status) && (
+            <Button
+              variant="danger"
+              onClick={handleVoid}
+              isLoading={voidInvoice.isPending}
+            >
+              Void
+            </Button>
+          )}
         </div>
       </div>
 

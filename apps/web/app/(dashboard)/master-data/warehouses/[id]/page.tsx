@@ -163,56 +163,55 @@ export default function WarehouseDetailPage() {
       <Breadcrumbs />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <Link href="/master-data/warehouses" className="text-sm text-slate-500 hover:text-primary-600 mb-1 inline-block">
-            &larr; Back to warehouses
-          </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">{warehouse.name}</h1>
-            <Badge variant={warehouse.isActive ? 'success' : 'danger'}>
-              {warehouse.isActive ? 'Active' : 'Inactive'}
-            </Badge>
+      <div className="bg-primary-700 text-white p-6 rounded-lg mb-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">{warehouse.name}</h1>
+              <Badge variant={warehouse.isActive ? 'success' : 'danger'}>
+                {warehouse.isActive ? 'Active' : 'Inactive'}
+              </Badge>
+            </div>
+            {warehouse.code && (
+              <p className="text-primary-100 text-sm mt-1">Code: {warehouse.code}</p>
+            )}
           </div>
-          {warehouse.code && (
-            <p className="text-slate-500 mt-1">Code: {warehouse.code}</p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {!isEditing && (
-            <Button variant="secondary" onClick={handleStartEdit}>
-              <EditIcon />
-              Edit
+          <div className="flex gap-2">
+            {!isEditing && (
+              <Button variant="secondary" className="bg-white text-primary-700 hover:bg-primary-tint" onClick={handleStartEdit}>
+                <EditIcon />
+                Edit
+              </Button>
+            )}
+            <Button
+              variant={warehouse.isActive ? 'danger' : 'primary'}
+              onClick={handleToggleActive}
+            >
+              {warehouse.isActive ? 'Deactivate' : 'Activate'}
             </Button>
-          )}
-          <Button
-            variant={warehouse.isActive ? 'danger' : 'primary'}
-            onClick={handleToggleActive}
-          >
-            {warehouse.isActive ? 'Deactivate' : 'Activate'}
-          </Button>
-          <Button
-            variant="danger"
-            disabled={deleteWarehouse.isPending}
-            onClick={async () => {
-              const confirmed = await confirmDialog({
-                title: 'Delete Warehouse',
-                message: 'Are you sure you want to delete this warehouse? This cannot be undone.',
-                confirmLabel: 'Delete',
-                variant: 'danger',
-              });
-              if (!confirmed) return;
-              try {
-                await deleteWarehouse.mutateAsync(id);
-                addToast('Warehouse deleted', 'success');
-                router.push('/master-data/warehouses');
-              } catch (e: any) {
-                addToast(e?.response?.data?.message || 'Failed to delete warehouse', 'error');
-              }
-            }}
-          >
-            {deleteWarehouse.isPending ? 'Deleting...' : 'Delete'}
-          </Button>
+            <Button
+              variant="danger"
+              disabled={deleteWarehouse.isPending}
+              onClick={async () => {
+                const confirmed = await confirmDialog({
+                  title: 'Delete Warehouse',
+                  message: 'Are you sure you want to delete this warehouse? This cannot be undone.',
+                  confirmLabel: 'Delete',
+                  variant: 'danger',
+                });
+                if (!confirmed) return;
+                try {
+                  await deleteWarehouse.mutateAsync(id);
+                  addToast('Warehouse deleted', 'success');
+                  router.push('/master-data/warehouses');
+                } catch (e: any) {
+                  addToast(e?.response?.data?.message || 'Failed to delete warehouse', 'error');
+                }
+              }}
+            >
+              {deleteWarehouse.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </div>
         </div>
       </div>
 

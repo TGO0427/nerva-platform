@@ -47,16 +47,16 @@ export default function ItemDetailPage() {
       <Breadcrumbs />
 
       {/* Header */}
-      <div className="bg-slate-800 text-white p-6 rounded-lg mb-6">
+      <div className="bg-primary-700 text-white p-6 rounded-lg mb-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold">{item.sku}</h1>
-            <p className="text-slate-300 text-sm mt-1">{item.description}</p>
+            <p className="text-primary-100 text-sm mt-1">{item.description}</p>
           </div>
           <div className="flex gap-2">
             <Button
               variant="secondary"
-              className="bg-white text-slate-800 hover:bg-slate-100"
+              className="bg-white text-primary-700 hover:bg-primary-tint"
               onClick={() => router.push(`/master-data/items/${id}/edit`)}
             >
               Edit Item

@@ -120,38 +120,35 @@ export default function PurchaseOrderDetailPage() {
       <Breadcrumbs />
 
       {/* Header */}
-      <div className="bg-purple-700 text-white p-6 rounded-lg mb-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{po.poNo}</h1>
-              <StatusBadge status={po.status as PurchaseOrderStatus} />
-            </div>
-            <p className="text-purple-100 text-sm mt-1">
-              {po.supplierName}
-            </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-text-primary dark:text-text-dark-primary">{po.poNo}</h1>
+            <StatusBadge status={po.status as PurchaseOrderStatus} />
           </div>
-          <div className="flex gap-2 items-start">
+          <p className="text-text-muted dark:text-text-dark-muted mt-1">
+            {po.supplierName}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 items-start print:hidden">
+          <Button
+            variant="secondary"
+            onClick={() => downloadPdf(`/purchase-orders/${id}/pdf`, `PO-${po.poNo}.pdf`)}
+          >
+            <DownloadIcon />
+            Download PDF
+          </Button>
+          <StatusActions po={po} />
+          {po.status === 'DRAFT' && (
             <Button
               variant="secondary"
-              onClick={() => downloadPdf(`/purchase-orders/${id}/pdf`, `PO-${po.poNo}.pdf`)}
-              className="print:hidden bg-white text-purple-700 hover:bg-purple-50"
+              className="bg-red-100 text-red-700 hover:bg-red-200"
+              onClick={handleDelete}
+              disabled={deletePurchaseOrder.isPending}
             >
-              <DownloadIcon />
-              Download PDF
+              {deletePurchaseOrder.isPending ? 'Deleting...' : 'Delete'}
             </Button>
-            <StatusActions po={po} />
-            {po.status === 'DRAFT' && (
-              <Button
-                variant="secondary"
-                className="bg-red-100 text-red-700 hover:bg-red-200"
-                onClick={handleDelete}
-                disabled={deletePurchaseOrder.isPending}
-              >
-                {deletePurchaseOrder.isPending ? 'Deleting...' : 'Delete'}
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </div>
 

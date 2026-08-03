@@ -91,7 +91,7 @@ export default function SupplierDetailPage() {
       <Breadcrumbs />
 
       {/* Header */}
-      <div className="bg-green-700 text-white p-6 rounded-lg mb-6">
+      <div className="bg-primary-700 text-white p-6 rounded-lg mb-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold">{supplier.name}</h1>
@@ -99,7 +99,7 @@ export default function SupplierDetailPage() {
           <div className="flex gap-2">
             <Button
               variant="secondary"
-              className="bg-white text-green-700 hover:bg-green-50"
+              className="bg-white text-primary-700 hover:bg-primary-tint"
               onClick={() => router.push(`/master-data/suppliers/${id}/edit`)}
             >
               Edit Supplier
@@ -161,7 +161,7 @@ export default function SupplierDetailPage() {
               onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 activeTab === tab.key
-                  ? 'bg-green-700 text-white'
+                  ? 'bg-primary-700 text-white'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
