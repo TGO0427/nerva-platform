@@ -1,4 +1,5 @@
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import { IN_TRANSIT_STATUSES } from "@nerva/shared";
 import { BaseRepository } from "../../common/db/base.repository";
 
 export interface Item {
@@ -3149,9 +3150,60 @@ export class MasterDataRepository extends BaseRepository {
           (SELECT COUNT(*) FROM cycle_counts WHERE tenant_id = $1 AND status = 'PENDING_APPROVAL') +
           (SELECT COUNT(*) FROM bom_headers WHERE tenant_id = $1 AND status = 'PENDING_APPROVAL') +
           (SELECT COUNT(*) FROM credit_notes_draft WHERE tenant_id = $1 AND status IN ('SUBMITTED', 'PENDING_APPROVAL'))
-        ) as pending_approvals
+        ) as pending_approvals,
+
+        -- Warehouse Capacity exceptions
+        (SELECT COUNT(*) FROM (
+          SELECT w.id,
+            COALESCE(SUM(b.capacity_pallets), 0) as cap,
+            COALESCE(SUM(b.capacity_pallets) FILTER (WHERE occ.bin_id IS NOT NULL), 0) as occ
+          FROM warehouses w
+          LEFT JOIN bins b ON b.warehouse_id = w.id AND b.is_active = true
+          LEFT JOIN LATERAL (
+            SELECT 1 as bin_id FROM stock_snapshot ss WHERE ss.bin_id = b.id AND ss.qty_on_hand > 0 LIMIT 1
+          ) occ ON true
+          WHERE w.tenant_id = $1 AND w.is_active = true
+          GROUP BY w.id
+        ) wc WHERE wc.cap > 0 AND wc.occ::float / wc.cap > 0.9) as warehouses_over_capacity,
+
+        (SELECT COUNT(*) FROM (
+          SELECT wc.id, wc.cap, wc.occ, COALESCE(ib.due_14d, 0) as due_14d
+          FROM (
+            SELECT w.id,
+              COALESCE(SUM(b.capacity_pallets), 0) as cap,
+              COALESCE(SUM(b.capacity_pallets) FILTER (WHERE occ.bin_id IS NOT NULL), 0) as occ
+            FROM warehouses w
+            LEFT JOIN bins b ON b.warehouse_id = w.id AND b.is_active = true
+            LEFT JOIN LATERAL (
+              SELECT 1 as bin_id FROM stock_snapshot ss WHERE ss.bin_id = b.id AND ss.qty_on_hand > 0 LIMIT 1
+            ) occ ON true
+            WHERE w.tenant_id = $1 AND w.is_active = true
+            GROUP BY w.id
+          ) wc
+          LEFT JOIN (
+            SELECT po.ship_to_warehouse_id as warehouse_id,
+              SUM(isl.pallet_qty) FILTER (WHERE isl.week_start_date <= CURRENT_DATE + 14) as due_14d
+            FROM import_shipment_lines isl
+            JOIN import_shipments ish ON ish.id = isl.import_shipment_id
+            LEFT JOIN purchase_orders po ON po.id = ish.purchase_order_id
+            WHERE isl.tenant_id = $1 AND isl.status = ANY($2) AND isl.week_start_date IS NOT NULL
+            GROUP BY po.ship_to_warehouse_id
+          ) ib ON ib.warehouse_id = wc.id
+        ) f WHERE f.cap > 0 AND (f.occ + f.due_14d) > f.cap) as warehouses_forecast_over_capacity,
+
+        (SELECT COUNT(*) FROM (
+          SELECT b.warehouse_id, b.bin_type,
+            COALESCE(SUM(b.capacity_pallets), 0) as cap,
+            COALESCE(SUM(b.capacity_pallets) FILTER (WHERE occ.bin_id IS NOT NULL), 0) as occ
+          FROM bins b
+          LEFT JOIN LATERAL (
+            SELECT 1 as bin_id FROM stock_snapshot ss WHERE ss.bin_id = b.id AND ss.qty_on_hand > 0 LIMIT 1
+          ) occ ON true
+          WHERE b.tenant_id = $1 AND b.is_active = true
+          GROUP BY b.warehouse_id, b.bin_type
+        ) zc WHERE zc.cap > 0 AND zc.occ::float / zc.cap > 0.9) as zones_over_capacity
       `,
-      [tenantId],
+      [tenantId, IN_TRANSIT_STATUSES],
     );
 
     // Calculate derived KPIs
@@ -3256,6 +3308,18 @@ export class MasterDataRepository extends BaseRepository {
       ),
       pendingApprovals: parseInt(
         (result?.pending_approvals as string) || "0",
+        10,
+      ),
+      warehousesOverCapacity: parseInt(
+        (result?.warehouses_over_capacity as string) || "0",
+        10,
+      ),
+      warehousesForecastOverCapacity: parseInt(
+        (result?.warehouses_forecast_over_capacity as string) || "0",
+        10,
+      ),
+      zonesOverCapacity: parseInt(
+        (result?.zones_over_capacity as string) || "0",
         10,
       ),
     };
@@ -4309,6 +4373,9 @@ export interface DashboardStats {
   openCycleCounts: number;
   overdueInvoices: number;
   pendingApprovals: number;
+  warehousesOverCapacity: number;
+  warehousesForecastOverCapacity: number;
+  zonesOverCapacity: number;
 }
 
 export interface RecentActivity {

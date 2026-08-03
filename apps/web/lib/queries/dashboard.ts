@@ -31,6 +31,9 @@ export interface DashboardStats {
   openCycleCounts: number;
   overdueInvoices: number;
   pendingApprovals: number;
+  warehousesOverCapacity: number;
+  warehousesForecastOverCapacity: number;
+  zonesOverCapacity: number;
 }
 
 export interface RecentActivity {

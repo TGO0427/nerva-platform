@@ -285,6 +285,30 @@ function getExceptionQueues(stats: DashboardStats): ExceptionQueue[] {
       tone: stats.openCycleCounts > 0 ? 'warning' : 'success',
       group: 'Inventory',
     },
+    {
+      title: 'Warehouses Over Capacity',
+      description: 'Above 90% pallet-position utilization',
+      value: stats.warehousesOverCapacity ?? 0,
+      href: '/inventory/capacity',
+      tone: (stats.warehousesOverCapacity ?? 0) > 0 ? 'danger' : 'success',
+      group: 'Capacity',
+    },
+    {
+      title: 'Inbound Overflow Risk',
+      description: 'Forecast to exceed capacity within 14 days',
+      value: stats.warehousesForecastOverCapacity ?? 0,
+      href: '/inventory/capacity',
+      tone: (stats.warehousesForecastOverCapacity ?? 0) > 0 ? 'warning' : 'success',
+      group: 'Capacity',
+    },
+    {
+      title: 'Zones Near Capacity',
+      description: 'e.g. Quarantine, Receiving over 90%',
+      value: stats.zonesOverCapacity ?? 0,
+      href: '/inventory/capacity',
+      tone: (stats.zonesOverCapacity ?? 0) > 0 ? 'warning' : 'success',
+      group: 'Capacity',
+    },
   ];
 }
 
