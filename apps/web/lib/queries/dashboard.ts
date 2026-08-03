@@ -7,6 +7,9 @@ export interface DashboardStats {
   pendingOrders: number;
   allocatedOrders: number;
   shippedOrders: number;
+  ordersAwaitingAllocation: number;
+  shipmentsPendingPack: number;
+  shipmentsPendingReady: number;
   activePickWaves: number;
   pendingPickTasks: number;
   stuckPickWaves: number;

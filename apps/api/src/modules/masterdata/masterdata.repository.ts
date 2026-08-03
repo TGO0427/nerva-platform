@@ -3061,6 +3061,9 @@ export class MasterDataRepository extends BaseRepository {
         (SELECT COUNT(*) FROM sales_orders WHERE tenant_id = $1 AND status IN ('DRAFT', 'CONFIRMED')) as pending_orders,
         (SELECT COUNT(*) FROM sales_orders WHERE tenant_id = $1 AND status = 'ALLOCATED') as allocated_orders,
         (SELECT COUNT(*) FROM sales_orders WHERE tenant_id = $1 AND status = 'SHIPPED') as shipped_orders,
+        (SELECT COUNT(*) FROM sales_orders WHERE tenant_id = $1 AND status = 'CONFIRMED') as orders_awaiting_allocation,
+        (SELECT COUNT(*) FROM shipments WHERE tenant_id = $1 AND status = 'PENDING') as shipments_pending_pack,
+        (SELECT COUNT(*) FROM shipments WHERE tenant_id = $1 AND status = 'PACKED') as shipments_pending_ready,
         -- Pick Waves & Fulfilment
         (SELECT COUNT(*) FROM pick_waves WHERE tenant_id = $1 AND status IN ('OPEN', 'IN_PROGRESS')) as active_pick_waves,
         (SELECT COUNT(*) FROM pick_tasks WHERE tenant_id = $1 AND status = 'PENDING') as pending_pick_tasks,
@@ -3256,6 +3259,18 @@ export class MasterDataRepository extends BaseRepository {
         10,
       ),
       shippedOrders: parseInt((result?.shipped_orders as string) || "0", 10),
+      ordersAwaitingAllocation: parseInt(
+        (result?.orders_awaiting_allocation as string) || "0",
+        10,
+      ),
+      shipmentsPendingPack: parseInt(
+        (result?.shipments_pending_pack as string) || "0",
+        10,
+      ),
+      shipmentsPendingReady: parseInt(
+        (result?.shipments_pending_ready as string) || "0",
+        10,
+      ),
       activePickWaves: parseInt(
         (result?.active_pick_waves as string) || "0",
         10,
@@ -4349,6 +4364,9 @@ export interface DashboardStats {
   pendingOrders: number;
   allocatedOrders: number;
   shippedOrders: number;
+  ordersAwaitingAllocation: number;
+  shipmentsPendingPack: number;
+  shipmentsPendingReady: number;
   activePickWaves: number;
   pendingPickTasks: number;
   stuckPickWaves: number;

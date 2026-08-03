@@ -111,6 +111,37 @@ export default function DashboardPage() {
     },
   ].filter(action => hasPermission(user, action.permission));
 
+  const actionQueueItems = [
+    {
+      title: 'Orders to Allocate',
+      value: stats?.ordersAwaitingAllocation ?? 0,
+      href: '/sales?status=CONFIRMED',
+      permission: PERMISSIONS.SALES_ORDER_ALLOCATE,
+      icon: <ClipboardIcon />,
+    },
+    {
+      title: 'Shipments to Pack',
+      value: stats?.shipmentsPendingPack ?? 0,
+      href: '/fulfilment?tab=shipments&status=PENDING',
+      permission: PERMISSIONS.SHIPMENT_UPDATE,
+      icon: <BoxIcon />,
+    },
+    {
+      title: 'Shipments to Mark Ready',
+      value: stats?.shipmentsPendingReady ?? 0,
+      href: '/fulfilment?tab=shipments&status=PACKED',
+      permission: PERMISSIONS.SHIPMENT_UPDATE,
+      icon: <BoxIcon />,
+    },
+    {
+      title: 'Ready to Dispatch',
+      value: stats?.readyDispatchShipments ?? 0,
+      href: '/dispatch?tab=ready-shipments',
+      permission: PERMISSIONS.DISPATCH_PLAN,
+      icon: <TruckIcon />,
+    },
+  ].filter(item => hasPermission(user, item.permission));
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Pinned header + KPIs */}
@@ -168,6 +199,28 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+
+        {/* Needs Your Attention */}
+        {!statsLoading && actionQueueItems.length > 0 && (
+          <div className="mb-6">
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-dark-muted">
+              Needs Your Attention
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {actionQueueItems.map((item) => (
+                <StatCard
+                  key={item.title}
+                  title={item.title}
+                  value={formatNumber(item.value)}
+                  subtitle={item.value > 0 ? 'Needs attention' : 'All clear'}
+                  icon={item.icon}
+                  iconColor={item.value > 0 ? 'yellow' : 'green'}
+                  href={item.href}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Stat Cards */}
         {statsLoading ? (

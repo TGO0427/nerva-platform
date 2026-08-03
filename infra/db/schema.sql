@@ -1323,6 +1323,7 @@ INSERT INTO permissions (code, description) VALUES
   ('pack.execute', 'Execute packing'),
   ('shipment.create', 'Create shipments'),
   ('shipment.ready', 'Mark shipments ready for dispatch'),
+  ('shipment.update', 'Pack and mark shipments ready for dispatch'),
 
   -- Dispatch
   ('dispatch.plan', 'Plan dispatch trips'),

@@ -47,6 +47,7 @@ export const PERMISSIONS = {
   PACK_EXECUTE: 'pack.execute',
   SHIPMENT_CREATE: 'shipment.create',
   SHIPMENT_READY: 'shipment.ready',
+  SHIPMENT_UPDATE: 'shipment.update',
 
   // Dispatch
   DISPATCH_PLAN: 'dispatch.plan',
