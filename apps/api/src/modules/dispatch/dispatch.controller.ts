@@ -153,20 +153,28 @@ export class DispatchController {
   async assignTrip(
     @Param("id", UuidValidationPipe) tripId: string,
     @Body() data: AssignTripDto,
+    @CurrentUser() user: CurrentUserData,
   ) {
-    return this.service.assignTrip(tripId, {
-      vehicleId: data.vehicleId,
-      driverId: data.driverId,
-      vehiclePlate: data.vehiclePlate,
-      driverName: data.driverName,
-    });
+    return this.service.assignTrip(
+      tripId,
+      {
+        vehicleId: data.vehicleId,
+        driverId: data.driverId,
+        vehiclePlate: data.vehiclePlate,
+        driverName: data.driverName,
+      },
+      user.id,
+    );
   }
 
   @Post("trips/:id/start")
   @RequirePermissions("dispatch.execute")
   @ApiOperation({ summary: "Start trip" })
-  async startTrip(@Param("id", UuidValidationPipe) tripId: string) {
-    return this.service.startTrip(tripId);
+  async startTrip(
+    @Param("id", UuidValidationPipe) tripId: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.service.startTrip(tripId, user.id);
   }
 
   @Post("trips/:id/complete")
@@ -175,8 +183,9 @@ export class DispatchController {
   async completeTrip(
     @Param("id", UuidValidationPipe) tripId: string,
     @Body() data: CompleteTripDto,
+    @CurrentUser() user: CurrentUserData,
   ) {
-    return this.service.completeTrip(tripId, data?.forceComplete);
+    return this.service.completeTrip(tripId, data?.forceComplete, user.id);
   }
 
   @Post("trips/:id/cancel")
@@ -185,8 +194,9 @@ export class DispatchController {
   async cancelTrip(
     @Param("id", UuidValidationPipe) tripId: string,
     @Body() data: CancelTripDto,
+    @CurrentUser() user: CurrentUserData,
   ) {
-    return this.service.cancelTrip(tripId, data.reason);
+    return this.service.cancelTrip(tripId, data.reason, user.id);
   }
 
   @Post("trips/:id/resequence-stops")
@@ -218,8 +228,15 @@ export class DispatchController {
     @Param("tripId", UuidValidationPipe) tripId: string,
     @Param("stopId", UuidValidationPipe) stopId: string,
     @Body() data: CompleteStopDto,
+    @CurrentUser() user: CurrentUserData,
   ) {
-    return this.service.completeStopWithPod(tripId, stopId, tenantId, data);
+    return this.service.completeStopWithPod(
+      tripId,
+      stopId,
+      tenantId,
+      data,
+      user.id,
+    );
   }
 
   @Post("trips/:tripId/stops/:stopId/fail")
@@ -229,8 +246,9 @@ export class DispatchController {
     @Param("tripId", UuidValidationPipe) tripId: string,
     @Param("stopId", UuidValidationPipe) stopId: string,
     @Body() data: FailStopDto,
+    @CurrentUser() user: CurrentUserData,
   ) {
-    return this.service.failStop(tripId, stopId, data.reason);
+    return this.service.failStop(tripId, stopId, data.reason, user.id);
   }
 
   @Post("trips/:tripId/stops/:stopId/skip")
@@ -240,8 +258,9 @@ export class DispatchController {
     @Param("tripId", UuidValidationPipe) tripId: string,
     @Param("stopId", UuidValidationPipe) stopId: string,
     @Body() data: SkipStopDto,
+    @CurrentUser() user: CurrentUserData,
   ) {
-    return this.service.skipStop(tripId, stopId, data.reason);
+    return this.service.skipStop(tripId, stopId, data.reason, user.id);
   }
 
   @Get("vehicles")

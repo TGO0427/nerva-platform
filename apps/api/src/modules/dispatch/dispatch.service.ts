@@ -10,6 +10,7 @@ import {
   Pod,
 } from "./dispatch.repository";
 import { buildPaginatedResult } from "../../common/utils/pagination";
+import { AuditService } from "../audit/audit.service";
 
 interface ShipmentInfo {
   id: string;
@@ -24,7 +25,10 @@ interface ShipmentInfo {
 
 @Injectable()
 export class DispatchService {
-  constructor(private readonly repository: DispatchRepository) {}
+  constructor(
+    private readonly repository: DispatchRepository,
+    private readonly auditService: AuditService,
+  ) {}
 
   // Trip management
   async createTrip(data: {
@@ -174,7 +178,17 @@ export class DispatchService {
     console.log(
       `Trip ${tripNo} created successfully with ${stopsCreated} stops`,
     );
-    return this.getTrip(trip.id);
+
+    const created = await this.getTrip(trip.id);
+    await this.auditService.log({
+      tenantId: created.tenantId,
+      actorUserId: data.createdBy,
+      entityType: "Trip",
+      entityId: created.id,
+      action: "CREATE",
+      after: created as unknown as Record<string, unknown>,
+    });
+    return created;
   }
 
   async getTrip(id: string): Promise<DispatchTrip> {
@@ -238,9 +252,21 @@ export class DispatchService {
       vehiclePlate?: string;
       driverName?: string;
     },
+    actorUserId?: string,
   ): Promise<DispatchTrip> {
+    if (!data.driverId) {
+      throw new BadRequestException("A driver must be assigned to the trip");
+    }
     const trip = await this.repository.assignTripManual(tripId, data);
     if (!trip) throw new NotFoundException("Trip not found");
+    await this.auditService.log({
+      tenantId: trip.tenantId,
+      actorUserId,
+      entityType: "Trip",
+      entityId: trip.id,
+      action: "ASSIGN",
+      after: trip as unknown as Record<string, unknown>,
+    });
     return trip;
   }
 
@@ -279,21 +305,35 @@ export class DispatchService {
     return this.repository.findDriverTrips(driverId, status);
   }
 
-  async startTrip(tripId: string): Promise<DispatchTrip> {
+  async startTrip(tripId: string, actorUserId?: string): Promise<DispatchTrip> {
     const trip = await this.getTrip(tripId);
     if (trip.status !== "ASSIGNED") {
       throw new BadRequestException("Trip must be assigned before starting");
+    }
+    if (!trip.driverId) {
+      throw new BadRequestException(
+        "Trip must have a driver assigned before starting",
+      );
     }
     const updated = await this.repository.updateTripStatus(
       tripId,
       "IN_PROGRESS",
     );
+    await this.auditService.log({
+      tenantId: updated!.tenantId,
+      actorUserId,
+      entityType: "Trip",
+      entityId: updated!.id,
+      action: "START",
+      after: updated! as unknown as Record<string, unknown>,
+    });
     return updated!;
   }
 
   async completeTrip(
     tripId: string,
     forceComplete = false,
+    actorUserId?: string,
   ): Promise<DispatchTrip> {
     const trip = await this.getTrip(tripId);
     if (trip.status !== "IN_PROGRESS") {
@@ -324,10 +364,22 @@ export class DispatchService {
     }
 
     const updated = await this.repository.updateTripStatus(tripId, "COMPLETE");
+    await this.auditService.log({
+      tenantId: updated!.tenantId,
+      actorUserId,
+      entityType: "Trip",
+      entityId: updated!.id,
+      action: "COMPLETE",
+      after: updated! as unknown as Record<string, unknown>,
+    });
     return updated!;
   }
 
-  async cancelTrip(tripId: string, reason: string): Promise<DispatchTrip> {
+  async cancelTrip(
+    tripId: string,
+    reason: string,
+    actorUserId?: string,
+  ): Promise<DispatchTrip> {
     const trip = await this.getTrip(tripId);
     if (["COMPLETE", "CANCELLED"].includes(trip.status)) {
       throw new BadRequestException(
@@ -335,6 +387,14 @@ export class DispatchService {
       );
     }
     const updated = await this.repository.cancelTrip(tripId, reason);
+    await this.auditService.log({
+      tenantId: updated!.tenantId,
+      actorUserId,
+      entityType: "Trip",
+      entityId: updated!.id,
+      action: "CANCEL",
+      after: updated! as unknown as Record<string, unknown>,
+    });
     return updated!;
   }
 
@@ -366,6 +426,7 @@ export class DispatchService {
       podPhoto?: string;
       podNotes?: string;
     },
+    actorUserId?: string,
   ): Promise<DispatchStop> {
     const trip = await this.getTrip(tripId);
     if (trip.status !== "IN_PROGRESS") {
@@ -400,6 +461,15 @@ export class DispatchService {
     const completedCount = stops.filter((s) => s.status === "DELIVERED").length;
     await this.repository.updateTripCompletedStops(tripId, completedCount);
 
+    await this.auditService.log({
+      tenantId,
+      actorUserId,
+      entityType: "TripStop",
+      entityId: updated!.id,
+      action: "DELIVER",
+      after: updated! as unknown as Record<string, unknown>,
+    });
+
     return updated!;
   }
 
@@ -407,6 +477,7 @@ export class DispatchService {
     tripId: string,
     stopId: string,
     reason: string,
+    actorUserId?: string,
   ): Promise<DispatchStop> {
     const trip = await this.getTrip(tripId);
     if (trip.status !== "IN_PROGRESS") {
@@ -423,6 +494,14 @@ export class DispatchService {
 
     // Update stop with failure reason
     const updated = await this.repository.updateStopWithFailure(stopId, reason);
+    await this.auditService.log({
+      tenantId: trip.tenantId,
+      actorUserId,
+      entityType: "TripStop",
+      entityId: updated!.id,
+      action: "FAIL",
+      after: updated! as unknown as Record<string, unknown>,
+    });
     return updated!;
   }
 
@@ -430,6 +509,7 @@ export class DispatchService {
     tripId: string,
     stopId: string,
     reason: string,
+    actorUserId?: string,
   ): Promise<DispatchStop> {
     const trip = await this.getTrip(tripId);
     if (trip.status !== "IN_PROGRESS") {
@@ -449,6 +529,14 @@ export class DispatchService {
       reason,
       "SKIPPED",
     );
+    await this.auditService.log({
+      tenantId: trip.tenantId,
+      actorUserId,
+      entityType: "TripStop",
+      entityId: updated!.id,
+      action: "SKIP",
+      after: updated! as unknown as Record<string, unknown>,
+    });
     return updated!;
   }
 

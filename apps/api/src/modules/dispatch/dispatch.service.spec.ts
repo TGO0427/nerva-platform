@@ -7,10 +7,12 @@ import {
   DispatchStop,
   Pod,
 } from "./dispatch.repository";
+import { AuditService } from "../audit/audit.service";
 
 describe("DispatchService", () => {
   let service: DispatchService;
   let repository: jest.Mocked<DispatchRepository>;
+  let auditService: jest.Mocked<AuditService>;
 
   const mockTrip: DispatchTrip = {
     id: "trip-123",
@@ -107,11 +109,18 @@ describe("DispatchService", () => {
             getShipmentInfoForTrip: jest.fn(),
           },
         },
+        {
+          provide: AuditService,
+          useValue: {
+            log: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<DispatchService>(DispatchService);
     repository = module.get(DispatchRepository);
+    auditService = module.get(AuditService);
   });
 
   afterEach(() => {
@@ -246,12 +255,44 @@ describe("DispatchService", () => {
     });
   });
 
+  describe("assignTrip", () => {
+    it("should assign vehicle and driver to trip", async () => {
+      const assignedTrip = {
+        ...mockTrip,
+        driverId: "driver-1",
+        status: "ASSIGNED",
+      };
+      repository.assignTripManual.mockResolvedValue(assignedTrip);
+
+      const result = await service.assignTrip("trip-123", {
+        driverId: "driver-1",
+        vehicleId: "vehicle-1",
+      });
+
+      expect(result.status).toBe("ASSIGNED");
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ entityType: "Trip", action: "ASSIGN" }),
+      );
+    });
+
+    it("should throw BadRequestException when no driver is provided", async () => {
+      await expect(
+        service.assignTrip("trip-123", { vehicleId: "vehicle-1" }),
+      ).rejects.toThrow("A driver must be assigned to the trip");
+      expect(repository.assignTripManual).not.toHaveBeenCalled();
+    });
+  });
+
   // --- Trip lifecycle ---
 
   describe("startTrip", () => {
     it("should start an assigned trip", async () => {
-      const assignedTrip = { ...mockTrip, status: "ASSIGNED" };
-      const inProgressTrip = { ...mockTrip, status: "IN_PROGRESS" };
+      const assignedTrip = {
+        ...mockTrip,
+        status: "ASSIGNED",
+        driverId: "driver-1",
+      };
+      const inProgressTrip = { ...assignedTrip, status: "IN_PROGRESS" };
       repository.findTripById.mockResolvedValue(assignedTrip);
       repository.updateTripStatus.mockResolvedValue(inProgressTrip);
 
@@ -261,6 +302,9 @@ describe("DispatchService", () => {
       expect(repository.updateTripStatus).toHaveBeenCalledWith(
         "trip-123",
         "IN_PROGRESS",
+      );
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ entityType: "Trip", action: "START" }),
       );
     });
 
@@ -273,6 +317,16 @@ describe("DispatchService", () => {
       await expect(service.startTrip("trip-123")).rejects.toThrow(
         "Trip must be assigned before starting",
       );
+    });
+
+    it("should throw BadRequestException when trip has no driver assigned", async () => {
+      const assignedTrip = { ...mockTrip, status: "ASSIGNED", driverId: null };
+      repository.findTripById.mockResolvedValue(assignedTrip);
+
+      await expect(service.startTrip("trip-123")).rejects.toThrow(
+        "Trip must have a driver assigned before starting",
+      );
+      expect(repository.updateTripStatus).not.toHaveBeenCalled();
     });
   });
 
