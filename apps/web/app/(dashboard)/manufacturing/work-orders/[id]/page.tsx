@@ -198,12 +198,22 @@ export default function WorkOrderDetailPage() {
   };
 
   const handleComplete = async () => {
-    if (!id) return;
+    if (!id || !workOrder) return;
+    if (workOrder.qtyCompleted < workOrder.qtyOrdered) {
+      const shortfall = workOrder.qtyOrdered - workOrder.qtyCompleted;
+      const confirmed = await confirm({
+        title: 'Complete Work Order',
+        message: `Only ${formatQuantity(workOrder.qtyCompleted)} / ${formatQuantity(workOrder.qtyOrdered)} has been produced. Completing now leaves ${formatQuantity(shortfall)} unproduced and this work order will be closed. Continue?`,
+        confirmLabel: 'Complete Anyway',
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+    }
     try {
       await completeWorkOrder.mutateAsync(id);
       addToast('Work order completed', 'success');
-    } catch (error) {
-      addToast('Failed to complete work order', 'error');
+    } catch (error: any) {
+      addToast(error?.response?.data?.message || 'Failed to complete work order', 'error');
     }
   };
 
@@ -416,9 +426,14 @@ export default function WorkOrderDetailPage() {
                 <Button variant="secondary" onClick={() => setShowRecordOutput(!showRecordOutput)}>
                   Record Output
                 </Button>
-                <Button onClick={handleComplete} disabled={completeWorkOrder.isPending}>
-                  {completeWorkOrder.isPending ? 'Completing...' : 'Complete'}
-                </Button>
+                <span title={workOrder.qtyCompleted <= 0 ? 'Record production output before completing' : undefined}>
+                  <Button
+                    onClick={handleComplete}
+                    disabled={completeWorkOrder.isPending || workOrder.qtyCompleted <= 0}
+                  >
+                    {completeWorkOrder.isPending ? 'Completing...' : 'Complete'}
+                  </Button>
+                </span>
               </>
             )}
             {['COMPLETED', 'CANCELLED'].includes(workOrder.status) && (

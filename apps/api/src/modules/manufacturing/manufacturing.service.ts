@@ -959,6 +959,11 @@ export class ManufacturingService {
         "Can only complete IN_PROGRESS work orders",
       );
     }
+    if (workOrder.qtyCompleted <= 0) {
+      throw new BadRequestException(
+        "Cannot complete a work order with no recorded production output — record output first, or cancel the work order instead",
+      );
+    }
     return this.workOrderRepo.update(id, {
       status: "COMPLETED",
       actualEnd: new Date(),

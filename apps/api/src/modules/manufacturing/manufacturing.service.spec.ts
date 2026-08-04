@@ -505,4 +505,29 @@ describe("ManufacturingService - Production Output", () => {
       );
     });
   });
+
+  describe("completeWorkOrder", () => {
+    it("should throw BadRequestException when no output has been recorded", async () => {
+      workOrderRepo.findById.mockResolvedValue({ ...baseWorkOrder, qtyCompleted: 0 });
+
+      await expect(service.completeWorkOrder(workOrderId)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.completeWorkOrder(workOrderId)).rejects.toThrow(
+        "Cannot complete a work order with no recorded production output — record output first, or cancel the work order instead",
+      );
+      expect(workOrderRepo.update).not.toHaveBeenCalled();
+    });
+
+    it("should complete the work order when output has been recorded, even if partial", async () => {
+      workOrderRepo.findById.mockResolvedValue({ ...baseWorkOrder, qtyCompleted: 60, qtyOrdered: 100 });
+
+      await service.completeWorkOrder(workOrderId);
+
+      expect(workOrderRepo.update).toHaveBeenCalledWith(
+        workOrderId,
+        expect.objectContaining({ status: "COMPLETED" }),
+      );
+    });
+  });
 });
