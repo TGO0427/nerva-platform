@@ -23,6 +23,7 @@ import {
   useReopenWorkOrder,
   useIssueMaterial,
   useRecordOutput,
+  useNextRunNo,
   useStartOperation,
   useCompleteOperation,
   useUpsertWorkOrderChecks,
@@ -46,6 +47,7 @@ export default function WorkOrderDetailPage() {
   const { data: workOrder, isLoading, error } = useWorkOrder(id);
   const { data: batchQuality } = useWorkOrderBatchQuality(id);
   const { data: producedItem } = useItem(workOrder?.itemId);
+  const { data: nextRunNo } = useNextRunNo(id);
   const [activeTab, setActiveTab] = useState<'operations' | 'materials' | 'checks' | 'process'>('materials');
 
   const [issuingMaterialId, setIssuingMaterialId] = useState<string | null>(null);
@@ -500,7 +502,12 @@ export default function WorkOrderDetailPage() {
 
           {showRecordOutput && workOrder.status === 'IN_PROGRESS' && (
             <Card className="p-4 border-blue-200 bg-blue-50">
-              <h3 className="text-sm font-medium text-blue-800 mb-3">Record Production Output</h3>
+              <h3 className="text-sm font-medium text-blue-800 mb-1">Record Production Output</h3>
+              {workOrder.batchNo && nextRunNo && (
+                <p className="text-xs text-blue-700 mb-3">
+                  This will be recorded as Run #{nextRunNo} under batch {workOrder.batchNo}
+                </p>
+              )}
               <div className="grid grid-cols-5 gap-3">
                 <div>
                   <label className="block text-xs text-slate-600 mb-1">Quantity</label>
@@ -535,8 +542,15 @@ export default function WorkOrderDetailPage() {
                     size="sm"
                     disabled={!outputQty || !outputBinId || (producedItem?.requiresBatchTracking && !outputBatchNo) || recordOutput.isPending}
                     onClick={async () => {
-                    try { await recordOutput.mutateAsync({ workOrderId: id!, qty: parseFloat(outputQty), binId: outputBinId, batchNo: outputBatchNo || undefined, notes: outputNotes || undefined });
-                    addToast('Output recorded', 'success'); setShowRecordOutput(false); setOutputQty(''); setOutputBinId(''); setOutputBatchNo(''); setOutputNotes('');
+                    try {
+                      const updated = await recordOutput.mutateAsync({ workOrderId: id!, qty: parseFloat(outputQty), binId: outputBinId, batchNo: outputBatchNo || undefined, notes: outputNotes || undefined });
+                      addToast(
+                        updated.lastOutputRunNo
+                          ? `Output recorded as Run #${updated.lastOutputRunNo} under batch ${updated.lastOutputBatchNo}`
+                          : 'Output recorded',
+                        'success',
+                      );
+                      setShowRecordOutput(false); setOutputQty(''); setOutputBinId(''); setOutputBatchNo(''); setOutputNotes('');
                     } catch (err) { addToast(err instanceof Error ? err.message : 'Failed to record output', 'error'); }
                   }}>
                     {recordOutput.isPending ? 'Recording...' : 'Record'}

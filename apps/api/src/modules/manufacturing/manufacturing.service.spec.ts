@@ -404,7 +404,7 @@ describe("ManufacturingService - Production Output", () => {
         },
         {
           provide: ProductionLedgerRepository,
-          useValue: { create: jest.fn() },
+          useValue: { create: jest.fn(), getNextRunNo: jest.fn() },
         },
         {
           provide: ProductionDataRepository,
@@ -441,6 +441,7 @@ describe("ManufacturingService - Production Output", () => {
     productionDataRepo.findChecksByWorkOrder.mockResolvedValue(null);
     productionDataRepo.findProcessByWorkOrder.mockResolvedValue(null);
     masterDataService.getItem.mockResolvedValue(baseItem);
+    productionLedgerRepo.getNextRunNo.mockResolvedValue(1);
   });
 
   afterEach(() => {
@@ -527,6 +528,29 @@ describe("ManufacturingService - Production Output", () => {
       expect(batchQualityRepo.ensureStatusRecord).toHaveBeenCalledWith(
         expect.objectContaining({ batchNo: "BATCH-20260218-001", initialStatus: "AWAITING_QC" }),
       );
+    });
+
+    it("should tag each output with the next run number under the same batch, not a new batch", async () => {
+      workOrderRepo.findById.mockResolvedValue({
+        ...baseWorkOrder,
+        batchNo: "BATCH-20260218-001",
+      });
+      productionLedgerRepo.getNextRunNo.mockResolvedValue(3);
+
+      const result = await service.recordOutput(workOrderId, {
+        qty: 10,
+        binId: "bin-123",
+        createdBy: "user-123",
+      });
+
+      expect(productionLedgerRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ batchNo: "BATCH-20260218-001", runNo: 3 }),
+      );
+      expect(stockLedgerService.recordMovement).toHaveBeenCalledWith(
+        expect.objectContaining({ batchNo: "BATCH-20260218-001" }),
+      );
+      expect((result as any).lastOutputRunNo).toBe(3);
+      expect((result as any).lastOutputBatchNo).toBe("BATCH-20260218-001");
     });
   });
 

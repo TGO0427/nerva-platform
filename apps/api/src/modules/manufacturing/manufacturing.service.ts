@@ -1172,6 +1172,12 @@ export class ManufacturingService {
   }
 
   // Production Output
+  async getNextRunNo(workOrderId: string): Promise<number> {
+    const workOrder = await this.workOrderRepo.findById(workOrderId);
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    return this.productionLedgerRepo.getNextRunNo(workOrderId);
+  }
+
   async recordOutput(
     workOrderId: string,
     data: {
@@ -1207,6 +1213,12 @@ export class ManufacturingService {
       );
     }
 
+    // Each output entry is its own production run against the same batch -
+    // run_no distinguishes them without splitting the batch itself, so
+    // traceByBatch/forwardTrace/backwardTrace (keyed on the one batch per
+    // work order) keep working unchanged.
+    const runNo = await this.productionLedgerRepo.getNextRunNo(workOrderId);
+
     // Create production ledger entry
     await this.productionLedgerRepo.create({
       tenantId: workOrder.tenantId,
@@ -1217,6 +1229,7 @@ export class ManufacturingService {
       warehouseId: workOrder.warehouseId,
       binId: data.binId,
       batchNo,
+      runNo,
       qty: data.qty,
       uom: "EA",
       workstationId: data.workstationId,
@@ -1256,7 +1269,8 @@ export class ManufacturingService {
       });
     }
 
-    return this.getWorkOrder(workOrderId);
+    const updatedWorkOrder = await this.getWorkOrder(workOrderId);
+    return { ...updatedWorkOrder, lastOutputBatchNo: batchNo, lastOutputRunNo: runNo };
   }
 
   async recordScrap(

@@ -11,6 +11,7 @@ export interface ProductionLedgerEntry {
   warehouseId: string;
   binId: string | null;
   batchNo: string | null;
+  runNo: number | null;
   qty: number;
   uom: string;
   workstationId: string | null;
@@ -33,6 +34,7 @@ export class ProductionLedgerRepository extends BaseRepository {
     warehouseId: string;
     binId?: string;
     batchNo?: string;
+    runNo?: number;
     qty: number;
     uom: string;
     workstationId?: string;
@@ -45,8 +47,8 @@ export class ProductionLedgerRepository extends BaseRepository {
     const row = await this.queryOne<Record<string, unknown>>(
       `INSERT INTO production_ledger (
         tenant_id, work_order_id, work_order_operation_id, entry_type, item_id, warehouse_id,
-        bin_id, batch_no, qty, uom, workstation_id, operator_id, reference, reason_code, notes, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        bin_id, batch_no, run_no, qty, uom, workstation_id, operator_id, reference, reason_code, notes, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *`,
       [
         data.tenantId,
@@ -57,6 +59,7 @@ export class ProductionLedgerRepository extends BaseRepository {
         data.warehouseId,
         data.binId || null,
         data.batchNo || null,
+        data.runNo || null,
         data.qty,
         data.uom,
         data.workstationId || null,
@@ -68,6 +71,15 @@ export class ProductionLedgerRepository extends BaseRepository {
       ],
     );
     return this.mapEntry(row!);
+  }
+
+  async getNextRunNo(workOrderId: string): Promise<number> {
+    const result = await this.queryOne<{ max_run: string | null }>(
+      `SELECT MAX(run_no) as max_run FROM production_ledger
+       WHERE work_order_id = $1 AND entry_type = 'PRODUCTION_OUTPUT'`,
+      [workOrderId],
+    );
+    return (parseInt(result?.max_run || "0", 10) || 0) + 1;
   }
 
   async findByTenant(
@@ -838,6 +850,7 @@ export class ProductionLedgerRepository extends BaseRepository {
       warehouseId: row.warehouse_id as string,
       binId: row.bin_id as string | null,
       batchNo: row.batch_no as string | null,
+      runNo: (row.run_no as number | null) ?? null,
       qty: parseFloat(row.qty as string),
       uom: row.uom as string,
       workstationId: row.workstation_id as string | null,
