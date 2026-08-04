@@ -106,8 +106,12 @@ export default function IbtDetailPage() {
     (b: Bin) => (b.binType === 'STORAGE' || b.binType === 'PICKING' || b.binType === 'RECEIVING') && b.isActive,
   );
 
+  // Bin (and therefore batch) is always required at add-line time — GRN
+  // receiving already forces every unit of stock into a real bin (floor
+  // storage included, just as a plain STORAGE-type bin), so there's never
+  // a legitimate "stock with no bin" case to defer for here either.
   const canAddLine =
-    !!newItemId && !!newQty && (!newFromBinId || !!newBatchNo);
+    !!newItemId && !!newQty && !!newFromBinId && !!newBatchNo;
 
   const handleAddLine = async () => {
     if (!canAddLine) return;
@@ -116,8 +120,8 @@ export default function IbtDetailPage() {
         ibtId: id,
         itemId: newItemId,
         qtyRequested: Number(newQty),
-        fromBinId: newFromBinId || undefined,
-        batchNo: newBatchNo && newBatchNo !== NO_BATCH_SENTINEL ? newBatchNo : undefined,
+        fromBinId: newFromBinId,
+        batchNo: newBatchNo !== NO_BATCH_SENTINEL ? newBatchNo : undefined,
       });
       addToast('Line added', 'success');
       setNewItemId(''); setNewQty(''); setNewFromBinId(''); setNewBatchNo('');
@@ -620,7 +624,9 @@ export default function IbtDetailPage() {
                       <Input type="number" value={newQty} onChange={(e) => setNewQty(e.target.value)} placeholder="Qty" min={1} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">From Bin</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        From Bin<span className="text-red-500"> *</span>
+                      </label>
                       <Select
                         value={newFromBinId}
                         onChange={(e) => {
@@ -632,11 +638,13 @@ export default function IbtDetailPage() {
                         disabled={!newItemId}
                       />
                       {newItemId && fromBinsForItem.length === 0 && (
-                        <p className="text-xs text-amber-600 mt-1">No stock of this item in any source bin</p>
+                        <p className="text-xs text-amber-600 mt-1">No stock of this item in any bin</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Batch No</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Batch No<span className="text-red-500"> *</span>
+                      </label>
                       {newItemId && newFromBinId ? (
                         <Select
                           value={newBatchNo}
