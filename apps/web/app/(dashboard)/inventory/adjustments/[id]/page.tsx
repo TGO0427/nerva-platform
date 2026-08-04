@@ -26,8 +26,13 @@ import {
 } from '@/lib/queries/inventory';
 import { useWarehouses, useBins } from '@/lib/queries/warehouses';
 import { useItems } from '@/lib/queries';
+import { useStockOnHand } from '@/lib/queries/inventory';
 import { formatDate, formatDateTime, formatNumber, formatQuantity } from '@/lib/format';
-import type { AdjustmentLine } from '@nerva/shared';
+import type { AdjustmentLine, Bin } from '@nerva/shared';
+
+// Distinct from the Select's empty/placeholder value, so explicitly picking
+// "no batch" is never indistinguishable from not having chosen anything yet.
+const NO_BATCH_SENTINEL = '__no_batch__';
 
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
   DRAFT: 'info',
@@ -66,6 +71,21 @@ export default function AdjustmentDetailPage() {
   const itemMap = new Map(items.map(i => [i.id, i]));
   const binMap = new Map(bins?.map(b => [b.id, b]) || []);
 
+  // Adjustments correct the true physical count, so "available" here means
+  // recorded on-hand (not unreserved-for-allocation like a transfer) — a
+  // bin can still need correcting even if its stock is fully reserved.
+  const { data: stockOnHand } = useStockOnHand(newItemId || undefined);
+  const binsWithStock = new Set((stockOnHand || []).filter(s => s.qtyOnHand > 0).map(s => s.binId));
+  const binsForItem = newItemId
+    ? (bins || []).filter((b: Bin) => b.isActive && binsWithStock.has(b.id))
+    : (bins || []).filter((b: Bin) => b.isActive);
+  const batchesInBin = (stockOnHand || []).filter(s => s.binId === newBinId && s.qtyOnHand > 0);
+  const currentQtyOnHand = newBatchNo
+    ? batchesInBin.find(s => (s.batchNo || NO_BATCH_SENTINEL) === newBatchNo)?.qtyOnHand ?? 0
+    : batchesInBin.reduce((sum, s) => sum + s.qtyOnHand, 0);
+
+  const canAddLine = !!newItemId && !!newBinId && !!newBatchNo && newQtyAfter !== '';
+
   const { addToast } = useToast();
   const { confirm } = useConfirm();
   const isDraft = adjustment?.status === 'DRAFT';
@@ -74,13 +94,13 @@ export default function AdjustmentDetailPage() {
 
   const handleAddLine = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newBinId || !newItemId || newQtyAfter === '') return;
+    if (!canAddLine) return;
     try {
       await addLine.mutateAsync({
         binId: newBinId,
         itemId: newItemId,
         qtyAfter: parseFloat(newQtyAfter),
-        batchNo: newBatchNo || undefined,
+        batchNo: newBatchNo !== NO_BATCH_SENTINEL ? newBatchNo : undefined,
       });
       addToast('Line added', 'success');
       setNewBinId('');
@@ -89,8 +109,7 @@ export default function AdjustmentDetailPage() {
       setNewBatchNo('');
       setShowLineForm(false);
     } catch (error) {
-      console.error('Failed to add line:', error);
-      addToast('Failed to add line', 'error');
+      addToast(error instanceof Error ? error.message : 'Failed to add line', 'error');
     }
   };
 
@@ -329,20 +348,13 @@ export default function AdjustmentDetailPage() {
             <form onSubmit={handleAddLine} className="mb-6 p-4 bg-slate-50 rounded-lg space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Select
-                  label="Bin"
-                  value={newBinId}
-                  onChange={(e) => setNewBinId(e.target.value)}
-                  options={bins?.filter(b => b.isActive).map(b => ({
-                    value: b.id,
-                    label: `${b.code} (${b.binType})`,
-                  })) || []}
-                  placeholder="Select bin"
-                  required
-                />
-                <Select
                   label="Item"
                   value={newItemId}
-                  onChange={(e) => setNewItemId(e.target.value)}
+                  onChange={(e) => {
+                    setNewItemId(e.target.value);
+                    setNewBinId('');
+                    setNewBatchNo('');
+                  }}
                   options={items.map(i => ({
                     value: i.id,
                     label: `${i.sku} - ${i.description}`,
@@ -350,30 +362,67 @@ export default function AdjustmentDetailPage() {
                   placeholder="Select item"
                   required
                 />
-                <Input
-                  label="Actual Qty"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={newQtyAfter}
-                  onChange={(e) => setNewQtyAfter(e.target.value)}
-                  placeholder="Counted qty"
-                  required
-                />
+                <div>
+                  <Select
+                    label="Bin *"
+                    value={newBinId}
+                    onChange={(e) => {
+                      setNewBinId(e.target.value);
+                      setNewBatchNo('');
+                    }}
+                    options={binsForItem.map((b: Bin) => ({
+                      value: b.id,
+                      label: `${b.code} (${b.binType})`,
+                    }))}
+                    placeholder={newItemId ? 'Select bin' : 'Select item first'}
+                    disabled={!newItemId}
+                  />
+                  {newItemId && binsForItem.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1">No stock of this item in any bin</p>
+                  )}
+                </div>
                 <div>
                   <Input
-                    label={itemMap.get(newItemId)?.requiresBatchTracking ? 'Batch No *' : 'Batch No (optional)'}
-                    value={newBatchNo}
-                    onChange={(e) => setNewBatchNo(e.target.value)}
-                    placeholder="Batch number"
+                    label="Actual Qty"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={newQtyAfter}
+                    onChange={(e) => setNewQtyAfter(e.target.value)}
+                    placeholder="Counted qty"
+                    required
                   />
+                  {newBinId && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      System shows {formatQuantity(currentQtyOnHand)}
+                      {newBatchNo ? '' : ' across all batches in this bin'}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Batch No{itemMap.get(newItemId)?.requiresBatchTracking && <span className="text-red-500"> *</span>}
+                  </label>
+                  {newItemId && newBinId ? (
+                    <Select
+                      value={newBatchNo}
+                      onChange={(e) => setNewBatchNo(e.target.value)}
+                      options={batchesInBin.map(s => ({
+                        value: s.batchNo || NO_BATCH_SENTINEL,
+                        label: `${s.batchNo || 'No batch'} (${formatQuantity(s.qtyOnHand)} on hand)`,
+                      }))}
+                      placeholder="Select batch"
+                    />
+                  ) : (
+                    <Input value="" disabled placeholder="Select item and bin first" />
+                  )}
                   {itemMap.get(newItemId)?.requiresBatchTracking && (
                     <p className="text-xs text-amber-600 mt-1">This item requires a batch/lot number</p>
                   )}
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button type="submit" size="sm" disabled={addLine.isPending}>
+                <Button type="submit" size="sm" disabled={!canAddLine || addLine.isPending}>
                   {addLine.isPending ? 'Adding...' : 'Add Line'}
                 </Button>
               </div>
