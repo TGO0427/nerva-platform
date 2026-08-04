@@ -37,6 +37,48 @@ export default function GrnReceivePage() {
   const items = itemsData?.data || [];
   const receivingBins = bins?.filter(b => b.binType === 'RECEIVING' || b.binType === 'STORAGE') || [];
   const selectedItem = items.find(item => item.id === formData.itemId);
+  const selectedBin = receivingBins.find(bin => bin.id === formData.receivingBinId);
+
+  // Live preview of what the Received Items list will look like once this
+  // form is submitted, so the right-hand panel fills in as the user types.
+  const displayLines: GrnLine[] = (() => {
+    if (!lines || !formData.itemId) return lines || [];
+
+    const enteredQty = formData.qtyReceived ? parseFloat(formData.qtyReceived) : 0;
+    const preview = {
+      batchNo: formData.batchNo || null,
+      expiryDate: formData.expiryDate || null,
+      binCode: selectedBin?.code,
+    };
+
+    const matchIndex = lines.findIndex(l => l.itemId === formData.itemId);
+    if (matchIndex >= 0) {
+      const updated = [...lines];
+      const existing = updated[matchIndex];
+      updated[matchIndex] = {
+        ...existing,
+        qtyReceived: existing.qtyReceived + enteredQty,
+        ...preview,
+      };
+      return updated;
+    }
+
+    // No existing line for this item on this GRN yet (ad-hoc receipt)
+    return [
+      ...lines,
+      {
+        id: `preview-${formData.itemId}`,
+        grnId,
+        itemId: formData.itemId,
+        itemSku: selectedItem?.sku,
+        itemDescription: selectedItem?.description,
+        qtyExpected: 0,
+        qtyReceived: enteredQty,
+        binId: formData.receivingBinId || null,
+        ...preview,
+      } as GrnLine,
+    ];
+  })();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,7 +288,7 @@ export default function GrnReceivePage() {
           <CardContent>
             <DataTable
               columns={lineColumns}
-              data={lines || []}
+              data={displayLines}
               keyField="id"
               isLoading={linesLoading}
               emptyState={{
