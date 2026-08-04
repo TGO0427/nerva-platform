@@ -366,9 +366,9 @@ INSERT INTO production_ledger (tenant_id, work_order_id, entry_type, item_id, wa
 ('89fb45a9-590a-4668-a58a-3b808e1c326b',_wo('WO-000017'),'PRODUCTION_OUTPUT',_item('FP-YOGURT-PEA'),'69a8665d-70a4-4470-896b-09d9cb06a113','51ad73c7-3885-4b7a-b86a-1183462eee6e','BATCH-20260220-001',1300,'EA','912cba62-8970-4d0e-b564-d9f322826b27','2026-02-25 14:00:00'),
 ('89fb45a9-590a-4668-a58a-3b808e1c326b',_wo('WO-000017'),'SCRAP',_item('FP-YOGURT-PEA'),'69a8665d-70a4-4470-896b-09d9cb06a113',NULL,NULL,50,'EA','912cba62-8970-4d0e-b564-d9f322826b27','2026-02-25 16:00:00'),
 -- Today's production (uses CURRENT_DATE so dashboard todayOutput always has data)
-('89fb45a9-590a-4668-a58a-3b808e1c326b',_wo('WO-000015'),'PRODUCTION_OUTPUT',_item('FP-CHEESE-PROC'),'69a8665d-70a4-4470-896b-09d9cb06a113','51ad73c7-3885-4b7a-b86a-1183462eee6e','BATCH-20260218-001',450,'EA','912cba62-8970-4d0e-b564-d9f322826b27',CURRENT_DATE + interval '8 hours'),
+('89fb45a9-590a-4668-a58a-3b808e1c326b',_wo('WO-000015'),'PRODUCTION_OUTPUT',_item('FP-PROC-CHD'),'69a8665d-70a4-4470-896b-09d9cb06a113','51ad73c7-3885-4b7a-b86a-1183462eee6e','BATCH-20260218-001',450,'EA','912cba62-8970-4d0e-b564-d9f322826b27',CURRENT_DATE + interval '8 hours'),
 ('89fb45a9-590a-4668-a58a-3b808e1c326b',_wo('WO-000017'),'PRODUCTION_OUTPUT',_item('FP-YOGURT-PEA'),'69a8665d-70a4-4470-896b-09d9cb06a113','51ad73c7-3885-4b7a-b86a-1183462eee6e','BATCH-20260220-001',350,'EA','912cba62-8970-4d0e-b564-d9f322826b27',CURRENT_DATE + interval '10 hours'),
-('89fb45a9-590a-4668-a58a-3b808e1c326b',_wo('WO-000015'),'SCRAP',_item('FP-CHEESE-PROC'),'69a8665d-70a4-4470-896b-09d9cb06a113',NULL,NULL,15,'EA','912cba62-8970-4d0e-b564-d9f322826b27',CURRENT_DATE + interval '11 hours');
+('89fb45a9-590a-4668-a58a-3b808e1c326b',_wo('WO-000015'),'SCRAP',_item('FP-PROC-CHD'),'69a8665d-70a4-4470-896b-09d9cb06a113',NULL,NULL,15,'EA','912cba62-8970-4d0e-b564-d9f322826b27',CURRENT_DATE + interval '11 hours');
 
 -- ============================================================
 -- 9. STOCK SNAPSHOT for MRP (raw materials availability)
@@ -391,6 +391,24 @@ INSERT INTO stock_snapshot (tenant_id, bin_id, item_id, batch_no, qty_on_hand, q
 ('89fb45a9-590a-4668-a58a-3b808e1c326b','51ad73c7-3885-4b7a-b86a-1183462eee6e',_item('PKG-CUP-500'),'CUP500-2026-0215',40000,0),
 ('89fb45a9-590a-4668-a58a-3b808e1c326b','51ad73c7-3885-4b7a-b86a-1183462eee6e',_item('PKG-LID-FOIL'),'FOIL-2026-0215',80000,0),
 ('89fb45a9-590a-4668-a58a-3b808e1c326b','51ad73c7-3885-4b7a-b86a-1183462eee6e',_item('PKG-CBOX-24'),'CBOX24-2026-0215',5000,0);
+
+-- ============================================================
+-- 9b. STOCK SNAPSHOT for FINISHED GOODS
+-- Production ledger + qty_completed above imply these units were
+-- produced into stock, but section 9 never actually created the
+-- finished-goods rows for them - without this, the app shows a
+-- work order as 50%/60%+ complete with production history to match,
+-- yet Inventory shows none of that stock ever existed.
+-- ============================================================
+INSERT INTO stock_snapshot (tenant_id, bin_id, item_id, batch_no, qty_on_hand, qty_reserved) VALUES
+('89fb45a9-590a-4668-a58a-3b808e1c326b','51ad73c7-3885-4b7a-b86a-1183462eee6e',_item('FP-PROC-CHD'),'BATCH-20260128-001',1960,0),
+('89fb45a9-590a-4668-a58a-3b808e1c326b','51ad73c7-3885-4b7a-b86a-1183462eee6e',_item('FP-YOGURT-PEA'),'BATCH-20260201-001',2940,0),
+('89fb45a9-590a-4668-a58a-3b808e1c326b','51ad73c7-3885-4b7a-b86a-1183462eee6e',_item('FP-SCO-SEAS'),'BATCH-20260205-001',980,0),
+('89fb45a9-590a-4668-a58a-3b808e1c326b','51ad73c7-3885-4b7a-b86a-1183462eee6e',_item('FP-PROC-CHD'),'BATCH-20260208-001',2450,0),
+('89fb45a9-590a-4668-a58a-3b808e1c326b','51ad73c7-3885-4b7a-b86a-1183462eee6e',_item('FP-YOGURT-PEA'),'BATCH-20260212-001',3920,0),
+('89fb45a9-590a-4668-a58a-3b808e1c326b','51ad73c7-3885-4b7a-b86a-1183462eee6e',_item('FP-PROC-CHD'),'BATCH-20260218-001',2250,0),
+('89fb45a9-590a-4668-a58a-3b808e1c326b','51ad73c7-3885-4b7a-b86a-1183462eee6e',_item('FP-SCO-SEAS'),'BATCH-20260219-001',600,0),
+('89fb45a9-590a-4668-a58a-3b808e1c326b','51ad73c7-3885-4b7a-b86a-1183462eee6e',_item('FP-YOGURT-PEA'),'BATCH-20260220-001',2850,0);
 
 -- ============================================================
 -- 10. NON-CONFORMANCES
