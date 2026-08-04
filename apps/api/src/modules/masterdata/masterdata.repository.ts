@@ -409,7 +409,7 @@ export class MasterDataRepository extends BaseRepository {
         data.weightKg || null,
         data.hsCode || null,
         data.countryOfOrigin || null,
-        data.requiresBatchTracking ?? false,
+        data.requiresBatchTracking ?? true,
       ],
     );
     return this.mapItem(row!);

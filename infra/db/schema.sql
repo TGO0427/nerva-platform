@@ -305,7 +305,7 @@ CREATE TABLE IF NOT EXISTS items (
   width_cm numeric(18,6),
   height_cm numeric(18,6),
   is_active boolean NOT NULL DEFAULT true,
-  requires_batch_tracking boolean NOT NULL DEFAULT false,
+  requires_batch_tracking boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, sku)

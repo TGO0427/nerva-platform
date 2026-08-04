@@ -180,6 +180,7 @@ describe("InventoryService", () => {
       updatedAt: new Date(),
     });
     repository.findOpenGrnLineForItem.mockResolvedValue(null);
+    repository.getGrnLines.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -614,6 +615,36 @@ describe("InventoryService", () => {
       await expect(service.completeGrn("tenant-123", "grn-123")).rejects.toThrow(
         "GRN must be in RECEIVED or PUTAWAY_PENDING status to complete",
       );
+    });
+
+    it("should throw BadRequestException when a line still has outstanding quantity", async () => {
+      const receivedGrn = { ...mockGrn, status: "RECEIVED" };
+      repository.findGrnById.mockResolvedValue(receivedGrn);
+      repository.getGrnLines.mockResolvedValue([
+        { ...mockGrnLine, itemSku: "SKU-001", qtyExpected: 10, qtyReceived: 4 },
+      ]);
+
+      await expect(service.completeGrn("tenant-123", "grn-123")).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.completeGrn("tenant-123", "grn-123")).rejects.toThrow(
+        "Cannot complete GRN — still awaiting receipt: SKU-001",
+      );
+      expect(repository.updateGrnStatus).not.toHaveBeenCalled();
+    });
+
+    it("should allow completing when all lines are fully received", async () => {
+      const receivedGrn = { ...mockGrn, status: "RECEIVED" };
+      const completeGrn = { ...mockGrn, status: "COMPLETE" };
+      repository.findGrnById.mockResolvedValue(receivedGrn);
+      repository.getGrnLines.mockResolvedValue([
+        { ...mockGrnLine, qtyExpected: 10, qtyReceived: 10 },
+      ]);
+      repository.updateGrnStatus.mockResolvedValue(completeGrn);
+
+      const result = await service.completeGrn("tenant-123", "grn-123");
+
+      expect(result).toEqual(completeGrn);
     });
   });
 

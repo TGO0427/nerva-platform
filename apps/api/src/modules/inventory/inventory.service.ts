@@ -207,6 +207,14 @@ export class InventoryService {
         "GRN must be in RECEIVED or PUTAWAY_PENDING status to complete",
       );
     }
+    const lines = await this.repository.getGrnLines(grnId);
+    const outstanding = lines.filter((l) => l.qtyReceived < l.qtyExpected);
+    if (outstanding.length > 0) {
+      const skus = outstanding.map((l) => l.itemSku || l.itemId).join(", ");
+      throw new BadRequestException(
+        `Cannot complete GRN — still awaiting receipt: ${skus}`,
+      );
+    }
     const updated = await this.repository.updateGrnStatus(tenantId, grnId, "COMPLETE");
     return updated!;
   }

@@ -23,12 +23,15 @@ export interface GrnLine {
   grnId: string;
   purchaseOrderLineId: string | null;
   itemId: string;
+  itemSku?: string;
+  itemDescription?: string | null;
   qtyExpected: number;
   qtyReceived: number;
   batchNo: string | null;
   expiryDate: Date | null;
   batchId: string | null;
   receivingBinId: string | null;
+  binCode?: string;
   createdAt: Date;
 }
 
@@ -188,7 +191,12 @@ export class InventoryRepository extends BaseRepository {
 
   async getGrnLines(grnId: string): Promise<GrnLine[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      "SELECT * FROM grn_lines WHERE grn_id = $1 ORDER BY created_at",
+      `SELECT gl.*, i.sku as item_sku, i.description as item_description, b.code as bin_code
+       FROM grn_lines gl
+       JOIN items i ON i.id = gl.item_id
+       LEFT JOIN bins b ON b.id = gl.receiving_bin_id
+       WHERE gl.grn_id = $1
+       ORDER BY gl.created_at`,
       [grnId],
     );
     return rows.map(this.mapGrnLine);
@@ -452,12 +460,15 @@ export class InventoryRepository extends BaseRepository {
       grnId: row.grn_id as string,
       purchaseOrderLineId: row.purchase_order_line_id as string | null,
       itemId: row.item_id as string,
+      itemSku: row.item_sku as string | undefined,
+      itemDescription: row.item_description as string | null | undefined,
       qtyExpected: parseFloat(row.qty_expected as string),
       qtyReceived: parseFloat(row.qty_received as string),
       batchNo: row.batch_no as string | null,
       expiryDate: row.expiry_date as Date | null,
       batchId: row.batch_id as string | null,
       receivingBinId: row.receiving_bin_id as string | null,
+      binCode: row.bin_code as string | undefined,
       createdAt: row.created_at as Date,
     };
   }

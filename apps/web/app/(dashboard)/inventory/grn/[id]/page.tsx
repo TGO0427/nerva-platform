@@ -152,7 +152,7 @@ export default function GrnDetailPage() {
       router.push('/inventory/grn');
     } catch (error) {
       console.error('Failed to complete GRN:', error);
-      addToast('Failed to complete GRN', 'error');
+      addToast(error instanceof Error ? error.message : 'Failed to complete GRN', 'error');
     }
   };
 
@@ -175,6 +175,9 @@ export default function GrnDetailPage() {
   const totalExpected = lines?.reduce((sum, l) => sum + l.qtyExpected, 0) || 0;
   const totalReceived = lines?.reduce((sum, l) => sum + l.qtyReceived, 0) || 0;
   const progress = totalExpected > 0 ? Math.round((totalReceived / totalExpected) * 100) : 0;
+  const canComplete =
+    (grn.status === 'RECEIVED' || grn.status === 'PUTAWAY_PENDING') &&
+    totalReceived >= totalExpected;
 
   return (
     <div>
@@ -233,7 +236,7 @@ export default function GrnDetailPage() {
                 Generate Putaway Tasks
               </Button>
             )}
-            {grn.status !== 'RECEIVED' && (
+            {canComplete && (
               <Button onClick={handleComplete} isLoading={completeGrn.isPending}>
                 Complete GRN
               </Button>

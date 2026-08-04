@@ -55,7 +55,7 @@ export function ItemForm({ item, onSubmit, isSubmitting }: ItemFormProps) {
     hsCode: item?.hsCode ?? null,
     countryOfOrigin: item?.countryOfOrigin ?? null,
     isActive: item?.isActive ?? true,
-    requiresBatchTracking: item?.requiresBatchTracking ?? false,
+    requiresBatchTracking: item?.requiresBatchTracking ?? true,
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof ItemFormData, string>>>({});
