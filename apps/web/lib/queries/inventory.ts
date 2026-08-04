@@ -30,6 +30,8 @@ export interface LedgerEntry {
   id: string;
   itemId: string;
   binId: string | null;
+  binCode: string | null;
+  warehouseName: string | null;
   reason: string;
   qtyChange: number;
   qtyAfter: number;

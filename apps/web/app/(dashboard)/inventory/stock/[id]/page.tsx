@@ -110,6 +110,18 @@ export default function StockDetailPage() {
       ),
     },
     {
+      key: 'warehouseName',
+      header: 'Warehouse',
+      render: (row) => (
+        <div>
+          <span>{row.warehouseName || '-'}</span>
+          {row.binCode && (
+            <p className="text-xs text-slate-500">{row.binCode}</p>
+          )}
+        </div>
+      ),
+    },
+    {
       key: 'qtyChange',
       header: 'Qty Change',
       className: 'text-right',

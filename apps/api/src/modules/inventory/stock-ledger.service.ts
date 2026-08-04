@@ -355,6 +355,8 @@ export class StockLedgerService {
       `SELECT sl.*,
               fb.code as from_bin_code,
               tb.code as to_bin_code,
+              fw.name as from_warehouse_name,
+              tw.name as to_warehouse_name,
               u.display_name as created_by_name,
               (${signedQtyExpr}) as signed_qty,
               SUM(${signedQtyExpr}) OVER (
@@ -364,6 +366,8 @@ export class StockLedgerService {
        FROM stock_ledger sl
        LEFT JOIN bins fb ON sl.from_bin_id = fb.id
        LEFT JOIN bins tb ON sl.to_bin_id = tb.id
+       LEFT JOIN warehouses fw ON fb.warehouse_id = fw.id
+       LEFT JOIN warehouses tw ON tb.warehouse_id = tw.id
        LEFT JOIN users u ON sl.created_by = u.id
        WHERE sl.tenant_id = $1 AND sl.item_id = $2
        ORDER BY sl.created_at DESC, sl.id DESC
@@ -374,6 +378,8 @@ export class StockLedgerService {
       id: row.id as string,
       itemId: row.item_id as string,
       binId: (row.to_bin_id as string | null) ?? (row.from_bin_id as string | null),
+      binCode: (row.to_bin_code as string | null) ?? (row.from_bin_code as string | null),
+      warehouseName: (row.to_warehouse_name as string | null) ?? (row.from_warehouse_name as string | null),
       fromBinCode: row.from_bin_code as string | null,
       toBinCode: row.to_bin_code as string | null,
       reason: row.reason as string,
