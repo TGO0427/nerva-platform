@@ -83,6 +83,11 @@ export default function AdjustmentDetailPage() {
   const currentQtyOnHand = newBatchNo
     ? batchesInBin.find(s => (s.batchNo || NO_BATCH_SENTINEL) === newBatchNo)?.qtyOnHand ?? 0
     : batchesInBin.reduce((sum, s) => sum + s.qtyOnHand, 0);
+  // Only meaningful once a specific batch is chosen — the backend compares
+  // qtyAfter against that exact batch's on-hand qty, not the bin's total.
+  const previewDelta = newBatchNo && newQtyAfter !== ''
+    ? Number(newQtyAfter) - currentQtyOnHand
+    : null;
 
   const canAddLine = !!newItemId && !!newBinId && !!newBatchNo && newQtyAfter !== '';
 
@@ -397,6 +402,14 @@ export default function AdjustmentDetailPage() {
                       System shows {formatQuantity(currentQtyOnHand)}
                       {newBatchNo ? '' : ' across all batches in this bin'}
                     </p>
+                  )}
+                  {previewDelta !== null && previewDelta !== 0 && (
+                    <p className={`text-xs mt-0.5 font-medium ${previewDelta > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {previewDelta > 0 ? `Adjusting up by ${formatQuantity(previewDelta)}` : `Adjusting down by ${formatQuantity(Math.abs(previewDelta))}`}
+                    </p>
+                  )}
+                  {previewDelta === 0 && (
+                    <p className="text-xs mt-0.5 text-slate-400">No change</p>
                   )}
                 </div>
                 <div>
