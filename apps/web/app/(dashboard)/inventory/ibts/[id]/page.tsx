@@ -85,6 +85,16 @@ export default function IbtDetailPage() {
     ? (fromBins || []).filter((b: Bin) => b.isActive && binIdsWithStock.has(b.id))
     : (fromBins || []).filter((b: Bin) => b.isActive);
 
+  // Available qty for whatever's currently selected, shown next to Quantity
+  // so the user can see it before typing rather than finding out at ship time.
+  const selectedAvailableQty = newBatchNo
+    ? availableBatchesInBin.find(
+        (s) => (s.batchNo || NO_BATCH_SENTINEL) === newBatchNo,
+      )?.qtyAvailable ?? 0
+    : availableBatchesInBin.reduce((sum, s) => sum + s.qtyAvailable, 0);
+  const requestedExceedsAvailable =
+    newFromBinId && newQty && Number(newQty) > selectedAvailableQty;
+
   // Ship/receive state
   const [shipQtys, setShipQtys] = useState<Record<string, number>>({});
   const [receiveQtys, setReceiveQtys] = useState<Record<string, number>>({});
@@ -622,6 +632,12 @@ export default function IbtDetailPage() {
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Quantity</label>
                       <Input type="number" value={newQty} onChange={(e) => setNewQty(e.target.value)} placeholder="Qty" min={1} />
+                      {newFromBinId && (
+                        <p className={`text-xs mt-1 ${requestedExceedsAvailable ? 'text-red-600' : 'text-slate-500'}`}>
+                          {formatQuantity(selectedAvailableQty)} available
+                          {newBatchNo ? '' : ' across all batches in this bin'}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">
