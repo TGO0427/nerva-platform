@@ -8,7 +8,7 @@ import {
 import { WorkstationRepository } from "./repositories/workstation.repository";
 import { BomRepository } from "./repositories/bom.repository";
 import { RoutingRepository } from "./repositories/routing.repository";
-import { WorkOrderRepository } from "./repositories/work-order.repository";
+import { WorkOrderRepository, WorkOrder } from "./repositories/work-order.repository";
 import { ProductionLedgerRepository } from "./repositories/production-ledger.repository";
 import { ProductionDataRepository } from "./repositories/production-data.repository";
 import { MrpRepository } from "./repositories/mrp.repository";
@@ -328,6 +328,181 @@ describe("ManufacturingService - Non-Conformances", () => {
         "Failed visual inspection",
       );
       expect(result.qualityStatus).toBe("ON_HOLD");
+    });
+  });
+});
+
+describe("ManufacturingService - Production Output", () => {
+  let service: ManufacturingService;
+  let workOrderRepo: jest.Mocked<WorkOrderRepository>;
+  let productionLedgerRepo: jest.Mocked<ProductionLedgerRepository>;
+  let productionDataRepo: jest.Mocked<ProductionDataRepository>;
+  let stockLedgerService: jest.Mocked<StockLedgerService>;
+  let batchQualityRepo: jest.Mocked<BatchQualityRepository>;
+  let masterDataService: jest.Mocked<MasterDataService>;
+
+  const tenantId = "tenant-123";
+  const workOrderId = "wo-123";
+
+  const baseWorkOrder: WorkOrder = {
+    id: workOrderId,
+    tenantId,
+    siteId: "site-123",
+    warehouseId: "warehouse-123",
+    workOrderNo: "WO-000001",
+    itemId: "item-123",
+    bomHeaderId: null,
+    routingId: null,
+    status: "IN_PROGRESS",
+    priority: 5,
+    qtyOrdered: 100,
+    qtyCompleted: 0,
+    qtyScrapped: 0,
+    plannedStart: null,
+    plannedEnd: null,
+    actualStart: null,
+    actualEnd: null,
+    salesOrderId: null,
+    batchNo: null,
+    notes: null,
+    createdBy: "user-123",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const baseItem = {
+    id: "item-123",
+    tenantId,
+    sku: "FG-001",
+    description: "Finished Good",
+    uom: "EA",
+    weightKg: null,
+    hsCode: null,
+    countryOfOrigin: null,
+    isActive: true,
+    requiresBatchTracking: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ManufacturingService,
+        { provide: NonConformanceRepository, useValue: {} },
+        { provide: WorkstationRepository, useValue: {} },
+        { provide: BomRepository, useValue: {} },
+        { provide: RoutingRepository, useValue: {} },
+        {
+          provide: WorkOrderRepository,
+          useValue: {
+            findById: jest.fn(),
+            update: jest.fn(),
+            getOperations: jest.fn(),
+            getMaterials: jest.fn(),
+          },
+        },
+        {
+          provide: ProductionLedgerRepository,
+          useValue: { create: jest.fn() },
+        },
+        {
+          provide: ProductionDataRepository,
+          useValue: {
+            findChecksByWorkOrder: jest.fn(),
+            findProcessByWorkOrder: jest.fn(),
+          },
+        },
+        { provide: MrpRepository, useValue: {} },
+        {
+          provide: StockLedgerService,
+          useValue: { recordMovement: jest.fn() },
+        },
+        {
+          provide: BatchQualityRepository,
+          useValue: { ensureStatusRecord: jest.fn() },
+        },
+        { provide: MasterDataService, useValue: { getItem: jest.fn() } },
+      ],
+    }).compile();
+
+    service = module.get<ManufacturingService>(ManufacturingService);
+    workOrderRepo = module.get(WorkOrderRepository);
+    productionLedgerRepo = module.get(ProductionLedgerRepository);
+    productionDataRepo = module.get(ProductionDataRepository);
+    stockLedgerService = module.get(StockLedgerService);
+    batchQualityRepo = module.get(BatchQualityRepository);
+    masterDataService = module.get(MasterDataService);
+
+    workOrderRepo.findById.mockResolvedValue(baseWorkOrder);
+    workOrderRepo.update.mockResolvedValue({ ...baseWorkOrder, qtyCompleted: 10 });
+    workOrderRepo.getOperations.mockResolvedValue([]);
+    workOrderRepo.getMaterials.mockResolvedValue([]);
+    productionDataRepo.findChecksByWorkOrder.mockResolvedValue(null);
+    productionDataRepo.findProcessByWorkOrder.mockResolvedValue(null);
+    masterDataService.getItem.mockResolvedValue(baseItem);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe("recordOutput", () => {
+    it("should throw BadRequestException when the item requires a batch and none is given", async () => {
+      masterDataService.getItem.mockResolvedValue({
+        ...baseItem,
+        requiresBatchTracking: true,
+      });
+
+      await expect(
+        service.recordOutput(workOrderId, {
+          qty: 10,
+          binId: "bin-123",
+          createdBy: "user-123",
+        }),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.recordOutput(workOrderId, {
+          qty: 10,
+          binId: "bin-123",
+          createdBy: "user-123",
+        }),
+      ).rejects.toThrow("FG-001 requires a batch/lot number to record output");
+
+      expect(stockLedgerService.recordMovement).not.toHaveBeenCalled();
+    });
+
+    it("should record output when the item does not require a batch", async () => {
+      await service.recordOutput(workOrderId, {
+        qty: 10,
+        binId: "bin-123",
+        createdBy: "user-123",
+      });
+
+      expect(stockLedgerService.recordMovement).toHaveBeenCalledWith(
+        expect.objectContaining({ itemId: "item-123", qty: 10, reason: "WO_PRODUCE" }),
+      );
+    });
+
+    it("should record output when a batch-tracked item is given a batch number", async () => {
+      masterDataService.getItem.mockResolvedValue({
+        ...baseItem,
+        requiresBatchTracking: true,
+      });
+
+      await service.recordOutput(workOrderId, {
+        qty: 10,
+        binId: "bin-123",
+        batchNo: "BATCH-001",
+        createdBy: "user-123",
+      });
+
+      expect(stockLedgerService.recordMovement).toHaveBeenCalledWith(
+        expect.objectContaining({ batchNo: "BATCH-001" }),
+      );
+      expect(batchQualityRepo.ensureStatusRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ batchNo: "BATCH-001", initialStatus: "AWAITING_QC" }),
+      );
     });
   });
 });

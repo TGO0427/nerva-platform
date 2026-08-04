@@ -39,6 +39,18 @@ export interface SalesOrderLine {
   createdAt: Date;
 }
 
+export interface StockReservation {
+  id: string;
+  tenantId: string;
+  salesOrderLineId: string;
+  binId: string;
+  itemId: string;
+  qty: number;
+  batchNo: string | null;
+  status: string;
+  createdAt: Date;
+}
+
 @Injectable()
 export class SalesRepository extends BaseRepository {
   async createOrder(data: {
@@ -359,6 +371,66 @@ export class SalesRepository extends BaseRepository {
       `UPDATE sales_order_lines SET ${field} = $1 WHERE id = $2`,
       [qty, lineId],
     );
+  }
+
+  async createReservation(data: {
+    tenantId: string;
+    salesOrderLineId: string;
+    binId: string;
+    itemId: string;
+    qty: number;
+    batchNo: string | null;
+  }): Promise<StockReservation> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `INSERT INTO stock_reservations (tenant_id, sales_order_line_id, bin_id, item_id, qty, batch_no)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [
+        data.tenantId,
+        data.salesOrderLineId,
+        data.binId,
+        data.itemId,
+        data.qty,
+        data.batchNo,
+      ],
+    );
+    return this.mapReservation(row!);
+  }
+
+  async findReservationsBySalesOrderLine(
+    lineId: string,
+    status?: string,
+  ): Promise<StockReservation[]> {
+    let sql = "SELECT * FROM stock_reservations WHERE sales_order_line_id = $1";
+    const params: unknown[] = [lineId];
+    if (status) {
+      sql += " AND status = $2";
+      params.push(status);
+    }
+    sql += " ORDER BY created_at";
+    const rows = await this.queryMany<Record<string, unknown>>(sql, params);
+    return rows.map(this.mapReservation);
+  }
+
+  async updateReservationStatus(id: string, status: string): Promise<void> {
+    await this.execute(
+      "UPDATE stock_reservations SET status = $1 WHERE id = $2",
+      [status, id],
+    );
+  }
+
+  private mapReservation(row: Record<string, unknown>): StockReservation {
+    return {
+      id: row.id as string,
+      tenantId: row.tenant_id as string,
+      salesOrderLineId: row.sales_order_line_id as string,
+      binId: row.bin_id as string,
+      itemId: row.item_id as string,
+      qty: parseFloat(row.qty as string),
+      batchNo: row.batch_no as string | null,
+      status: row.status as string,
+      createdAt: row.created_at as Date,
+    };
   }
 
   async updateOrder(

@@ -1188,6 +1188,16 @@ export class ManufacturingService {
       );
     }
 
+    const item = await this.masterDataService.getItem(
+      workOrder.tenantId,
+      workOrder.itemId,
+    );
+    if (item.requiresBatchTracking && !data.batchNo) {
+      throw new BadRequestException(
+        `${item.sku} requires a batch/lot number to record output`,
+      );
+    }
+
     // Create production ledger entry
     await this.productionLedgerRepo.create({
       tenantId: workOrder.tenantId,

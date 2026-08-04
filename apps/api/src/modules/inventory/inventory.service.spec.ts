@@ -6,6 +6,7 @@ import {
   Grn,
   GrnLine,
   Adjustment,
+  AdjustmentLine,
 } from "./inventory.repository";
 import { CycleCountRepository } from "./cycle-count.repository";
 import { PutawayRepository } from "./putaway.repository";
@@ -86,6 +87,7 @@ describe("InventoryService", () => {
             countGrnsByTenant: jest.fn(),
             generateAdjustmentNo: jest.fn(),
             createAdjustment: jest.fn(),
+            addAdjustmentLine: jest.fn(),
             findAdjustmentById: jest.fn(),
             findAdjustmentsByTenant: jest.fn(),
             countAdjustmentsByTenant: jest.fn(),
@@ -713,6 +715,90 @@ describe("InventoryService", () => {
         ...createData,
         adjustmentNo: "ADJ-000001",
       });
+    });
+  });
+
+  describe("addAdjustmentLine", () => {
+    const mockAdjustmentLine: AdjustmentLine = {
+      id: "adj-line-123",
+      tenantId: "tenant-123",
+      adjustmentId: "adj-123",
+      binId: "bin-123",
+      itemId: "item-123",
+      qtyBefore: 5,
+      qtyAfter: 10,
+      qtyDelta: 5,
+      batchNo: null,
+      createdAt: new Date(),
+    };
+
+    it("should throw BadRequestException when a batch-tracked item has no batch", async () => {
+      repository.findAdjustmentById.mockResolvedValue(mockAdjustment); // DRAFT
+      masterDataService.getItem.mockResolvedValue({
+        id: "item-123",
+        tenantId: "tenant-123",
+        sku: "SKU-001",
+        description: "Test Item",
+        uom: "EA",
+        weightKg: null,
+        hsCode: null,
+        countryOfOrigin: null,
+        isActive: true,
+        requiresBatchTracking: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await expect(
+        service.addAdjustmentLine("adj-123", {
+          tenantId: "tenant-123",
+          binId: "bin-123",
+          itemId: "item-123",
+          qtyAfter: 10,
+        }),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.addAdjustmentLine("adj-123", {
+          tenantId: "tenant-123",
+          binId: "bin-123",
+          itemId: "item-123",
+          qtyAfter: 10,
+        }),
+      ).rejects.toThrow("SKU-001 requires a batch/lot number");
+
+      expect(repository.addAdjustmentLine).not.toHaveBeenCalled();
+    });
+
+    it("should add the line when a non-batch-tracked item has no batch", async () => {
+      repository.findAdjustmentById.mockResolvedValue(mockAdjustment); // DRAFT
+      masterDataService.getItem.mockResolvedValue({
+        id: "item-123",
+        tenantId: "tenant-123",
+        sku: "SKU-001",
+        description: "Test Item",
+        uom: "EA",
+        weightKg: null,
+        hsCode: null,
+        countryOfOrigin: null,
+        isActive: true,
+        requiresBatchTracking: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      stockLedger.getStockInBin.mockResolvedValue([]);
+      repository.addAdjustmentLine.mockResolvedValue(mockAdjustmentLine);
+
+      const result = await service.addAdjustmentLine("adj-123", {
+        tenantId: "tenant-123",
+        binId: "bin-123",
+        itemId: "item-123",
+        qtyAfter: 10,
+      });
+
+      expect(result).toEqual(mockAdjustmentLine);
+      expect(repository.addAdjustmentLine).toHaveBeenCalledWith(
+        expect.objectContaining({ itemId: "item-123", qtyAfter: 10, qtyBefore: 0 }),
+      );
     });
   });
 

@@ -372,6 +372,14 @@ export class InventoryService {
       throw new BadRequestException("Can only add lines to DRAFT adjustments");
     }
 
+    const item = await this.masterDataService.getItem(
+      data.tenantId,
+      data.itemId,
+    );
+    if (item.requiresBatchTracking && !data.batchNo) {
+      throw new BadRequestException(`${item.sku} requires a batch/lot number`);
+    }
+
     // Get current stock quantity in this bin for this item
     const stockInBin = await this.stockLedger.getStockInBin(
       data.tenantId,

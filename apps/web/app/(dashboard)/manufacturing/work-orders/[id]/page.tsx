@@ -31,6 +31,7 @@ import {
   useSetBatchQualityStatus,
 } from '@/lib/queries/manufacturing';
 import { useBins } from '@/lib/queries/warehouses';
+import { useItem } from '@/lib/queries/items';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { formatDate, formatDateTime, formatPercent, formatQuantity } from '@/lib/format';
@@ -44,6 +45,7 @@ export default function WorkOrderDetailPage() {
   const router = useRouter();
   const { data: workOrder, isLoading, error } = useWorkOrder(id);
   const { data: batchQuality } = useWorkOrderBatchQuality(id);
+  const { data: producedItem } = useItem(workOrder?.itemId);
   const [activeTab, setActiveTab] = useState<'operations' | 'materials' | 'checks' | 'process'>('materials');
 
   const [issuingMaterialId, setIssuingMaterialId] = useState<string | null>(null);
@@ -486,8 +488,13 @@ export default function WorkOrderDetailPage() {
                   <Select value={outputBinId} onChange={(e) => setOutputBinId(e.target.value)} options={[{ value: '', label: 'Select bin...' }, ...(bins || []).map(b => ({ value: b.id, label: b.code }))]} />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-600 mb-1">Batch No</label>
+                  <label className="block text-xs text-slate-600 mb-1">
+                    Batch No{producedItem?.requiresBatchTracking && <span className="text-red-500"> *</span>}
+                  </label>
                   <Input value={outputBatchNo} onChange={(e) => setOutputBatchNo(e.target.value)} placeholder="Optional" />
+                  {producedItem?.requiresBatchTracking && (
+                    <p className="text-xs text-amber-600 mt-1">This item requires a batch/lot number</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs text-slate-600 mb-1">Notes</label>
@@ -497,7 +504,7 @@ export default function WorkOrderDetailPage() {
                   <Button size="sm" disabled={!outputQty || !outputBinId || recordOutput.isPending} onClick={async () => {
                     try { await recordOutput.mutateAsync({ workOrderId: id!, qty: parseFloat(outputQty), binId: outputBinId, batchNo: outputBatchNo || undefined, notes: outputNotes || undefined });
                     addToast('Output recorded', 'success'); setShowRecordOutput(false); setOutputQty(''); setOutputBinId(''); setOutputBatchNo(''); setOutputNotes('');
-                    } catch { addToast('Failed to record output', 'error'); }
+                    } catch (err) { addToast(err instanceof Error ? err.message : 'Failed to record output', 'error'); }
                   }}>
                     {recordOutput.isPending ? 'Recording...' : 'Record'}
                   </Button>

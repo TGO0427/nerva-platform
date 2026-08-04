@@ -29,6 +29,7 @@ import {
 } from '@/lib/queries/ibt';
 import { useItems } from '@/lib/queries';
 import { useBins } from '@/lib/queries/warehouses';
+import { useStockOnHand } from '@/lib/queries/inventory';
 import { formatDate, formatNumber, formatQuantity } from '@/lib/format';
 import type { Bin } from '@nerva/shared';
 
@@ -68,6 +69,11 @@ export default function IbtDetailPage() {
   const [newQty, setNewQty] = useState('');
   const [newFromBinId, setNewFromBinId] = useState('');
   const [newBatchNo, setNewBatchNo] = useState('');
+
+  const { data: stockOnHand } = useStockOnHand(newItemId || undefined);
+  const availableBatchesInBin = (stockOnHand || []).filter(
+    (s) => s.binId === newFromBinId && s.qtyAvailable > 0,
+  );
 
   // Ship/receive state
   const [shipQtys, setShipQtys] = useState<Record<string, number>>({});
@@ -607,7 +613,19 @@ export default function IbtDetailPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Batch No</label>
-                      <Input value={newBatchNo} onChange={(e) => setNewBatchNo(e.target.value)} placeholder="Optional" />
+                      {newItemId && newFromBinId ? (
+                        <Select
+                          value={newBatchNo}
+                          onChange={(e) => setNewBatchNo(e.target.value)}
+                          options={availableBatchesInBin.map((s) => ({
+                            value: s.batchNo || '',
+                            label: `${s.batchNo || 'No batch'} (${formatQuantity(s.qtyAvailable)} available)`,
+                          }))}
+                          placeholder="Select batch"
+                        />
+                      ) : (
+                        <Input value="" disabled placeholder="Select item and bin first" />
+                      )}
                     </div>
                   </div>
                   <div className="mt-3 flex justify-end">

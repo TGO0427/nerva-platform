@@ -360,12 +360,17 @@ export default function AdjustmentDetailPage() {
                   placeholder="Counted qty"
                   required
                 />
-                <Input
-                  label="Batch No (optional)"
-                  value={newBatchNo}
-                  onChange={(e) => setNewBatchNo(e.target.value)}
-                  placeholder="Batch number"
-                />
+                <div>
+                  <Input
+                    label={itemMap.get(newItemId)?.requiresBatchTracking ? 'Batch No *' : 'Batch No (optional)'}
+                    value={newBatchNo}
+                    onChange={(e) => setNewBatchNo(e.target.value)}
+                    placeholder="Batch number"
+                  />
+                  {itemMap.get(newItemId)?.requiresBatchTracking && (
+                    <p className="text-xs text-amber-600 mt-1">This item requires a batch/lot number</p>
+                  )}
+                </div>
               </div>
               <div className="flex justify-end">
                 <Button type="submit" size="sm" disabled={addLine.isPending}>

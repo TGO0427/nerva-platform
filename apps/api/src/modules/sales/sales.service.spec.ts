@@ -69,6 +69,9 @@ describe("SalesService", () => {
             addOrderLine: jest.fn(),
             getOrderLines: jest.fn(),
             updateOrderLineQty: jest.fn(),
+            createReservation: jest.fn(),
+            findReservationsBySalesOrderLine: jest.fn(),
+            updateReservationStatus: jest.fn(),
           },
         },
         {
@@ -95,6 +98,19 @@ describe("SalesService", () => {
     repository = module.get(SalesRepository);
     stockLedger = module.get(StockLedgerService);
     masterDataService = module.get(MasterDataService);
+
+    repository.createReservation.mockResolvedValue({
+      id: "reservation-123",
+      tenantId: "tenant-123",
+      salesOrderLineId: "line-123",
+      binId: "bin-123",
+      itemId: "item-123",
+      qty: 1,
+      batchNo: null,
+      status: "RESERVED",
+      createdAt: new Date(),
+    });
+    repository.findReservationsBySalesOrderLine.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -311,6 +327,14 @@ describe("SalesService", () => {
         "qty_allocated",
         10,
       );
+      expect(repository.createReservation).toHaveBeenCalledWith({
+        tenantId: "tenant-123",
+        salesOrderLineId: "line-123",
+        binId: "bin-1",
+        itemId: "item-123",
+        qty: 10,
+        batchNo: null,
+      });
     });
 
     it("should partially allocate when insufficient stock", async () => {
@@ -433,31 +457,40 @@ describe("SalesService", () => {
       const allocatedOrder = { ...mockOrder, status: "ALLOCATED" };
       const allocatedLine = { ...mockOrderLine, qtyAllocated: 10 };
       const cancelledOrder = { ...mockOrder, status: "CANCELLED" };
+      const reservation = {
+        id: "reservation-123",
+        tenantId: "tenant-123",
+        salesOrderLineId: "line-123",
+        binId: "bin-1",
+        itemId: "item-123",
+        qty: 10,
+        batchNo: null,
+        status: "RESERVED",
+        createdAt: new Date(),
+      };
 
       repository.findOrderById.mockResolvedValue(allocatedOrder);
       repository.getOrderLines.mockResolvedValue([allocatedLine]);
-      stockLedger.getStockOnHand.mockResolvedValue([
-        {
-          itemId: "item-123",
-          binId: "bin-1",
-          qtyOnHand: 10,
-          qtyReserved: 10,
-          qtyAvailable: 0,
-          batchNo: null,
-          expiryDate: null,
-        },
-      ]);
+      repository.findReservationsBySalesOrderLine.mockResolvedValue([reservation]);
       stockLedger.releaseReservation.mockResolvedValue(undefined);
       repository.updateOrderStatus.mockResolvedValue(cancelledOrder);
 
       await service.cancelOrder("tenant-123", "order-123");
 
+      expect(repository.findReservationsBySalesOrderLine).toHaveBeenCalledWith(
+        "line-123",
+        "RESERVED",
+      );
       expect(stockLedger.releaseReservation).toHaveBeenCalledWith(
         "tenant-123",
         "bin-1",
         "item-123",
         10,
         undefined,
+      );
+      expect(repository.updateReservationStatus).toHaveBeenCalledWith(
+        "reservation-123",
+        "RELEASED",
       );
     });
 
@@ -488,6 +521,47 @@ describe("SalesService", () => {
 
       await expect(service.cancelOrder("tenant-123", "order-123")).rejects.toThrow(
         BadRequestException,
+      );
+    });
+  });
+
+  describe("reservation helpers", () => {
+    it("getReservationsForOrderLine should return only RESERVED reservations", async () => {
+      const reservation = {
+        id: "reservation-123",
+        tenantId: "tenant-123",
+        salesOrderLineId: "line-123",
+        binId: "bin-1",
+        itemId: "item-123",
+        qty: 10,
+        batchNo: null,
+        status: "RESERVED",
+        createdAt: new Date(),
+      };
+      repository.findReservationsBySalesOrderLine.mockResolvedValue([reservation]);
+
+      const result = await service.getReservationsForOrderLine("tenant-123", "line-123");
+
+      expect(result).toEqual([reservation]);
+      expect(repository.findReservationsBySalesOrderLine).toHaveBeenCalledWith(
+        "line-123",
+        "RESERVED",
+      );
+    });
+
+    it("markReservationPicked should set status to PICKED", async () => {
+      await service.markReservationPicked("reservation-123");
+      expect(repository.updateReservationStatus).toHaveBeenCalledWith(
+        "reservation-123",
+        "PICKED",
+      );
+    });
+
+    it("markReservationUnpicked should set status back to RESERVED", async () => {
+      await service.markReservationUnpicked("reservation-123");
+      expect(repository.updateReservationStatus).toHaveBeenCalledWith(
+        "reservation-123",
+        "RESERVED",
       );
     });
   });

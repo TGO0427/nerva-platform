@@ -57,43 +57,36 @@ export class FulfilmentService {
 
       for (const line of orderData.lines) {
         if (line.qtyAllocated > line.qtyPicked) {
-          const qtyToPick = line.qtyAllocated - line.qtyPicked;
-
-          // Get stock locations (FEFO ordered by expiry date)
-          const stock = await this.stockLedger.getStockOnHand(
+          // Consume exactly what was reserved for this line at allocation
+          // time, rather than independently re-deriving FEFO from whatever
+          // stock happens to remain now — the two can silently diverge if
+          // stock moved in between.
+          const reservations = await this.salesService.getReservationsForOrderLine(
             data.tenantId,
-            line.itemId,
+            line.id,
           );
-          let remaining = qtyToPick;
 
-          for (const s of stock) {
-            if (remaining <= 0) break;
-            // Pick from available stock in each bin (FEFO order)
-            const availableInBin = s.qtyOnHand;
-            if (availableInBin <= 0) continue;
-
-            const pickQty = Math.min(remaining, availableInBin);
-            if (pickQty > 0) {
-              await this.repository.createPickTask({
-                tenantId: data.tenantId,
-                pickWaveId: wave.id,
-                salesOrderId: orderId,
-                salesOrderLineId: line.id,
-                itemId: line.itemId,
-                fromBinId: s.binId,
-                qtyToPick: pickQty,
-                batchNo: s.batchNo || undefined,
-              });
-              remaining -= pickQty;
-            }
-          }
-
-          // Log warning if we couldn't allocate all qty
-          if (remaining > 0) {
+          if (reservations.length === 0) {
             orderShort = true;
             console.warn(
-              `Could not allocate full qty for order line ${line.id}: ${remaining} units remaining`,
+              `No stock reservation found for order line ${line.id}`,
             );
+            continue;
+          }
+
+          for (const r of reservations) {
+            await this.repository.createPickTask({
+              tenantId: data.tenantId,
+              pickWaveId: wave.id,
+              salesOrderId: orderId,
+              salesOrderLineId: line.id,
+              itemId: line.itemId,
+              fromBinId: r.binId,
+              qtyToPick: r.qty,
+              batchNo: r.batchNo || undefined,
+              reservationId: r.id,
+            });
+            await this.salesService.markReservationPicked(r.id);
           }
         }
       }
@@ -102,7 +95,7 @@ export class FulfilmentService {
         warnings.push({
           orderId,
           orderNo: orderData.orderNo,
-          reason: "Insufficient stock — some quantity could not be picked",
+          reason: "No stock reservation found for some line(s) — was this order actually allocated?",
         });
       }
 
@@ -404,6 +397,7 @@ export class FulfilmentService {
         task.qtyToPick,
         task.batchNo || undefined,
       );
+      await this.salesService.markReservationUnpicked(task.reservationId);
     }
 
     const cancelled = await this.repository.cancelPickTask(taskId, reason);

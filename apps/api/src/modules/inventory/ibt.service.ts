@@ -215,6 +215,32 @@ export class IbtService {
         );
       }
 
+      const item = await this.masterDataService.getItem(
+        ibt.tenantId,
+        line.itemId,
+      );
+      if (item.requiresBatchTracking && !line.batchNo) {
+        throw new BadRequestException(
+          `${line.itemSku} requires a batch/lot number to be transferred`,
+        );
+      }
+
+      const stockInBin = await this.stockLedger.getStockInBin(
+        ibt.tenantId,
+        line.fromBinId,
+      );
+      const batchStock = stockInBin.find(
+        (s) =>
+          s.itemId === line.itemId &&
+          (s.batchNo || null) === (line.batchNo || null),
+      );
+      const availableQty = batchStock?.qtyAvailable ?? 0;
+      if (shipLine.qtyShipped > availableQty) {
+        throw new BadRequestException(
+          `Insufficient stock for ${line.itemSku} in batch ${line.batchNo || "none"} — only ${availableQty} available`,
+        );
+      }
+
       // Record IBT_OUT stock movement
       await this.stockLedger.recordMovement({
         tenantId: ibt.tenantId,

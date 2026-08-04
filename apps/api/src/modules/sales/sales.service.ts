@@ -307,6 +307,17 @@ export class SalesService {
               s.batchNo,
               s.expiryDate,
             );
+            // Persist which specific batch/bin was reserved for this line,
+            // so picking later consumes exactly this instead of re-deriving
+            // FEFO from whatever stock happens to remain at that point.
+            await this.repository.createReservation({
+              tenantId: order.tenantId,
+              salesOrderLineId: line.id,
+              binId: s.binId,
+              itemId: line.itemId,
+              qty: reserveQty,
+              batchNo: s.batchNo,
+            });
             remaining -= reserveQty;
           }
         }
@@ -329,30 +340,43 @@ export class SalesService {
       throw new BadRequestException("Cannot cancel order in current status");
     }
 
-    // Release any reservations
+    // Release exactly what was reserved for this order's lines (not a
+    // tenant-wide guess at the item's stock, which could release the
+    // wrong order's reservation when multiple orders compete for stock).
     const lines = await this.repository.getOrderLines(id);
     for (const line of lines) {
-      if (line.qtyAllocated > 0) {
-        const stock = await this.stockLedger.getStockOnHand(
+      const reservations = await this.repository.findReservationsBySalesOrderLine(
+        line.id,
+        "RESERVED",
+      );
+      for (const r of reservations) {
+        await this.stockLedger.releaseReservation(
           order.tenantId,
-          line.itemId,
+          r.binId,
+          r.itemId,
+          r.qty,
+          r.batchNo || undefined,
         );
-        for (const s of stock) {
-          if (s.qtyReserved > 0) {
-            await this.stockLedger.releaseReservation(
-              order.tenantId,
-              s.binId,
-              line.itemId,
-              Math.min(s.qtyReserved, line.qtyAllocated),
-              s.batchNo || undefined,
-            );
-          }
-        }
+        await this.repository.updateReservationStatus(r.id, "RELEASED");
       }
     }
 
     const updated = await this.repository.updateOrderStatus(tenantId, id, "CANCELLED");
     return updated!;
+  }
+
+  /** The durable reservations made for this order line at allocation time, still awaiting pick. */
+  async getReservationsForOrderLine(tenantId: string, lineId: string) {
+    return this.repository.findReservationsBySalesOrderLine(lineId, "RESERVED");
+  }
+
+  async markReservationPicked(reservationId: string): Promise<void> {
+    await this.repository.updateReservationStatus(reservationId, "PICKED");
+  }
+
+  /** Called when a pick task is cancelled — the reserved stock is still allocated to the order, just not picked yet. */
+  async markReservationUnpicked(reservationId: string): Promise<void> {
+    await this.repository.updateReservationStatus(reservationId, "RESERVED");
   }
 
   async reopenOrder(tenantId: string, id: string): Promise<SalesOrder> {
