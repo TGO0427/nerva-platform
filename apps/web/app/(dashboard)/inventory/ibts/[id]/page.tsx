@@ -179,8 +179,8 @@ export default function IbtDetailPage() {
     try {
       await startPicking.mutateAsync(id);
       addToast('Picking started', 'success');
-    } catch {
-      addToast('Failed to start picking', 'error');
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : 'Failed to start picking', 'error');
     }
   };
 
@@ -190,32 +190,44 @@ export default function IbtDetailPage() {
       lineId: l.id,
       qtyShipped: shipQtys[l.id] ?? l.qtyRequested,
     })).filter((l) => l.qtyShipped > 0);
-    if (shipLines.length === 0) return;
+    if (shipLines.length === 0) {
+      addToast('Nothing to ship', 'warning');
+      return;
+    }
     try {
       await shipIbt.mutateAsync({ id, lines: shipLines });
       addToast('Shipment confirmed', 'success');
       setShipQtys({});
-    } catch {
-      addToast('Failed to confirm shipment', 'error');
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : 'Failed to confirm shipment', 'error');
     }
   };
 
   const handleReceive = async () => {
     if (!lines) return;
-    const rcvLines = lines
-      .filter((l) => (receiveQtys[l.id] ?? l.qtyShipped) > 0 && receiveBins[l.id])
+    const eligibleLines = lines.filter((l) => (receiveQtys[l.id] ?? l.qtyShipped) > 0);
+    const rcvLines = eligibleLines
+      .filter((l) => receiveBins[l.id])
       .map((l) => ({
         lineId: l.id,
         qtyReceived: receiveQtys[l.id] ?? l.qtyShipped,
         toBinId: receiveBins[l.id],
       }));
-    if (rcvLines.length === 0) return;
+    if (rcvLines.length === 0) {
+      addToast(
+        eligibleLines.length === 0
+          ? 'Nothing to receive'
+          : 'Select a destination bin for at least one line before confirming receipt',
+        'warning',
+      );
+      return;
+    }
     try {
       await receiveIbt.mutateAsync({ id, lines: rcvLines });
       addToast('Receipt confirmed', 'success');
       setReceiveQtys({}); setReceiveBins({});
-    } catch {
-      addToast('Failed to confirm receipt', 'error');
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : 'Failed to confirm receipt', 'error');
     }
   };
 
@@ -374,7 +386,7 @@ export default function IbtDetailPage() {
     },
     {
       key: 'toBinCode',
-      header: 'To Bin',
+      header: 'To Bin *',
       render: (row) => (
         <div className="w-36" onClick={(e) => e.stopPropagation()}>
           <Select
