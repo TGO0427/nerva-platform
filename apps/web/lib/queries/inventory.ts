@@ -29,7 +29,7 @@ export interface StockSnapshot {
 export interface LedgerEntry {
   id: string;
   itemId: string;
-  binId: string;
+  binId: string | null;
   reason: string;
   qtyChange: number;
   qtyAfter: number;
@@ -37,7 +37,7 @@ export interface LedgerEntry {
   referenceType: string | null;
   referenceId: string | null;
   createdAt: string;
-  createdBy: string;
+  createdBy: string | null;
 }
 
 export interface Grn {

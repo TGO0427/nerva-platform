@@ -341,21 +341,50 @@ export class StockLedgerService {
     limit = 50,
     offset = 0,
   ) {
-    const result = await this.pool.query(
+    // qty is always stored positive; direction comes from which bin is set.
+    // A row with both bins set (e.g. PUTAWAY) is a same-item relocation, not
+    // a net gain/loss, so it contributes 0 to the running balance.
+    const signedQtyExpr = `
+      CASE
+        WHEN sl.from_bin_id IS NOT NULL AND sl.to_bin_id IS NOT NULL THEN 0
+        WHEN sl.from_bin_id IS NOT NULL THEN -sl.qty
+        WHEN sl.to_bin_id IS NOT NULL THEN sl.qty
+        ELSE 0
+      END`;
+    const result = await this.pool.query<Record<string, unknown>>(
       `SELECT sl.*,
               fb.code as from_bin_code,
               tb.code as to_bin_code,
-              u.display_name as created_by_name
+              u.display_name as created_by_name,
+              (${signedQtyExpr}) as signed_qty,
+              SUM(${signedQtyExpr}) OVER (
+                PARTITION BY sl.item_id
+                ORDER BY sl.created_at, sl.id
+              ) as running_balance
        FROM stock_ledger sl
        LEFT JOIN bins fb ON sl.from_bin_id = fb.id
        LEFT JOIN bins tb ON sl.to_bin_id = tb.id
        LEFT JOIN users u ON sl.created_by = u.id
        WHERE sl.tenant_id = $1 AND sl.item_id = $2
-       ORDER BY sl.created_at DESC
+       ORDER BY sl.created_at DESC, sl.id DESC
        LIMIT $3 OFFSET $4`,
       [tenantId, itemId, limit, offset],
     );
-    return result.rows;
+    return result.rows.map((row) => ({
+      id: row.id as string,
+      itemId: row.item_id as string,
+      binId: (row.to_bin_id as string | null) ?? (row.from_bin_id as string | null),
+      fromBinCode: row.from_bin_code as string | null,
+      toBinCode: row.to_bin_code as string | null,
+      reason: row.reason as string,
+      qtyChange: parseFloat(row.signed_qty as string),
+      qtyAfter: parseFloat(row.running_balance as string),
+      batchNo: row.batch_no as string | null,
+      referenceType: row.ref_type as string | null,
+      referenceId: row.ref_id as string | null,
+      createdAt: row.created_at as Date,
+      createdBy: row.created_by_name as string | null,
+    }));
   }
 
   async countLedgerHistory(tenantId: string, itemId: string): Promise<number> {
