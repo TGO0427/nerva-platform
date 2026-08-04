@@ -119,6 +119,14 @@ export default function ItemDetailPage() {
                   </Badge>
                 </div>
               </div>
+              <div>
+                <div className="text-sm font-medium text-slate-500">Batch Tracking</div>
+                <div className="mt-1">
+                  <Badge variant={item.requiresBatchTracking ? 'info' : 'default'}>
+                    {item.requiresBatchTracking ? 'Required' : 'Not Required'}
+                  </Badge>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
