@@ -241,6 +241,59 @@ describe("InventoryService", () => {
       });
     });
 
+    it("should add expected lines when provided", async () => {
+      const createData = {
+        tenantId: "tenant-123",
+        siteId: "site-123",
+        warehouseId: "warehouse-123",
+        createdBy: "user-123",
+        lines: [
+          { itemId: "item-1", qtyExpected: 5 },
+          { itemId: "item-2", qtyExpected: 3, batchNo: "BATCH-A" },
+        ],
+      };
+
+      repository.generateGrnNo.mockResolvedValue("GRN-000001");
+      repository.createGrn.mockResolvedValue(mockGrn);
+      repository.addGrnLine.mockResolvedValue(mockGrnLine);
+
+      await service.createGrn(createData);
+
+      expect(repository.addGrnLine).toHaveBeenCalledTimes(2);
+      expect(repository.addGrnLine).toHaveBeenNthCalledWith(1, {
+        tenantId: "tenant-123",
+        grnId: mockGrn.id,
+        itemId: "item-1",
+        qtyExpected: 5,
+        qtyReceived: 0,
+        batchNo: undefined,
+      });
+      expect(repository.addGrnLine).toHaveBeenNthCalledWith(2, {
+        tenantId: "tenant-123",
+        grnId: mockGrn.id,
+        itemId: "item-2",
+        qtyExpected: 3,
+        qtyReceived: 0,
+        batchNo: "BATCH-A",
+      });
+    });
+
+    it("should not call addGrnLine when no lines are provided", async () => {
+      const createData = {
+        tenantId: "tenant-123",
+        siteId: "site-123",
+        warehouseId: "warehouse-123",
+        createdBy: "user-123",
+      };
+
+      repository.generateGrnNo.mockResolvedValue("GRN-000001");
+      repository.createGrn.mockResolvedValue(mockGrn);
+
+      await service.createGrn(createData);
+
+      expect(repository.addGrnLine).not.toHaveBeenCalled();
+    });
+
     it("should throw NotFoundException when warehouse not found", async () => {
       const createData = {
         tenantId: "tenant-123",

@@ -50,6 +50,7 @@ export class InventoryService {
     supplierId?: string;
     notes?: string;
     createdBy?: string;
+    lines?: { itemId: string; qtyExpected: number; batchNo?: string }[];
   }): Promise<Grn> {
     // Get siteId from warehouse if not provided
     let siteId = data.siteId;
@@ -65,7 +66,21 @@ export class InventoryService {
     }
 
     const grnNo = await this.repository.generateGrnNo(data.tenantId);
-    return this.repository.createGrn({ ...data, siteId, grnNo });
+    const grn = await this.repository.createGrn({ ...data, siteId, grnNo });
+
+    // Add expected lines, if provided upfront (qty is received later via receiveGrnLine)
+    for (const line of data.lines || []) {
+      await this.repository.addGrnLine({
+        tenantId: data.tenantId,
+        grnId: grn.id,
+        itemId: line.itemId,
+        qtyExpected: line.qtyExpected,
+        qtyReceived: 0,
+        batchNo: line.batchNo,
+      });
+    }
+
+    return grn;
   }
 
   async deleteGrn(tenantId: string, id: string): Promise<void> {

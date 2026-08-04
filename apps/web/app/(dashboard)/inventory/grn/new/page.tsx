@@ -125,7 +125,7 @@ export default function NewGrnPage() {
       const grn = await createGrn.mutateAsync(data);
       router.push(`/inventory/grn/${grn.id}`);
     } catch (err) {
-      setError('Failed to create GRN. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to create GRN. Please try again.');
       console.error('Failed to create GRN:', err);
     }
   };

@@ -3,11 +3,30 @@ import {
   IsOptional,
   IsUUID,
   IsNumber,
+  IsArray,
+  ValidateNested,
   MaxLength,
   Min,
   IsDateString,
 } from "class-validator";
+import { Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+
+export class CreateGrnLineDto {
+  @ApiProperty()
+  @IsUUID()
+  itemId: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(1)
+  qtyExpected: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  batchNo?: string;
+}
 
 export class CreateGrnDto {
   @ApiProperty()
@@ -29,6 +48,13 @@ export class CreateGrnDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  @ApiPropertyOptional({ type: [CreateGrnLineDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateGrnLineDto)
+  lines?: CreateGrnLineDto[];
 }
 
 export class ScanGrnItemDto {
