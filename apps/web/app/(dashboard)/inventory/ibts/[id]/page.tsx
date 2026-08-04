@@ -33,6 +33,10 @@ import { useStockOnHand } from '@/lib/queries/inventory';
 import { formatDate, formatNumber, formatQuantity } from '@/lib/format';
 import type { Bin } from '@nerva/shared';
 
+// Distinct from the Select's empty/placeholder value, so explicitly picking
+// "no batch" is never indistinguishable from not having chosen anything yet.
+const NO_BATCH_SENTINEL = '__no_batch__';
+
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
   DRAFT: 'default',
   PENDING_APPROVAL: 'warning',
@@ -102,21 +106,24 @@ export default function IbtDetailPage() {
     (b: Bin) => (b.binType === 'STORAGE' || b.binType === 'PICKING' || b.binType === 'RECEIVING') && b.isActive,
   );
 
+  const canAddLine =
+    !!newItemId && !!newQty && (!newFromBinId || !!newBatchNo);
+
   const handleAddLine = async () => {
-    if (!newItemId || !newQty) return;
+    if (!canAddLine) return;
     try {
       await addLine.mutateAsync({
         ibtId: id,
         itemId: newItemId,
         qtyRequested: Number(newQty),
         fromBinId: newFromBinId || undefined,
-        batchNo: newBatchNo || undefined,
+        batchNo: newBatchNo && newBatchNo !== NO_BATCH_SENTINEL ? newBatchNo : undefined,
       });
       addToast('Line added', 'success');
       setNewItemId(''); setNewQty(''); setNewFromBinId(''); setNewBatchNo('');
       setShowAddLine(false);
-    } catch {
-      addToast('Failed to add line', 'error');
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : 'Failed to add line', 'error');
     }
   };
 
@@ -635,7 +642,7 @@ export default function IbtDetailPage() {
                           value={newBatchNo}
                           onChange={(e) => setNewBatchNo(e.target.value)}
                           options={availableBatchesInBin.map((s) => ({
-                            value: s.batchNo || '',
+                            value: s.batchNo || NO_BATCH_SENTINEL,
                             label: `${s.batchNo || 'No batch'} (${formatQuantity(s.qtyAvailable)} available)`,
                           }))}
                           placeholder="Select batch"
@@ -646,7 +653,7 @@ export default function IbtDetailPage() {
                     </div>
                   </div>
                   <div className="mt-3 flex justify-end">
-                    <Button size="sm" onClick={handleAddLine} disabled={!newItemId || !newQty || addLine.isPending} isLoading={addLine.isPending}>
+                    <Button size="sm" onClick={handleAddLine} disabled={!canAddLine || addLine.isPending} isLoading={addLine.isPending}>
                       Add
                     </Button>
                   </div>
