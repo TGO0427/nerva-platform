@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Param,
   Body,
@@ -107,6 +108,18 @@ export class AdjustmentsController {
     @Body() data: AddAdjustmentLineDto,
   ) {
     return this.service.addAdjustmentLine(id, { tenantId, ...data });
+  }
+
+  @Patch(":id/lines/:lineId")
+  @RequirePermissions("inventory.adjust")
+  @ApiOperation({ summary: "Update adjustment line" })
+  async updateLine(
+    @TenantId() tenantId: string,
+    @Param("id", UuidValidationPipe) id: string,
+    @Param("lineId", UuidValidationPipe) lineId: string,
+    @Body() data: AddAdjustmentLineDto,
+  ) {
+    return this.service.updateAdjustmentLine(tenantId, id, lineId, data);
   }
 
   @Delete(":id/lines/:lineId")

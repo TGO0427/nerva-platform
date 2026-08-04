@@ -18,6 +18,7 @@ import {
   useAdjustment,
   useAdjustmentLines,
   useAddAdjustmentLine,
+  useUpdateAdjustmentLine,
   useDeleteAdjustmentLine,
   useSubmitAdjustment,
   useApproveAdjustment,
@@ -54,6 +55,7 @@ export default function AdjustmentDetailPage() {
   const { data: itemsData } = useItems({ page: 1, limit: 500 });
 
   const addLine = useAddAdjustmentLine(id);
+  const updateLine = useUpdateAdjustmentLine(id);
   const deleteLine = useDeleteAdjustmentLine(id);
   const submitAdj = useSubmitAdjustment();
   const approveAdj = useApproveAdjustment();
@@ -61,6 +63,7 @@ export default function AdjustmentDetailPage() {
   const deleteAdj = useDeleteAdjustment();
 
   const [showLineForm, setShowLineForm] = useState(false);
+  const [editingLineId, setEditingLineId] = useState<string | null>(null);
   const [newBinId, setNewBinId] = useState('');
   const [newItemId, setNewItemId] = useState('');
   const [newQtyAfter, setNewQtyAfter] = useState('');
@@ -97,24 +100,47 @@ export default function AdjustmentDetailPage() {
   const isSubmitted = adjustment?.status === 'SUBMITTED';
   const isApproved = adjustment?.status === 'APPROVED';
 
+  const resetLineForm = () => {
+    setEditingLineId(null);
+    setNewBinId('');
+    setNewItemId('');
+    setNewQtyAfter('');
+    setNewBatchNo('');
+    setShowLineForm(false);
+  };
+
+  const handleEditLine = (line: AdjustmentLine) => {
+    setEditingLineId(line.id);
+    setNewItemId(line.itemId);
+    setNewBinId(line.binId);
+    setNewQtyAfter(String(line.qtyAfter));
+    setNewBatchNo(line.batchNo || NO_BATCH_SENTINEL);
+    setShowLineForm(true);
+  };
+
   const handleAddLine = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canAddLine) return;
+    const payload = {
+      binId: newBinId,
+      itemId: newItemId,
+      qtyAfter: parseFloat(newQtyAfter),
+      batchNo: newBatchNo !== NO_BATCH_SENTINEL ? newBatchNo : undefined,
+    };
     try {
-      await addLine.mutateAsync({
-        binId: newBinId,
-        itemId: newItemId,
-        qtyAfter: parseFloat(newQtyAfter),
-        batchNo: newBatchNo !== NO_BATCH_SENTINEL ? newBatchNo : undefined,
-      });
-      addToast('Line added', 'success');
-      setNewBinId('');
-      setNewItemId('');
-      setNewQtyAfter('');
-      setNewBatchNo('');
-      setShowLineForm(false);
+      if (editingLineId) {
+        await updateLine.mutateAsync({ lineId: editingLineId, data: payload });
+        addToast('Line updated', 'success');
+      } else {
+        await addLine.mutateAsync(payload);
+        addToast('Line added', 'success');
+      }
+      resetLineForm();
     } catch (error) {
-      addToast(error instanceof Error ? error.message : 'Failed to add line', 'error');
+      addToast(
+        error instanceof Error ? error.message : `Failed to ${editingLineId ? 'update' : 'add'} line`,
+        'error',
+      );
     }
   };
 
@@ -340,7 +366,7 @@ export default function AdjustmentDetailPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => setShowLineForm(!showLineForm)}
+                onClick={() => (showLineForm ? resetLineForm() : setShowLineForm(true))}
               >
                 {showLineForm ? 'Cancel' : 'Add Line'}
               </Button>
@@ -348,9 +374,12 @@ export default function AdjustmentDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Add line form */}
+          {/* Add/edit line form */}
           {showLineForm && isDraft && (
             <form onSubmit={handleAddLine} className="mb-6 p-4 bg-slate-50 rounded-lg space-y-4">
+              {editingLineId && (
+                <p className="text-sm font-medium text-slate-700">Editing line</p>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Select
                   label="Item"
@@ -435,8 +464,10 @@ export default function AdjustmentDetailPage() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button type="submit" size="sm" disabled={!canAddLine || addLine.isPending}>
-                  {addLine.isPending ? 'Adding...' : 'Add Line'}
+                <Button type="submit" size="sm" disabled={!canAddLine || addLine.isPending || updateLine.isPending}>
+                  {editingLineId
+                    ? (updateLine.isPending ? 'Saving...' : 'Save Changes')
+                    : (addLine.isPending ? 'Adding...' : 'Add Line')}
                 </Button>
               </div>
             </form>
@@ -485,7 +516,14 @@ export default function AdjustmentDetailPage() {
                           {line.qtyDelta > 0 ? '+' : ''}{formatQuantity(line.qtyDelta)}
                         </td>
                         {isDraft && (
-                          <td className="py-3 px-4 text-right">
+                          <td className="py-3 px-4 text-right space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditLine(line)}
+                            >
+                              Edit
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"

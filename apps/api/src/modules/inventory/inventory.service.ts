@@ -417,6 +417,55 @@ export class InventoryService {
     await this.repository.deleteAdjustmentLine(lineId);
   }
 
+  async updateAdjustmentLine(
+    tenantId: string,
+    adjustmentId: string,
+    lineId: string,
+    data: {
+      binId: string;
+      itemId: string;
+      qtyAfter: number;
+      batchNo?: string;
+    },
+  ): Promise<AdjustmentLine> {
+    const adjustment = await this.getAdjustment(tenantId, adjustmentId);
+    if (adjustment.status !== "DRAFT") {
+      throw new BadRequestException(
+        "Can only edit lines on DRAFT adjustments",
+      );
+    }
+
+    const item = await this.masterDataService.getItem(tenantId, data.itemId);
+    if (item.requiresBatchTracking && !data.batchNo) {
+      throw new BadRequestException(`${item.sku} requires a batch/lot number`);
+    }
+
+    const stockInBin = await this.stockLedger.getStockInBin(
+      tenantId,
+      data.binId,
+    );
+    const currentStock = stockInBin.find(
+      (s) =>
+        s.itemId === data.itemId &&
+        (s.batchNo || null) === (data.batchNo || null),
+    );
+    const qtyBefore = currentStock?.qtyOnHand ?? 0;
+
+    const updated = await this.repository.updateAdjustmentLine(
+      lineId,
+      adjustmentId,
+      {
+        binId: data.binId,
+        itemId: data.itemId,
+        qtyBefore,
+        qtyAfter: data.qtyAfter,
+        batchNo: data.batchNo,
+      },
+    );
+    if (!updated) throw new NotFoundException("Adjustment line not found");
+    return updated;
+  }
+
   async submitAdjustment(tenantId: string, id: string): Promise<Adjustment> {
     const adjustment = await this.getAdjustment(tenantId, id);
     if (adjustment.status !== "DRAFT") {

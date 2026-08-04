@@ -389,6 +389,35 @@ export class InventoryRepository extends BaseRepository {
     await this.queryOne("DELETE FROM adjustment_lines WHERE id = $1", [id]);
   }
 
+  async updateAdjustmentLine(
+    id: string,
+    adjustmentId: string,
+    data: {
+      binId: string;
+      itemId: string;
+      qtyBefore: number;
+      qtyAfter: number;
+      batchNo?: string;
+    },
+  ): Promise<AdjustmentLine | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE adjustment_lines
+       SET bin_id = $1, item_id = $2, qty_before = $3, qty_after = $4, batch_no = $5
+       WHERE id = $6 AND adjustment_id = $7
+       RETURNING *, (qty_after - qty_before) as qty_delta`,
+      [
+        data.binId,
+        data.itemId,
+        data.qtyBefore,
+        data.qtyAfter,
+        data.batchNo || null,
+        id,
+        adjustmentId,
+      ],
+    );
+    return row ? this.mapAdjustmentLine(row) : null;
+  }
+
   async updateAdjustmentStatus(
     tenantId: string,
     id: string,

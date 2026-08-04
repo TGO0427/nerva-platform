@@ -419,6 +419,29 @@ export function useAddAdjustmentLine(adjustmentId: string) {
   });
 }
 
+export function useUpdateAdjustmentLine(adjustmentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      lineId,
+      data,
+    }: {
+      lineId: string;
+      data: { binId: string; itemId: string; qtyAfter: number; batchNo?: string };
+    }) => {
+      const response = await api.patch<AdjustmentLine>(
+        `/inventory/adjustments/${adjustmentId}/lines/${lineId}`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADJUSTMENT_KEY, adjustmentId, 'lines'] });
+    },
+  });
+}
+
 export function useDeleteAdjustmentLine(adjustmentId: string) {
   const queryClient = useQueryClient();
 
