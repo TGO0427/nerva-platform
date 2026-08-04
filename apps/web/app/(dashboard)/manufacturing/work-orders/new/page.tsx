@@ -43,7 +43,8 @@ export default function NewWorkOrderPage() {
     generateNumber.mutateAsync().then((num) => {
       setFormData((prev) => ({ ...prev, workOrderNo: num }));
     });
-  }, [generateNumber]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => {
