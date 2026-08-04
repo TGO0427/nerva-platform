@@ -194,6 +194,56 @@ export class InventoryRepository extends BaseRepository {
     return rows.map(this.mapGrnLine);
   }
 
+  /**
+   * Finds an untouched "expected" line for this item on this GRN (created
+   * upfront at GRN creation, not yet received into any batch/bin), so a
+   * receipt can fill it in place instead of creating a duplicate line.
+   */
+  async findOpenGrnLineForItem(
+    grnId: string,
+    itemId: string,
+  ): Promise<GrnLine | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `SELECT * FROM grn_lines
+       WHERE grn_id = $1 AND item_id = $2 AND batch_no IS NULL
+         AND qty_received < qty_expected
+       ORDER BY created_at LIMIT 1`,
+      [grnId, itemId],
+    );
+    return row ? this.mapGrnLine(row) : null;
+  }
+
+  async fulfillGrnLine(
+    id: string,
+    data: {
+      qtyReceived: number;
+      batchNo?: string;
+      expiryDate?: Date;
+      batchId?: string;
+      receivingBinId?: string;
+    },
+  ): Promise<GrnLine> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE grn_lines SET
+         qty_received = qty_received + $1,
+         batch_no = $2,
+         expiry_date = $3,
+         batch_id = $4,
+         receiving_bin_id = $5
+       WHERE id = $6
+       RETURNING *`,
+      [
+        data.qtyReceived,
+        data.batchNo || null,
+        data.expiryDate || null,
+        data.batchId || null,
+        data.receivingBinId || null,
+        id,
+      ],
+    );
+    return this.mapGrnLine(row!);
+  }
+
   // Adjustment methods
   async createAdjustment(data: {
     tenantId: string;

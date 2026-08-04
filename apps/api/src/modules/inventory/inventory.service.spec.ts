@@ -80,6 +80,8 @@ describe("InventoryService", () => {
             findGrnsByTenant: jest.fn(),
             updateGrnStatus: jest.fn(),
             addGrnLine: jest.fn(),
+            findOpenGrnLineForItem: jest.fn(),
+            fulfillGrnLine: jest.fn(),
             getGrnLines: jest.fn(),
             countGrnsByTenant: jest.fn(),
             generateAdjustmentNo: jest.fn(),
@@ -177,6 +179,7 @@ describe("InventoryService", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+    repository.findOpenGrnLineForItem.mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -419,6 +422,32 @@ describe("InventoryService", () => {
         expiryDate: undefined,
         createdBy: "user-123",
       });
+    });
+
+    it("should fulfill an existing expected line instead of creating a duplicate", async () => {
+      const openLine = { ...mockGrnLine, qtyExpected: 10, qtyReceived: 0, batchNo: null };
+      const fulfilledLine = { ...openLine, qtyReceived: 10, batchNo: "BATCH001" };
+
+      repository.findGrnById.mockResolvedValue(mockGrn);
+      repository.findOpenGrnLineForItem.mockResolvedValue(openLine);
+      repository.fulfillGrnLine.mockResolvedValue(fulfilledLine);
+      stockLedger.recordMovement.mockResolvedValue("ledger-123");
+
+      const result = await service.receiveGrnLine("grn-123", receiveData);
+
+      expect(result).toEqual(fulfilledLine);
+      expect(repository.findOpenGrnLineForItem).toHaveBeenCalledWith(
+        "grn-123",
+        "item-123",
+      );
+      expect(repository.fulfillGrnLine).toHaveBeenCalledWith(openLine.id, {
+        qtyReceived: 10,
+        batchNo: "BATCH001",
+        expiryDate: undefined,
+        batchId: undefined,
+        receivingBinId: "bin-123",
+      });
+      expect(repository.addGrnLine).not.toHaveBeenCalled();
     });
 
     it("should create batch when batchNo and expiryDate are provided", async () => {

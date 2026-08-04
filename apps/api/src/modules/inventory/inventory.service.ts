@@ -152,12 +152,25 @@ export class InventoryService {
       batchId = batch.id;
     }
 
-    // Add GRN line with batch reference
-    const line = await this.repository.addGrnLine({
-      ...data,
+    // Fill in the pre-existing expected line for this item if one exists
+    // (created upfront at GRN creation), rather than creating a duplicate.
+    const openLine = await this.repository.findOpenGrnLineForItem(
       grnId,
-      batchId,
-    });
+      data.itemId,
+    );
+    const line = openLine
+      ? await this.repository.fulfillGrnLine(openLine.id, {
+          qtyReceived: data.qtyReceived,
+          batchNo: data.batchNo,
+          expiryDate: data.expiryDate,
+          batchId,
+          receivingBinId: data.receivingBinId,
+        })
+      : await this.repository.addGrnLine({
+          ...data,
+          grnId,
+          batchId,
+        });
 
     // Record stock movement
     await this.stockLedger.recordMovement({
