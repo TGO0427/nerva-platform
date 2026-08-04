@@ -4,12 +4,14 @@ import { IbtService } from "./ibt.service";
 import { IbtRepository, IbtDetail, IbtLineDetail } from "./ibt.repository";
 import { StockLedgerService } from "./stock-ledger.service";
 import { MasterDataService } from "../masterdata/masterdata.service";
+import { AuditService } from "../audit/audit.service";
 
 describe("IbtService", () => {
   let service: IbtService;
   let ibtRepo: jest.Mocked<IbtRepository>;
   let stockLedger: jest.Mocked<StockLedgerService>;
   let masterDataService: jest.Mocked<MasterDataService>;
+  let auditService: jest.Mocked<AuditService>;
 
   const tenantId = "tenant-123";
   const ibtId = "ibt-123";
@@ -96,6 +98,12 @@ describe("IbtService", () => {
             getWarehouse: jest.fn(),
           },
         },
+        {
+          provide: AuditService,
+          useValue: {
+            log: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -103,6 +111,7 @@ describe("IbtService", () => {
     ibtRepo = module.get(IbtRepository);
     stockLedger = module.get(StockLedgerService);
     masterDataService = module.get(MasterDataService);
+    auditService = module.get(AuditService);
 
     ibtRepo.findById.mockResolvedValue(baseIbt);
     ibtRepo.getLines.mockResolvedValue([baseLine]);
@@ -217,6 +226,15 @@ describe("IbtService", () => {
         }),
       );
       expect(ibtRepo.updateLineShipped).toHaveBeenCalledWith("line-123", 5);
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId,
+          actorUserId: "user-123",
+          entityType: "Ibt",
+          entityId: ibtId,
+          action: "SHIP",
+        }),
+      );
     });
   });
 });

@@ -11,6 +11,7 @@ import {
 } from "./ibt.repository";
 import { StockLedgerService } from "./stock-ledger.service";
 import { MasterDataService } from "../masterdata/masterdata.service";
+import { AuditService } from "../audit/audit.service";
 import { buildPaginatedResult } from "../../common/utils/pagination";
 
 @Injectable()
@@ -19,6 +20,7 @@ export class IbtService {
     private readonly ibtRepo: IbtRepository,
     private readonly stockLedger: StockLedgerService,
     private readonly masterDataService: MasterDataService,
+    private readonly auditService: AuditService,
   ) {}
 
   async createIbt(data: {
@@ -54,7 +56,16 @@ export class IbtService {
       createdBy: data.createdBy,
     });
 
-    return this.getIbt(data.tenantId, ibt.id);
+    const created = await this.getIbt(data.tenantId, ibt.id);
+    await this.auditService.log({
+      tenantId: data.tenantId,
+      actorUserId: data.createdBy,
+      entityType: "Ibt",
+      entityId: created.id,
+      action: "CREATE",
+      after: created as unknown as Record<string, unknown>,
+    });
+    return created;
   }
 
   async deleteIbt(tenantId: string, id: string): Promise<void> {
@@ -63,6 +74,13 @@ export class IbtService {
     if (ibt.status !== "DRAFT")
       throw new BadRequestException("Only DRAFT IBTs can be deleted");
     await this.ibtRepo.deleteIbt(tenantId, id);
+    await this.auditService.log({
+      tenantId,
+      entityType: "Ibt",
+      entityId: id,
+      action: "DELETE",
+      before: ibt as unknown as Record<string, unknown>,
+    });
   }
 
   async getIbt(tenantId: string, id: string): Promise<IbtDetail> {
@@ -151,7 +169,16 @@ export class IbtService {
     }
 
     await this.ibtRepo.updateStatus(id, "PENDING_APPROVAL");
-    return this.getIbt(tenantId, id);
+    const updated = await this.getIbt(tenantId, id);
+    await this.auditService.log({
+      tenantId,
+      entityType: "Ibt",
+      entityId: id,
+      action: "SUBMIT",
+      before: ibt as unknown as Record<string, unknown>,
+      after: updated as unknown as Record<string, unknown>,
+    });
+    return updated;
   }
 
   async approve(tenantId: string, id: string, userId: string): Promise<IbtDetail> {
@@ -166,7 +193,17 @@ export class IbtService {
       approvedBy: userId,
       approvedAt: new Date(),
     });
-    return this.getIbt(tenantId, id);
+    const updated = await this.getIbt(tenantId, id);
+    await this.auditService.log({
+      tenantId,
+      actorUserId: userId,
+      entityType: "Ibt",
+      entityId: id,
+      action: "APPROVE",
+      before: ibt as unknown as Record<string, unknown>,
+      after: updated as unknown as Record<string, unknown>,
+    });
+    return updated;
   }
 
   async startPicking(tenantId: string, id: string): Promise<IbtDetail> {
@@ -176,7 +213,16 @@ export class IbtService {
     }
 
     await this.ibtRepo.updateStatus(id, "PICKING");
-    return this.getIbt(tenantId, id);
+    const updated = await this.getIbt(tenantId, id);
+    await this.auditService.log({
+      tenantId,
+      entityType: "Ibt",
+      entityId: id,
+      action: "START_PICKING",
+      before: ibt as unknown as Record<string, unknown>,
+      after: updated as unknown as Record<string, unknown>,
+    });
+    return updated;
   }
 
   async shipLines(
@@ -264,7 +310,17 @@ export class IbtService {
     await this.ibtRepo.updateStatus(id, "IN_TRANSIT", {
       shippedAt: new Date(),
     });
-    return this.getIbt(tenantId, id);
+    const updated = await this.getIbt(tenantId, id);
+    await this.auditService.log({
+      tenantId,
+      actorUserId: userId,
+      entityType: "Ibt",
+      entityId: id,
+      action: "SHIP",
+      before: ibt as unknown as Record<string, unknown>,
+      after: updated as unknown as Record<string, unknown>,
+    });
+    return updated;
   }
 
   async receiveLines(
@@ -341,7 +397,17 @@ export class IbtService {
       });
     }
 
-    return this.getIbt(tenantId, id);
+    const updated = await this.getIbt(tenantId, id);
+    await this.auditService.log({
+      tenantId,
+      actorUserId: userId,
+      entityType: "Ibt",
+      entityId: id,
+      action: allReceived ? "RECEIVE" : "PARTIAL_RECEIVE",
+      before: ibt as unknown as Record<string, unknown>,
+      after: updated as unknown as Record<string, unknown>,
+    });
+    return updated;
   }
 
   async cancel(tenantId: string, id: string): Promise<IbtDetail> {
@@ -353,6 +419,15 @@ export class IbtService {
     }
 
     await this.ibtRepo.updateStatus(id, "CANCELLED");
-    return this.getIbt(tenantId, id);
+    const updated = await this.getIbt(tenantId, id);
+    await this.auditService.log({
+      tenantId,
+      entityType: "Ibt",
+      entityId: id,
+      action: "CANCEL",
+      before: ibt as unknown as Record<string, unknown>,
+      after: updated as unknown as Record<string, unknown>,
+    });
+    return updated;
   }
 }
