@@ -1197,7 +1197,11 @@ export class ManufacturingService {
       workOrder.tenantId,
       workOrder.itemId,
     );
-    if (item.requiresBatchTracking && !data.batchNo) {
+    // Every unit produced under this work order belongs to the same
+    // production batch, assigned once at release time - operators don't
+    // invent a new batch number per output entry.
+    const batchNo = data.batchNo || workOrder.batchNo || undefined;
+    if (item.requiresBatchTracking && !batchNo) {
       throw new BadRequestException(
         `${item.sku} requires a batch/lot number to record output`,
       );
@@ -1212,7 +1216,7 @@ export class ManufacturingService {
       itemId: workOrder.itemId,
       warehouseId: workOrder.warehouseId,
       binId: data.binId,
-      batchNo: data.batchNo,
+      batchNo,
       qty: data.qty,
       uom: "EA",
       workstationId: data.workstationId,
@@ -1231,7 +1235,7 @@ export class ManufacturingService {
       reason: "WO_PRODUCE",
       refType: "work_order",
       refId: workOrderId,
-      batchNo: data.batchNo,
+      batchNo,
       createdBy: data.createdBy,
     });
 
@@ -1242,11 +1246,11 @@ export class ManufacturingService {
 
     // Newly-produced batches start life awaiting QC -- this is what makes
     // "on hold" a real, system-enforced state instead of just a convention.
-    if (data.batchNo) {
+    if (batchNo) {
       await this.batchQualityRepo.ensureStatusRecord({
         tenantId: workOrder.tenantId,
         itemId: workOrder.itemId,
-        batchNo: data.batchNo,
+        batchNo,
         initialStatus: "AWAITING_QC",
         source: "PRODUCTION",
       });

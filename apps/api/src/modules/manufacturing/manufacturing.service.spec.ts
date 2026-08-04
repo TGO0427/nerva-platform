@@ -504,6 +504,30 @@ describe("ManufacturingService - Production Output", () => {
         expect.objectContaining({ batchNo: "BATCH-001", initialStatus: "AWAITING_QC" }),
       );
     });
+
+    it("should default to the work order's own system-assigned batch when none is given per-output", async () => {
+      masterDataService.getItem.mockResolvedValue({
+        ...baseItem,
+        requiresBatchTracking: true,
+      });
+      workOrderRepo.findById.mockResolvedValue({
+        ...baseWorkOrder,
+        batchNo: "BATCH-20260218-001",
+      });
+
+      await service.recordOutput(workOrderId, {
+        qty: 10,
+        binId: "bin-123",
+        createdBy: "user-123",
+      });
+
+      expect(stockLedgerService.recordMovement).toHaveBeenCalledWith(
+        expect.objectContaining({ batchNo: "BATCH-20260218-001" }),
+      );
+      expect(batchQualityRepo.ensureStatusRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ batchNo: "BATCH-20260218-001", initialStatus: "AWAITING_QC" }),
+      );
+    });
   });
 
   describe("completeWorkOrder", () => {

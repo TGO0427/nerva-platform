@@ -423,7 +423,15 @@ export default function WorkOrderDetailPage() {
             )}
             {workOrder.status === 'IN_PROGRESS' && (
               <>
-                <Button variant="secondary" onClick={() => setShowRecordOutput(!showRecordOutput)}>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    if (!showRecordOutput && workOrder.batchNo) {
+                      setOutputBatchNo(workOrder.batchNo);
+                    }
+                    setShowRecordOutput(!showRecordOutput);
+                  }}
+                >
                   Record Output
                 </Button>
                 <span title={workOrder.qtyCompleted <= 0 ? 'Record production output before completing' : undefined}>
@@ -510,8 +518,11 @@ export default function WorkOrderDetailPage() {
                     value={outputBatchNo}
                     onChange={(e) => setOutputBatchNo(e.target.value)}
                     placeholder={producedItem?.requiresBatchTracking ? 'Required' : 'Optional'}
+                    disabled={!!workOrder.batchNo}
                   />
-                  {producedItem?.requiresBatchTracking && (
+                  {workOrder.batchNo ? (
+                    <p className="text-xs text-slate-500 mt-1">System-assigned for this work order</p>
+                  ) : producedItem?.requiresBatchTracking && (
                     <p className="text-xs text-amber-600 mt-1">This item requires a batch/lot number</p>
                   )}
                 </div>
