@@ -322,6 +322,12 @@ export class FulfilmentService {
     if (wave.status !== "OPEN") {
       throw new BadRequestException("Wave must be in OPEN status to release");
     }
+    const missingBatch = await this.repository.findTasksMissingRequiredBatch(id);
+    if (missingBatch.length > 0) {
+      throw new BadRequestException(
+        `Cannot release wave — batch-tracked item(s) have no batch assigned: ${missingBatch.map((m) => m.itemSku).join(", ")}`,
+      );
+    }
     const updated = await this.repository.updatePickWaveStatus(
       id,
       "IN_PROGRESS",

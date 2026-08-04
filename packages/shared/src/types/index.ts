@@ -61,6 +61,7 @@ export interface Item {
   hsCode: string | null;
   countryOfOrigin: string | null;
   isActive: boolean;
+  requiresBatchTracking: boolean;
   createdAt: string;
   updatedAt: string;
 }

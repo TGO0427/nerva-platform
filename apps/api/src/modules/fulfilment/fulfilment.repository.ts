@@ -163,6 +163,20 @@ export class FulfilmentRepository extends BaseRepository {
     return rows.map(this.mapPickTask);
   }
 
+  async findTasksMissingRequiredBatch(
+    waveId: string,
+  ): Promise<{ itemSku: string }[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT DISTINCT i.sku as item_sku
+       FROM pick_tasks pt
+       JOIN items i ON i.id = pt.item_id
+       WHERE pt.pick_wave_id = $1 AND i.requires_batch_tracking = true
+         AND (pt.batch_no IS NULL OR pt.batch_no = '')`,
+      [waveId],
+    );
+    return rows.map((r) => ({ itemSku: r.item_sku as string }));
+  }
+
   async findPickTasksByAssignee(
     userId: string,
     status?: string,

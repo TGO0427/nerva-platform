@@ -151,6 +151,7 @@ describe("InventoryService", () => {
           provide: MasterDataService,
           useValue: {
             getWarehouse: jest.fn(),
+            getItem: jest.fn(),
           },
         },
       ],
@@ -161,6 +162,21 @@ describe("InventoryService", () => {
     stockLedger = module.get(StockLedgerService);
     batchRepository = module.get(BatchRepository);
     masterDataService = module.get(MasterDataService);
+
+    masterDataService.getItem.mockResolvedValue({
+      id: "item-123",
+      tenantId: "tenant-123",
+      sku: "SKU-001",
+      description: "Test Item",
+      uom: "EA",
+      weightKg: null,
+      hsCode: null,
+      countryOfOrigin: null,
+      isActive: true,
+      requiresBatchTracking: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   });
 
   afterEach(() => {
@@ -436,6 +452,57 @@ describe("InventoryService", () => {
       await expect(
         service.receiveGrnLine("grn-123", receiveData),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it("should throw BadRequestException when a batch-tracked item is received with no batch number", async () => {
+      repository.findGrnById.mockResolvedValue(mockGrn);
+      masterDataService.getItem.mockResolvedValue({
+        id: "item-123",
+        tenantId: "tenant-123",
+        sku: "SKU-001",
+        description: "Test Item",
+        uom: "EA",
+        weightKg: null,
+        hsCode: null,
+        countryOfOrigin: null,
+        isActive: true,
+        requiresBatchTracking: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const { batchNo, ...dataWithoutBatch } = receiveData;
+
+      await expect(
+        service.receiveGrnLine("grn-123", dataWithoutBatch),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.receiveGrnLine("grn-123", dataWithoutBatch),
+      ).rejects.toThrow("SKU-001 requires a batch/lot number to be received");
+    });
+
+    it("should allow receiving a batch-tracked item when a batch number is provided", async () => {
+      repository.findGrnById.mockResolvedValue(mockGrn);
+      repository.addGrnLine.mockResolvedValue(mockGrnLine);
+      stockLedger.recordMovement.mockResolvedValue("ledger-123");
+      masterDataService.getItem.mockResolvedValue({
+        id: "item-123",
+        tenantId: "tenant-123",
+        sku: "SKU-001",
+        description: "Test Item",
+        uom: "EA",
+        weightKg: null,
+        hsCode: null,
+        countryOfOrigin: null,
+        isActive: true,
+        requiresBatchTracking: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await expect(
+        service.receiveGrnLine("grn-123", receiveData),
+      ).resolves.toEqual(mockGrnLine);
     });
   });
 

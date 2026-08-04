@@ -72,6 +72,7 @@ export class MasterDataService {
     weightKg?: number;
     hsCode?: string;
     countryOfOrigin?: string;
+    requiresBatchTracking?: boolean;
   }): Promise<Item> {
     const existing = await this.repository.findItemBySku(
       data.tenantId,
@@ -92,10 +93,14 @@ export class MasterDataService {
       hsCode: string;
       countryOfOrigin: string;
       isActive: boolean;
+      requiresBatchTracking: boolean;
     }>,
   ): Promise<Item> {
     const item = await this.repository.updateItem(tenantId, id, data);
     if (!item) throw new NotFoundException("Item not found");
+    if (data.requiresBatchTracking === true) {
+      await this.repository.relabelUntrackedStockAsLegacy(tenantId, id);
+    }
     return item;
   }
 

@@ -25,6 +25,7 @@ export interface ItemFormData {
   hsCode: string | null;
   countryOfOrigin: string | null;
   isActive?: boolean;
+  requiresBatchTracking: boolean;
 }
 
 const UOM_OPTIONS = [
@@ -54,6 +55,7 @@ export function ItemForm({ item, onSubmit, isSubmitting }: ItemFormProps) {
     hsCode: item?.hsCode ?? null,
     countryOfOrigin: item?.countryOfOrigin ?? null,
     isActive: item?.isActive ?? true,
+    requiresBatchTracking: item?.requiresBatchTracking ?? false,
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof ItemFormData, string>>>({});
@@ -207,6 +209,28 @@ export function ItemForm({ item, onSubmit, isSubmitting }: ItemFormProps) {
               placeholder="e.g., South Africa"
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Inventory Tracking</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={formData.requiresBatchTracking}
+              onChange={(e) => handleChange('requiresBatchTracking', e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span>
+              <span className="block text-sm text-slate-700">Requires batch/lot tracking</span>
+              <span className="block text-xs text-slate-500 mt-0.5">
+                Receiving, allocation, and picking will require a batch/lot number for this item.
+              </span>
+            </span>
+          </label>
         </CardContent>
       </Card>
 

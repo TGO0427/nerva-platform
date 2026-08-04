@@ -15,6 +15,7 @@ interface CreateItemData {
   heightCm?: number | null;
   hsCode?: string | null;
   countryOfOrigin?: string | null;
+  requiresBatchTracking?: boolean | null;
 }
 
 interface UpdateItemData extends Partial<CreateItemData> {

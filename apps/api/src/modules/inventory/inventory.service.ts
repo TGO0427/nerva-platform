@@ -113,6 +113,16 @@ export class InventoryService {
       throw new BadRequestException("GRN is already complete or cancelled");
     }
 
+    const item = await this.masterDataService.getItem(
+      data.tenantId,
+      data.itemId,
+    );
+    if (item.requiresBatchTracking && !data.batchNo) {
+      throw new BadRequestException(
+        `${item.sku} requires a batch/lot number to be received`,
+      );
+    }
+
     // Create or find batch record if batch info provided
     let batchId: string | undefined;
     if (data.batchNo && data.expiryDate) {

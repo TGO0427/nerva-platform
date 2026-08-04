@@ -36,6 +36,7 @@ export default function GrnReceivePage() {
 
   const items = itemsData?.data || [];
   const receivingBins = bins?.filter(b => b.binType === 'RECEIVING' || b.binType === 'STORAGE') || [];
+  const selectedItem = items.find(item => item.id === formData.itemId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +71,7 @@ export default function GrnReceivePage() {
       // Refetch lines
       refetchLines();
     } catch (err) {
-      setError('Failed to receive item. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to receive item. Please try again.');
       console.error(err);
     }
   };
@@ -184,8 +185,11 @@ export default function GrnReceivePage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Batch Number
+                      Batch Number{selectedItem?.requiresBatchTracking && <span className="text-red-500"> *</span>}
                     </label>
+                    {selectedItem?.requiresBatchTracking && (
+                      <p className="text-xs text-amber-600 mb-1">This item requires a batch/lot number</p>
+                    )}
                     <Input
                       type="text"
                       value={formData.batchNo}

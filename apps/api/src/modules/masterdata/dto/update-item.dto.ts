@@ -67,4 +67,11 @@ export class UpdateItemDto {
   @IsString()
   @MaxLength(100)
   countryOfOrigin?: string;
+
+  @ApiPropertyOptional({
+    description: "Whether this item requires a batch/lot number to be received and picked",
+  })
+  @IsOptional()
+  @IsBoolean()
+  requiresBatchTracking?: boolean;
 }

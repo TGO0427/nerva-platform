@@ -1,4 +1,5 @@
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import { Pool } from "pg";
 import { IN_TRANSIT_STATUSES } from "@nerva/shared";
 import { BaseRepository } from "../../common/db/base.repository";
 
@@ -12,6 +13,7 @@ export interface Item {
   hsCode: string | null;
   countryOfOrigin: string | null;
   isActive: boolean;
+  requiresBatchTracking: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -393,10 +395,11 @@ export class MasterDataRepository extends BaseRepository {
     weightKg?: number;
     hsCode?: string;
     countryOfOrigin?: string;
+    requiresBatchTracking?: boolean;
   }): Promise<Item> {
     const row = await this.queryOne<Record<string, unknown>>(
-      `INSERT INTO items (tenant_id, sku, description, uom, weight_kg, hs_code, country_of_origin)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO items (tenant_id, sku, description, uom, weight_kg, hs_code, country_of_origin, requires_batch_tracking)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
         data.tenantId,
@@ -406,6 +409,7 @@ export class MasterDataRepository extends BaseRepository {
         data.weightKg || null,
         data.hsCode || null,
         data.countryOfOrigin || null,
+        data.requiresBatchTracking ?? false,
       ],
     );
     return this.mapItem(row!);
@@ -422,6 +426,7 @@ export class MasterDataRepository extends BaseRepository {
       hsCode: string;
       countryOfOrigin: string;
       isActive: boolean;
+      requiresBatchTracking: boolean;
     }>,
   ): Promise<Item | null> {
     const fields: string[] = [];
@@ -456,6 +461,10 @@ export class MasterDataRepository extends BaseRepository {
       fields.push(`is_active = $${idx++}`);
       values.push(data.isActive);
     }
+    if (data.requiresBatchTracking !== undefined) {
+      fields.push(`requires_batch_tracking = $${idx++}`);
+      values.push(data.requiresBatchTracking);
+    }
 
     if (fields.length === 0) return this.findItemById(tenantId, id);
 
@@ -466,6 +475,34 @@ export class MasterDataRepository extends BaseRepository {
       values,
     );
     return row ? this.mapItem(row) : null;
+  }
+
+  /**
+   * Relabels any existing blank-batch stock for an item to a visible 'LEGACY'
+   * batch bucket, merging into any pre-existing 'LEGACY' row rather than
+   * colliding with it. Called when an item is newly flagged as batch-tracked
+   * so its pre-existing on-hand stock doesn't become stuck/unpickable.
+   */
+  async relabelUntrackedStockAsLegacy(
+    tenantId: string,
+    itemId: string,
+  ): Promise<void> {
+    await this.transaction(async (client) => {
+      await (client as unknown as Pool).query(
+        `INSERT INTO stock_snapshot (tenant_id, bin_id, item_id, batch_no, qty_on_hand, qty_reserved)
+         SELECT tenant_id, bin_id, item_id, 'LEGACY', qty_on_hand, qty_reserved
+         FROM stock_snapshot WHERE tenant_id = $1 AND item_id = $2 AND batch_no = ''
+         ON CONFLICT (tenant_id, bin_id, item_id, batch_no) DO UPDATE SET
+           qty_on_hand = stock_snapshot.qty_on_hand + EXCLUDED.qty_on_hand,
+           qty_reserved = stock_snapshot.qty_reserved + EXCLUDED.qty_reserved,
+           updated_at = now()`,
+        [tenantId, itemId],
+      );
+      await (client as unknown as Pool).query(
+        `DELETE FROM stock_snapshot WHERE tenant_id = $1 AND item_id = $2 AND batch_no = ''`,
+        [tenantId, itemId],
+      );
+    });
   }
 
   async deleteItem(tenantId: string, id: string): Promise<boolean> {
@@ -1641,6 +1678,7 @@ export class MasterDataRepository extends BaseRepository {
       hsCode: row.hs_code as string | null,
       countryOfOrigin: row.country_of_origin as string | null,
       isActive: row.is_active as boolean,
+      requiresBatchTracking: row.requires_batch_tracking as boolean,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,
     };

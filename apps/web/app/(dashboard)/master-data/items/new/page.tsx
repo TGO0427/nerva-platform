@@ -24,6 +24,7 @@ export default function NewItemPage() {
         heightCm: data.heightCm,
         hsCode: data.hsCode,
         countryOfOrigin: data.countryOfOrigin,
+        requiresBatchTracking: data.requiresBatchTracking,
       });
       addToast('Item created successfully', 'success');
     } catch (err) {

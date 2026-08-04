@@ -31,6 +31,7 @@ describe("MasterDataService", () => {
     isActive: true,
     hsCode: null,
     countryOfOrigin: null,
+    requiresBatchTracking: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -107,6 +108,7 @@ describe("MasterDataService", () => {
             findItemBySku: jest.fn(),
             createItem: jest.fn(),
             updateItem: jest.fn(),
+            relabelUntrackedStockAsLegacy: jest.fn(),
             deleteItem: jest.fn(),
             countItemReferences: jest.fn(),
             bulkCreateItems: jest.fn(),
@@ -313,6 +315,31 @@ describe("MasterDataService", () => {
       await expect(
         service.updateItem(tenantId, "missing", { description: "x" }),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it("should relabel untracked stock as legacy when flagging as batch-tracked", async () => {
+      const updated = { ...mockItem, requiresBatchTracking: true };
+      repository.updateItem.mockResolvedValue(updated);
+
+      await service.updateItem(tenantId, "item-123", {
+        requiresBatchTracking: true,
+      });
+
+      expect(repository.relabelUntrackedStockAsLegacy).toHaveBeenCalledWith(
+        tenantId,
+        "item-123",
+      );
+    });
+
+    it("should not relabel stock when requiresBatchTracking is not being set to true", async () => {
+      const updated = { ...mockItem, description: "Updated" };
+      repository.updateItem.mockResolvedValue(updated);
+
+      await service.updateItem(tenantId, "item-123", {
+        description: "Updated",
+      });
+
+      expect(repository.relabelUntrackedStockAsLegacy).not.toHaveBeenCalled();
     });
   });
 

@@ -30,6 +30,7 @@ export default function EditItemPage() {
           hsCode: data.hsCode,
           countryOfOrigin: data.countryOfOrigin,
           isActive: data.isActive,
+          requiresBatchTracking: data.requiresBatchTracking,
         },
       });
     } catch (err) {
