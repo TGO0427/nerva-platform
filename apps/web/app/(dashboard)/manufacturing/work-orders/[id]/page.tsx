@@ -506,7 +506,11 @@ export default function WorkOrderDetailPage() {
                   <label className="block text-xs text-slate-600 mb-1">
                     Batch No{producedItem?.requiresBatchTracking && <span className="text-red-500"> *</span>}
                   </label>
-                  <Input value={outputBatchNo} onChange={(e) => setOutputBatchNo(e.target.value)} placeholder="Optional" />
+                  <Input
+                    value={outputBatchNo}
+                    onChange={(e) => setOutputBatchNo(e.target.value)}
+                    placeholder={producedItem?.requiresBatchTracking ? 'Required' : 'Optional'}
+                  />
                   {producedItem?.requiresBatchTracking && (
                     <p className="text-xs text-amber-600 mt-1">This item requires a batch/lot number</p>
                   )}
@@ -516,7 +520,10 @@ export default function WorkOrderDetailPage() {
                   <Input value={outputNotes} onChange={(e) => setOutputNotes(e.target.value)} placeholder="Optional" />
                 </div>
                 <div className="flex items-end gap-2">
-                  <Button size="sm" disabled={!outputQty || !outputBinId || recordOutput.isPending} onClick={async () => {
+                  <Button
+                    size="sm"
+                    disabled={!outputQty || !outputBinId || (producedItem?.requiresBatchTracking && !outputBatchNo) || recordOutput.isPending}
+                    onClick={async () => {
                     try { await recordOutput.mutateAsync({ workOrderId: id!, qty: parseFloat(outputQty), binId: outputBinId, batchNo: outputBatchNo || undefined, notes: outputNotes || undefined });
                     addToast('Output recorded', 'success'); setShowRecordOutput(false); setOutputQty(''); setOutputBinId(''); setOutputBatchNo(''); setOutputNotes('');
                     } catch (err) { addToast(err instanceof Error ? err.message : 'Failed to record output', 'error'); }
