@@ -1172,10 +1172,32 @@ export class ManufacturingService {
   }
 
   // Production Output
-  async getNextRunNo(workOrderId: string): Promise<number> {
+  // Run 1 of a work order's output uses the batch assigned at release.
+  // Every run after that mints its own distinct batch number (sharing the
+  // release batch's date prefix) so each run is independently traceable and
+  // independently QC'd - findStatusesForWorkOrderOutput already handles a
+  // work order having multiple distinct output batches.
+  private batchNoForRun(workOrder: WorkOrder, runNo: number): string | null {
+    if (!workOrder.batchNo) return null;
+    if (runNo <= 1) return workOrder.batchNo;
+    return null; // caller must mint a fresh one via generateBatchNoWithPrefix
+  }
+
+  async previewNextOutput(
+    workOrderId: string,
+  ): Promise<{ runNo: number; batchNo: string | null }> {
     const workOrder = await this.workOrderRepo.findById(workOrderId);
     if (!workOrder) throw new NotFoundException("Work order not found");
-    return this.productionLedgerRepo.getNextRunNo(workOrderId);
+    const runNo = await this.productionLedgerRepo.getNextRunNo(workOrderId);
+    let batchNo = this.batchNoForRun(workOrder, runNo);
+    if (!batchNo && workOrder.batchNo) {
+      const prefix = workOrder.batchNo.replace(/\d+$/, "");
+      batchNo = await this.workOrderRepo.generateBatchNoWithPrefix(
+        workOrder.tenantId,
+        prefix,
+      );
+    }
+    return { runNo, batchNo };
   }
 
   async recordOutput(
@@ -1203,21 +1225,25 @@ export class ManufacturingService {
       workOrder.tenantId,
       workOrder.itemId,
     );
-    // Every unit produced under this work order belongs to the same
-    // production batch, assigned once at release time - operators don't
-    // invent a new batch number per output entry.
-    const batchNo = data.batchNo || workOrder.batchNo || undefined;
+
+    // The first output uses the batch assigned to the work order at release.
+    // Every output after that is its own production run and gets its own
+    // fresh batch number (same date prefix, next sequence) - traceByBatch/
+    // backwardTrace/getRecentBatches all know to look these up too.
+    const runNo = await this.productionLedgerRepo.getNextRunNo(workOrderId);
+    let batchNo = data.batchNo || this.batchNoForRun(workOrder, runNo) || undefined;
+    if (!batchNo && !data.batchNo && workOrder.batchNo) {
+      const prefix = workOrder.batchNo.replace(/\d+$/, "");
+      batchNo = await this.workOrderRepo.generateBatchNoWithPrefix(
+        workOrder.tenantId,
+        prefix,
+      );
+    }
     if (item.requiresBatchTracking && !batchNo) {
       throw new BadRequestException(
         `${item.sku} requires a batch/lot number to record output`,
       );
     }
-
-    // Each output entry is its own production run against the same batch -
-    // run_no distinguishes them without splitting the batch itself, so
-    // traceByBatch/forwardTrace/backwardTrace (keyed on the one batch per
-    // work order) keep working unchanged.
-    const runNo = await this.productionLedgerRepo.getNextRunNo(workOrderId);
 
     // Create production ledger entry
     await this.productionLedgerRepo.create({

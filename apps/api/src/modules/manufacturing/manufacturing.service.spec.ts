@@ -400,6 +400,7 @@ describe("ManufacturingService - Production Output", () => {
             update: jest.fn(),
             getOperations: jest.fn(),
             getMaterials: jest.fn(),
+            generateBatchNoWithPrefix: jest.fn(),
           },
         },
         {
@@ -530,12 +531,13 @@ describe("ManufacturingService - Production Output", () => {
       );
     });
 
-    it("should tag each output with the next run number under the same batch, not a new batch", async () => {
+    it("should mint a fresh batch number (same date prefix, next sequence) for the 2nd+ output run", async () => {
       workOrderRepo.findById.mockResolvedValue({
         ...baseWorkOrder,
         batchNo: "BATCH-20260218-001",
       });
       productionLedgerRepo.getNextRunNo.mockResolvedValue(3);
+      workOrderRepo.generateBatchNoWithPrefix.mockResolvedValue("BATCH-20260218-003");
 
       const result = await service.recordOutput(workOrderId, {
         qty: 10,
@@ -543,14 +545,50 @@ describe("ManufacturingService - Production Output", () => {
         createdBy: "user-123",
       });
 
+      expect(workOrderRepo.generateBatchNoWithPrefix).toHaveBeenCalledWith(
+        tenantId,
+        "BATCH-20260218-",
+      );
       expect(productionLedgerRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ batchNo: "BATCH-20260218-001", runNo: 3 }),
+        expect.objectContaining({ batchNo: "BATCH-20260218-003", runNo: 3 }),
       );
       expect(stockLedgerService.recordMovement).toHaveBeenCalledWith(
-        expect.objectContaining({ batchNo: "BATCH-20260218-001" }),
+        expect.objectContaining({ batchNo: "BATCH-20260218-003" }),
       );
       expect((result as any).lastOutputRunNo).toBe(3);
-      expect((result as any).lastOutputBatchNo).toBe("BATCH-20260218-001");
+      expect((result as any).lastOutputBatchNo).toBe("BATCH-20260218-003");
+    });
+  });
+
+  describe("previewNextOutput", () => {
+    it("previews the work order's own batch for run 1", async () => {
+      workOrderRepo.findById.mockResolvedValue({
+        ...baseWorkOrder,
+        batchNo: "BATCH-20260218-001",
+      });
+      productionLedgerRepo.getNextRunNo.mockResolvedValue(1);
+
+      const preview = await service.previewNextOutput(workOrderId);
+
+      expect(preview).toEqual({ runNo: 1, batchNo: "BATCH-20260218-001" });
+      expect(workOrderRepo.generateBatchNoWithPrefix).not.toHaveBeenCalled();
+    });
+
+    it("previews a freshly minted batch for run 2+", async () => {
+      workOrderRepo.findById.mockResolvedValue({
+        ...baseWorkOrder,
+        batchNo: "BATCH-20260218-001",
+      });
+      productionLedgerRepo.getNextRunNo.mockResolvedValue(2);
+      workOrderRepo.generateBatchNoWithPrefix.mockResolvedValue("BATCH-20260218-002");
+
+      const preview = await service.previewNextOutput(workOrderId);
+
+      expect(workOrderRepo.generateBatchNoWithPrefix).toHaveBeenCalledWith(
+        tenantId,
+        "BATCH-20260218-",
+      );
+      expect(preview).toEqual({ runNo: 2, batchNo: "BATCH-20260218-002" });
     });
   });
 

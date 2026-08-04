@@ -706,11 +706,11 @@ export class ManufacturingController {
     });
   }
 
-  @Get("work-orders/:id/next-run-no")
+  @Get("work-orders/:id/next-output-batch")
   @RequirePermissions("production.record_output")
-  @ApiOperation({ summary: "Preview the next production run number for this work order" })
-  async getNextRunNo(@Param("id", UuidValidationPipe) id: string) {
-    return { runNo: await this.service.getNextRunNo(id) };
+  @ApiOperation({ summary: "Preview the run number and batch number the next output will get" })
+  async previewNextOutput(@Param("id", UuidValidationPipe) id: string) {
+    return this.service.previewNextOutput(id);
   }
 
   @Post("work-orders/:id/record-output")

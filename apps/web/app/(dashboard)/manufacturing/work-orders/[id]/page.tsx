@@ -23,7 +23,7 @@ import {
   useReopenWorkOrder,
   useIssueMaterial,
   useRecordOutput,
-  useNextRunNo,
+  useNextOutputBatch,
   useStartOperation,
   useCompleteOperation,
   useUpsertWorkOrderChecks,
@@ -47,7 +47,7 @@ export default function WorkOrderDetailPage() {
   const { data: workOrder, isLoading, error } = useWorkOrder(id);
   const { data: batchQuality } = useWorkOrderBatchQuality(id);
   const { data: producedItem } = useItem(workOrder?.itemId);
-  const { data: nextRunNo } = useNextRunNo(id);
+  const { data: nextOutputBatch } = useNextOutputBatch(id);
   const [activeTab, setActiveTab] = useState<'operations' | 'materials' | 'checks' | 'process'>('materials');
 
   const [issuingMaterialId, setIssuingMaterialId] = useState<string | null>(null);
@@ -428,8 +428,8 @@ export default function WorkOrderDetailPage() {
                 <Button
                   variant="secondary"
                   onClick={() => {
-                    if (!showRecordOutput && workOrder.batchNo) {
-                      setOutputBatchNo(workOrder.batchNo);
+                    if (!showRecordOutput && nextOutputBatch?.batchNo) {
+                      setOutputBatchNo(nextOutputBatch.batchNo);
                     }
                     setShowRecordOutput(!showRecordOutput);
                   }}
@@ -503,9 +503,9 @@ export default function WorkOrderDetailPage() {
           {showRecordOutput && workOrder.status === 'IN_PROGRESS' && (
             <Card className="p-4 border-blue-200 bg-blue-50">
               <h3 className="text-sm font-medium text-blue-800 mb-1">Record Production Output</h3>
-              {workOrder.batchNo && nextRunNo && (
+              {nextOutputBatch?.batchNo && (
                 <p className="text-xs text-blue-700 mb-3">
-                  This will be recorded as Run #{nextRunNo} under batch {workOrder.batchNo}
+                  This will be recorded as Run #{nextOutputBatch.runNo}, batch {nextOutputBatch.batchNo}
                 </p>
               )}
               <div className="grid grid-cols-5 gap-3">
@@ -525,10 +525,10 @@ export default function WorkOrderDetailPage() {
                     value={outputBatchNo}
                     onChange={(e) => setOutputBatchNo(e.target.value)}
                     placeholder={producedItem?.requiresBatchTracking ? 'Required' : 'Optional'}
-                    disabled={!!workOrder.batchNo}
+                    disabled={!!nextOutputBatch?.batchNo}
                   />
-                  {workOrder.batchNo ? (
-                    <p className="text-xs text-slate-500 mt-1">System-assigned for this work order</p>
+                  {nextOutputBatch?.batchNo ? (
+                    <p className="text-xs text-slate-500 mt-1">System-assigned for this run</p>
                   ) : producedItem?.requiresBatchTracking && (
                     <p className="text-xs text-amber-600 mt-1">This item requires a batch/lot number</p>
                   )}

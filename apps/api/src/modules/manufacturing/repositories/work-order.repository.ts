@@ -249,12 +249,28 @@ export class WorkOrderRepository extends BaseRepository {
       today.getFullYear().toString() +
       (today.getMonth() + 1).toString().padStart(2, "0") +
       today.getDate().toString().padStart(2, "0");
-    const prefix = `BATCH-${dateStr}-`;
-    const result = await this.queryOne<{ count: string }>(
-      `SELECT COUNT(*) as count FROM work_orders WHERE tenant_id = $1 AND batch_no LIKE $2`,
+    return this.generateBatchNoWithPrefix(tenantId, `BATCH-${dateStr}-`);
+  }
+
+  // A batch's numeric suffix is shared between two sources: a work order's
+  // own batch (assigned once at release) and the per-run batches recordOutput
+  // mints for a work order's 2nd+ output (see ManufacturingService.recordOutput).
+  // Both must draw from the same counter or two unrelated batches could end
+  // up with the identical number for the same date.
+  async generateBatchNoWithPrefix(
+    tenantId: string,
+    prefix: string,
+  ): Promise<string> {
+    const result = await this.queryOne<{ max_seq: number | null }>(
+      `SELECT GREATEST(
+         COALESCE((SELECT MAX(CAST(SUBSTRING(batch_no FROM '(\\d+)$') AS integer))
+                   FROM work_orders WHERE tenant_id = $1 AND batch_no LIKE $2), 0),
+         COALESCE((SELECT MAX(CAST(SUBSTRING(batch_no FROM '(\\d+)$') AS integer))
+                   FROM production_ledger WHERE tenant_id = $1 AND batch_no LIKE $2), 0)
+       ) as max_seq`,
       [tenantId, `${prefix}%`],
     );
-    const seq = parseInt(result?.count || "0", 10) + 1;
+    const seq = (result?.max_seq || 0) + 1;
     return `${prefix}${seq.toString().padStart(3, "0")}`;
   }
 

@@ -704,17 +704,17 @@ export function useRecordOutput() {
     },
     onSuccess: (_, { workOrderId }) => {
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
-      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId, 'next-run-no'] });
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId, 'next-output-batch'] });
     },
   });
 }
 
-export function useNextRunNo(workOrderId: string | undefined) {
+export function useNextOutputBatch(workOrderId: string | undefined) {
   return useQuery({
-    queryKey: [WORK_ORDERS_KEY, workOrderId, 'next-run-no'],
+    queryKey: [WORK_ORDERS_KEY, workOrderId, 'next-output-batch'],
     queryFn: async () => {
-      const response = await api.get<{ runNo: number }>(`/manufacturing/work-orders/${workOrderId}/next-run-no`);
-      return response.data.runNo;
+      const response = await api.get<{ runNo: number; batchNo: string | null }>(`/manufacturing/work-orders/${workOrderId}/next-output-batch`);
+      return response.data;
     },
     enabled: !!workOrderId,
   });

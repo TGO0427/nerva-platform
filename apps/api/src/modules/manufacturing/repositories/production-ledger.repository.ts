@@ -640,7 +640,11 @@ export class ProductionLedgerRepository extends BaseRepository {
       createdAt: Date;
     }>;
   }> {
-    const workOrderRow = await this.queryOne<Record<string, unknown>>(
+    // Run 1's batch matches work_orders.batch_no directly; runs 2+ mint their
+    // own batch number (see ManufacturingService.recordOutput) so they only
+    // show up in production_ledger - fall back to that lookup if the direct
+    // match misses.
+    let workOrderRow = await this.queryOne<Record<string, unknown>>(
       `SELECT wo.id, wo.work_order_no, wo.batch_no, wo.status,
               wo.qty_ordered, wo.qty_completed,
               i.sku as item_sku, i.description as item_description
@@ -649,6 +653,20 @@ export class ProductionLedgerRepository extends BaseRepository {
        WHERE wo.tenant_id = $1 AND wo.batch_no = $2`,
       [tenantId, batchNo],
     );
+
+    if (!workOrderRow) {
+      workOrderRow = await this.queryOne<Record<string, unknown>>(
+        `SELECT wo.id, wo.work_order_no, wo.batch_no, wo.status,
+                wo.qty_ordered, wo.qty_completed,
+                i.sku as item_sku, i.description as item_description
+         FROM work_orders wo
+         JOIN items i ON i.id = wo.item_id
+         JOIN production_ledger pl ON pl.work_order_id = wo.id
+         WHERE pl.tenant_id = $1 AND pl.batch_no = $2 AND pl.entry_type = 'PRODUCTION_OUTPUT'
+         LIMIT 1`,
+        [tenantId, batchNo],
+      );
+    }
 
     if (!workOrderRow) {
       return {
@@ -671,13 +689,16 @@ export class ProductionLedgerRepository extends BaseRepository {
          ORDER BY pl.created_at`,
         [tenantId, workOrderId],
       ),
+      // Only this specific run's output, not every batch this work order
+      // has ever produced - each run is its own traceable batch.
       this.queryMany<Record<string, unknown>>(
         `SELECT pl.id, pl.item_id, i.sku as item_sku, pl.qty, pl.uom, pl.batch_no, pl.created_at
          FROM production_ledger pl
          JOIN items i ON i.id = pl.item_id
          WHERE pl.tenant_id = $1 AND pl.work_order_id = $2 AND pl.entry_type = 'PRODUCTION_OUTPUT'
+           AND pl.batch_no = $3
          ORDER BY pl.created_at`,
-        [tenantId, workOrderId],
+        [tenantId, workOrderId, batchNo],
       ),
       this.queryMany<Record<string, unknown>>(
         `SELECT pl.id, pl.item_id, i.sku as item_sku, pl.qty, pl.uom, pl.batch_no,
@@ -694,7 +715,7 @@ export class ProductionLedgerRepository extends BaseRepository {
       workOrder: {
         id: workOrderRow.id as string,
         workOrderNo: workOrderRow.work_order_no as string,
-        batchNo: workOrderRow.batch_no as string,
+        batchNo,
         itemSku: workOrderRow.item_sku as string,
         itemDescription: workOrderRow.item_description as string,
         status: workOrderRow.status as string,
@@ -774,12 +795,23 @@ export class ProductionLedgerRepository extends BaseRepository {
       qty: number;
     }>;
   }> {
-    const workOrderRow = await this.queryOne<Record<string, unknown>>(
+    let workOrderRow = await this.queryOne<Record<string, unknown>>(
       `SELECT wo.id, wo.work_order_no
        FROM work_orders wo
        WHERE wo.tenant_id = $1 AND wo.batch_no = $2`,
       [tenantId, batchNo],
     );
+
+    if (!workOrderRow) {
+      workOrderRow = await this.queryOne<Record<string, unknown>>(
+        `SELECT wo.id, wo.work_order_no
+         FROM work_orders wo
+         JOIN production_ledger pl ON pl.work_order_id = wo.id
+         WHERE pl.tenant_id = $1 AND pl.batch_no = $2 AND pl.entry_type = 'PRODUCTION_OUTPUT'
+         LIMIT 1`,
+        [tenantId, batchNo],
+      );
+    }
 
     if (!workOrderRow) {
       return {
@@ -823,11 +855,24 @@ export class ProductionLedgerRepository extends BaseRepository {
     }>
   > {
     const rows = await this.queryMany<Record<string, unknown>>(
-      `SELECT wo.batch_no, wo.work_order_no, i.sku as item_sku, wo.status
-       FROM work_orders wo
-       JOIN items i ON i.id = wo.item_id
-       WHERE wo.tenant_id = $1 AND wo.batch_no IS NOT NULL
-       ORDER BY wo.created_at DESC
+      `SELECT batch_no, work_order_no, item_sku, status FROM (
+         SELECT DISTINCT ON (batch_no) batch_no, work_order_no, item_sku, status, sort_at FROM (
+           SELECT wo.batch_no as batch_no, wo.work_order_no, i.sku as item_sku, wo.status,
+                  wo.created_at as sort_at
+           FROM work_orders wo
+           JOIN items i ON i.id = wo.item_id
+           WHERE wo.tenant_id = $1 AND wo.batch_no IS NOT NULL
+           UNION ALL
+           SELECT pl.batch_no as batch_no, wo.work_order_no, i.sku as item_sku, wo.status,
+                  pl.created_at as sort_at
+           FROM production_ledger pl
+           JOIN work_orders wo ON wo.id = pl.work_order_id
+           JOIN items i ON i.id = wo.item_id
+           WHERE pl.tenant_id = $1 AND pl.entry_type = 'PRODUCTION_OUTPUT' AND pl.batch_no IS NOT NULL
+         ) all_batches
+         ORDER BY batch_no, sort_at DESC
+       ) deduped
+       ORDER BY sort_at DESC
        LIMIT 20`,
       [tenantId],
     );
