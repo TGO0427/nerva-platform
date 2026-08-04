@@ -74,6 +74,12 @@ export default function IbtDetailPage() {
   const availableBatchesInBin = (stockOnHand || []).filter(
     (s) => s.binId === newFromBinId && s.qtyAvailable > 0,
   );
+  // Only offer bins that actually hold stock of the chosen item, so the
+  // user isn't left guessing which bin to pick a batch from.
+  const binIdsWithStock = new Set((stockOnHand || []).filter((s) => s.qtyAvailable > 0).map((s) => s.binId));
+  const fromBinsForItem = newItemId
+    ? (fromBins || []).filter((b: Bin) => b.isActive && binIdsWithStock.has(b.id))
+    : (fromBins || []).filter((b: Bin) => b.isActive);
 
   // Ship/receive state
   const [shipQtys, setShipQtys] = useState<Record<string, number>>({});
@@ -588,7 +594,11 @@ export default function IbtDetailPage() {
                       <label className="block text-sm font-medium text-slate-700 mb-1">Item</label>
                       <Select
                         value={newItemId}
-                        onChange={(e) => setNewItemId(e.target.value)}
+                        onChange={(e) => {
+                          setNewItemId(e.target.value);
+                          setNewFromBinId('');
+                          setNewBatchNo('');
+                        }}
                         options={
                           itemsData?.data?.map((item) => ({
                             value: item.id,
@@ -606,10 +616,17 @@ export default function IbtDetailPage() {
                       <label className="block text-sm font-medium text-slate-700 mb-1">From Bin</label>
                       <Select
                         value={newFromBinId}
-                        onChange={(e) => setNewFromBinId(e.target.value)}
-                        options={(fromBins || []).filter((b: Bin) => b.isActive).map((b: Bin) => ({ value: b.id, label: b.code }))}
-                        placeholder="Optional"
+                        onChange={(e) => {
+                          setNewFromBinId(e.target.value);
+                          setNewBatchNo('');
+                        }}
+                        options={fromBinsForItem.map((b: Bin) => ({ value: b.id, label: b.code }))}
+                        placeholder={newItemId ? 'Select bin' : 'Select item first'}
+                        disabled={!newItemId}
                       />
+                      {newItemId && fromBinsForItem.length === 0 && (
+                        <p className="text-xs text-amber-600 mt-1">No stock of this item in any source bin</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Batch No</label>
