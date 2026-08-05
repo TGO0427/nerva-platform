@@ -370,7 +370,21 @@ export class FulfilmentRepository extends BaseRepository {
   ): Promise<PickTask | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `UPDATE pick_tasks SET status = 'CANCELLED', short_reason = $1
-       WHERE id = $2 AND status NOT IN ('PICKED', 'CANCELLED') RETURNING *`,
+       WHERE id = $2 AND status NOT IN ('PICKED', 'SHORT', 'CANCELLED') RETURNING *`,
+      [reason, taskId],
+    );
+    return row ? this.mapPickTask(row) : null;
+  }
+
+  // Reverse an already-PICKED (or SHORT) task - the inverse of
+  // cancelPickTask, which deliberately refuses to touch either.
+  async reversePickTask(
+    taskId: string,
+    reason: string,
+  ): Promise<PickTask | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE pick_tasks SET status = 'CANCELLED', short_reason = $1, qty_picked = 0, picked_at = NULL
+       WHERE id = $2 AND status IN ('PICKED', 'SHORT') RETURNING *`,
       [reason, taskId],
     );
     return row ? this.mapPickTask(row) : null;

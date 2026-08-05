@@ -340,10 +340,29 @@ export class SalesService {
       throw new BadRequestException("Cannot cancel order in current status");
     }
 
+    const lines = await this.repository.getOrderLines(id);
+
+    // A PICKED reservation means real stock already left its bin for this
+    // order - cancelling silently here would leave that stock in limbo,
+    // the same gap fixed for cancelPickWave. Block and name it so the
+    // pick gets reversed (via FulfilmentService.reversePickTask) first.
+    const pickedBatches: string[] = [];
+    for (const line of lines) {
+      const picked = await this.repository.findReservationsBySalesOrderLine(
+        line.id,
+        "PICKED",
+      );
+      pickedBatches.push(...picked.map((r) => r.batchNo || line.itemId));
+    }
+    if (pickedBatches.length > 0) {
+      throw new BadRequestException(
+        `Cannot cancel: stock already picked for this order (${pickedBatches.join(", ")}). Reverse the pick before cancelling.`,
+      );
+    }
+
     // Release exactly what was reserved for this order's lines (not a
     // tenant-wide guess at the item's stock, which could release the
     // wrong order's reservation when multiple orders compete for stock).
-    const lines = await this.repository.getOrderLines(id);
     for (const line of lines) {
       const reservations = await this.repository.findReservationsBySalesOrderLine(
         line.id,

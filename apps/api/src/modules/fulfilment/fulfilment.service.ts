@@ -353,13 +353,14 @@ export class FulfilmentService {
       throw new BadRequestException("Cannot cancel a completed wave");
     }
 
-    // A PICKED task already moved real stock out of its bin - that's
-    // physical warehouse work that happened, not something safe to
-    // silently reverse as a side effect of cancelling the wave. Block
-    // and name exactly what's blocking it, so the user resolves it
-    // explicitly (ship it, or reverse that one task) before cancelling.
+    // A PICKED (or SHORT - a partial pick still moves real stock) task
+    // already moved real stock out of its bin - that's physical warehouse
+    // work that happened, not something safe to silently reverse as a
+    // side effect of cancelling the wave. Block and name exactly what's
+    // blocking it, so the user resolves it explicitly (ship it, or
+    // reverse that one task) before cancelling.
     const tasks = await this.getPickTasks(id);
-    const pickedTasks = tasks.filter((t) => t.status === "PICKED");
+    const pickedTasks = tasks.filter((t) => t.status === "PICKED" || t.status === "SHORT");
     if (pickedTasks.length > 0) {
       const items = pickedTasks
         .map((t) => `${t.itemSku || t.itemId}${t.batchNo ? ` (${t.batchNo})` : ""}`)
@@ -398,8 +399,10 @@ export class FulfilmentService {
     const task = await this.repository.findPickTaskById(taskId);
     if (!task) throw new NotFoundException("Pick task not found");
 
-    if (task.status === "PICKED") {
-      throw new BadRequestException("Cannot cancel a completed task");
+    if (task.status === "PICKED" || task.status === "SHORT") {
+      throw new BadRequestException(
+        "Cannot cancel a task that has already been picked - reverse the pick instead",
+      );
     }
 
     // Release reservation if any
@@ -416,6 +419,52 @@ export class FulfilmentService {
 
     const cancelled = await this.repository.cancelPickTask(taskId, reason);
     return cancelled!;
+  }
+
+  // Undo an already-picked (or short-picked) task: put the physically
+  // picked stock back into its bin and re-reserve it for the order line,
+  // since the pick itself is being retracted, not the order's claim on
+  // that stock. Once reversed, cancelOrder's normal RESERVED-release path
+  // can clean it up if the order itself gets cancelled next.
+  async reversePickTask(
+    taskId: string,
+    reason: string,
+    createdBy?: string,
+  ): Promise<PickTask> {
+    const task = await this.repository.findPickTaskById(taskId);
+    if (!task) throw new NotFoundException("Pick task not found");
+
+    if (task.status !== "PICKED" && task.status !== "SHORT") {
+      throw new BadRequestException("Only a picked task can be reversed");
+    }
+
+    await this.stockLedger.recordMovement({
+      tenantId: task.tenantId,
+      itemId: task.itemId,
+      toBinId: task.fromBinId,
+      qty: task.qtyPicked,
+      reason: "PICK_REVERSAL",
+      refType: "pick_task",
+      refId: task.id,
+      batchNo: task.batchNo || undefined,
+      createdBy,
+    });
+
+    await this.stockLedger.reserveStockWithBatch(
+      task.tenantId,
+      task.fromBinId,
+      task.itemId,
+      task.qtyPicked,
+      task.batchNo,
+      null,
+    );
+
+    if (task.reservationId) {
+      await this.salesService.markReservationUnpicked(task.reservationId);
+    }
+
+    const reversed = await this.repository.reversePickTask(taskId, reason);
+    return reversed!;
   }
 
   // Pack shipment

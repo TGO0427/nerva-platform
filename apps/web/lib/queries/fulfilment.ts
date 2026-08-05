@@ -243,6 +243,23 @@ export function useConfirmPickTask() {
   });
 }
 
+/** Undo an already-picked (or short-picked) task: puts its stock back in the bin and re-reserves it for the order line. */
+export function useReversePickTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ taskId, reason }: { taskId: string; reason: string }) => {
+      const response = await api.post<PickTask>(`/fulfilment/pick-tasks/${taskId}/reverse`, {
+        reason,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PICK_WAVES_KEY] });
+    },
+  });
+}
+
 // Shipment queries
 export function useShipments(params: QueryParams & { status?: string }) {
   return useQuery({

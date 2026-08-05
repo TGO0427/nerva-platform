@@ -471,7 +471,9 @@ describe("SalesService", () => {
 
       repository.findOrderById.mockResolvedValue(allocatedOrder);
       repository.getOrderLines.mockResolvedValue([allocatedLine]);
-      repository.findReservationsBySalesOrderLine.mockResolvedValue([reservation]);
+      repository.findReservationsBySalesOrderLine.mockImplementation((_lineId, status) =>
+        Promise.resolve(status === "RESERVED" ? [reservation] : []),
+      );
       stockLedger.releaseReservation.mockResolvedValue(undefined);
       repository.updateOrderStatus.mockResolvedValue(cancelledOrder);
 
@@ -492,6 +494,37 @@ describe("SalesService", () => {
         "reservation-123",
         "RELEASED",
       );
+    });
+
+    it("should refuse to cancel when a line's reservation has already been PICKED", async () => {
+      const allocatedOrder = { ...mockOrder, status: "ALLOCATED" };
+      const allocatedLine = { ...mockOrderLine, qtyAllocated: 10 };
+      const pickedReservation = {
+        id: "reservation-123",
+        tenantId: "tenant-123",
+        salesOrderLineId: "line-123",
+        binId: "bin-1",
+        itemId: "item-123",
+        qty: 10,
+        batchNo: "BATCH-20260220-001",
+        status: "PICKED",
+        createdAt: new Date(),
+      };
+
+      repository.findOrderById.mockResolvedValue(allocatedOrder);
+      repository.getOrderLines.mockResolvedValue([allocatedLine]);
+      repository.findReservationsBySalesOrderLine.mockImplementation((_lineId, status) =>
+        Promise.resolve(status === "PICKED" ? [pickedReservation] : []),
+      );
+
+      await expect(service.cancelOrder("tenant-123", "order-123")).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.cancelOrder("tenant-123", "order-123")).rejects.toThrow(
+        "BATCH-20260220-001",
+      );
+      expect(stockLedger.releaseReservation).not.toHaveBeenCalled();
+      expect(repository.updateOrderStatus).not.toHaveBeenCalled();
     });
 
     it("should throw BadRequestException for shipped order", async () => {

@@ -21,6 +21,7 @@ import {
   useReopenPickWave,
   useAssignPickTask,
   useConfirmPickTask,
+  useReversePickTask,
   useCreateShipment,
   PickTask,
 } from '@/lib/queries';
@@ -40,6 +41,8 @@ export default function PickWaveDetailPage() {
   const [confirmAction, setConfirmAction] = useState<'release' | 'complete' | null>(null);
   const [cancelModal, setCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [reverseModalTask, setReverseModalTask] = useState<PickTask | null>(null);
+  const [reverseReason, setReverseReason] = useState('');
   const [actionError, setActionError] = useState('');
 
   const { data: wave, isLoading: waveLoading } = usePickWave(waveId);
@@ -51,6 +54,7 @@ export default function PickWaveDetailPage() {
   const reopenWave = useReopenPickWave();
   const assignTask = useAssignPickTask();
   const confirmTask = useConfirmPickTask();
+  const reverseTask = useReversePickTask();
   const createShipment = useCreateShipment();
 
   // Get unique order IDs from tasks for shipment creation
@@ -101,6 +105,28 @@ export default function PickWaveDetailPage() {
       addToast('Pick confirmed', 'success');
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Failed to confirm pick');
+    }
+  };
+
+  const openReverseModal = (task: PickTask) => {
+    setReverseModalTask(task);
+    setReverseReason('');
+    setActionError('');
+  };
+
+  const handleReverseTask = async () => {
+    if (!reverseModalTask) return;
+    if (!reverseReason.trim()) {
+      setActionError('Please provide a reason for reversing this pick');
+      return;
+    }
+
+    try {
+      await reverseTask.mutateAsync({ taskId: reverseModalTask.id, reason: reverseReason });
+      setReverseModalTask(null);
+      addToast('Pick reversed - stock returned to bin', 'success');
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to reverse pick');
     }
   };
 
@@ -160,6 +186,7 @@ export default function PickWaveDetailPage() {
       render: (row) => {
         const canAssign = !row.assignedTo && row.status !== 'PICKED' && row.status !== 'CANCELLED';
         const canPick = row.status !== 'PICKED' && row.status !== 'CANCELLED';
+        const canReverse = row.status === 'PICKED' || row.status === 'SHORT';
 
         return (
           <div className="flex gap-2">
@@ -177,6 +204,14 @@ export default function PickWaveDetailPage() {
                 className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
               >
                 Pick
+              </button>
+            )}
+            {canReverse && (
+              <button
+                onClick={() => openReverseModal(row)}
+                className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200"
+              >
+                Reverse
               </button>
             )}
           </div>
@@ -576,6 +611,65 @@ export default function PickWaveDetailPage() {
                     onClick={() => {
                       setCancelModal(false);
                       setCancelReason('');
+                      setActionError('');
+                    }}
+                    className="flex-1"
+                  >
+                    Go Back
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Reverse Pick Modal */}
+      {reverseModalTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setReverseModalTask(null)} />
+          <Card className="relative z-10 w-full max-w-md mx-4 border-amber-200">
+            <CardHeader>
+              <CardTitle className="text-amber-600">Reverse Pick</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Alert variant="warning">
+                  This puts {formatQuantity(reverseModalTask.qtyPicked)} of {reverseModalTask.itemSku || reverseModalTask.itemId}
+                  {reverseModalTask.batchNo ? ` (${reverseModalTask.batchNo})` : ''} back into bin {reverseModalTask.fromBinCode || reverseModalTask.fromBinId}
+                  , and re-reserves it for this order. Only do this if the stock is actually being physically returned to that bin.
+                </Alert>
+
+                {actionError && (
+                  <Alert variant="error">{actionError}</Alert>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Reason *
+                  </label>
+                  <Textarea
+                    value={reverseReason}
+                    onChange={(e) => setReverseReason(e.target.value)}
+                    placeholder="Please provide a reason for reversing this pick..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="danger"
+                    onClick={handleReverseTask}
+                    isLoading={reverseTask.isPending}
+                    className="flex-1"
+                  >
+                    Reverse Pick
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setReverseModalTask(null);
+                      setReverseReason('');
                       setActionError('');
                     }}
                     className="flex-1"

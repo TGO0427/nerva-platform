@@ -196,6 +196,17 @@ export class FulfilmentController {
     return this.service.cancelPickTask(taskId, data.reason);
   }
 
+  @Post("pick-tasks/:id/reverse")
+  @RequirePermissions("pick_task.execute")
+  @ApiOperation({ summary: "Reverse an already-picked task, returning its stock to the bin and reservation" })
+  async reverseTask(
+    @Param("id", UuidValidationPipe) taskId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: CancelPickTaskDto,
+  ) {
+    return this.service.reversePickTask(taskId, data.reason, user.id);
+  }
+
   // Shipments
   @Get("shipments")
   @RequirePermissions("shipment.read")
