@@ -52,6 +52,14 @@ export function BatchQualityCell({ itemId, batchNo }: { itemId: string; batchNo:
   return <BatchQualityBadge status={batchQuality.qualityStatus} />;
 }
 
+/** Table-cell friendly control: same lookup as BatchQualityCell, but with actionable transition buttons. */
+export function BatchQualityActionCell({ itemId, batchNo }: { itemId: string; batchNo: string | null | undefined }) {
+  const { data: batchQuality } = useBatchQualityStatus(itemId, batchNo ?? undefined);
+  if (!batchNo) return <span className="text-slate-400">-</span>;
+  if (!batchQuality) return <span className="text-slate-400 text-xs">Not tracked</span>;
+  return <BatchQualityControl itemId={itemId} batchNo={batchNo} status={batchQuality.qualityStatus} />;
+}
+
 /** Badge + inline transition buttons for moving a batch through its QC lifecycle. */
 export function BatchQualityControl({
   itemId,
