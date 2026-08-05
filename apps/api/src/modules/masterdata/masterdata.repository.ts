@@ -3973,6 +3973,7 @@ export class MasterDataRepository extends BaseRepository {
       invoices,
       rmas,
       workOrders,
+      batches,
     ] = await Promise.all([
       // Sales Orders
       this.queryMany(
@@ -4050,8 +4051,17 @@ export class MasterDataRepository extends BaseRepository {
         `SELECT wo.id, wo.work_order_no, wo.status, i.sku as item_sku
          FROM work_orders wo
          LEFT JOIN items i ON i.id = wo.item_id AND i.tenant_id = wo.tenant_id
-         WHERE wo.tenant_id = $1 AND (wo.work_order_no ILIKE $2 OR i.sku ILIKE $2)
+         WHERE wo.tenant_id = $1 AND (wo.work_order_no ILIKE $2 OR i.sku ILIKE $2 OR wo.batch_no ILIKE $2)
          ORDER BY wo.created_at DESC LIMIT $3`,
+        [tenantId, term, limit],
+      ),
+      // Batches - the system is batch-driven, so a batch number is a first-class searchable thing
+      this.queryMany(
+        `SELECT DISTINCT bqs.batch_no, bqs.quality_status, bqs.item_id, i.sku as item_sku
+         FROM batch_quality_status bqs
+         JOIN items i ON i.id = bqs.item_id
+         WHERE bqs.tenant_id = $1 AND bqs.batch_no ILIKE $2
+         ORDER BY bqs.batch_no DESC LIMIT $3`,
         [tenantId, term, limit],
       ),
     ]);
@@ -4067,6 +4077,7 @@ export class MasterDataRepository extends BaseRepository {
       invoices,
       rmas,
       workOrders,
+      batches,
     };
   }
 

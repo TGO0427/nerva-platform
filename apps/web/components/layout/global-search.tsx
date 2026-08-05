@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 // Types for search results
 type ResultType =
   | 'order' | 'customer' | 'item' | 'trip' | 'purchase_order' | 'shipment'
-  | 'supplier' | 'invoice' | 'rma' | 'work_order'
+  | 'supplier' | 'invoice' | 'rma' | 'work_order' | 'batch'
   | 'command' | 'recent';
 
 interface SearchResult {
@@ -127,6 +127,7 @@ const RESULT_TYPE_CONFIG: { type: ResultType; label: string }[] = [
   { type: 'invoice', label: 'Invoices' },
   { type: 'rma', label: 'Returns (RMA)' },
   { type: 'work_order', label: 'Work Orders' },
+  { type: 'batch', label: 'Batches' },
 ];
 
 export function GlobalSearch() {
@@ -320,6 +321,16 @@ export function GlobalSearch() {
               type: 'work_order', id: wo.id, title: wo.work_order_no,
               subtitle: `${wo.item_sku || 'No item'} • ${wo.status}`,
               href: `/manufacturing/work-orders/${wo.id}`,
+            });
+          });
+        }
+
+        if (shouldInclude('batch')) {
+          data.batches?.forEach((b: { batch_no: string; quality_status: string; item_id: string; item_sku?: string }) => {
+            searchResults.push({
+              type: 'batch', id: `${b.item_id}-${b.batch_no}`, title: b.batch_no,
+              subtitle: `${b.item_sku || 'No item'} • ${b.quality_status.replace(/_/g, ' ')}`,
+              href: `/inventory/stock/${b.item_id}`,
             });
           });
         }
@@ -699,6 +710,7 @@ function ResultIcon({ type, icon }: { type: ResultType; icon?: string }) {
     invoice: { bg: 'bg-teal-100', color: 'text-teal-600', Icon: InvoiceIcon },
     rma: { bg: 'bg-pink-100', color: 'text-pink-600', Icon: ReturnIcon },
     work_order: { bg: 'bg-indigo-100', color: 'text-indigo-600', Icon: WorkOrderIcon },
+    batch: { bg: 'bg-lime-100', color: 'text-lime-600', Icon: WorkOrderIcon },
     recent: { bg: 'bg-slate-100', color: 'text-slate-600', Icon: ClockIcon },
     command: { bg: 'bg-slate-100', color: 'text-slate-600', Icon: CommandIcon },
   };
@@ -725,6 +737,7 @@ function TypeBadge({ type }: { type: ResultType }) {
     invoice: 'Invoice',
     rma: 'RMA',
     work_order: 'WO',
+    batch: 'Batch',
     recent: 'Recent',
     command: 'Action',
   };

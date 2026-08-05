@@ -137,7 +137,12 @@ export class SalesRepository extends BaseRepository {
       params.push(filters.customerId);
     }
     if (filters.search) {
-      sql += ` AND (so.order_no ILIKE $${idx} OR c.name ILIKE $${idx})`;
+      sql += ` AND (so.order_no ILIKE $${idx} OR c.name ILIKE $${idx}
+        OR EXISTS (
+          SELECT 1 FROM sales_order_lines sol
+          JOIN stock_reservations sr ON sr.sales_order_line_id = sol.id
+          WHERE sol.sales_order_id = so.id AND sr.batch_no ILIKE $${idx}
+        ))`;
       params.push(`%${filters.search}%`);
       idx++;
     }
@@ -179,7 +184,12 @@ export class SalesRepository extends BaseRepository {
       params.push(filters.customerId);
     }
     if (filters.search) {
-      sql += ` AND (so.order_no ILIKE $${idx} OR c.name ILIKE $${idx})`;
+      sql += ` AND (so.order_no ILIKE $${idx} OR c.name ILIKE $${idx}
+        OR EXISTS (
+          SELECT 1 FROM sales_order_lines sol
+          JOIN stock_reservations sr ON sr.sales_order_line_id = sol.id
+          WHERE sol.sales_order_id = so.id AND sr.batch_no ILIKE $${idx}
+        ))`;
       params.push(`%${filters.search}%`);
       idx++;
     }

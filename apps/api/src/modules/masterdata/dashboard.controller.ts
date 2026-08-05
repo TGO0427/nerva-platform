@@ -70,6 +70,7 @@ export class DashboardController {
         invoices: [],
         rmas: [],
         workOrders: [],
+        batches: [],
       };
     }
     return this.service.globalSearch(tenantId, q, limit || 5);

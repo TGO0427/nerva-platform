@@ -120,8 +120,8 @@ export class NonConformanceRepository extends BaseRepository {
       countSql += ` AND nc.due_date < CURRENT_DATE AND nc.status IN ('OPEN', 'UNDER_REVIEW')`;
     }
     if (filters.search) {
-      sql += ` AND (nc.nc_no ILIKE $${idx} OR nc.description ILIKE $${idx} OR i.sku ILIKE $${idx})`;
-      countSql += ` AND (nc.nc_no ILIKE $${idx} OR nc.description ILIKE $${idx} OR i.sku ILIKE $${idx})`;
+      sql += ` AND (nc.nc_no ILIKE $${idx} OR nc.description ILIKE $${idx} OR i.sku ILIKE $${idx} OR nc.batch_no ILIKE $${idx})`;
+      countSql += ` AND (nc.nc_no ILIKE $${idx} OR nc.description ILIKE $${idx} OR i.sku ILIKE $${idx} OR nc.batch_no ILIKE $${idx})`;
       params.push(`%${filters.search}%`);
       countParams.push(`%${filters.search}%`);
       idx++;

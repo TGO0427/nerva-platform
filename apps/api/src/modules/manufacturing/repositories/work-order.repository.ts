@@ -206,8 +206,8 @@ export class WorkOrderRepository extends BaseRepository {
       idx++;
     }
     if (filters.search) {
-      sql += ` AND (wo.work_order_no ILIKE $${idx} OR i.sku ILIKE $${idx} OR i.description ILIKE $${idx})`;
-      countSql += ` AND (wo.work_order_no ILIKE $${idx} OR i.sku ILIKE $${idx} OR i.description ILIKE $${idx})`;
+      sql += ` AND (wo.work_order_no ILIKE $${idx} OR i.sku ILIKE $${idx} OR i.description ILIKE $${idx} OR wo.batch_no ILIKE $${idx})`;
+      countSql += ` AND (wo.work_order_no ILIKE $${idx} OR i.sku ILIKE $${idx} OR i.description ILIKE $${idx} OR wo.batch_no ILIKE $${idx})`;
       params.push(`%${filters.search}%`);
       countParams.push(`%${filters.search}%`);
       idx++;

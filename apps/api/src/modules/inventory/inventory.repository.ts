@@ -302,7 +302,8 @@ export class InventoryRepository extends BaseRepository {
       params.push(filters.status);
     }
     if (filters.search) {
-      sql += ` AND (adjustment_no ILIKE $${idx} OR reason ILIKE $${idx})`;
+      sql += ` AND (adjustment_no ILIKE $${idx} OR reason ILIKE $${idx}
+        OR EXISTS (SELECT 1 FROM adjustment_lines al WHERE al.adjustment_id = adjustments.id AND al.batch_no ILIKE $${idx}))`;
       params.push(`%${filters.search}%`);
       idx++;
     }
@@ -327,7 +328,8 @@ export class InventoryRepository extends BaseRepository {
       params.push(filters.status);
     }
     if (filters.search) {
-      sql += ` AND (adjustment_no ILIKE $${idx} OR reason ILIKE $${idx})`;
+      sql += ` AND (adjustment_no ILIKE $${idx} OR reason ILIKE $${idx}
+        OR EXISTS (SELECT 1 FROM adjustment_lines al WHERE al.adjustment_id = adjustments.id AND al.batch_no ILIKE $${idx}))`;
       params.push(`%${filters.search}%`);
       idx++;
     }

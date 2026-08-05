@@ -315,7 +315,7 @@ export default function QualityPage() {
       filters={
         <div className="flex gap-2">
           <Input
-            placeholder="Search NC#, description..."
+            placeholder="Search NC#, description, batch no..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="max-w-xs"
