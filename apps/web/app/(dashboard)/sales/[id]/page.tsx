@@ -209,7 +209,7 @@ export default function SalesOrderDetailPage() {
         router.push('/sales');
       } catch (error) {
         console.error('Failed to cancel order:', error);
-        addToast('Failed to cancel order', 'error');
+        addToast(error instanceof Error ? error.message : 'Failed to cancel order', 'error');
       }
     }
   };
@@ -328,7 +328,7 @@ export default function SalesOrderDetailPage() {
 
   const canConfirm = order.status === 'DRAFT';
   const canAllocate = order.status === 'CONFIRMED';
-  const canCancel = ['DRAFT', 'CONFIRMED'].includes(order.status);
+  const canCancel = !['SHIPPED', 'DELIVERED', 'CANCELLED'].includes(order.status);
   const canReopen = ['CANCELLED', 'DELIVERED'].includes(order.status);
   const canCreateInvoice = ['SHIPPED', 'DELIVERED'].includes(order.status);
 
