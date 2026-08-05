@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Spinner } from '@/components/ui/spinner';
 import { useItem, useStockOnHand, useLedgerHistory, useQueryParams, StockSnapshot, LedgerEntry } from '@/lib/queries';
-import { BatchQualityActionCell } from '@/components/ui/batch-quality-badge';
+import { BatchQualityCell } from '@/components/ui/batch-quality-badge';
 import { formatDate, formatDateTime, formatQuantity } from '@/lib/format';
 
 export default function StockDetailPage() {
@@ -41,7 +41,7 @@ export default function StockDetailPage() {
     {
       key: 'qcStatus',
       header: 'QC Status',
-      render: (row) => <BatchQualityActionCell itemId={itemId} batchNo={row.batchNo} />,
+      render: (row) => <BatchQualityCell itemId={itemId} batchNo={row.batchNo} />,
     },
     {
       key: 'expiryDate',
@@ -174,6 +174,9 @@ export default function StockDetailPage() {
           <p className="text-slate-500 mt-1">{item.description}</p>
         </div>
         <div className="flex gap-2">
+          <Link href="/manufacturing/quality/batches">
+            <Button variant="secondary">Batch QC Queue</Button>
+          </Link>
           <Link href={`/master-data/items/${item.id}`}>
             <Button variant="secondary">Edit Item</Button>
           </Link>

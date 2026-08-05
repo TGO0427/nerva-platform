@@ -112,16 +112,6 @@ export function BatchQualityActionControl({
   );
 }
 
-/** Table-cell friendly control: fetches the batch's status itself, then renders BatchQualityActionControl. */
-export function BatchQualityActionCell({ itemId, batchNo }: { itemId: string; batchNo: string | null | undefined }) {
-  const { data: batchQuality } = useBatchQualityStatus(itemId, batchNo ?? undefined);
-
-  if (!batchNo) return <span className="text-slate-400">-</span>;
-  if (!batchQuality) return <span className="text-slate-400 text-xs">Not tracked</span>;
-
-  return <BatchQualityActionControl itemId={itemId} batchNo={batchNo} status={batchQuality.qualityStatus} />;
-}
-
 /** Badge + inline transition buttons for moving a batch through its QC lifecycle - used where there's room to spare (e.g. the work order page). */
 export function BatchQualityControl({
   itemId,
