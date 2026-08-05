@@ -353,10 +353,24 @@ export class FulfilmentService {
       throw new BadRequestException("Cannot cancel a completed wave");
     }
 
-    // Cancel all pending tasks
+    // A PICKED task already moved real stock out of its bin - that's
+    // physical warehouse work that happened, not something safe to
+    // silently reverse as a side effect of cancelling the wave. Block
+    // and name exactly what's blocking it, so the user resolves it
+    // explicitly (ship it, or reverse that one task) before cancelling.
     const tasks = await this.getPickTasks(id);
+    const pickedTasks = tasks.filter((t) => t.status === "PICKED");
+    if (pickedTasks.length > 0) {
+      const items = pickedTasks
+        .map((t) => `${t.itemSku || t.itemId}${t.batchNo ? ` (${t.batchNo})` : ""}`)
+        .join(", ");
+      throw new BadRequestException(
+        `Cannot cancel: ${pickedTasks.length} task(s) already picked -- ${items}. Ship this stock or reverse the pick before cancelling the wave.`,
+      );
+    }
+
     for (const task of tasks) {
-      if (task.status !== "PICKED" && task.status !== "CANCELLED") {
+      if (task.status !== "CANCELLED") {
         await this.repository.cancelPickTask(task.id, reason);
       }
     }
