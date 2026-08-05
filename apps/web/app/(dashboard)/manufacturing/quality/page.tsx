@@ -273,12 +273,17 @@ export default function QualityPage() {
       title="Quality / Non-Conformances"
       subtitle="Track and manage product quality issues and defects"
       headerActions={
-        <Link href="/manufacturing/quality/new">
-          <Button>
-            <PlusIcon />
-            New NC
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/manufacturing/quality/batches">
+            <Button variant="secondary">Batch QC Queue</Button>
+          </Link>
+          <Link href="/manufacturing/quality/new">
+            <Button>
+              <PlusIcon />
+              New NC
+            </Button>
+          </Link>
+        </div>
       }
       stats={[
         {

@@ -944,6 +944,19 @@ export class ManufacturingController {
   }
 
   // ============ Batch Quality Status ============
+  @Get("quality/batches")
+  @RequirePermissions("quality.view")
+  @ApiOperation({ summary: "QC queue: list all batches tenant-wide, filterable by status" })
+  async listBatchQuality(
+    @TenantId() tenantId: string,
+    @Query("status") status?: BatchQualityStatusValue,
+    @Query("search") search?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+  ) {
+    return this.service.listBatchQuality(tenantId, { status, search }, page, limit);
+  }
+
   @Get("batch-quality")
   @RequirePermissions("quality.view")
   @ApiOperation({ summary: "Get quality status for a specific item/batch" })

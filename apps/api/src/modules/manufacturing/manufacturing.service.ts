@@ -1660,6 +1660,15 @@ export class ManufacturingService {
     return this.batchQualityRepo.findStatus(tenantId, itemId, batchNo);
   }
 
+  async listBatchQuality(
+    tenantId: string,
+    filters: { status?: BatchQualityStatusValue; search?: string },
+    page?: number,
+    limit?: number,
+  ) {
+    return this.batchQualityRepo.listBatches(tenantId, filters, page, limit);
+  }
+
   async listBatchQualityForWorkOrder(tenantId: string, workOrderId: string) {
     const workOrder = await this.workOrderRepo.findById(workOrderId);
     if (!workOrder) throw new NotFoundException("Work order not found");

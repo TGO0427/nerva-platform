@@ -101,6 +101,87 @@ export class BatchQualityRepository extends BaseRepository {
     }));
   }
 
+  /** Tenant-wide QC queue: every batch, regardless of which work order or item it came from. */
+  async listBatches(
+    tenantId: string,
+    filters: { status?: BatchQualityStatusValue; search?: string },
+    page = 1,
+    limit = 20,
+  ): Promise<{
+    data: (BatchQuality & {
+      itemSku: string;
+      itemDescription: string;
+      workOrderId: string | null;
+      workOrderNo: string | null;
+      qtyOnHand: number;
+    })[];
+    total: number;
+  }> {
+    const conditions: string[] = ["bqs.tenant_id = $1"];
+    const params: unknown[] = [tenantId];
+    let idx = 2;
+
+    if (filters.status) {
+      conditions.push(`bqs.quality_status = $${idx++}`);
+      params.push(filters.status);
+    }
+    if (filters.search) {
+      conditions.push(
+        `(i.sku ILIKE $${idx} OR i.description ILIKE $${idx} OR bqs.batch_no ILIKE $${idx})`,
+      );
+      params.push(`%${filters.search}%`);
+      idx++;
+    }
+    const whereClause = conditions.join(" AND ");
+    const offset = (page - 1) * limit;
+
+    const [rows, countResult] = await Promise.all([
+      this.queryMany<Record<string, unknown>>(
+        `SELECT bqs.*, i.sku as item_sku, i.description as item_description,
+                wo.work_order_id, wo.work_order_no,
+                COALESCE(stock.qty_on_hand, 0) as qty_on_hand
+         FROM batch_quality_status bqs
+         JOIN items i ON i.id = bqs.item_id
+         LEFT JOIN LATERAL (
+           SELECT pl.work_order_id, w.work_order_no
+           FROM production_ledger pl
+           JOIN work_orders w ON w.id = pl.work_order_id
+           WHERE pl.tenant_id = bqs.tenant_id AND pl.item_id = bqs.item_id
+             AND pl.batch_no = bqs.batch_no AND pl.entry_type = 'PRODUCTION_OUTPUT'
+           LIMIT 1
+         ) wo ON true
+         LEFT JOIN LATERAL (
+           SELECT SUM(ss.qty_on_hand) as qty_on_hand
+           FROM stock_snapshot ss
+           WHERE ss.tenant_id = bqs.tenant_id AND ss.item_id = bqs.item_id AND ss.batch_no = bqs.batch_no
+         ) stock ON true
+         WHERE ${whereClause}
+         ORDER BY bqs.created_at DESC
+         LIMIT $${idx} OFFSET $${idx + 1}`,
+        [...params, limit, offset],
+      ),
+      this.queryOne<{ count: string }>(
+        `SELECT COUNT(*) as count
+         FROM batch_quality_status bqs
+         JOIN items i ON i.id = bqs.item_id
+         WHERE ${whereClause}`,
+        params,
+      ),
+    ]);
+
+    return {
+      data: rows.map((r) => ({
+        ...this.mapBatchQuality(r),
+        itemSku: r.item_sku as string,
+        itemDescription: r.item_description as string,
+        workOrderId: (r.work_order_id as string) || null,
+        workOrderNo: (r.work_order_no as string) || null,
+        qtyOnHand: parseFloat((r.qty_on_hand as string) || "0"),
+      })),
+      total: parseInt(countResult?.count || "0", 10),
+    };
+  }
+
   async setStatus(
     tenantId: string,
     itemId: string,

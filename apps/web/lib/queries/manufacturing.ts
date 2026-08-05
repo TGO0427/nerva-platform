@@ -1249,6 +1249,32 @@ export function useWorkOrderBatchQuality(workOrderId: string | undefined) {
   });
 }
 
+export interface BatchQualityQueueRow extends BatchQuality {
+  itemSku: string;
+  itemDescription: string;
+  workOrderId: string | null;
+  workOrderNo: string | null;
+  qtyOnHand: number;
+}
+
+export function useBatchQualityQueue(params: QueryParams & { status?: BatchQualityStatus; search?: string }) {
+  return useQuery({
+    queryKey: [BATCH_QUALITY_KEY, 'queue', params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      searchParams.set('page', String(params.page));
+      searchParams.set('limit', String(params.limit));
+      if (params.status) searchParams.set('status', params.status);
+      if (params.search) searchParams.set('search', params.search);
+
+      const response = await api.get<PaginatedResult<BatchQualityQueueRow>>(
+        `/manufacturing/quality/batches?${searchParams.toString()}`
+      );
+      return response.data;
+    },
+  });
+}
+
 export function useSetBatchQualityStatus() {
   const queryClient = useQueryClient();
   return useMutation({

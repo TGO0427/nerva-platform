@@ -84,6 +84,7 @@ describe("ManufacturingService - Non-Conformances", () => {
             findStatus: jest.fn(),
             findStatusesForWorkOrderOutput: jest.fn(),
             setStatus: jest.fn(),
+            listBatches: jest.fn(),
           },
         },
         { provide: MasterDataService, useValue: {} },
@@ -328,6 +329,28 @@ describe("ManufacturingService - Non-Conformances", () => {
         "Failed visual inspection",
       );
       expect(result.qualityStatus).toBe("ON_HOLD");
+    });
+  });
+
+  describe("listBatchQuality", () => {
+    it("passes tenant, filters, and pagination straight through to the repository", async () => {
+      const expected = { data: [], total: 0 };
+      batchQualityRepo.listBatches.mockResolvedValue(expected as any);
+
+      const result = await service.listBatchQuality(
+        tenantId,
+        { status: "AWAITING_QC", search: "FP-" },
+        2,
+        50,
+      );
+
+      expect(batchQualityRepo.listBatches).toHaveBeenCalledWith(
+        tenantId,
+        { status: "AWAITING_QC", search: "FP-" },
+        2,
+        50,
+      );
+      expect(result).toBe(expected);
     });
   });
 });
