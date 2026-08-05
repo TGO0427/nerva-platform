@@ -600,7 +600,7 @@ export function useAddCycleCountLine(cycleCountId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { binId: string; itemId: string }) => {
+    mutationFn: async (data: { binId: string; itemId: string; batchNo?: string }) => {
       const response = await api.post<CycleCountLineDetail>(
         `/inventory/cycle-counts/${cycleCountId}/lines`,
         data

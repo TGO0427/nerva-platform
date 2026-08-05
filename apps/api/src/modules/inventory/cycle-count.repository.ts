@@ -25,6 +25,7 @@ export interface CycleCountLine {
   cycleCountId: string;
   binId: string;
   itemId: string;
+  batchNo: string | null;
   systemQty: number;
   countedQty: number | null;
   varianceQty: number;
@@ -108,7 +109,8 @@ export class CycleCountRepository extends BaseRepository {
     }
     if (search) {
       params.push(`%${search}%`);
-      sql += ` AND (cc.count_no ILIKE $${params.length} OR w.name ILIKE $${params.length})`;
+      sql += ` AND (cc.count_no ILIKE $${params.length} OR w.name ILIKE $${params.length}
+        OR EXISTS (SELECT 1 FROM cycle_count_lines ccl WHERE ccl.cycle_count_id = cc.id AND ccl.batch_no ILIKE $${params.length}))`;
     }
 
     sql += ` ORDER BY cc.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
@@ -135,7 +137,8 @@ export class CycleCountRepository extends BaseRepository {
     }
     if (search) {
       params.push(`%${search}%`);
-      sql += ` AND (cc.count_no ILIKE $${params.length} OR w.name ILIKE $${params.length})`;
+      sql += ` AND (cc.count_no ILIKE $${params.length} OR w.name ILIKE $${params.length}
+        OR EXISTS (SELECT 1 FROM cycle_count_lines ccl WHERE ccl.cycle_count_id = cc.id AND ccl.batch_no ILIKE $${params.length}))`;
     }
 
     const row = await this.queryOne<Record<string, unknown>>(sql, params);
@@ -181,17 +184,19 @@ export class CycleCountRepository extends BaseRepository {
     cycleCountId: string;
     binId: string;
     itemId: string;
+    batchNo?: string | null;
     systemQty: number;
   }): Promise<CycleCountLine> {
     const row = await this.queryOne<Record<string, unknown>>(
-      `INSERT INTO cycle_count_lines (tenant_id, cycle_count_id, bin_id, item_id, system_qty)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO cycle_count_lines (tenant_id, cycle_count_id, bin_id, item_id, batch_no, system_qty)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
       [
         data.tenantId,
         data.cycleCountId,
         data.binId,
         data.itemId,
+        data.batchNo || null,
         data.systemQty,
       ],
     );
@@ -204,6 +209,7 @@ export class CycleCountRepository extends BaseRepository {
       cycleCountId: string;
       binId: string;
       itemId: string;
+      batchNo?: string | null;
       systemQty: number;
     }>,
   ): Promise<number> {
@@ -317,6 +323,7 @@ export class CycleCountRepository extends BaseRepository {
       cycleCountId: row.cycle_count_id as string,
       binId: row.bin_id as string,
       itemId: row.item_id as string,
+      batchNo: (row.batch_no as string) || null,
       systemQty: parseFloat(row.system_qty as string),
       countedQty:
         row.counted_qty !== null ? parseFloat(row.counted_qty as string) : null,

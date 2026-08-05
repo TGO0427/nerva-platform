@@ -1,4 +1,4 @@
-import { IsOptional, IsUUID, IsNumber, IsBoolean, Min } from "class-validator";
+import { IsOptional, IsUUID, IsNumber, IsBoolean, IsString, Min } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateCycleCountDto {
@@ -20,6 +20,11 @@ export class AddCycleCountLineDto {
   @ApiProperty()
   @IsUUID()
   itemId: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  batchNo?: string;
 }
 
 export class AddCycleCountLinesFromBinDto {

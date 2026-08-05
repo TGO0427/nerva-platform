@@ -675,18 +675,30 @@ export class InventoryService {
 
   async addCycleCountLine(
     cycleCountId: string,
-    data: { tenantId: string; binId: string; itemId: string },
+    data: { tenantId: string; binId: string; itemId: string; batchNo?: string },
   ): Promise<CycleCountLineEntity> {
     const cc = await this.getCycleCount(data.tenantId, cycleCountId);
     if (cc.status !== "OPEN") {
       throw new BadRequestException("Can only add lines to OPEN cycle counts");
     }
 
+    const item = await this.masterDataService.getItem(
+      data.tenantId,
+      data.itemId,
+    );
+    if (item.requiresBatchTracking && !data.batchNo) {
+      throw new BadRequestException(`${item.sku} requires a batch/lot number`);
+    }
+
     const stockInBin = await this.stockLedger.getStockInBin(
       data.tenantId,
       data.binId,
     );
-    const match = stockInBin.find((s) => s.itemId === data.itemId);
+    const match = stockInBin.find(
+      (s) =>
+        s.itemId === data.itemId &&
+        (s.batchNo || null) === (data.batchNo || null),
+    );
     const systemQty = match?.qtyOnHand ?? 0;
 
     return this.cycleCountRepo.addLine({
@@ -694,6 +706,7 @@ export class InventoryService {
       cycleCountId,
       binId: data.binId,
       itemId: data.itemId,
+      batchNo: data.batchNo || null,
       systemQty,
     });
   }
@@ -720,6 +733,7 @@ export class InventoryService {
       cycleCountId,
       binId: data.binId,
       itemId: s.itemId,
+      batchNo: s.batchNo || null,
       systemQty: s.qtyOnHand,
     }));
 
@@ -749,6 +763,7 @@ export class InventoryService {
       cycleCountId,
       binId: s.binId,
       itemId: s.itemId,
+      batchNo: s.batchNo || null,
       systemQty: s.qtyOnHand,
     }));
 
@@ -869,6 +884,7 @@ export class InventoryService {
         binId: line.binId,
         itemId: line.itemId,
         qtyAfter: line.countedQty!,
+        batchNo: line.batchNo || undefined,
       });
     }
 

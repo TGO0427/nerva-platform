@@ -378,6 +378,7 @@ export interface CycleCountLine {
   cycleCountId: string;
   binId: string;
   itemId: string;
+  batchNo: string | null;
   systemQty: number;
   countedQty: number | null;
   varianceQty: number;

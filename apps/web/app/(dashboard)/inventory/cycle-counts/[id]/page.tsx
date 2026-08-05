@@ -28,6 +28,7 @@ import {
   useCloseCycleCount,
   useCancelCycleCount,
   useDeleteCycleCount,
+  useStockInBin,
   type CycleCountLineDetail,
 } from '@/lib/queries/inventory';
 import { useWarehouses, useBins } from '@/lib/queries/warehouses';
@@ -68,11 +69,18 @@ export default function CycleCountDetailPage() {
   const [showAddFromBin, setShowAddFromBin] = useState(false);
   const [newBinId, setNewBinId] = useState('');
   const [newItemId, setNewItemId] = useState('');
+  const [newBatchNo, setNewBatchNo] = useState('');
   const [bulkBinId, setBulkBinId] = useState('');
   const [countInputs, setCountInputs] = useState<Record<string, string>>({});
 
+  const { data: stockInNewBin } = useStockInBin(newBinId || undefined);
+
   const warehouseName = warehouses?.find(w => w.id === cc?.warehouseId)?.name || '';
   const items = itemsData?.data || [];
+  const newItem = items.find(i => i.id === newItemId);
+  const batchOptionsForNewLine = (stockInNewBin || []).filter(s => s.itemId === newItemId && s.batchNo);
+  const newLineNeedsBatch = !!newItem?.requiresBatchTracking;
+  const canAddLine = !!newBinId && !!newItemId && (!newLineNeedsBatch || !!newBatchNo);
 
   const { addToast } = useToast();
   const { confirm } = useConfirm();
@@ -89,12 +97,13 @@ export default function CycleCountDetailPage() {
 
   const handleAddLine = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newBinId || !newItemId) return;
+    if (!canAddLine) return;
     try {
-      await addLine.mutateAsync({ binId: newBinId, itemId: newItemId });
+      await addLine.mutateAsync({ binId: newBinId, itemId: newItemId, batchNo: newBatchNo || undefined });
       addToast('Line added', 'success');
       setNewBinId('');
       setNewItemId('');
+      setNewBatchNo('');
       setShowAddLine(false);
     } catch (error) {
       console.error('Failed to add line:', error);
@@ -436,11 +445,11 @@ export default function CycleCountDetailPage() {
           {/* Add single line form */}
           {showAddLine && isOpen && (
             <form onSubmit={handleAddLine} className="mb-6 p-4 bg-slate-50 rounded-lg">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Select
                   label="Bin"
                   value={newBinId}
-                  onChange={(e) => setNewBinId(e.target.value)}
+                  onChange={(e) => { setNewBinId(e.target.value); setNewBatchNo(''); }}
                   options={bins?.filter(b => b.isActive).map(b => ({
                     value: b.id,
                     label: `${b.code} (${b.binType})`,
@@ -451,7 +460,7 @@ export default function CycleCountDetailPage() {
                 <Select
                   label="Item"
                   value={newItemId}
-                  onChange={(e) => setNewItemId(e.target.value)}
+                  onChange={(e) => { setNewItemId(e.target.value); setNewBatchNo(''); }}
                   options={items.map(i => ({
                     value: i.id,
                     label: `${i.sku} - ${i.description}`,
@@ -459,9 +468,26 @@ export default function CycleCountDetailPage() {
                   placeholder="Select item"
                   required
                 />
+                <div>
+                  <Select
+                    label={`Batch${newLineNeedsBatch ? ' *' : ''}`}
+                    value={newBatchNo}
+                    onChange={(e) => setNewBatchNo(e.target.value)}
+                    options={batchOptionsForNewLine.map(s => ({
+                      value: s.batchNo!,
+                      label: `${s.batchNo} (${s.qtyOnHand} on hand)`,
+                    }))}
+                    placeholder={!newBinId || !newItemId ? 'Select bin and item first' : 'Select batch'}
+                    disabled={!newBinId || !newItemId}
+                    required={newLineNeedsBatch}
+                  />
+                  {newLineNeedsBatch && (
+                    <p className="text-xs text-amber-600 mt-1">This item requires a batch/lot number</p>
+                  )}
+                </div>
               </div>
               <div className="flex justify-end mt-4">
-                <Button type="submit" size="sm" disabled={addLine.isPending}>
+                <Button type="submit" size="sm" disabled={addLine.isPending || !canAddLine}>
                   {addLine.isPending ? 'Adding...' : 'Add Line'}
                 </Button>
               </div>
@@ -480,6 +506,7 @@ export default function CycleCountDetailPage() {
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-3 px-4 font-medium text-slate-500">Bin</th>
                     <th className="text-left py-3 px-4 font-medium text-slate-500">Item</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-500">Batch</th>
                     {!hideSystemQty && (
                       <th className="text-right py-3 px-4 font-medium text-slate-500">System Qty</th>
                     )}
@@ -598,6 +625,7 @@ function LineRow({
           )}
         </div>
       </td>
+      <td className="py-3 px-4 font-mono text-xs">{line.batchNo || '-'}</td>
       {!hideSystemQty && (
         <td className="py-3 px-4 text-right">{line.systemQty}</td>
       )}

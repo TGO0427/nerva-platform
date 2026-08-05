@@ -20,6 +20,7 @@ describe("InventoryService", () => {
   let stockLedger: jest.Mocked<StockLedgerService>;
   let batchRepository: jest.Mocked<BatchRepository>;
   let masterDataService: jest.Mocked<MasterDataService>;
+  let cycleCountRepo: jest.Mocked<CycleCountRepository>;
 
   const mockGrn: Grn = {
     id: "grn-123",
@@ -167,6 +168,7 @@ describe("InventoryService", () => {
     stockLedger = module.get(StockLedgerService);
     batchRepository = module.get(BatchRepository);
     masterDataService = module.get(MasterDataService);
+    cycleCountRepo = module.get(CycleCountRepository);
 
     masterDataService.getItem.mockResolvedValue({
       id: "item-123",
@@ -799,6 +801,146 @@ describe("InventoryService", () => {
       expect(result).toEqual(mockAdjustmentLine);
       expect(repository.addAdjustmentLine).toHaveBeenCalledWith(
         expect.objectContaining({ itemId: "item-123", qtyAfter: 10, qtyBefore: 0 }),
+      );
+    });
+  });
+
+  describe("addCycleCountLine", () => {
+    const mockOpenCycleCount = {
+      id: "cc-123",
+      tenantId: "tenant-123",
+      warehouseId: "warehouse-123",
+      countNo: "CC-000001",
+      status: "OPEN",
+      startedAt: null,
+      closedAt: null,
+      createdBy: null,
+      approvedBy: null,
+      isBlind: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it("throws when a batch-tracked item is added with no batch", async () => {
+      cycleCountRepo.findById.mockResolvedValue(mockOpenCycleCount);
+      masterDataService.getItem.mockResolvedValue({
+        id: "item-123",
+        tenantId: "tenant-123",
+        sku: "SKU-001",
+        description: "Test Item",
+        uom: "EA",
+        weightKg: null,
+        hsCode: null,
+        countryOfOrigin: null,
+        isActive: true,
+        requiresBatchTracking: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await expect(
+        service.addCycleCountLine("cc-123", {
+          tenantId: "tenant-123",
+          binId: "bin-123",
+          itemId: "item-123",
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(cycleCountRepo.addLine).not.toHaveBeenCalled();
+    });
+
+    it("picks the system qty for the specific batch requested, not just the first batch present in the bin", async () => {
+      cycleCountRepo.findById.mockResolvedValue(mockOpenCycleCount);
+      masterDataService.getItem.mockResolvedValue({
+        id: "item-123",
+        tenantId: "tenant-123",
+        sku: "SKU-001",
+        description: "Test Item",
+        uom: "EA",
+        weightKg: null,
+        hsCode: null,
+        countryOfOrigin: null,
+        isActive: true,
+        requiresBatchTracking: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      stockLedger.getStockInBin.mockResolvedValue([
+        { itemId: "item-123", binId: "bin-123", batchNo: "BATCH-A", expiryDate: null, qtyOnHand: 40, qtyReserved: 0, qtyAvailable: 40 },
+        { itemId: "item-123", binId: "bin-123", batchNo: "BATCH-B", expiryDate: null, qtyOnHand: 15, qtyReserved: 0, qtyAvailable: 15 },
+      ] as any);
+      cycleCountRepo.addLine.mockResolvedValue({} as any);
+
+      await service.addCycleCountLine("cc-123", {
+        tenantId: "tenant-123",
+        binId: "bin-123",
+        itemId: "item-123",
+        batchNo: "BATCH-B",
+      });
+
+      expect(cycleCountRepo.addLine).toHaveBeenCalledWith(
+        expect.objectContaining({ batchNo: "BATCH-B", systemQty: 15 }),
+      );
+    });
+  });
+
+  describe("generateAdjustmentFromCycleCount", () => {
+    const mockPendingCycleCount = {
+      id: "cc-123",
+      tenantId: "tenant-123",
+      warehouseId: "warehouse-123",
+      countNo: "CC-000001",
+      status: "PENDING_APPROVAL",
+      startedAt: new Date(),
+      closedAt: null,
+      createdBy: null,
+      approvedBy: null,
+      isBlind: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it("passes each variance line's batch through to the generated adjustment line", async () => {
+      cycleCountRepo.findById.mockResolvedValue(mockPendingCycleCount);
+      cycleCountRepo.getLinesWithVariance.mockResolvedValue([
+        {
+          id: "ccl-1", tenantId: "tenant-123", cycleCountId: "cc-123",
+          binId: "bin-123", itemId: "item-123", batchNo: "BATCH-A",
+          systemQty: 40, countedQty: 35, varianceQty: -5,
+          countedBy: "user-123", countedAt: new Date(), createdAt: new Date(),
+        },
+      ] as any);
+      repository.generateAdjustmentNo.mockResolvedValue("ADJ-000001");
+      const mockAdj = {
+        id: "adj-123", tenantId: "tenant-123", warehouseId: "warehouse-123",
+        adjustmentNo: "ADJ-000001", status: "DRAFT", reason: "Cycle Count Variance",
+        notes: null, cycleCountId: "cc-123", createdBy: "user-123",
+        approvedBy: null, approvedAt: null, createdAt: new Date(), updatedAt: new Date(),
+      } as any;
+      repository.createAdjustment.mockResolvedValue(mockAdj);
+      repository.findAdjustmentById.mockResolvedValue(mockAdj);
+      masterDataService.getItem.mockResolvedValue({
+        id: "item-123",
+        tenantId: "tenant-123",
+        sku: "SKU-001",
+        description: "Test Item",
+        uom: "EA",
+        weightKg: null,
+        hsCode: null,
+        countryOfOrigin: null,
+        isActive: true,
+        requiresBatchTracking: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      stockLedger.getStockInBin.mockResolvedValue([
+        { itemId: "item-123", binId: "bin-123", batchNo: "BATCH-A", expiryDate: null, qtyOnHand: 40, qtyReserved: 0, qtyAvailable: 40 },
+      ] as any);
+      repository.addAdjustmentLine.mockResolvedValue({} as any);
+
+      await service.generateAdjustmentFromCycleCount("tenant-123", "cc-123", "user-123");
+
+      expect(repository.addAdjustmentLine).toHaveBeenCalledWith(
+        expect.objectContaining({ itemId: "item-123", batchNo: "BATCH-A", qtyAfter: 35 }),
       );
     });
   });
