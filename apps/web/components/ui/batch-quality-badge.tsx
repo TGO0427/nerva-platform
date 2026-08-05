@@ -2,6 +2,12 @@
 
 import { Badge, BadgeVariant } from './badge';
 import { Button } from './button';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from './dropdown-menu';
 import { useSetBatchQualityStatus, useBatchQualityStatus } from '@/lib/queries/manufacturing';
 import { useToast } from './toast';
 import type { BatchQualityStatus } from '@nerva/shared';
@@ -52,27 +58,9 @@ export function BatchQualityCell({ itemId, batchNo }: { itemId: string; batchNo:
   return <BatchQualityBadge status={batchQuality.qualityStatus} />;
 }
 
-/** Table-cell friendly control: same lookup as BatchQualityCell, but with actionable transition buttons. */
-export function BatchQualityActionCell({ itemId, batchNo }: { itemId: string; batchNo: string | null | undefined }) {
-  const { data: batchQuality } = useBatchQualityStatus(itemId, batchNo ?? undefined);
-  if (!batchNo) return <span className="text-slate-400">-</span>;
-  if (!batchQuality) return <span className="text-slate-400 text-xs">Not tracked</span>;
-  return <BatchQualityControl itemId={itemId} batchNo={batchNo} status={batchQuality.qualityStatus} />;
-}
-
-/** Badge + inline transition buttons for moving a batch through its QC lifecycle. */
-export function BatchQualityControl({
-  itemId,
-  batchNo,
-  status,
-}: {
-  itemId: string;
-  batchNo: string;
-  status: BatchQualityStatus;
-}) {
+function useBatchQualityTransition(itemId: string, batchNo: string) {
   const { addToast } = useToast();
   const setStatus = useSetBatchQualityStatus();
-  const nextSteps = NEXT_STEPS[status];
 
   const handleTransition = async (newStatus: BatchQualityStatus) => {
     try {
@@ -83,6 +71,57 @@ export function BatchQualityControl({
     }
   };
 
+  return { handleTransition, isPending: setStatus.isPending };
+}
+
+/** Table-cell friendly control: badge + a compact dropdown of transition actions - stays on one line in a dense table. */
+export function BatchQualityActionCell({ itemId, batchNo }: { itemId: string; batchNo: string | null | undefined }) {
+  const { data: batchQuality } = useBatchQualityStatus(itemId, batchNo ?? undefined);
+  const { handleTransition, isPending } = useBatchQualityTransition(itemId, batchNo ?? '');
+
+  if (!batchNo) return <span className="text-slate-400">-</span>;
+  if (!batchQuality) return <span className="text-slate-400 text-xs">Not tracked</span>;
+
+  const nextSteps = NEXT_STEPS[batchQuality.qualityStatus];
+
+  return (
+    <div className="flex items-center gap-2">
+      <BatchQualityBadge status={batchQuality.qualityStatus} />
+      {nextSteps.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="ghost" isLoading={isPending}>Actions</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {nextSteps.map((step) => (
+              <DropdownMenuItem
+                key={step.status}
+                variant={step.status === 'REJECTED' ? 'destructive' : 'default'}
+                onClick={() => handleTransition(step.status)}
+              >
+                {step.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  );
+}
+
+/** Badge + inline transition buttons for moving a batch through its QC lifecycle - used where there's room to spare (e.g. the work order page). */
+export function BatchQualityControl({
+  itemId,
+  batchNo,
+  status,
+}: {
+  itemId: string;
+  batchNo: string;
+  status: BatchQualityStatus;
+}) {
+  const { handleTransition, isPending } = useBatchQualityTransition(itemId, batchNo);
+  const nextSteps = NEXT_STEPS[status];
+
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <BatchQualityBadge status={status} />
@@ -91,7 +130,7 @@ export function BatchQualityControl({
           key={step.status}
           size="sm"
           variant={step.variant || 'secondary'}
-          isLoading={setStatus.isPending}
+          isLoading={isPending}
           onClick={() => handleTransition(step.status)}
         >
           {step.label}
