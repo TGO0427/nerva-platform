@@ -1,20 +1,24 @@
 'use client';
 
-import { forwardRef, ReactNode } from 'react';
+import { forwardRef, ReactNode, ButtonHTMLAttributes } from 'react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export interface ButtonProps {
+type ConflictingMotionProps =
+  | 'onDrag'
+  | 'onDragStart'
+  | 'onDragEnd'
+  | 'onAnimationStart'
+  | 'onAnimationEnd'
+  | 'onAnimationIteration';
+
+export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type' | ConflictingMotionProps> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
-  disabled?: boolean;
-  className?: string;
   children?: ReactNode;
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   type?: 'button' | 'submit' | 'reset';
-  form?: string;
 }
 
 function cn(...inputs: (string | undefined | false)[]) {
@@ -33,6 +37,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       onClick,
       type = 'button',
       form,
+      ...rest
     },
     ref
   ) => {
@@ -65,6 +70,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         whileHover={isDisabled ? undefined : { scale: 1.02 }}
         whileTap={isDisabled ? undefined : { scale: 0.98 }}
         transition={{ type: 'spring', stiffness: 700, damping: 35 }}
+        {...rest}
       >
         {isLoading && (
           <svg
