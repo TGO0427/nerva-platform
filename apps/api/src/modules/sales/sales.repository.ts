@@ -128,6 +128,12 @@ export class SalesRepository extends BaseRepository {
       params.push(filters.status);
     } else if (filters.statusGroup === "pending") {
       sql += ` AND so.status IN ('DRAFT', 'CONFIRMED')`;
+    } else if (filters.statusGroup === "open") {
+      // Matches getOrderStats' "open" definition exactly.
+      sql += ` AND so.status IN ('DRAFT', 'CONFIRMED', 'ALLOCATED')`;
+    } else if (filters.statusGroup === "in_fulfilment") {
+      // Matches getOrderStats' "inFulfilment" definition exactly.
+      sql += ` AND so.status IN ('PICKING', 'PACKING', 'READY_TO_SHIP')`;
     }
     if (filters.dateRange === "last7Days") {
       sql += ` AND so.created_at >= NOW() - INTERVAL '7 days'`;
@@ -175,6 +181,12 @@ export class SalesRepository extends BaseRepository {
       params.push(filters.status);
     } else if (filters.statusGroup === "pending") {
       sql += ` AND so.status IN ('DRAFT', 'CONFIRMED')`;
+    } else if (filters.statusGroup === "open") {
+      // Matches getOrderStats' "open" definition exactly.
+      sql += ` AND so.status IN ('DRAFT', 'CONFIRMED', 'ALLOCATED')`;
+    } else if (filters.statusGroup === "in_fulfilment") {
+      // Matches getOrderStats' "inFulfilment" definition exactly.
+      sql += ` AND so.status IN ('PICKING', 'PACKING', 'READY_TO_SHIP')`;
     }
     if (filters.dateRange === "last7Days") {
       sql += ` AND so.created_at >= NOW() - INTERVAL '7 days'`;

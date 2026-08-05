@@ -30,7 +30,7 @@ export interface SalesOrderLineWithItem extends SalesOrderLine {
 
 interface OrderFilters {
   status?: SalesOrderStatus;
-  statusGroup?: 'pending';
+  statusGroup?: 'pending' | 'open' | 'in_fulfilment';
   dateRange?: 'last7Days';
   customerId?: string;
   late?: boolean;

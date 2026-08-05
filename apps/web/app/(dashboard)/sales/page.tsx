@@ -24,9 +24,11 @@ import type { SalesOrderStatus } from '@nerva/shared';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
+  { value: 'group:open', label: 'Open (Draft, Confirmed, Allocated)' },
   { value: 'DRAFT', label: 'Draft' },
   { value: 'CONFIRMED', label: 'Confirmed' },
   { value: 'ALLOCATED', label: 'Allocated' },
+  { value: 'group:in_fulfilment', label: 'In Fulfilment (Picking, Packing, Ready to Ship)' },
   { value: 'PICKING', label: 'Picking' },
   { value: 'PACKING', label: 'Packing' },
   { value: 'READY_TO_SHIP', label: 'Ready to Ship' },
@@ -42,7 +44,7 @@ export default function SalesOrdersPage() {
   const [status, setStatus] = useState<SalesOrderStatus | ''>('');
   const [search, setSearch] = useState('');
   const [lateOnly, setLateOnly] = useState(false);
-  const [statusGroup, setStatusGroup] = useState<'pending' | ''>('');
+  const [statusGroup, setStatusGroup] = useState<'pending' | 'open' | 'in_fulfilment' | ''>('');
   const [dateRange, setDateRange] = useState<'last7Days' | ''>('');
   const importMutation = useImportSalesOrders();
   const [importOpen, setImportOpen] = useState(false);
@@ -60,7 +62,11 @@ export default function SalesOrdersPage() {
     setStatus(STATUS_OPTIONS.some((option) => option.value === statusParam) ? statusParam ?? '' : '');
 
     const statusGroupParam = searchParams.get('statusGroup');
-    setStatusGroup(statusGroupParam === 'pending' ? 'pending' : '');
+    setStatusGroup(
+      statusGroupParam === 'pending' || statusGroupParam === 'open' || statusGroupParam === 'in_fulfilment'
+        ? statusGroupParam
+        : '',
+    );
 
     const dateRangeParam = searchParams.get('dateRange');
     setDateRange(dateRangeParam === 'last7Days' ? 'last7Days' : '');
@@ -79,11 +85,16 @@ export default function SalesOrdersPage() {
   const tableData = useMemo(() => {
     const rows = data?.data || [];
 
-    if (statusGroup !== 'pending') {
-      return rows;
+    if (statusGroup === 'pending') {
+      return rows.filter((row) => row.status === 'DRAFT' || row.status === 'CONFIRMED');
     }
-
-    return rows.filter((row) => row.status === 'DRAFT' || row.status === 'CONFIRMED');
+    if (statusGroup === 'open') {
+      return rows.filter((row) => ['DRAFT', 'CONFIRMED', 'ALLOCATED'].includes(row.status));
+    }
+    if (statusGroup === 'in_fulfilment') {
+      return rows.filter((row) => ['PICKING', 'PACKING', 'READY_TO_SHIP'].includes(row.status));
+    }
+    return rows;
   }, [data?.data, statusGroup]);
 
   // Row selection
@@ -210,7 +221,11 @@ export default function SalesOrdersPage() {
     setSearch(String(values.search ?? ''));
     setStatus((values.status ?? '') as SalesOrderStatus | '');
     setLateOnly(Boolean(values.lateOnly));
-    setStatusGroup((values.statusGroup === 'pending' ? 'pending' : ''));
+    setStatusGroup(
+      values.statusGroup === 'pending' || values.statusGroup === 'open' || values.statusGroup === 'in_fulfilment'
+        ? values.statusGroup
+        : '',
+    );
     setDateRange((values.dateRange === 'last7Days' ? 'last7Days' : ''));
     setPage(1);
   };
@@ -239,24 +254,28 @@ export default function SalesOrdersPage() {
           value: formatNumber(totalOrders),
           icon: <ClipboardIcon />,
           iconColor: 'gray',
+          href: '/sales',
         },
         {
           title: 'Open Orders',
           value: formatNumber(openOrders),
           icon: <FolderIcon />,
           iconColor: 'blue',
+          href: '/sales?statusGroup=open',
         },
         {
           title: 'In Fulfilment',
           value: formatNumber(inFulfilment),
           icon: <BoxIcon />,
           iconColor: 'yellow',
+          href: '/sales?statusGroup=in_fulfilment',
         },
         {
           title: 'Shipped',
           value: formatNumber(shippedCount),
           icon: <TruckIcon />,
           iconColor: 'green',
+          href: '/sales?status=SHIPPED',
         },
       ]}
       filters={
@@ -268,10 +287,16 @@ export default function SalesOrdersPage() {
             className="max-w-xs"
           />
           <Select
-            value={status}
+            value={statusGroup ? `group:${statusGroup}` : status}
             onChange={(e) => {
-              setStatus(e.target.value as SalesOrderStatus | '');
-              setStatusGroup('');
+              const value = e.target.value;
+              if (value.startsWith('group:')) {
+                setStatusGroup(value.slice('group:'.length) as 'open' | 'in_fulfilment');
+                setStatus('');
+              } else {
+                setStatus(value as SalesOrderStatus | '');
+                setStatusGroup('');
+              }
               setPage(1);
             }}
             options={STATUS_OPTIONS}
