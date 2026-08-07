@@ -54,6 +54,7 @@ export class FulfilmentService {
       }
 
       let orderShort = false;
+      let tasksCreated = 0;
 
       for (const line of orderData.lines) {
         if (line.qtyAllocated > line.qtyPicked) {
@@ -66,27 +67,58 @@ export class FulfilmentService {
             line.id,
           );
 
-          if (reservations.length === 0) {
-            orderShort = true;
-            console.warn(
-              `No stock reservation found for order line ${line.id}`,
-            );
+          if (reservations.length > 0) {
+            for (const r of reservations) {
+              await this.repository.createPickTask({
+                tenantId: data.tenantId,
+                pickWaveId: wave.id,
+                salesOrderId: orderId,
+                salesOrderLineId: line.id,
+                itemId: line.itemId,
+                fromBinId: r.binId,
+                qtyToPick: r.qty,
+                batchNo: r.batchNo || undefined,
+                reservationId: r.id,
+              });
+              await this.salesService.markReservationPicked(r.id);
+              tasksCreated++;
+            }
             continue;
           }
 
-          for (const r of reservations) {
+          // No traceable reservation for this line — it was allocated
+          // before stock_reservations existed, so there's nothing durable
+          // to consume. Fall back to the pre-reservation behavior (derive
+          // directly from current on-hand stock) rather than leaving the
+          // line stranded with zero pick tasks forever.
+          console.warn(
+            `No stock reservation found for order line ${line.id} — falling back to on-hand stock`,
+          );
+          const qtyToPick = line.qtyAllocated - line.qtyPicked;
+          const stock = await this.stockLedger.getStockOnHand(data.tenantId, line.itemId);
+          let remaining = qtyToPick;
+          for (const s of stock) {
+            if (remaining <= 0) break;
+            const pickQty = Math.min(remaining, s.qtyOnHand);
+            if (pickQty <= 0) continue;
             await this.repository.createPickTask({
               tenantId: data.tenantId,
               pickWaveId: wave.id,
               salesOrderId: orderId,
               salesOrderLineId: line.id,
               itemId: line.itemId,
-              fromBinId: r.binId,
-              qtyToPick: r.qty,
-              batchNo: r.batchNo || undefined,
-              reservationId: r.id,
+              fromBinId: s.binId,
+              qtyToPick: pickQty,
+              batchNo: s.batchNo || undefined,
             });
-            await this.salesService.markReservationPicked(r.id);
+            remaining -= pickQty;
+            tasksCreated++;
+          }
+          if (remaining > 0) {
+            orderShort = true;
+            console.warn(
+              `Insufficient on-hand stock for order line ${line.id}: short by ${remaining}`,
+            );
           }
         }
       }
@@ -95,8 +127,17 @@ export class FulfilmentService {
         warnings.push({
           orderId,
           orderNo: orderData.orderNo,
-          reason: "No stock reservation found for some line(s) — was this order actually allocated?",
+          reason: "Insufficient on-hand stock to cover some line(s) — this order was allocated before stock reservations existed, so availability could not be re-verified",
         });
+      }
+
+      if (tasksCreated === 0) {
+        warnings.push({
+          orderId,
+          orderNo: orderData.orderNo,
+          reason: "No pick tasks could be created for this order — it stays ALLOCATED",
+        });
+        continue;
       }
 
       // Update order status to PICKING
@@ -357,6 +398,12 @@ export class FulfilmentService {
     const wave = await this.getPickWave(id);
     if (wave.status !== "OPEN") {
       throw new BadRequestException("Wave must be in OPEN status to release");
+    }
+    const tasks = await this.repository.findPickTasksByWave(id);
+    if (tasks.length === 0) {
+      throw new BadRequestException(
+        "Cannot release an empty wave — no pick tasks were created for the selected order(s). Cancel it and check the order's allocation.",
+      );
     }
     const missingBatch = await this.repository.findTasksMissingRequiredBatch(id);
     if (missingBatch.length > 0) {

@@ -59,6 +59,7 @@ describe("FulfilmentService - pick task/wave cancellation and reversal", () => {
           useValue: {
             findPickWaveById: jest.fn(),
             findPickTasksByWave: jest.fn(),
+            findTasksMissingRequiredBatch: jest.fn(),
             findPickTaskById: jest.fn(),
             cancelPickTask: jest.fn(),
             reversePickTask: jest.fn(),
@@ -86,6 +87,7 @@ describe("FulfilmentService - pick task/wave cancellation and reversal", () => {
             recordMovement: jest.fn(),
             reserveStockWithBatch: jest.fn(),
             releaseReservation: jest.fn(),
+            getStockOnHand: jest.fn(),
           },
         },
         {
@@ -233,6 +235,40 @@ describe("FulfilmentService - pick task/wave cancellation and reversal", () => {
 
       expect(stockLedger.recordMovement).toHaveBeenCalled();
       expect(repository.reversePickTask).toHaveBeenCalled();
+    });
+  });
+
+  describe("releasePickWave", () => {
+    it("refuses to release a wave with no pick tasks", async () => {
+      repository.findPickTasksByWave.mockResolvedValue([]);
+
+      await expect(service.releasePickWave(waveId)).rejects.toThrow(
+        "Cannot release an empty wave",
+      );
+      expect(repository.updatePickWaveStatus).not.toHaveBeenCalled();
+    });
+
+    it("releases a wave that has tasks and no missing-batch issues", async () => {
+      repository.findPickTasksByWave.mockResolvedValue([baseTask]);
+      repository.findTasksMissingRequiredBatch.mockResolvedValue([]);
+      repository.updatePickWaveStatus.mockResolvedValue({ ...baseWave, status: "IN_PROGRESS" });
+
+      const result = await service.releasePickWave(waveId);
+
+      expect(result.status).toBe("IN_PROGRESS");
+      expect(repository.updatePickWaveStatus).toHaveBeenCalledWith(waveId, "IN_PROGRESS");
+    });
+
+    it("still refuses when a batch-tracked item is missing its batch", async () => {
+      repository.findPickTasksByWave.mockResolvedValue([baseTask]);
+      repository.findTasksMissingRequiredBatch.mockResolvedValue([
+        { itemSku: "FP-YOGURT-PEA" },
+      ] as never);
+
+      await expect(service.releasePickWave(waveId)).rejects.toThrow(
+        "batch-tracked item(s) have no batch assigned",
+      );
+      expect(repository.updatePickWaveStatus).not.toHaveBeenCalled();
     });
   });
 
@@ -393,9 +429,66 @@ describe("FulfilmentService - pick task/wave cancellation and reversal", () => {
       ]);
     });
 
-    it("warns when a line needing picking has no stock reservation", async () => {
+    it("falls back to on-hand stock when a line has no reservation (allocated before reservations existed)", async () => {
       salesService.getOrderWithLines.mockResolvedValue(orderData as never);
       salesService.getReservationsForOrderLine.mockResolvedValue([]);
+      stockLedger.getStockOnHand.mockResolvedValue([
+        { itemId: "item-123", binId: "bin-456", batchNo: "LEGACY", qtyOnHand: 5, qtyReserved: 0, qtyAvailable: 5 },
+      ] as never);
+
+      const result = await service.createPickWave({
+        tenantId: "tenant-123",
+        warehouseId: "warehouse-123",
+        orderIds: ["so-123"],
+      });
+
+      expect(repository.createPickTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          salesOrderLineId: "sol-123",
+          fromBinId: "bin-456",
+          qtyToPick: 5,
+          batchNo: "LEGACY",
+        }),
+      );
+      expect(result.warnings).toEqual([]);
+      expect(salesService.updateOrderStatus).toHaveBeenCalledWith(
+        "tenant-123",
+        "so-123",
+        "PICKING",
+      );
+    });
+
+    it("warns and stays short when the fallback also can't cover the full quantity", async () => {
+      salesService.getOrderWithLines.mockResolvedValue(orderData as never);
+      salesService.getReservationsForOrderLine.mockResolvedValue([]);
+      stockLedger.getStockOnHand.mockResolvedValue([
+        { itemId: "item-123", binId: "bin-456", batchNo: "LEGACY", qtyOnHand: 2, qtyReserved: 0, qtyAvailable: 2 },
+      ] as never);
+
+      const result = await service.createPickWave({
+        tenantId: "tenant-123",
+        warehouseId: "warehouse-123",
+        orderIds: ["so-123"],
+      });
+
+      expect(repository.createPickTask).toHaveBeenCalledWith(
+        expect.objectContaining({ qtyToPick: 2 }),
+      );
+      expect(result.warnings).toEqual([
+        expect.objectContaining({ orderId: "so-123", reason: expect.stringContaining("Insufficient on-hand stock") }),
+      ]);
+      // A task *was* created (short), so the order still advances to PICKING.
+      expect(salesService.updateOrderStatus).toHaveBeenCalledWith(
+        "tenant-123",
+        "so-123",
+        "PICKING",
+      );
+    });
+
+    it("leaves the order ALLOCATED and warns when absolutely no stock is available", async () => {
+      salesService.getOrderWithLines.mockResolvedValue(orderData as never);
+      salesService.getReservationsForOrderLine.mockResolvedValue([]);
+      stockLedger.getStockOnHand.mockResolvedValue([]);
 
       const result = await service.createPickWave({
         tenantId: "tenant-123",
@@ -404,14 +497,11 @@ describe("FulfilmentService - pick task/wave cancellation and reversal", () => {
       });
 
       expect(repository.createPickTask).not.toHaveBeenCalled();
-      expect(result.warnings).toEqual([
-        expect.objectContaining({ orderId: "so-123" }),
-      ]);
-      // The order still advances to PICKING for whatever lines *could* be picked.
-      expect(salesService.updateOrderStatus).toHaveBeenCalledWith(
-        "tenant-123",
-        "so-123",
-        "PICKING",
+      expect(salesService.updateOrderStatus).not.toHaveBeenCalled();
+      expect(result.warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ orderId: "so-123", reason: expect.stringContaining("No pick tasks could be created") }),
+        ]),
       );
     });
   });
