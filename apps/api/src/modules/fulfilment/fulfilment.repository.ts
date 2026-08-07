@@ -634,6 +634,7 @@ export class FulfilmentRepository extends BaseRepository {
     createdAt: Date;
     assignedToName: string | null;
     tasks: Array<{
+      orderNo: string;
       binCode: string;
       itemSku: string;
       itemDescription: string;
@@ -666,6 +667,7 @@ export class FulfilmentRepository extends BaseRepository {
     // Get tasks with bin and item details, sorted by bin location for efficient picking
     const tasks = await this.queryMany<Record<string, unknown>>(
       `SELECT
+         so.order_no,
          b.code AS bin_code,
          i.sku AS item_sku,
          i.description AS item_description,
@@ -675,6 +677,7 @@ export class FulfilmentRepository extends BaseRepository {
        FROM pick_tasks pt
        JOIN bins b ON b.id = pt.from_bin_id
        JOIN items i ON i.id = pt.item_id
+       JOIN sales_orders so ON so.id = pt.sales_order_id
        LEFT JOIN batches bt ON bt.item_id = pt.item_id AND bt.batch_no = pt.batch_no
        WHERE pt.pick_wave_id = $1
          AND pt.status NOT IN ('CANCELLED')
@@ -688,6 +691,7 @@ export class FulfilmentRepository extends BaseRepository {
       createdAt: wave.created_at as Date,
       assignedToName: assignee?.name || null,
       tasks: tasks.map((row) => ({
+        orderNo: row.order_no as string,
         binCode: row.bin_code as string,
         itemSku: row.item_sku as string,
         itemDescription: row.item_description as string,

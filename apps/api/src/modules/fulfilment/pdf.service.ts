@@ -18,6 +18,7 @@ import {
 } from "../../common/pdf/pdf-helpers";
 
 export interface PickSlipTask {
+  orderNo: string;
   binCode: string;
   itemSku: string;
   itemDescription: string;
@@ -100,8 +101,8 @@ export class PdfService {
 
       // Table header
       const tableTop = 130;
-      const colWidths = [70, 80, 180, 50, 70, 65];
-      const headers = ["Bin", "SKU", "Description", "Qty", "Batch", "Expiry"];
+      const colWidths = [65, 65, 75, 140, 45, 65, 60];
+      const headers = ["Order", "Bin", "SKU", "Description", "Qty", "Batch", "Expiry"];
 
       doc.font("Helvetica-Bold").fontSize(9);
       let xPos = 40;
@@ -131,9 +132,10 @@ export class PdfService {
 
         xPos = 40;
         const rowData = [
+          task.orderNo,
           task.binCode,
           task.itemSku,
-          task.itemDescription.substring(0, 35),
+          task.itemDescription.substring(0, 25),
           task.qtyToPick.toString(),
           task.batchNo || "-",
           task.expiryDate
