@@ -104,10 +104,17 @@ export default function PutawayPage() {
   const handleComplete = async (taskId: string) => {
     if (!completeBinId) return;
     try {
+      // The User dropdown sits right next to Target bin for a PENDING task,
+      // so if one was picked but "Assign" was never separately clicked,
+      // honor it now rather than silently completing as Unassigned.
+      if (assignUserId) {
+        await assignTask.mutateAsync({ id: taskId, userId: assignUserId });
+      }
       await completeTask.mutateAsync({ id: taskId, toBinId: completeBinId });
       addToast('Task completed', 'success');
       setActionTaskId(null);
       setCompleteBinId('');
+      setAssignUserId('');
     } catch (e) {
       console.error('Failed to complete:', e);
       addToast('Failed to complete task', 'error');
