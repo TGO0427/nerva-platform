@@ -17,6 +17,7 @@ export interface PickTask {
   tenantId: string;
   pickWaveId: string;
   salesOrderId: string;
+  orderNo?: string;
   salesOrderLineId: string;
   reservationId: string | null;
   itemId: string;
@@ -152,10 +153,12 @@ export class FulfilmentRepository extends BaseRepository {
 
   async findPickTasksByWave(waveId: string): Promise<PickTask[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      `SELECT pt.*, i.sku as item_sku, i.description as item_description, b.code as bin_code
+      `SELECT pt.*, i.sku as item_sku, i.description as item_description, b.code as bin_code,
+              so.order_no
        FROM pick_tasks pt
        JOIN items i ON i.id = pt.item_id
        JOIN bins b ON b.id = pt.from_bin_id
+       JOIN sales_orders so ON so.id = pt.sales_order_id
        WHERE pt.pick_wave_id = $1
        ORDER BY pt.from_bin_id, pt.item_id`,
       [waveId],
@@ -181,10 +184,12 @@ export class FulfilmentRepository extends BaseRepository {
     userId: string,
     status?: string,
   ): Promise<PickTask[]> {
-    let sql = `SELECT pt.*, i.sku as item_sku, i.description as item_description, b.code as bin_code
+    let sql = `SELECT pt.*, i.sku as item_sku, i.description as item_description, b.code as bin_code,
+              so.order_no
        FROM pick_tasks pt
        JOIN items i ON i.id = pt.item_id
        JOIN bins b ON b.id = pt.from_bin_id
+       JOIN sales_orders so ON so.id = pt.sales_order_id
        WHERE pt.assigned_to = $1`;
     const params: unknown[] = [userId];
 
@@ -583,6 +588,7 @@ export class FulfilmentRepository extends BaseRepository {
       tenantId: row.tenant_id as string,
       pickWaveId: row.pick_wave_id as string,
       salesOrderId: row.sales_order_id as string,
+      orderNo: row.order_no as string | undefined,
       salesOrderLineId: row.sales_order_line_id as string,
       reservationId: row.reservation_id as string | null,
       itemId: row.item_id as string,

@@ -28,6 +28,7 @@ export interface PickTask {
   tenantId: string;
   pickWaveId: string;
   salesOrderId: string;
+  orderNo?: string;
   salesOrderLineId: string;
   itemId: string;
   itemSku?: string;

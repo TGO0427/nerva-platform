@@ -33,6 +33,7 @@ export interface TripStop {
   sequence: number;
   shipmentId: string | null;
   shipmentNo?: string;
+  orderNo?: string;
   customerId: string | null;
   customerName?: string;
   addressLine1: string;

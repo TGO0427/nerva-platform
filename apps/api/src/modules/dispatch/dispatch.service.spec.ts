@@ -49,6 +49,7 @@ describe("DispatchService", () => {
     customerName: "Test Customer",
     shipmentId: "shipment-123",
     shipmentNo: "SHP-001",
+    orderNo: "SO-000001",
     addressLine1: "123 Main St",
     city: "Cape Town",
     gpsLat: null,

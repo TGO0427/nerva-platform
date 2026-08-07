@@ -206,6 +206,11 @@ export default function TripDetailPage() {
       render: (row) => row.shipmentNo || '-',
     },
     {
+      key: 'orderNo',
+      header: 'Order',
+      render: (row) => row.orderNo || '-',
+    },
+    {
       key: 'status',
       header: 'Status',
       width: '120px',
@@ -691,6 +696,10 @@ export default function TripDetailPage() {
                 <div>
                   <span className="text-slate-500">Shipment:</span>
                   <span className="ml-2 font-medium">{selectedStop?.shipmentNo || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Order:</span>
+                  <span className="ml-2 font-medium">{selectedStop?.orderNo || '-'}</span>
                 </div>
               </div>
               <div className="mt-2">

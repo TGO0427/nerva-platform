@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,16 @@ export default function PickWaveDetailPage() {
     if (!tasks) return [];
     const ids = new Set(tasks.map(t => t.salesOrderId));
     return Array.from(ids);
+  }, [tasks]);
+
+  // Unique orders, for the "which order is this wave for" header line.
+  const waveOrders = useMemo(() => {
+    if (!tasks) return [];
+    const seen = new Map<string, string>();
+    for (const t of tasks) {
+      if (t.orderNo) seen.set(t.salesOrderId, t.orderNo);
+    }
+    return Array.from(seen, ([id, orderNo]) => ({ id, orderNo }));
   }, [tasks]);
 
   const handleAssignTask = async (taskId: string) => {
@@ -131,6 +142,19 @@ export default function PickWaveDetailPage() {
   };
 
   const taskColumns: Column<PickTask>[] = [
+    {
+      key: 'orderNo',
+      header: 'Order',
+      render: (row) => (
+        <Link
+          href={`/sales/${row.salesOrderId}`}
+          className="font-medium text-primary-600 hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {row.orderNo || row.salesOrderId.slice(0, 8)}
+        </Link>
+      ),
+    },
     {
       key: 'itemSku',
       header: 'SKU',
@@ -347,6 +371,19 @@ export default function PickWaveDetailPage() {
           </div>
           <p className="text-slate-500 mt-1">
             Created {formatDate(wave.createdAt)}
+            {waveOrders.length > 0 && (
+              <>
+                {' '}&middot; For order{waveOrders.length > 1 ? 's' : ''}:{' '}
+                {waveOrders.map((o, i) => (
+                  <span key={o.id}>
+                    {i > 0 && ', '}
+                    <Link href={`/sales/${o.id}`} className="font-medium text-primary-600 hover:underline">
+                      {o.orderNo}
+                    </Link>
+                  </span>
+                ))}
+              </>
+            )}
           </p>
         </div>
         <div className="flex gap-2">

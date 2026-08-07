@@ -34,6 +34,7 @@ export interface DispatchStop {
   customerName: string | null;
   shipmentId: string | null;
   shipmentNo: string | null;
+  orderNo: string | null;
   addressLine1: string;
   city: string | null;
   gpsLat: number | null;
@@ -369,9 +370,11 @@ export class DispatchRepository extends BaseRepository {
     // callers relying on stop.shipmentId (e.g. the delivery cascade) don't silently
     // no-op.
     const row = await this.queryOne<Record<string, unknown>>(
-      `SELECT ds.*, ml.shipment_id
+      `SELECT ds.*, ml.shipment_id, so.order_no
        FROM dispatch_stops ds
        LEFT JOIN manifest_lines ml ON ml.stop_id = ds.id
+       LEFT JOIN shipments s ON ml.shipment_id = s.id
+       LEFT JOIN sales_orders so ON so.id = s.sales_order_id
        WHERE ds.id = $1`,
       [id],
     );
@@ -381,11 +384,12 @@ export class DispatchRepository extends BaseRepository {
   async findStopsByTrip(tripId: string): Promise<DispatchStop[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT ds.*, c.name as customer_name,
-              s.shipment_no, ml.shipment_id
+              s.shipment_no, ml.shipment_id, so.order_no
        FROM dispatch_stops ds
        LEFT JOIN customers c ON ds.customer_id = c.id
        LEFT JOIN manifest_lines ml ON ml.stop_id = ds.id
        LEFT JOIN shipments s ON ml.shipment_id = s.id
+       LEFT JOIN sales_orders so ON so.id = s.sales_order_id
        WHERE ds.trip_id = $1
        ORDER BY ds.sequence`,
       [tripId],
@@ -599,6 +603,7 @@ export class DispatchRepository extends BaseRepository {
       customerName: row.customer_name as string | null,
       shipmentId: row.shipment_id as string | null,
       shipmentNo: row.shipment_no as string | null,
+      orderNo: row.order_no as string | null,
       addressLine1: row.address_line1 as string,
       city: row.city as string | null,
       gpsLat: row.gps_lat ? parseFloat(row.gps_lat as string) : null,
