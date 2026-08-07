@@ -771,6 +771,7 @@ export interface PutawayTaskDetail extends PutawayTask {
   assignedToName: string | null;
   grnId: string;
   batchNo: string | null;
+  warehouseId: string;
 }
 
 export function usePutawayTasks(params: {

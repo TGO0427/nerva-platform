@@ -72,7 +72,11 @@ export default function PutawayPage() {
   });
   const { data: warehouses } = useWarehouses();
   const { data: users } = useUsers({ page: 1, limit: 100 });
-  const { data: bins } = useBins(warehouseFilter || undefined);
+  // Target bin choices must come from the task's OWN warehouse, not the
+  // page's list filter - "All Warehouses" would otherwise leave this
+  // dropdown empty since useBins needs a specific warehouse id to fetch.
+  const activeTask = data?.data.find((t) => t.id === actionTaskId);
+  const { data: bins } = useBins(activeTask?.warehouseId);
 
   const { addToast } = useToast();
   const { confirm: confirmDialog } = useConfirm();

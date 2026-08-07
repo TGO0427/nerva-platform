@@ -23,6 +23,7 @@ export interface PutawayTaskDetail extends PutawayTask {
   assignedToName: string | null;
   grnId: string;
   batchNo: string | null;
+  warehouseId: string;
 }
 
 export interface CreatePutawayTask {
@@ -71,7 +72,7 @@ export class PutawayRepository extends BaseRepository {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT pt.*,
               i.sku AS item_sku, i.description AS item_description,
-              fb.code AS from_bin_code, tb.code AS to_bin_code,
+              fb.code AS from_bin_code, fb.warehouse_id, tb.code AS to_bin_code,
               u.display_name AS assigned_to_name,
               gl.grn_id, gl.batch_no
        FROM putaway_tasks pt
@@ -102,7 +103,7 @@ export class PutawayRepository extends BaseRepository {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT pt.*,
               i.sku AS item_sku, i.description AS item_description,
-              fb.code AS from_bin_code, tb.code AS to_bin_code,
+              fb.code AS from_bin_code, fb.warehouse_id, tb.code AS to_bin_code,
               u.display_name AS assigned_to_name,
               gl.grn_id, gl.batch_no
        FROM putaway_tasks pt
@@ -139,7 +140,7 @@ export class PutawayRepository extends BaseRepository {
     const rows = await this.queryMany<Record<string, unknown>>(
       `SELECT pt.*,
               i.sku AS item_sku, i.description AS item_description,
-              fb.code AS from_bin_code, tb.code AS to_bin_code,
+              fb.code AS from_bin_code, fb.warehouse_id, tb.code AS to_bin_code,
               u.display_name AS assigned_to_name,
               gl.grn_id, gl.batch_no
        FROM putaway_tasks pt
@@ -248,6 +249,7 @@ export class PutawayRepository extends BaseRepository {
       assignedToName: (row.assigned_to_name as string) || null,
       grnId: row.grn_id as string,
       batchNo: (row.batch_no as string) || null,
+      warehouseId: row.warehouse_id as string,
     };
   }
 }
