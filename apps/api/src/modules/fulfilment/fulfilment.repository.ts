@@ -655,7 +655,7 @@ export class FulfilmentRepository extends BaseRepository {
 
     // Get first assigned user's name for the header
     const assignee = await this.queryOne<{ name: string }>(
-      `SELECT u.name
+      `SELECT u.display_name AS name
        FROM pick_tasks pt
        JOIN users u ON u.id = pt.assigned_to
        WHERE pt.pick_wave_id = $1 AND pt.assigned_to IS NOT NULL
@@ -678,7 +678,7 @@ export class FulfilmentRepository extends BaseRepository {
        LEFT JOIN batches bt ON bt.item_id = pt.item_id AND bt.batch_no = pt.batch_no
        WHERE pt.pick_wave_id = $1
          AND pt.status NOT IN ('CANCELLED')
-       ORDER BY b.aisle, b.rack, b.level, b.position, i.sku`,
+       ORDER BY b.aisle, b.rack, b.level, b.code, i.sku`,
       [waveId],
     );
 

@@ -327,6 +327,7 @@ export default function PickWaveDetailPage() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Failed to download pick slip:', error);
+      addToast('Failed to download pick slip', 'error');
     }
   };
 
