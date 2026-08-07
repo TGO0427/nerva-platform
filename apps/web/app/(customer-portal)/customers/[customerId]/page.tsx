@@ -28,7 +28,7 @@ export default function CustomerPortalDashboard() {
   // Calculate stats from orders
   const totalOrders = orders.length;
   const pendingOrders = orders.filter(o =>
-    ['DRAFT', 'CONFIRMED', 'ALLOCATED', 'PICKING', 'PACKING'].includes(o.status)
+    ['DRAFT', 'CONFIRMED', 'ALLOCATED', 'PICKING', 'PICKED', 'PACKING', 'PACKED'].includes(o.status)
   ).length;
   const completedOrders = orders.filter(o =>
     ['SHIPPED', 'DELIVERED'].includes(o.status)

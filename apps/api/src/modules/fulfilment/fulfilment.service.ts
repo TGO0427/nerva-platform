@@ -175,6 +175,20 @@ export class FulfilmentService {
       data.shortReason,
     );
 
+    // pick_tasks.qty_picked is an absolute total for the task (a SHORT
+    // task can be re-confirmed later with a higher cumulative amount), so
+    // the sales order line only needs the delta from whatever this task
+    // had already contributed before this call.
+    const delta = data.qtyPicked - task.qtyPicked;
+    if (delta !== 0) {
+      await this.salesService.incrementOrderLineQty(
+        task.salesOrderLineId,
+        "qty_picked",
+        delta,
+      );
+    }
+    await this.salesService.tryAdvanceToPicked(task.tenantId, task.salesOrderId);
+
     return updated!;
   }
 
@@ -188,6 +202,11 @@ export class FulfilmentService {
   }): Promise<Shipment> {
     // Lookup order to get siteId/warehouseId if not provided
     const order = await this.salesService.getOrder(data.tenantId, data.salesOrderId);
+    if (order.status !== "PICKED") {
+      throw new BadRequestException(
+        "Order must be fully picked (status PICKED) before a shipment can be created",
+      );
+    }
     const siteId = data.siteId || order.siteId;
     const warehouseId = data.warehouseId || order.warehouseId;
 
@@ -246,8 +265,32 @@ export class FulfilmentService {
       await this.repository.updateShipmentWeight(shipment.id, totalWeight);
     }
 
+    await this.advanceOrderStatus(data.tenantId, data.salesOrderId, "PACKING");
+
     // Return fresh shipment with weight
     return this.repository.findShipmentById(shipment.id) as Promise<Shipment>;
+  }
+
+  /**
+   * Cascade a shipment-driven event to the sales order's own status.
+   * Best-effort: the shipment/stock side effect that triggered this has
+   * already happened by the time this runs, so a status-transition
+   * mismatch here (e.g. some other flow already moved the order on)
+   * shouldn't roll back or block the real action.
+   */
+  private async advanceOrderStatus(
+    tenantId: string,
+    salesOrderId: string,
+    status: string,
+  ): Promise<void> {
+    try {
+      await this.salesService.updateOrderStatus(tenantId, salesOrderId, status);
+    } catch (error) {
+      console.warn(
+        `Failed to advance order ${salesOrderId} to ${status}:`,
+        error,
+      );
+    }
   }
 
   async getShipmentLines(shipmentId: string): Promise<ShipmentLine[]> {
@@ -462,6 +505,13 @@ export class FulfilmentService {
     if (task.reservationId) {
       await this.salesService.markReservationUnpicked(task.reservationId);
     }
+    if (task.qtyPicked > 0) {
+      await this.salesService.incrementOrderLineQty(
+        task.salesOrderLineId,
+        "qty_picked",
+        -task.qtyPicked,
+      );
+    }
 
     const reversed = await this.repository.reversePickTask(taskId, reason);
     return reversed!;
@@ -476,6 +526,8 @@ export class FulfilmentService {
       );
     }
     const updated = await this.repository.updateShipmentStatus(id, "PACKED");
+    await this.applyShipmentLineQtyToOrderLines(id, "qty_packed");
+    await this.advanceOrderStatus(shipment.tenantId, shipment.salesOrderId, "PACKED");
     return updated!;
   }
 
@@ -505,6 +557,8 @@ export class FulfilmentService {
       data.carrier,
       data.trackingNo,
     );
+    await this.applyShipmentLineQtyToOrderLines(id, "qty_shipped");
+    await this.advanceOrderStatus(shipment.tenantId, shipment.salesOrderId, "SHIPPED");
     return updated!;
   }
 
@@ -515,7 +569,22 @@ export class FulfilmentService {
       throw new BadRequestException("Shipment must be shipped before delivery");
     }
     const updated = await this.repository.updateShipmentStatus(id, "DELIVERED");
+    await this.advanceOrderStatus(shipment.tenantId, shipment.salesOrderId, "DELIVERED");
     return updated!;
+  }
+
+  private async applyShipmentLineQtyToOrderLines(
+    shipmentId: string,
+    field: "qty_packed" | "qty_shipped",
+  ): Promise<void> {
+    const lines = await this.repository.findShipmentLinesByShipment(shipmentId);
+    for (const line of lines) {
+      await this.salesService.incrementOrderLineQty(
+        line.salesOrderLineId,
+        field,
+        line.qty,
+      );
+    }
   }
 
   // Reopen delivered shipment back to shipped

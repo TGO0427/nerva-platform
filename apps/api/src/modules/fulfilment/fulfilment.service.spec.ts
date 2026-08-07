@@ -63,6 +63,21 @@ describe("FulfilmentService - pick task/wave cancellation and reversal", () => {
             cancelPickTask: jest.fn(),
             reversePickTask: jest.fn(),
             updatePickWaveStatus: jest.fn(),
+            generateWaveNo: jest.fn(),
+            createPickWave: jest.fn(),
+            createPickTask: jest.fn(),
+            confirmPickTask: jest.fn(),
+            generateShipmentNo: jest.fn(),
+            createShipment: jest.fn(),
+            findShipmentById: jest.fn(),
+            findPickedBatchesByOrderLine: jest.fn(),
+            createShipmentLine: jest.fn(),
+            sumShipmentWeight: jest.fn(),
+            updateShipmentWeight: jest.fn(),
+            updateShipmentStatus: jest.fn(),
+            updateShipmentCarrier: jest.fn(),
+            findShipmentLinesByShipment: jest.fn(),
+            findBlockedBatchesByShipment: jest.fn(),
           },
         },
         {
@@ -75,7 +90,16 @@ describe("FulfilmentService - pick task/wave cancellation and reversal", () => {
         },
         {
           provide: SalesService,
-          useValue: { markReservationUnpicked: jest.fn() },
+          useValue: {
+            markReservationUnpicked: jest.fn(),
+            getOrderWithLines: jest.fn(),
+            getOrder: jest.fn(),
+            updateOrderStatus: jest.fn(),
+            getReservationsForOrderLine: jest.fn(),
+            markReservationPicked: jest.fn(),
+            incrementOrderLineQty: jest.fn(),
+            tryAdvanceToPicked: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -209,6 +233,327 @@ describe("FulfilmentService - pick task/wave cancellation and reversal", () => {
 
       expect(stockLedger.recordMovement).toHaveBeenCalled();
       expect(repository.reversePickTask).toHaveBeenCalled();
+    });
+  });
+
+  describe("confirmPickTask", () => {
+    it("throws when the task is already PICKED", async () => {
+      repository.findPickTaskById.mockResolvedValue({ ...baseTask, status: "PICKED" });
+
+      await expect(
+        service.confirmPickTask("task-123", { qtyPicked: 1 }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("throws when the task is already CANCELLED", async () => {
+      repository.findPickTaskById.mockResolvedValue({ ...baseTask, status: "CANCELLED" });
+
+      await expect(
+        service.confirmPickTask("task-123", { qtyPicked: 1 }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("records the movement, releases the reservation, and propagates the delta to the order line", async () => {
+      repository.findPickTaskById.mockResolvedValue({ ...baseTask, qtyPicked: 0, qtyToPick: 5 });
+      repository.confirmPickTask.mockResolvedValue({ ...baseTask, status: "PICKED", qtyPicked: 5 });
+
+      const result = await service.confirmPickTask("task-123", { qtyPicked: 5, createdBy: "user-1" });
+
+      expect(stockLedger.recordMovement).toHaveBeenCalledWith(
+        expect.objectContaining({
+          itemId: "item-123",
+          fromBinId: "bin-123",
+          qty: 5,
+          reason: "PICK",
+          batchNo: "BATCH-20260220-001",
+        }),
+      );
+      expect(stockLedger.releaseReservation).toHaveBeenCalledWith(
+        "tenant-123",
+        "bin-123",
+        "item-123",
+        5, // releases the full reservation (qtyToPick), not the reported qtyPicked
+        "BATCH-20260220-001",
+      );
+      expect(salesService.incrementOrderLineQty).toHaveBeenCalledWith(
+        "sol-123",
+        "qty_picked",
+        5,
+      );
+      expect(salesService.tryAdvanceToPicked).toHaveBeenCalledWith(
+        "tenant-123",
+        "so-123",
+      );
+      expect(result.status).toBe("PICKED");
+    });
+
+    it("propagates only the delta when re-confirming a SHORT task with a higher cumulative qty", async () => {
+      repository.findPickTaskById.mockResolvedValue({
+        ...baseTask,
+        status: "SHORT",
+        qtyPicked: 2,
+        qtyToPick: 5,
+      });
+      repository.confirmPickTask.mockResolvedValue({ ...baseTask, status: "PICKED", qtyPicked: 5 });
+
+      await service.confirmPickTask("task-123", { qtyPicked: 5 });
+
+      expect(salesService.incrementOrderLineQty).toHaveBeenCalledWith(
+        "sol-123",
+        "qty_picked",
+        3, // 5 - 2, not the full 5
+      );
+    });
+
+    it("does not touch the order line when the delta is zero", async () => {
+      repository.findPickTaskById.mockResolvedValue({ ...baseTask, qtyPicked: 3, qtyToPick: 3 });
+      repository.confirmPickTask.mockResolvedValue({ ...baseTask, status: "PICKED", qtyPicked: 3 });
+
+      await service.confirmPickTask("task-123", { qtyPicked: 3 });
+
+      expect(salesService.incrementOrderLineQty).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("createPickWave", () => {
+    const orderData = {
+      id: "so-123",
+      orderNo: "SO-000001",
+      status: "ALLOCATED",
+      lines: [
+        {
+          id: "sol-123",
+          itemId: "item-123",
+          qtyOrdered: 5,
+          qtyAllocated: 5,
+          qtyPicked: 0,
+        },
+      ],
+    };
+
+    const reservation = {
+      id: "res-123",
+      tenantId: "tenant-123",
+      salesOrderLineId: "sol-123",
+      binId: "bin-123",
+      itemId: "item-123",
+      qty: 5,
+      batchNo: "BATCH-20260220-001",
+      status: "RESERVED",
+      createdAt: new Date(),
+    };
+
+    beforeEach(() => {
+      repository.generateWaveNo.mockResolvedValue("WAVE-000001");
+      repository.createPickWave.mockResolvedValue(baseWave);
+      repository.createPickTask.mockResolvedValue(baseTask);
+    });
+
+    it("creates a pick task per reservation and marks it picked, then advances the order to PICKING", async () => {
+      salesService.getOrderWithLines.mockResolvedValue(orderData as never);
+      salesService.getReservationsForOrderLine.mockResolvedValue([reservation] as never);
+
+      const result = await service.createPickWave({
+        tenantId: "tenant-123",
+        warehouseId: "warehouse-123",
+        orderIds: ["so-123"],
+      });
+
+      expect(repository.createPickTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          salesOrderLineId: "sol-123",
+          fromBinId: "bin-123",
+          qtyToPick: 5,
+          batchNo: "BATCH-20260220-001",
+          reservationId: "res-123",
+        }),
+      );
+      expect(salesService.markReservationPicked).toHaveBeenCalledWith("res-123");
+      expect(salesService.updateOrderStatus).toHaveBeenCalledWith(
+        "tenant-123",
+        "so-123",
+        "PICKING",
+      );
+      expect(result.warnings).toEqual([]);
+    });
+
+    it("skips orders that are not ALLOCATED and warns instead", async () => {
+      salesService.getOrderWithLines.mockResolvedValue({ ...orderData, status: "DRAFT" } as never);
+
+      const result = await service.createPickWave({
+        tenantId: "tenant-123",
+        warehouseId: "warehouse-123",
+        orderIds: ["so-123"],
+      });
+
+      expect(repository.createPickTask).not.toHaveBeenCalled();
+      expect(salesService.updateOrderStatus).not.toHaveBeenCalled();
+      expect(result.warnings).toEqual([
+        { orderId: "so-123", orderNo: "SO-000001", reason: "Order is not allocated — no pick tasks were created" },
+      ]);
+    });
+
+    it("warns when a line needing picking has no stock reservation", async () => {
+      salesService.getOrderWithLines.mockResolvedValue(orderData as never);
+      salesService.getReservationsForOrderLine.mockResolvedValue([]);
+
+      const result = await service.createPickWave({
+        tenantId: "tenant-123",
+        warehouseId: "warehouse-123",
+        orderIds: ["so-123"],
+      });
+
+      expect(repository.createPickTask).not.toHaveBeenCalled();
+      expect(result.warnings).toEqual([
+        expect.objectContaining({ orderId: "so-123" }),
+      ]);
+      // The order still advances to PICKING for whatever lines *could* be picked.
+      expect(salesService.updateOrderStatus).toHaveBeenCalledWith(
+        "tenant-123",
+        "so-123",
+        "PICKING",
+      );
+    });
+  });
+
+  describe("createShipment", () => {
+    const mockShipment = {
+      id: "shipment-123",
+      tenantId: "tenant-123",
+      siteId: "site-123",
+      warehouseId: "warehouse-123",
+      salesOrderId: "so-123",
+      orderNo: "SO-000001",
+      shipmentNo: "SHP-000001",
+      status: "PENDING",
+      totalWeightKg: 0,
+      totalCbm: 0,
+      carrier: null,
+      trackingNo: null,
+      createdBy: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it("throws when the order is not fully picked (status PICKED)", async () => {
+      salesService.getOrder.mockResolvedValue({ id: "so-123", status: "PICKING" } as never);
+
+      await expect(
+        service.createShipment({ tenantId: "tenant-123", salesOrderId: "so-123" }),
+      ).rejects.toThrow("Order must be fully picked (status PICKED) before a shipment can be created");
+    });
+
+    it("creates a shipment line per picked batch and cascades the order to PACKING", async () => {
+      salesService.getOrder.mockResolvedValue({
+        id: "so-123",
+        status: "PICKED",
+        siteId: "site-123",
+        warehouseId: "warehouse-123",
+      } as never);
+      repository.generateShipmentNo.mockResolvedValue("SHP-000001");
+      repository.createShipment.mockResolvedValue(mockShipment);
+      salesService.getOrderWithLines.mockResolvedValue({
+        lines: [{ id: "sol-123", itemId: "item-123", qtyPicked: 5 }],
+      } as never);
+      repository.findPickedBatchesByOrderLine.mockResolvedValue([
+        { batchNo: "BATCH-20260220-001", qtyPicked: 5 },
+      ] as never);
+      repository.sumShipmentWeight.mockResolvedValue(12.5);
+      repository.findShipmentById.mockResolvedValue({ ...mockShipment, totalWeightKg: 12.5 });
+
+      const result = await service.createShipment({
+        tenantId: "tenant-123",
+        salesOrderId: "so-123",
+      });
+
+      expect(repository.createShipmentLine).toHaveBeenCalledWith(
+        expect.objectContaining({
+          shipmentId: "shipment-123",
+          salesOrderLineId: "sol-123",
+          qty: 5,
+          batchNo: "BATCH-20260220-001",
+        }),
+      );
+      expect(repository.updateShipmentWeight).toHaveBeenCalledWith("shipment-123", 12.5);
+      expect(salesService.updateOrderStatus).toHaveBeenCalledWith(
+        "tenant-123",
+        "so-123",
+        "PACKING",
+      );
+      expect(result.totalWeightKg).toBe(12.5);
+    });
+  });
+
+  describe("shipment lifecycle cascades", () => {
+    const shipment = {
+      id: "shipment-123",
+      tenantId: "tenant-123",
+      salesOrderId: "so-123",
+      status: "PENDING",
+    };
+
+    it("packShipment throws unless the shipment is PENDING", async () => {
+      repository.findShipmentById.mockResolvedValue({ ...shipment, status: "PACKED" } as never);
+
+      await expect(service.packShipment("shipment-123")).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it("packShipment applies qty_packed to order lines and cascades the order to PACKED", async () => {
+      repository.findShipmentById.mockResolvedValue(shipment as never);
+      repository.updateShipmentStatus.mockResolvedValue({ ...shipment, status: "PACKED" } as never);
+      repository.findShipmentLinesByShipment.mockResolvedValue([
+        { salesOrderLineId: "sol-123", qty: 5 },
+      ] as never);
+
+      await service.packShipment("shipment-123");
+
+      expect(salesService.incrementOrderLineQty).toHaveBeenCalledWith("sol-123", "qty_packed", 5);
+      expect(salesService.updateOrderStatus).toHaveBeenCalledWith("tenant-123", "so-123", "PACKED");
+    });
+
+    it("shipShipment throws when a batch is blocked from dispatch", async () => {
+      repository.findShipmentById.mockResolvedValue({ ...shipment, status: "PACKED" } as never);
+      repository.findBlockedBatchesByShipment.mockResolvedValue([
+        { itemSku: "FP-YOGURT-PEA", batchNo: "BATCH-20260220-001" },
+      ] as never);
+
+      await expect(
+        service.shipShipment("shipment-123", { carrier: "DHL", trackingNo: "TRK-1" }),
+      ).rejects.toThrow("Cannot ship: batch not cleared for dispatch");
+      expect(repository.updateShipmentCarrier).not.toHaveBeenCalled();
+    });
+
+    it("shipShipment applies qty_shipped to order lines and cascades the order to SHIPPED", async () => {
+      repository.findShipmentById.mockResolvedValue({ ...shipment, status: "PACKED" } as never);
+      repository.findBlockedBatchesByShipment.mockResolvedValue([]);
+      repository.updateShipmentCarrier.mockResolvedValue({ ...shipment, status: "PACKED" } as never);
+      repository.findShipmentLinesByShipment.mockResolvedValue([
+        { salesOrderLineId: "sol-123", qty: 5 },
+      ] as never);
+
+      await service.shipShipment("shipment-123", { carrier: "DHL", trackingNo: "TRK-1" });
+
+      expect(salesService.incrementOrderLineQty).toHaveBeenCalledWith("sol-123", "qty_shipped", 5);
+      expect(salesService.updateOrderStatus).toHaveBeenCalledWith("tenant-123", "so-123", "SHIPPED");
+    });
+
+    it("deliverShipment throws unless the shipment is SHIPPED", async () => {
+      repository.findShipmentById.mockResolvedValue({ ...shipment, status: "PACKED" } as never);
+
+      await expect(service.deliverShipment("shipment-123")).rejects.toThrow(
+        "Shipment must be shipped before delivery",
+      );
+    });
+
+    it("deliverShipment cascades the order to DELIVERED", async () => {
+      repository.findShipmentById.mockResolvedValue({ ...shipment, status: "SHIPPED" } as never);
+      repository.updateShipmentStatus.mockResolvedValue({ ...shipment, status: "DELIVERED" } as never);
+
+      await service.deliverShipment("shipment-123");
+
+      expect(salesService.updateOrderStatus).toHaveBeenCalledWith("tenant-123", "so-123", "DELIVERED");
     });
   });
 });

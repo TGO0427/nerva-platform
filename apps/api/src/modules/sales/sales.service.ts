@@ -398,6 +398,35 @@ export class SalesService {
     await this.repository.updateReservationStatus(reservationId, "RESERVED");
   }
 
+  /** Called by fulfilment as pick/pack/ship events happen against a line, so qty_picked/qty_packed/qty_shipped actually reflect reality instead of staying at 0 forever. */
+  async incrementOrderLineQty(
+    lineId: string,
+    field: "qty_picked" | "qty_packed" | "qty_shipped",
+    delta: number,
+  ): Promise<void> {
+    await this.repository.incrementOrderLineQty(lineId, field, delta);
+  }
+
+  /**
+   * If every line has now been picked in full, advance PICKING -> PICKED.
+   * Best-effort: a line count mismatch or a status that's moved on for some
+   * other reason shouldn't block the pick confirmation that triggered this.
+   */
+  async tryAdvanceToPicked(tenantId: string, orderId: string): Promise<void> {
+    try {
+      const order = await this.getOrder(tenantId, orderId);
+      if (order.status !== "PICKING") return;
+      const lines = await this.repository.getOrderLines(orderId);
+      const fullyPicked =
+        lines.length > 0 && lines.every((l) => l.qtyPicked >= l.qtyAllocated);
+      if (fullyPicked) {
+        await this.updateOrderStatus(tenantId, orderId, "PICKED");
+      }
+    } catch (error) {
+      console.warn(`tryAdvanceToPicked failed for order ${orderId}:`, error);
+    }
+  }
+
   async reopenOrder(tenantId: string, id: string): Promise<SalesOrder> {
     const order = await this.getOrder(tenantId, id);
     if (!["CANCELLED", "DELIVERED"].includes(order.status)) {

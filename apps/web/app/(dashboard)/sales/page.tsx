@@ -30,7 +30,9 @@ const STATUS_OPTIONS = [
   { value: 'ALLOCATED', label: 'Allocated' },
   { value: 'group:in_fulfilment', label: 'In Fulfilment (Picking, Packing, Ready to Ship)' },
   { value: 'PICKING', label: 'Picking' },
+  { value: 'PICKED', label: 'Picked' },
   { value: 'PACKING', label: 'Packing' },
+  { value: 'PACKED', label: 'Packed' },
   { value: 'READY_TO_SHIP', label: 'Ready to Ship' },
   { value: 'SHIPPED', label: 'Shipped' },
   { value: 'DELIVERED', label: 'Delivered' },
@@ -92,7 +94,7 @@ export default function SalesOrdersPage() {
       return rows.filter((row) => ['DRAFT', 'CONFIRMED', 'ALLOCATED'].includes(row.status));
     }
     if (statusGroup === 'in_fulfilment') {
-      return rows.filter((row) => ['PICKING', 'PACKING', 'READY_TO_SHIP'].includes(row.status));
+      return rows.filter((row) => ['PICKING', 'PICKED', 'PACKING', 'PACKED', 'READY_TO_SHIP'].includes(row.status));
     }
     return rows;
   }, [data?.data, statusGroup]);
@@ -427,7 +429,9 @@ function getStatusVariant(status: SalesOrderStatus): 'default' | 'success' | 'wa
     case 'READY_TO_SHIP':
       return 'info';
     case 'PICKING':
+    case 'PICKED':
     case 'PACKING':
+    case 'PACKED':
     case 'ALLOCATED':
       return 'warning';
     case 'CANCELLED':

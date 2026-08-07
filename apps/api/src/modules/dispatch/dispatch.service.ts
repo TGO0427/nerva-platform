@@ -11,6 +11,7 @@ import {
 } from "./dispatch.repository";
 import { buildPaginatedResult } from "../../common/utils/pagination";
 import { AuditService } from "../audit/audit.service";
+import { FulfilmentService } from "../fulfilment/fulfilment.service";
 
 interface ShipmentInfo {
   id: string;
@@ -28,6 +29,7 @@ export class DispatchService {
   constructor(
     private readonly repository: DispatchRepository,
     private readonly auditService: AuditService,
+    private readonly fulfilmentService: FulfilmentService,
   ) {}
 
   // Trip management
@@ -324,6 +326,26 @@ export class DispatchService {
         "Trip must have a driver assigned before starting",
       );
     }
+    // The goods are physically leaving the warehouse now - mark every
+    // stop's shipment SHIPPED, which cascades to its sales order's own
+    // status. Best-effort per stop (e.g. a QC hold on one shipment
+    // shouldn't stop the driver leaving with everything else).
+    const stops = await this.repository.findStopsByTrip(tripId);
+    for (const stop of stops) {
+      if (!stop.shipmentId) continue;
+      try {
+        await this.fulfilmentService.shipShipment(stop.shipmentId, {
+          carrier: trip.driverName || trip.vehiclePlate || "Own Fleet",
+          trackingNo: trip.tripNo,
+        });
+      } catch (error) {
+        console.warn(
+          `Failed to mark shipment ${stop.shipmentId} as shipped for trip ${trip.tripNo}:`,
+          error,
+        );
+      }
+    }
+
     const updated = await this.repository.updateTripStatus(
       tripId,
       "IN_PROGRESS",
@@ -470,6 +492,21 @@ export class DispatchService {
     }
 
     const updated = await this.repository.updateStopStatus(stopId, "DELIVERED");
+
+    // Cascade to the shipment (and from there, the sales order) - this is
+    // the only place a delivery gets recorded, so without this the
+    // shipment/order sit at SHIPPED forever regardless of what actually
+    // happened on the road.
+    if (stop.shipmentId) {
+      try {
+        await this.fulfilmentService.deliverShipment(stop.shipmentId);
+      } catch (error) {
+        console.warn(
+          `Failed to mark shipment ${stop.shipmentId} as delivered for stop ${stopId}:`,
+          error,
+        );
+      }
+    }
 
     // Update trip completed stops count
     const stops = await this.repository.findStopsByTrip(tripId);

@@ -8,11 +8,13 @@ import {
   Pod,
 } from "./dispatch.repository";
 import { AuditService } from "../audit/audit.service";
+import { FulfilmentService } from "../fulfilment/fulfilment.service";
 
 describe("DispatchService", () => {
   let service: DispatchService;
   let repository: jest.Mocked<DispatchRepository>;
   let auditService: jest.Mocked<AuditService>;
+  let fulfilmentService: jest.Mocked<FulfilmentService>;
 
   const mockTrip: DispatchTrip = {
     id: "trip-123",
@@ -115,12 +117,20 @@ describe("DispatchService", () => {
             log: jest.fn(),
           },
         },
+        {
+          provide: FulfilmentService,
+          useValue: {
+            shipShipment: jest.fn(),
+            deliverShipment: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<DispatchService>(DispatchService);
     repository = module.get(DispatchRepository);
     auditService = module.get(AuditService);
+    fulfilmentService = module.get(FulfilmentService);
   });
 
   afterEach(() => {
@@ -348,6 +358,7 @@ describe("DispatchService", () => {
       };
       const inProgressTrip = { ...assignedTrip, status: "IN_PROGRESS" };
       repository.findTripById.mockResolvedValue(assignedTrip);
+      repository.findStopsByTrip.mockResolvedValue([]);
       repository.updateTripStatus.mockResolvedValue(inProgressTrip);
 
       const result = await service.startTrip("trip-123");
@@ -360,6 +371,69 @@ describe("DispatchService", () => {
       expect(auditService.log).toHaveBeenCalledWith(
         expect.objectContaining({ entityType: "Trip", action: "START" }),
       );
+    });
+
+    it("should ship every stop's shipment, cascading to the sales order", async () => {
+      const assignedTrip = {
+        ...mockTrip,
+        status: "ASSIGNED",
+        driverId: "driver-1",
+        driverName: "Jane Driver",
+        tripNo: "TRIP-000001",
+      };
+      const inProgressTrip = { ...assignedTrip, status: "IN_PROGRESS" };
+      repository.findTripById.mockResolvedValue(assignedTrip);
+      repository.findStopsByTrip.mockResolvedValue([mockStop]);
+      repository.updateTripStatus.mockResolvedValue(inProgressTrip);
+      fulfilmentService.shipShipment.mockResolvedValue(undefined as never);
+
+      await service.startTrip("trip-123");
+
+      expect(fulfilmentService.shipShipment).toHaveBeenCalledWith(
+        mockStop.shipmentId,
+        { carrier: "Jane Driver", trackingNo: "TRIP-000001" },
+      );
+    });
+
+    it("should not block starting the trip when a shipment fails to cascade", async () => {
+      const assignedTrip = {
+        ...mockTrip,
+        status: "ASSIGNED",
+        driverId: "driver-1",
+      };
+      const inProgressTrip = { ...assignedTrip, status: "IN_PROGRESS" };
+      repository.findTripById.mockResolvedValue(assignedTrip);
+      repository.findStopsByTrip.mockResolvedValue([mockStop]);
+      repository.updateTripStatus.mockResolvedValue(inProgressTrip);
+      fulfilmentService.shipShipment.mockRejectedValue(
+        new BadRequestException("Cannot ship: batch not cleared for dispatch"),
+      );
+
+      const result = await service.startTrip("trip-123");
+
+      expect(result.status).toBe("IN_PROGRESS");
+      expect(repository.updateTripStatus).toHaveBeenCalledWith(
+        "trip-123",
+        "IN_PROGRESS",
+      );
+    });
+
+    it("should skip stops with no shipment attached", async () => {
+      const assignedTrip = {
+        ...mockTrip,
+        status: "ASSIGNED",
+        driverId: "driver-1",
+      };
+      const inProgressTrip = { ...assignedTrip, status: "IN_PROGRESS" };
+      repository.findTripById.mockResolvedValue(assignedTrip);
+      repository.findStopsByTrip.mockResolvedValue([
+        { ...mockStop, shipmentId: null },
+      ]);
+      repository.updateTripStatus.mockResolvedValue(inProgressTrip);
+
+      await service.startTrip("trip-123");
+
+      expect(fulfilmentService.shipShipment).not.toHaveBeenCalled();
     });
 
     it("should throw BadRequestException when trip is not assigned", async () => {
@@ -532,6 +606,96 @@ describe("DispatchService", () => {
       await expect(
         service.arriveAtStop("trip-123", "stop-123"),
       ).rejects.toThrow("Stop does not belong to this trip");
+    });
+  });
+
+  describe("completeStopWithPod", () => {
+    const inProgressTrip = { ...mockTrip, status: "IN_PROGRESS" };
+
+    it("should deliver the stop's shipment, cascading to the sales order", async () => {
+      repository.findTripById.mockResolvedValue(inProgressTrip);
+      repository.findStopById.mockResolvedValue(mockStop);
+      repository.updateStopStatus.mockResolvedValue({
+        ...mockStop,
+        status: "DELIVERED",
+      });
+      repository.findStopsByTrip.mockResolvedValue([
+        { ...mockStop, status: "DELIVERED" },
+      ]);
+      fulfilmentService.deliverShipment.mockResolvedValue(undefined as never);
+
+      const result = await service.completeStopWithPod(
+        "trip-123",
+        "stop-123",
+        "tenant-123",
+        {},
+      );
+
+      expect(result.status).toBe("DELIVERED");
+      expect(fulfilmentService.deliverShipment).toHaveBeenCalledWith(
+        mockStop.shipmentId,
+      );
+      expect(repository.updateTripCompletedStops).toHaveBeenCalledWith(
+        "trip-123",
+        1,
+      );
+    });
+
+    it("should not block the stop completing when the shipment fails to cascade", async () => {
+      repository.findTripById.mockResolvedValue(inProgressTrip);
+      repository.findStopById.mockResolvedValue(mockStop);
+      repository.updateStopStatus.mockResolvedValue({
+        ...mockStop,
+        status: "DELIVERED",
+      });
+      repository.findStopsByTrip.mockResolvedValue([mockStop]);
+      fulfilmentService.deliverShipment.mockRejectedValue(
+        new BadRequestException("Shipment must be shipped before delivery"),
+      );
+
+      const result = await service.completeStopWithPod(
+        "trip-123",
+        "stop-123",
+        "tenant-123",
+        {},
+      );
+
+      expect(result.status).toBe("DELIVERED");
+    });
+
+    it("should skip the cascade when the stop has no shipment attached", async () => {
+      const stopWithoutShipment = { ...mockStop, shipmentId: null };
+      repository.findTripById.mockResolvedValue(inProgressTrip);
+      repository.findStopById.mockResolvedValue(stopWithoutShipment);
+      repository.updateStopStatus.mockResolvedValue({
+        ...stopWithoutShipment,
+        status: "DELIVERED",
+      });
+      repository.findStopsByTrip.mockResolvedValue([stopWithoutShipment]);
+
+      await service.completeStopWithPod("trip-123", "stop-123", "tenant-123", {});
+
+      expect(fulfilmentService.deliverShipment).not.toHaveBeenCalled();
+    });
+
+    it("should throw when the trip is not in progress", async () => {
+      repository.findTripById.mockResolvedValue(mockTrip); // PLANNED
+
+      await expect(
+        service.completeStopWithPod("trip-123", "stop-123", "tenant-123", {}),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("should throw when the stop is already delivered", async () => {
+      repository.findTripById.mockResolvedValue(inProgressTrip);
+      repository.findStopById.mockResolvedValue({
+        ...mockStop,
+        status: "DELIVERED",
+      });
+
+      await expect(
+        service.completeStopWithPod("trip-123", "stop-123", "tenant-123", {}),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

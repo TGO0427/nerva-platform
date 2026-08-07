@@ -532,7 +532,7 @@ export class FulfilmentRepository extends BaseRepository {
        FROM sales_orders so
        JOIN customers c ON c.id = so.customer_id
        WHERE so.tenant_id = $1
-         AND so.status IN ('PICKING', 'ALLOCATED')
+         AND so.status = 'PICKED'
          AND NOT EXISTS (
            SELECT 1 FROM shipments s WHERE s.sales_order_id = so.id
          )

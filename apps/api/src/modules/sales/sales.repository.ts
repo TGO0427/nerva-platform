@@ -133,7 +133,7 @@ export class SalesRepository extends BaseRepository {
       sql += ` AND so.status IN ('DRAFT', 'CONFIRMED', 'ALLOCATED')`;
     } else if (filters.statusGroup === "in_fulfilment") {
       // Matches getOrderStats' "inFulfilment" definition exactly.
-      sql += ` AND so.status IN ('PICKING', 'PACKING', 'READY_TO_SHIP')`;
+      sql += ` AND so.status IN ('PICKING', 'PICKED', 'PACKING', 'PACKED', 'READY_TO_SHIP')`;
     }
     if (filters.dateRange === "last7Days") {
       sql += ` AND so.created_at >= NOW() - INTERVAL '7 days'`;
@@ -186,7 +186,7 @@ export class SalesRepository extends BaseRepository {
       sql += ` AND so.status IN ('DRAFT', 'CONFIRMED', 'ALLOCATED')`;
     } else if (filters.statusGroup === "in_fulfilment") {
       // Matches getOrderStats' "inFulfilment" definition exactly.
-      sql += ` AND so.status IN ('PICKING', 'PACKING', 'READY_TO_SHIP')`;
+      sql += ` AND so.status IN ('PICKING', 'PICKED', 'PACKING', 'PACKED', 'READY_TO_SHIP')`;
     }
     if (filters.dateRange === "last7Days") {
       sql += ` AND so.created_at >= NOW() - INTERVAL '7 days'`;
@@ -395,6 +395,20 @@ export class SalesRepository extends BaseRepository {
     );
   }
 
+  // Atomic increment (qty_picked/qty_packed/qty_shipped are each fed by
+  // multiple independent events - e.g. one line can have several pick
+  // tasks across different batches - so this must add, not overwrite.
+  async incrementOrderLineQty(
+    lineId: string,
+    field: "qty_picked" | "qty_packed" | "qty_shipped",
+    delta: number,
+  ): Promise<void> {
+    await this.execute(
+      `UPDATE sales_order_lines SET ${field} = ${field} + $1 WHERE id = $2`,
+      [delta, lineId],
+    );
+  }
+
   async createReservation(data: {
     tenantId: string;
     salesOrderLineId: string;
@@ -528,7 +542,7 @@ export class SalesRepository extends BaseRepository {
       `SELECT
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE status IN ('DRAFT','CONFIRMED','ALLOCATED')) as open,
-        COUNT(*) FILTER (WHERE status IN ('PICKING','PACKING','READY_TO_SHIP')) as in_fulfilment,
+        COUNT(*) FILTER (WHERE status IN ('PICKING','PICKED','PACKING','PACKED','READY_TO_SHIP')) as in_fulfilment,
         COUNT(*) FILTER (WHERE status = 'SHIPPED') as shipped
       FROM sales_orders WHERE tenant_id = $1`,
       [tenantId],

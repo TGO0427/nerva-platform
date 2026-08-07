@@ -184,7 +184,9 @@ function getStatusVariant(status: string): 'default' | 'success' | 'warning' | '
     case 'SHIPPED':
       return 'success';
     case 'PICKING':
+    case 'PICKED':
     case 'PACKING':
+    case 'PACKED':
     case 'READY_TO_SHIP':
       return 'info';
     case 'CONFIRMED':

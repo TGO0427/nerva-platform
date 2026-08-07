@@ -332,11 +332,10 @@ export default function SalesOrderDetailPage() {
   const canReopen = ['CANCELLED', 'DELIVERED'].includes(order.status);
   const canCreateInvoice = ['SHIPPED', 'DELIVERED'].includes(order.status);
 
-  // Can create shipment when picking is complete (all items picked) or in packing status
-  const allPicked = totalPicked >= totalOrdered && totalOrdered > 0;
-  const canCreateShipment = ['PICKING', 'PACKING', 'ALLOCATED'].includes(order.status) &&
-    (allPicked || order.status === 'PACKING') &&
-    totalShipped < totalOrdered;
+  // Matches the backend precondition in FulfilmentService.createShipment: the
+  // order must be fully picked (status PICKED) before a shipment can exist.
+  const allPicked = order.status === 'PICKED';
+  const canCreateShipment = allPicked && totalShipped < totalOrdered;
 
   const hasShipments = shipments && shipments.length > 0;
   const relatedRecords = [
