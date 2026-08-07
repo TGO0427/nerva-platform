@@ -201,18 +201,18 @@ export default function PutawayPage() {
         if (actionTaskId === t.id) {
           return (
             <div className="flex items-end gap-2" onClick={(e) => e.stopPropagation()}>
-              {t.status === 'PENDING' && (
+              {(t.status === 'PENDING' || t.status === 'ASSIGNED') && (
                 <>
                   <div className="w-36">
                     <Select
                       value={assignUserId}
                       onChange={(e) => setAssignUserId(e.target.value)}
                       options={users?.data?.map((u) => ({ value: u.id, label: u.displayName || u.email })) || []}
-                      placeholder="User"
+                      placeholder={t.status === 'ASSIGNED' ? 'Reassign to...' : 'User'}
                     />
                   </div>
                   <Button size="sm" onClick={() => handleAssign(t.id)} disabled={!assignUserId || assignTask.isPending}>
-                    Assign
+                    {t.status === 'ASSIGNED' ? 'Reassign' : 'Assign'}
                   </Button>
                 </>
               )}
@@ -245,7 +245,11 @@ export default function PutawayPage() {
                 setCompleteBinId('');
               }}
             >
-              {t.status === 'PENDING' ? 'Assign / Complete' : 'Complete'}
+              {t.status === 'PENDING'
+                ? 'Assign / Complete'
+                : t.status === 'ASSIGNED'
+                  ? 'Reassign / Complete'
+                  : 'Complete'}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => handleCancel(t.id)}>
               Cancel

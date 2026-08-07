@@ -21,6 +21,7 @@ describe("InventoryService", () => {
   let batchRepository: jest.Mocked<BatchRepository>;
   let masterDataService: jest.Mocked<MasterDataService>;
   let cycleCountRepo: jest.Mocked<CycleCountRepository>;
+  let putawayRepo: jest.Mocked<PutawayRepository>;
 
   const mockGrn: Grn = {
     id: "grn-123",
@@ -169,6 +170,7 @@ describe("InventoryService", () => {
     batchRepository = module.get(BatchRepository);
     masterDataService = module.get(MasterDataService);
     cycleCountRepo = module.get(CycleCountRepository);
+    putawayRepo = module.get(PutawayRepository);
 
     masterDataService.getItem.mockResolvedValue({
       id: "item-123",
@@ -1198,6 +1200,64 @@ describe("InventoryService", () => {
         20,
         0,
       );
+    });
+  });
+
+  describe("assignPutawayTask", () => {
+    const mockTask = (status: string) => ({
+      id: "task-123",
+      tenantId: "tenant-123",
+      grnLineId: "grn-line-123",
+      itemId: "item-123",
+      fromBinId: "bin-recv",
+      toBinId: null,
+      qty: 2,
+      status,
+      assignedTo: status === "ASSIGNED" ? "user-original" : null,
+      completedAt: null,
+      createdAt: new Date(),
+      itemSku: "BOX-LRG",
+      itemDescription: "Large Shipping Box",
+      fromBinCode: "RECV-01",
+      toBinCode: null,
+      assignedToName: status === "ASSIGNED" ? "Original Picker" : null,
+      grnId: "grn-123",
+      batchNo: "1235",
+      warehouseId: "warehouse-123",
+    });
+
+    it("allows assigning a PENDING task", async () => {
+      putawayRepo.findById.mockResolvedValue(mockTask("PENDING") as any);
+
+      await service.assignPutawayTask("tenant-123", "task-123", "user-new");
+
+      expect(putawayRepo.assignTask).toHaveBeenCalledWith("task-123", "user-new");
+    });
+
+    it("allows re-assigning an already-ASSIGNED task to someone else", async () => {
+      putawayRepo.findById.mockResolvedValue(mockTask("ASSIGNED") as any);
+
+      await service.assignPutawayTask("tenant-123", "task-123", "user-new");
+
+      expect(putawayRepo.assignTask).toHaveBeenCalledWith("task-123", "user-new");
+    });
+
+    it("refuses to assign a COMPLETE task", async () => {
+      putawayRepo.findById.mockResolvedValue(mockTask("COMPLETE") as any);
+
+      await expect(
+        service.assignPutawayTask("tenant-123", "task-123", "user-new"),
+      ).rejects.toThrow(BadRequestException);
+      expect(putawayRepo.assignTask).not.toHaveBeenCalled();
+    });
+
+    it("refuses to assign a CANCELLED task", async () => {
+      putawayRepo.findById.mockResolvedValue(mockTask("CANCELLED") as any);
+
+      await expect(
+        service.assignPutawayTask("tenant-123", "task-123", "user-new"),
+      ).rejects.toThrow(BadRequestException);
+      expect(putawayRepo.assignTask).not.toHaveBeenCalled();
     });
   });
 });

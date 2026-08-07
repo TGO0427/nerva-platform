@@ -984,8 +984,12 @@ export class InventoryService {
     userId: string,
   ): Promise<PutawayTaskDetail> {
     const task = await this.getPutawayTask(tenantId, id);
-    if (task.status !== "PENDING") {
-      throw new BadRequestException("Only PENDING tasks can be assigned");
+    // Allow re-assigning an already-ASSIGNED task (e.g. the original
+    // picker calls in sick) - only a completed/cancelled task is final.
+    if (task.status !== "PENDING" && task.status !== "ASSIGNED") {
+      throw new BadRequestException(
+        "Only PENDING or ASSIGNED tasks can be assigned",
+      );
     }
     await this.putawayRepo.assignTask(id, userId);
     return this.getPutawayTask(tenantId, id);
