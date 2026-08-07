@@ -117,6 +117,7 @@ export default function DispatchPage() {
   const [error, setError] = useState('');
   const [isLive, setIsLive] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [showActivitySidebar, setShowActivitySidebar] = useState(true);
   const { params, setPage } = useQueryParams();
 
   // Trip detail drawer state
@@ -584,6 +585,13 @@ export default function DispatchPage() {
                 <RefreshIcon />
               </button>
             </div>
+            <Button
+              variant="secondary"
+              className="hidden xl:inline-flex"
+              onClick={() => setShowActivitySidebar(!showActivitySidebar)}
+            >
+              {showActivitySidebar ? 'Hide Activity' : 'Show Activity'}
+            </Button>
             <Button onClick={() => setActiveTab('ready-shipments')}>
               <PlusIcon />
               Create Trip
@@ -1022,6 +1030,7 @@ export default function DispatchPage() {
         </div>
 
         {/* Activity Feed Sidebar */}
+        {showActivitySidebar && (
         <div className="hidden xl:block w-80 flex-shrink-0">
           <Card className="sticky top-4">
             <CardHeader className="pb-3">
@@ -1052,6 +1061,7 @@ export default function DispatchPage() {
             </CardContent>
           </Card>
         </div>
+        )}
       </div>
 
       {/* Trip Detail Drawer */}
