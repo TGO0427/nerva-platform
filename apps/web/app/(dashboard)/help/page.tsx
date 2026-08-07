@@ -37,6 +37,7 @@ const MODULE_GROUPS = [
       { name: 'Shop Floor / Work Orders', desc: 'Track work orders through production' },
       { name: 'Schedule / MRP', desc: 'Production scheduling and material requirements planning' },
       { name: 'Quality', desc: 'Non-conformance reports and batch QC holds (Awaiting QC → On Hold / Rejected / Released) that gate allocation and dispatch' },
+      { name: 'Batch QC Queue', desc: 'Every batch awaiting or moving through QC release, across all items and work orders, with Approve/Hold/Reject actions in one place' },
       { name: 'Traceability / Production Ledger', desc: 'Full genealogy of what was produced, from which batches' },
     ],
   },
@@ -45,10 +46,10 @@ const MODULE_GROUPS = [
     items: [
       { name: 'Inventory', desc: 'Stock on hand by item, bin and batch' },
       { name: 'Receiving (GRN)', desc: 'Goods received notes against purchase orders' },
-      { name: 'Putaway', desc: 'Move received stock from receiving bins into storage' },
-      { name: 'Transfers (IBT)', desc: 'Inter-branch/bin stock transfers' },
-      { name: 'Adjustments', desc: 'Stock corrections with an audit trail' },
-      { name: 'Cycle Counts', desc: 'Scheduled physical stock counts with variance reporting' },
+      { name: 'Putaway', desc: 'Move received stock from receiving bins into storage; tasks can be assigned, reassigned, and filtered by "My Tasks Only" or a specific worker' },
+      { name: 'Transfers (IBT)', desc: 'Inter-branch/bin stock transfers, with a batch picker scoped to what the source bin actually holds' },
+      { name: 'Adjustments', desc: 'Stock corrections with an audit trail and a live delta preview' },
+      { name: 'Cycle Counts', desc: 'Scheduled physical stock counts with per-batch variance reporting' },
       { name: 'Expiry Alerts', desc: 'Batches approaching their expiry date' },
     ],
   },
@@ -90,6 +91,38 @@ const TIPS = [
 ];
 
 const WHATS_NEW = [
+  {
+    title: 'The system is now batch-driven end to end',
+    desc: 'Every stock movement — Internal Transfers, Adjustments, Manufacturing output, Cycle Counts — now requires a real batch/lot number for batch-tracked items, with a live picker showing which batches actually have stock in the chosen bin instead of a free-text field. Closes gaps where a movement could silently create a phantom "no batch" stock record.',
+  },
+  {
+    title: 'Batch QC Queue',
+    desc: 'A new page under Manufacturing → Quality → Batch QC Queue lists every batch awaiting or moving through quality release across the whole plant — Awaiting QC, On Hold, Approved, Rejected, Released — with Approve/Hold/Reject actions right there, instead of having to open each work order individually.',
+  },
+  {
+    title: 'Production runs get their own traceable batch',
+    desc: 'A work order keeps the batch it was assigned at release for its first output, but every output after that (a separate production run, e.g. on a different day) now gets its own distinct batch number automatically — each run independently traceable and independently QC’d.',
+  },
+  {
+    title: 'Cycle Counts track the specific batch being counted',
+    desc: 'Count lines now record which batch they refer to, so a bin holding multiple batches of the same item counts each one correctly, and generating an adjustment from a completed count’s variances carries the right batch through instead of failing or misattributing stock.',
+  },
+  {
+    title: 'Sales allocation → picking is now durable and reversible',
+    desc: 'Allocating an order reserves an exact batch and bin per line; picking consumes exactly that reservation instead of re-deriving stock on the fly. If a customer cancels after something’s already been picked, a new "Reverse Pick" action puts the stock back and re-reserves it — and cancelling an order or pick wave with unreversed picked stock is now blocked with a clear message instead of silently leaving it stranded.',
+  },
+  {
+    title: 'Search by batch number, almost everywhere',
+    desc: 'Batch/lot numbers are now searchable on Non-Conformances, Work Orders, Adjustments, Sales Orders, Cycle Counts, and in the global Ctrl/Cmd+K search — useful for tracing exactly where a given batch ended up.',
+  },
+  {
+    title: 'Putaway task assignment',
+    desc: 'The Putaway page now has "My Tasks Only" and "Assigned To" filters so a worker (or their supervisor) can see just the tasks that matter to them, and an already-assigned task can now be reassigned (e.g. if the original picker is out) instead of only being cancellable. Assigning/reassigning is gated behind a new permission — grant it to supervisor/admin roles under Settings → Roles.',
+  },
+  {
+    title: 'Smaller fixes & polish',
+    desc: 'Dispatch’s trip board has a "Hide Activity" toggle so the board can use the full width when you need to see every column. Sales Orders’ stat cards (Total, Open, In Fulfilment, Shipped) are now clickable and match their own counts. Adjustments and Transfers show a live up/down delta as you type, and a draft Adjustment line can now be edited in place instead of remove-and-re-add.',
+  },
   {
     title: 'Trade Compliance, Landed Cost & Margin Estimates',
     desc: 'Items now carry an HS code and country of origin. Import purchase orders can link to a shipment with per-line freight/duty/clearing cost, rolling up to a landed cost on the PO. Sales orders and the dashboard show an estimated gross margin, derived from recent purchase cost or preferred supplier pricing.',
