@@ -521,6 +521,7 @@ describe("FulfilmentService - pick task/wave cancellation and reversal", () => {
       carrier: null,
       trackingNo: null,
       createdBy: null,
+      createdByName: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

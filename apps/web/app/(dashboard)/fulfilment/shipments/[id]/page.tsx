@@ -357,7 +357,7 @@ export default function ShipmentDetailPage() {
               </div>
               <div>
                 <dt className="text-slate-500">Created By</dt>
-                <dd className="font-medium">{shipment.createdBy || 'System'}</dd>
+                <dd className="font-medium">{shipment.createdByName || 'System'}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">Last Updated</dt>

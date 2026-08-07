@@ -49,6 +49,7 @@ export interface Shipment {
   carrier: string | null;
   trackingNo: string | null;
   createdBy: string | null;
+  createdByName: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -254,9 +255,10 @@ export class FulfilmentRepository extends BaseRepository {
 
   async findShipmentById(id: string): Promise<Shipment | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      `SELECT s.*, so.order_no
+      `SELECT s.*, so.order_no, u.display_name AS created_by_name
        FROM shipments s
        LEFT JOIN sales_orders so ON so.id = s.sales_order_id
+       LEFT JOIN users u ON u.id = s.created_by
        WHERE s.id = $1`,
       [id],
     );
@@ -269,9 +271,10 @@ export class FulfilmentRepository extends BaseRepository {
     limit = 50,
     offset = 0,
   ): Promise<Shipment[]> {
-    let sql = `SELECT s.*, so.order_no
+    let sql = `SELECT s.*, so.order_no, u.display_name AS created_by_name
                FROM shipments s
                LEFT JOIN sales_orders so ON so.id = s.sales_order_id
+               LEFT JOIN users u ON u.id = s.created_by
                WHERE s.tenant_id = $1`;
     const params: unknown[] = [tenantId];
 
@@ -422,9 +425,10 @@ export class FulfilmentRepository extends BaseRepository {
   // Find shipments by order
   async findShipmentsByOrder(salesOrderId: string): Promise<Shipment[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      `SELECT s.*, so.order_no
+      `SELECT s.*, so.order_no, u.display_name AS created_by_name
        FROM shipments s
        LEFT JOIN sales_orders so ON so.id = s.sales_order_id
+       LEFT JOIN users u ON u.id = s.created_by
        WHERE s.sales_order_id = $1
        ORDER BY s.created_at DESC`,
       [salesOrderId],
@@ -622,6 +626,7 @@ export class FulfilmentRepository extends BaseRepository {
       carrier: row.carrier as string | null,
       trackingNo: row.tracking_no as string | null,
       createdBy: row.created_by as string | null,
+      createdByName: row.created_by_name as string | null,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,
     };

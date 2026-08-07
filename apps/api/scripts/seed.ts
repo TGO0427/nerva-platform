@@ -251,12 +251,15 @@ async function seed() {
       { order: 'SO-2024-0005', line: 1, sku: 'CABLE-HDMI', qty: 25, price: 29.99 },
     ];
 
+    const orderLineIds: Record<string, string> = {};
     for (const line of orderLines) {
-      await pool.query(`
+      const result = await pool.query(`
         INSERT INTO sales_order_lines (tenant_id, sales_order_id, line_no, item_id, qty_ordered, unit_price)
         VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (tenant_id, sales_order_id, line_no) DO UPDATE SET qty_ordered = EXCLUDED.qty_ordered
+        RETURNING id
       `, [tenantId, orderIds[line.order], line.line, itemIds[line.sku], line.qty, line.price]);
+      orderLineIds[`${line.order}-${line.sku}`] = result.rows[0].id;
     }
     console.log(`Created ${orderLines.length} order lines`);
 
@@ -269,14 +272,38 @@ async function seed() {
       { no: 'SHIP-2024-0004', order: 'SO-2024-0004', status: 'PENDING', weight: 1.8 },
     ];
 
+    const shipmentIds: Record<string, string> = {};
     for (const ship of shipments) {
-      await pool.query(`
+      const result = await pool.query(`
         INSERT INTO shipments (tenant_id, site_id, warehouse_id, sales_order_id, shipment_no, status, total_weight_kg, carrier, tracking_no, created_by)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ON CONFLICT (tenant_id, shipment_no) DO UPDATE SET status = EXCLUDED.status
+        RETURNING id
       `, [tenantId, siteId, warehouseId, orderIds[ship.order], ship.no, ship.status, ship.weight, ship.carrier || null, ship.tracking || null, userId]);
+      shipmentIds[ship.no] = result.rows[0].id;
     }
     console.log(`Created ${shipments.length} shipments`);
+
+    // Line items for each shipment, matching its order's lines in full (these
+    // demo shipments represent a fully-picked order, so qty ships = qty ordered).
+    let shipmentLineCount = 0;
+    for (const ship of shipments) {
+      const linesForOrder = orderLines.filter((l) => l.order === ship.order);
+      for (const line of linesForOrder) {
+        const existing = await pool.query(
+          `SELECT 1 FROM shipment_lines WHERE shipment_id = $1 AND sales_order_line_id = $2`,
+          [shipmentIds[ship.no], orderLineIds[`${line.order}-${line.sku}`]],
+        );
+        if (existing.rows.length > 0) continue;
+        await pool.query(
+          `INSERT INTO shipment_lines (tenant_id, shipment_id, sales_order_line_id, item_id, qty, batch_no)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [tenantId, shipmentIds[ship.no], orderLineIds[`${line.order}-${line.sku}`], itemIds[line.sku], line.qty, 'LEGACY'],
+        );
+        shipmentLineCount++;
+      }
+    }
+    console.log(`Created ${shipmentLineCount} shipment lines`);
 
     console.log('Seeding vehicles and drivers...');
     // Create vehicles

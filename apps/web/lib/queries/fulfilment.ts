@@ -60,6 +60,7 @@ export interface Shipment {
   carrier: string | null;
   trackingNo: string | null;
   createdBy: string | null;
+  createdByName: string | null;
   createdAt: string;
   updatedAt: string;
 }
