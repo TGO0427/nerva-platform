@@ -298,14 +298,14 @@ export class DispatchRepository extends BaseRepository {
 
   async findVehicles(tenantId: string) {
     const rows = await this.queryMany<Record<string, unknown>>(
-      `SELECT * FROM vehicles WHERE tenant_id = $1 AND is_active = true ORDER BY plate_no`,
+      `SELECT * FROM vehicles WHERE tenant_id = $1 AND is_active = true ORDER BY reg_no`,
       [tenantId],
     );
     return rows.map((r) => ({
       id: r.id as string,
       tenantId: r.tenant_id as string,
-      plateNo: r.plate_no as string,
-      type: r.type as string,
+      plateNo: r.reg_no as string,
+      type: [r.make, r.model].filter(Boolean).join(" "),
       capacityKg: parseFloat(r.capacity_kg as string) || 0,
       capacityCbm: parseFloat(r.capacity_cbm as string) || 0,
       isActive: r.is_active as boolean,
@@ -364,8 +364,15 @@ export class DispatchRepository extends BaseRepository {
   }
 
   async findStopById(id: string): Promise<DispatchStop | null> {
+    // dispatch_stops.shipment_id is never populated directly (addStopFromShipment
+    // only links via manifest_lines) - join it in, matching findStopsByTrip, so
+    // callers relying on stop.shipmentId (e.g. the delivery cascade) don't silently
+    // no-op.
     const row = await this.queryOne<Record<string, unknown>>(
-      "SELECT * FROM dispatch_stops WHERE id = $1",
+      `SELECT ds.*, ml.shipment_id
+       FROM dispatch_stops ds
+       LEFT JOIN manifest_lines ml ON ml.stop_id = ds.id
+       WHERE ds.id = $1`,
       [id],
     );
     return row ? this.mapStop(row) : null;
