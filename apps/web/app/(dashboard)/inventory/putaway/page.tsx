@@ -23,6 +23,7 @@ import {
 import { useWarehouses, useBins } from '@/lib/queries/warehouses';
 import { useUsers } from '@/lib/queries/settings';
 import { exportToCSV, formatDateForExport, generateExportFilename } from '@/lib/utils/export';
+import { useAuth } from '@/lib/auth';
 import type { Bin } from '@nerva/shared';
 
 const STATUS_TABS = [
@@ -42,9 +43,11 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'danger'
 export default function PutawayPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('');
+  const [myTasksOnly, setMyTasksOnly] = useState(false);
   const [actionTaskId, setActionTaskId] = useState<string | null>(null);
   const [assignUserId, setAssignUserId] = useState('');
   const [completeBinId, setCompleteBinId] = useState('');
@@ -65,6 +68,7 @@ export default function PutawayPage() {
     limit,
     status: statusFilter || undefined,
     warehouseId: warehouseFilter || undefined,
+    assignedTo: myTasksOnly ? user?.id : undefined,
   });
   const { data: warehouses } = useWarehouses();
   const { data: users } = useUsers({ page: 1, limit: 100 });
@@ -244,11 +248,13 @@ export default function PutawayPage() {
   const activeFilterLabels = [
     statusFilter ? `Status: ${STATUS_TABS.find((tab) => tab.value === statusFilter)?.label ?? statusFilter}` : null,
     warehouseFilter ? `Warehouse: ${warehouses?.find((warehouse) => warehouse.id === warehouseFilter)?.name ?? warehouseFilter}` : null,
+    myTasksOnly ? 'My Tasks Only' : null,
   ].filter(Boolean) as string[];
 
   const clearAllFilters = () => {
     setStatusFilter('');
     setWarehouseFilter('');
+    setMyTasksOnly(false);
     setPage(1);
     router.replace('/inventory/putaway');
   };
@@ -256,6 +262,7 @@ export default function PutawayPage() {
   const handleApplySavedView = (values: SavedFilterValues) => {
     setStatusFilter(String(values.statusFilter ?? ''));
     setWarehouseFilter(String(values.warehouseFilter ?? ''));
+    setMyTasksOnly(Boolean(values.myTasksOnly));
     setPage(1);
   };
 
@@ -306,6 +313,20 @@ export default function PutawayPage() {
             </button>
           ))}
         </div>
+        <label className={`flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-pointer transition-colors whitespace-nowrap ${
+          myTasksOnly ? 'bg-primary-50 border-primary-200 text-primary-700' : 'border-slate-200 hover:bg-slate-50'
+        }`}>
+          <input
+            type="checkbox"
+            checked={myTasksOnly}
+            onChange={(e) => {
+              setMyTasksOnly(e.target.checked);
+              setPage(1);
+            }}
+            className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+          />
+          <span className="text-sm font-medium">My Tasks Only</span>
+        </label>
         <div className="w-48">
           <Select
             value={warehouseFilter}
@@ -321,7 +342,7 @@ export default function PutawayPage() {
         </div>
         <SavedFilterViews
           storageKey="putaway"
-          currentValues={{ statusFilter, warehouseFilter }}
+          currentValues={{ statusFilter, warehouseFilter, myTasksOnly }}
           onApply={handleApplySavedView}
         />
         <ExportActions onExport={handleExport} />
