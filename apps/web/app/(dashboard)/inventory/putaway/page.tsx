@@ -23,7 +23,7 @@ import {
 import { useWarehouses, useBins } from '@/lib/queries/warehouses';
 import { useUsers } from '@/lib/queries/settings';
 import { exportToCSV, formatDateForExport, generateExportFilename } from '@/lib/utils/export';
-import { useAuth } from '@/lib/auth';
+import { useAuth, hasPermission } from '@/lib/auth';
 import type { Bin } from '@nerva/shared';
 
 const STATUS_TABS = [
@@ -44,6 +44,7 @@ export default function PutawayPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const canManage = hasPermission(user, 'putaway.manage');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('');
@@ -201,7 +202,7 @@ export default function PutawayPage() {
         if (actionTaskId === t.id) {
           return (
             <div className="flex items-end gap-2" onClick={(e) => e.stopPropagation()}>
-              {(t.status === 'PENDING' || t.status === 'ASSIGNED') && (
+              {canManage && (t.status === 'PENDING' || t.status === 'ASSIGNED') && (
                 <>
                   <div className="w-36">
                     <Select
@@ -245,11 +246,13 @@ export default function PutawayPage() {
                 setCompleteBinId('');
               }}
             >
-              {t.status === 'PENDING'
-                ? 'Assign / Complete'
-                : t.status === 'ASSIGNED'
-                  ? 'Reassign / Complete'
-                  : 'Complete'}
+              {!canManage
+                ? 'Complete'
+                : t.status === 'PENDING'
+                  ? 'Assign / Complete'
+                  : t.status === 'ASSIGNED'
+                    ? 'Reassign / Complete'
+                    : 'Complete'}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => handleCancel(t.id)}>
               Cancel

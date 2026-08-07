@@ -1302,6 +1302,7 @@ INSERT INTO permissions (code, description) VALUES
   ('grn.create', 'Create goods received notes'),
   ('grn.receive', 'Receive goods'),
   ('putaway.execute', 'Execute putaway tasks'),
+  ('putaway.manage', 'Assign and reassign putaway tasks to any user'),
 
   -- Inventory
   ('inventory.read', 'View inventory levels'),

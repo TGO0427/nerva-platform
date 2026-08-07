@@ -57,8 +57,8 @@ export class PutawayController {
   }
 
   @Post(":id/assign")
-  @RequirePermissions("putaway.execute")
-  @ApiOperation({ summary: "Assign putaway task" })
+  @RequirePermissions("putaway.manage")
+  @ApiOperation({ summary: "Assign or reassign putaway task" })
   async assign(
     @TenantId() tenantId: string,
     @Param("id", UuidValidationPipe) id: string,

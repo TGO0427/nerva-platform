@@ -25,6 +25,7 @@ export const PERMISSIONS = {
   GRN_CREATE: 'grn.create',
   GRN_RECEIVE: 'grn.receive',
   PUTAWAY_EXECUTE: 'putaway.execute',
+  PUTAWAY_MANAGE: 'putaway.manage',
 
   // Inventory
   INVENTORY_READ: 'inventory.read',
