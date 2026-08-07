@@ -48,6 +48,7 @@ export default function PutawayPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('');
   const [myTasksOnly, setMyTasksOnly] = useState(false);
+  const [assignedToFilter, setAssignedToFilter] = useState('');
   const [actionTaskId, setActionTaskId] = useState<string | null>(null);
   const [assignUserId, setAssignUserId] = useState('');
   const [completeBinId, setCompleteBinId] = useState('');
@@ -68,7 +69,7 @@ export default function PutawayPage() {
     limit,
     status: statusFilter || undefined,
     warehouseId: warehouseFilter || undefined,
-    assignedTo: myTasksOnly ? user?.id : undefined,
+    assignedTo: myTasksOnly ? user?.id : assignedToFilter || undefined,
   });
   const { data: warehouses } = useWarehouses();
   const { data: users } = useUsers({ page: 1, limit: 100 });
@@ -260,12 +261,14 @@ export default function PutawayPage() {
     statusFilter ? `Status: ${STATUS_TABS.find((tab) => tab.value === statusFilter)?.label ?? statusFilter}` : null,
     warehouseFilter ? `Warehouse: ${warehouses?.find((warehouse) => warehouse.id === warehouseFilter)?.name ?? warehouseFilter}` : null,
     myTasksOnly ? 'My Tasks Only' : null,
+    assignedToFilter ? `Assigned To: ${users?.data?.find((u) => u.id === assignedToFilter)?.displayName ?? assignedToFilter}` : null,
   ].filter(Boolean) as string[];
 
   const clearAllFilters = () => {
     setStatusFilter('');
     setWarehouseFilter('');
     setMyTasksOnly(false);
+    setAssignedToFilter('');
     setPage(1);
     router.replace('/inventory/putaway');
   };
@@ -274,6 +277,7 @@ export default function PutawayPage() {
     setStatusFilter(String(values.statusFilter ?? ''));
     setWarehouseFilter(String(values.warehouseFilter ?? ''));
     setMyTasksOnly(Boolean(values.myTasksOnly));
+    setAssignedToFilter(String(values.assignedToFilter ?? ''));
     setPage(1);
   };
 
@@ -332,12 +336,27 @@ export default function PutawayPage() {
             checked={myTasksOnly}
             onChange={(e) => {
               setMyTasksOnly(e.target.checked);
+              if (e.target.checked) setAssignedToFilter('');
               setPage(1);
             }}
             className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
           />
           <span className="text-sm font-medium">My Tasks Only</span>
         </label>
+        <div className="w-48">
+          <Select
+            value={assignedToFilter}
+            onChange={(e) => {
+              setAssignedToFilter(e.target.value);
+              if (e.target.value) setMyTasksOnly(false);
+              setPage(1);
+            }}
+            options={[
+              { value: '', label: 'Assigned To: Anyone' },
+              ...(users?.data?.map((u) => ({ value: u.id, label: u.displayName || u.email })) || []),
+            ]}
+          />
+        </div>
         <div className="w-48">
           <Select
             value={warehouseFilter}
@@ -353,7 +372,7 @@ export default function PutawayPage() {
         </div>
         <SavedFilterViews
           storageKey="putaway"
-          currentValues={{ statusFilter, warehouseFilter, myTasksOnly }}
+          currentValues={{ statusFilter, warehouseFilter, myTasksOnly, assignedToFilter }}
           onApply={handleApplySavedView}
         />
         <ExportActions onExport={handleExport} />
