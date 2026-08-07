@@ -122,6 +122,18 @@ export default function StockDetailPage() {
       ),
     },
     {
+      key: 'customerName',
+      header: 'Sold To',
+      render: (row) => row.customerName ? (
+        <div>
+          <span>{row.customerName}</span>
+          {row.orderNo && (
+            <p className="text-xs text-slate-500">{row.orderNo}</p>
+          )}
+        </div>
+      ) : '-',
+    },
+    {
       key: 'qtyChange',
       header: 'Qty Change',
       className: 'text-right',

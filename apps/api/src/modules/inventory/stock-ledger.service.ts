@@ -358,6 +358,8 @@ export class StockLedgerService {
               fw.name as from_warehouse_name,
               tw.name as to_warehouse_name,
               u.display_name as created_by_name,
+              so.order_no,
+              c.name as customer_name,
               (${signedQtyExpr}) as signed_qty,
               SUM(${signedQtyExpr}) OVER (
                 PARTITION BY sl.item_id
@@ -369,6 +371,9 @@ export class StockLedgerService {
        LEFT JOIN warehouses fw ON fb.warehouse_id = fw.id
        LEFT JOIN warehouses tw ON tb.warehouse_id = tw.id
        LEFT JOIN users u ON sl.created_by = u.id
+       LEFT JOIN pick_tasks pt ON sl.ref_type = 'pick_task' AND sl.ref_id = pt.id
+       LEFT JOIN sales_orders so ON so.id = pt.sales_order_id
+       LEFT JOIN customers c ON c.id = so.customer_id
        WHERE sl.tenant_id = $1 AND sl.item_id = $2
        ORDER BY sl.created_at DESC, sl.id DESC
        LIMIT $3 OFFSET $4`,
@@ -390,6 +395,8 @@ export class StockLedgerService {
       referenceId: row.ref_id as string | null,
       createdAt: row.created_at as Date,
       createdBy: row.created_by_name as string | null,
+      orderNo: row.order_no as string | null,
+      customerName: row.customer_name as string | null,
     }));
   }
 

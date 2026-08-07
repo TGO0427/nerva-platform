@@ -40,6 +40,8 @@ export interface LedgerEntry {
   referenceId: string | null;
   createdAt: string;
   createdBy: string | null;
+  orderNo: string | null;
+  customerName: string | null;
 }
 
 export interface Grn {
