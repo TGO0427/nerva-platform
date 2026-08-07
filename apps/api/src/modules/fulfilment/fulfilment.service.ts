@@ -88,9 +88,10 @@ export class FulfilmentService {
 
           // No traceable reservation for this line — it was allocated
           // before stock_reservations existed, so there's nothing durable
-          // to consume. Fall back to the pre-reservation behavior (derive
-          // directly from current on-hand stock) rather than leaving the
-          // line stranded with zero pick tasks forever.
+          // to consume. Fall back to deriving from currently-available
+          // stock, but still reserve it now (mirroring allocateOrder) so
+          // confirmPickTask's later releaseReservation call has something
+          // real to release instead of driving qty_reserved negative.
           console.warn(
             `No stock reservation found for order line ${line.id} — falling back to on-hand stock`,
           );
@@ -99,8 +100,16 @@ export class FulfilmentService {
           let remaining = qtyToPick;
           for (const s of stock) {
             if (remaining <= 0) break;
-            const pickQty = Math.min(remaining, s.qtyOnHand);
+            const pickQty = Math.min(remaining, s.qtyAvailable);
             if (pickQty <= 0) continue;
+            await this.stockLedger.reserveStockWithBatch(
+              data.tenantId,
+              s.binId,
+              line.itemId,
+              pickQty,
+              s.batchNo,
+              s.expiryDate,
+            );
             await this.repository.createPickTask({
               tenantId: data.tenantId,
               pickWaveId: wave.id,

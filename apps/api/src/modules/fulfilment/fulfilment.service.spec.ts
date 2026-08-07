@@ -442,6 +442,14 @@ describe("FulfilmentService - pick task/wave cancellation and reversal", () => {
         orderIds: ["so-123"],
       });
 
+      expect(stockLedger.reserveStockWithBatch).toHaveBeenCalledWith(
+        "tenant-123",
+        "bin-456",
+        "item-123",
+        5,
+        "LEGACY",
+        undefined,
+      );
       expect(repository.createPickTask).toHaveBeenCalledWith(
         expect.objectContaining({
           salesOrderLineId: "sol-123",
