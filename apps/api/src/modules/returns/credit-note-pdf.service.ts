@@ -10,6 +10,7 @@ import {
   renderDocumentTitle,
   renderDocumentMeta,
   renderAddressBlock,
+  renderTable,
   renderTotals,
   renderNotes,
   renderBankDetails,
@@ -36,6 +37,11 @@ export class CreditNotePdfService {
     const rma = await this.repository.findRmaById(creditNote.rmaId);
     const rmaNo = rma?.rmaNo || "-";
 
+    // Every credited line, with the batch it was actually returned under -
+    // an auditor tracing this credit back to stock needs that on the face
+    // of the document, not just the total.
+    const lines = await this.repository.getRmaLines(creditNote.rmaId);
+
     // Fetch customer details through RMA
     const customer = rma
       ? await this.getCustomer(rma.customerId, tenantId)
@@ -50,12 +56,16 @@ export class CreditNotePdfService {
     // Document title
     y = renderDocumentTitle(doc, "CREDIT NOTE", y);
 
-    // Meta info
+    // Meta info - an auditor tracing this credit needs the full paper
+    // trail on the face of the document: RMA it came from, the sales
+    // order that was originally shipped, and the invoice it offsets.
     y = renderDocumentMeta(
       doc,
       [
         { label: "Credit Note No", value: creditNote.creditNo || "-" },
         { label: "Date", value: formatDate(creditNote.createdAt) },
+        { label: "Sales Order", value: creditNote.orderNo || "-" },
+        { label: "Invoice", value: creditNote.invoiceNo || "-" },
       ],
       [
         { label: "RMA Reference", value: rmaNo },
@@ -88,6 +98,36 @@ export class CreditNotePdfService {
     }
 
     y += 15;
+
+    // Line items - product, batch, and disposition for every credited
+    // line, so the amount below is traceable back to actual stock.
+    y = renderTable(doc, {
+      columns: [
+        { key: "sku", header: "SKU", width: 70 },
+        { key: "description", header: "Description", width: 130 },
+        { key: "batchNo", header: "Batch/Lot No", width: 85 },
+        { key: "qty", header: "Qty", width: 40, align: "right" },
+        { key: "unitCredit", header: "Unit Credit", width: 70, align: "right" },
+        { key: "lineTotal", header: "Line Total", width: 75, align: "right" },
+      ],
+      rows: lines.map((line) => ({
+        sku: line.itemSku || "-",
+        description: (line.itemDescription || "-").substring(0, 28),
+        batchNo: line.batchNo || "-",
+        qty: String(line.qtyReceived),
+        unitCredit:
+          line.unitCreditAmount != null
+            ? formatCurrency(line.unitCreditAmount)
+            : "-",
+        lineTotal:
+          line.unitCreditAmount != null
+            ? formatCurrency(line.unitCreditAmount * line.qtyReceived)
+            : "-",
+      })),
+      startY: y,
+    });
+
+    y += 10;
 
     // Reason / description section
     if (creditNote.notes) {
