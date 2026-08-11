@@ -710,23 +710,35 @@ export default function RmaDetailPage() {
 
 function CreditAmountCell({ value, onSave }: { value: number | null; onSave: (value: number) => void }) {
   const [draft, setDraft] = useState(value != null ? String(value) : '');
+  const parsed = parseFloat(draft);
+  const isValid = draft !== '' && !isNaN(parsed) && parsed >= 0;
+  const isDirty = isValid && parsed !== value;
 
   return (
-    <Input
-      type="number"
-      value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => {
-        const parsed = parseFloat(draft);
-        if (!isNaN(parsed) && parsed >= 0 && parsed !== value) {
-          onSave(parsed);
+    <div className="flex items-center gap-1 justify-end">
+      <Input
+        type="number"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder="0.00"
+        min="0"
+        step="0.01"
+        className="w-24 text-right"
+      />
+      <button
+        type="button"
+        disabled={!isDirty}
+        onClick={() => onSave(parsed)}
+        title="Save credit amount"
+        className={
+          isDirty
+            ? 'text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200'
+            : 'text-xs px-2 py-1 bg-slate-100 text-slate-400 rounded cursor-not-allowed'
         }
-      }}
-      placeholder="0.00"
-      min="0"
-      step="0.01"
-      className="w-28 text-right"
-    />
+      >
+        Save
+      </button>
+    </div>
   );
 }
 
