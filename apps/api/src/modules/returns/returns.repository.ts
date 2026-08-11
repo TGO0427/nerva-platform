@@ -52,6 +52,10 @@ export interface CreditNoteDraft {
   rmaNo?: string;
   customerId?: string;
   customerName?: string;
+  salesOrderId?: string | null;
+  orderNo?: string | null;
+  invoiceId?: string | null;
+  invoiceNo?: string | null;
   creditNo: string | null;
   status: string;
   subtotal: number;
@@ -60,7 +64,9 @@ export interface CreditNoteDraft {
   currency: string;
   notes: string | null;
   createdBy: string | null;
+  createdByName?: string | null;
   approvedBy: string | null;
+  approvedByName?: string | null;
   approvedAt: Date | null;
   postedAt: Date | null;
   externalRef: string | null;
@@ -339,12 +345,21 @@ export class ReturnsRepository extends BaseRepository {
     return this.mapCreditNote(row!);
   }
 
+  private static readonly CREDIT_NOTE_SELECT = `cnd.*, r.rma_no, r.customer_id, c.name as customer_name,
+       r.sales_order_id, so.order_no,
+       (SELECT inv.id FROM invoices inv WHERE inv.sales_order_id = r.sales_order_id ORDER BY inv.created_at DESC LIMIT 1) as invoice_id,
+       (SELECT inv.invoice_no FROM invoices inv WHERE inv.sales_order_id = r.sales_order_id ORDER BY inv.created_at DESC LIMIT 1) as invoice_no,
+       creator.display_name as created_by_name, approver.display_name as approved_by_name`;
+
   async findCreditNoteById(id: string): Promise<CreditNoteDraft | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      `SELECT cnd.*, r.rma_no, r.customer_id, c.name as customer_name
+      `SELECT ${ReturnsRepository.CREDIT_NOTE_SELECT}
        FROM credit_notes_draft cnd
        JOIN rmas r ON r.id = cnd.rma_id
        LEFT JOIN customers c ON c.id = r.customer_id
+       LEFT JOIN sales_orders so ON so.id = r.sales_order_id
+       LEFT JOIN users creator ON creator.id = cnd.created_by
+       LEFT JOIN users approver ON approver.id = cnd.approved_by
        WHERE cnd.id = $1`,
       [id],
     );
@@ -357,10 +372,13 @@ export class ReturnsRepository extends BaseRepository {
     limit = 50,
     offset = 0,
   ): Promise<CreditNoteDraft[]> {
-    let sql = `SELECT cnd.*, r.rma_no, r.customer_id, c.name as customer_name
+    let sql = `SELECT ${ReturnsRepository.CREDIT_NOTE_SELECT}
                FROM credit_notes_draft cnd
                JOIN rmas r ON r.id = cnd.rma_id
                LEFT JOIN customers c ON c.id = r.customer_id
+               LEFT JOIN sales_orders so ON so.id = r.sales_order_id
+               LEFT JOIN users creator ON creator.id = cnd.created_by
+               LEFT JOIN users approver ON approver.id = cnd.approved_by
                WHERE cnd.tenant_id = $1`;
     const params: unknown[] = [tenantId];
 
@@ -389,6 +407,35 @@ export class ReturnsRepository extends BaseRepository {
     }
     const result = await this.queryOne<{ count: string }>(sql, params);
     return parseInt(result?.count || "0", 10);
+  }
+
+  async findDraftCreditNoteForRma(rmaId: string): Promise<CreditNoteDraft | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `SELECT ${ReturnsRepository.CREDIT_NOTE_SELECT}
+       FROM credit_notes_draft cnd
+       JOIN rmas r ON r.id = cnd.rma_id
+       LEFT JOIN customers c ON c.id = r.customer_id
+       LEFT JOIN sales_orders so ON so.id = r.sales_order_id
+       LEFT JOIN users creator ON creator.id = cnd.created_by
+       LEFT JOIN users approver ON approver.id = cnd.approved_by
+       WHERE cnd.rma_id = $1 AND cnd.status = 'DRAFT'`,
+      [rmaId],
+    );
+    return row ? this.mapCreditNote(row) : null;
+  }
+
+  async updateCreditNoteTotals(
+    id: string,
+    subtotal: number,
+    taxAmount: number,
+    totalAmount: number,
+  ): Promise<CreditNoteDraft | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE credit_notes_draft SET subtotal = $1, tax_amount = $2, total_amount = $3
+       WHERE id = $4 AND status = 'DRAFT' RETURNING *`,
+      [subtotal, taxAmount, totalAmount, id],
+    );
+    return row ? this.mapCreditNote(row) : null;
   }
 
   async submitCreditNote(id: string): Promise<CreditNoteDraft | null> {
@@ -535,6 +582,10 @@ export class ReturnsRepository extends BaseRepository {
       rmaNo: row.rma_no as string | undefined,
       customerId: row.customer_id as string | undefined,
       customerName: row.customer_name as string | undefined,
+      salesOrderId: row.sales_order_id as string | null | undefined,
+      orderNo: row.order_no as string | null | undefined,
+      invoiceId: row.invoice_id as string | null | undefined,
+      invoiceNo: row.invoice_no as string | null | undefined,
       creditNo: row.credit_no as string | null,
       status: row.status as string,
       subtotal: parseFloat(row.subtotal as string) || 0,
@@ -543,7 +594,9 @@ export class ReturnsRepository extends BaseRepository {
       currency: row.currency as string,
       notes: row.notes as string | null,
       createdBy: row.created_by as string | null,
+      createdByName: row.created_by_name as string | null | undefined,
       approvedBy: row.approved_by as string | null,
+      approvedByName: row.approved_by_name as string | null | undefined,
       approvedAt: row.approved_at as Date | null,
       postedAt: row.posted_at as Date | null,
       externalRef: row.external_ref as string | null,

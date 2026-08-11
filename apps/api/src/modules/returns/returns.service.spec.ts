@@ -104,6 +104,8 @@ describe("ReturnsService", () => {
             cancelCreditNote: jest.fn(),
             deleteCreditNote: jest.fn(),
             hasOtherActiveCreditNote: jest.fn(),
+            findDraftCreditNoteForRma: jest.fn(),
+            updateCreditNoteTotals: jest.fn(),
           },
         },
         {
@@ -846,6 +848,35 @@ describe("ReturnsService", () => {
       await expect(
         service.updateLineCreditAmount("rma-123", "line-123", 25),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it("should recalculate an existing DRAFT credit note's totals rather than leaving it stale", async () => {
+      repository.findRmaById.mockResolvedValue(mockRma);
+      repository.findRmaLineById.mockResolvedValue(mockRmaLine);
+      const updatedLine = { ...mockRmaLine, qtyReceived: 5, unitCreditAmount: 25 };
+      repository.updateLineCreditAmount.mockResolvedValue(updatedLine);
+      repository.findDraftCreditNoteForRma.mockResolvedValue(mockCreditNote);
+      repository.getRmaLines.mockResolvedValue([updatedLine]);
+
+      await service.updateLineCreditAmount("rma-123", "line-123", 25);
+
+      expect(repository.updateCreditNoteTotals).toHaveBeenCalledWith(
+        "cn-123",
+        125, // 5 * 25
+        18.75, // 125 * 0.15
+        143.75,
+      );
+    });
+
+    it("should not touch any credit note when none is in DRAFT for this RMA", async () => {
+      repository.findRmaById.mockResolvedValue(mockRma);
+      repository.findRmaLineById.mockResolvedValue(mockRmaLine);
+      repository.updateLineCreditAmount.mockResolvedValue(mockRmaLine);
+      repository.findDraftCreditNoteForRma.mockResolvedValue(null);
+
+      await service.updateLineCreditAmount("rma-123", "line-123", 25);
+
+      expect(repository.updateCreditNoteTotals).not.toHaveBeenCalled();
     });
   });
 

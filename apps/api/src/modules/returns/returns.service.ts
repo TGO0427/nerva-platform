@@ -230,7 +230,42 @@ export class ReturnsService {
       lineId,
       unitCreditAmount,
     );
+
+    // A DRAFT credit note snapshots its totals at creation time - if one
+    // already exists for this RMA, correcting a line's amount here would
+    // otherwise silently desync from it (the note stays at whatever it
+    // totalled before this correction).
+    const draftCreditNote = await this.repository.findDraftCreditNoteForRma(rmaId);
+    if (draftCreditNote) {
+      const { subtotal, taxAmount, totalAmount } = await this.calculateRmaCreditTotals(rmaId);
+      await this.repository.updateCreditNoteTotals(
+        draftCreditNote.id,
+        subtotal,
+        taxAmount,
+        totalAmount,
+      );
+    }
+
     return updated!;
+  }
+
+  private async calculateRmaCreditTotals(
+    rmaId: string,
+  ): Promise<{ subtotal: number; taxAmount: number; totalAmount: number }> {
+    const lines = await this.repository.getRmaLines(rmaId);
+
+    let subtotal = 0;
+    for (const line of lines) {
+      if (line.unitCreditAmount && line.qtyReceived > 0) {
+        subtotal += line.unitCreditAmount * line.qtyReceived;
+      }
+    }
+
+    const taxRate = 0.15; // 15% VAT for ZA
+    const taxAmount = subtotal * taxRate;
+    const totalAmount = subtotal + taxAmount;
+
+    return { subtotal, taxAmount, totalAmount };
   }
 
   async deleteRma(id: string): Promise<void> {
@@ -248,19 +283,7 @@ export class ReturnsService {
     createdBy?: string,
   ): Promise<CreditNoteDraft> {
     const rma = await this.getRma(rmaId);
-    const lines = await this.repository.getRmaLines(rmaId);
-
-    // Calculate totals
-    let subtotal = 0;
-    for (const line of lines) {
-      if (line.unitCreditAmount && line.qtyReceived > 0) {
-        subtotal += line.unitCreditAmount * line.qtyReceived;
-      }
-    }
-
-    const taxRate = 0.15; // 15% VAT for ZA
-    const taxAmount = subtotal * taxRate;
-    const totalAmount = subtotal + taxAmount;
+    const { subtotal, taxAmount, totalAmount } = await this.calculateRmaCreditTotals(rmaId);
 
     const creditNo = await this.repository.generateCreditNo(rma.tenantId);
 

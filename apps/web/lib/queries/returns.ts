@@ -58,6 +58,10 @@ export interface CreditNote {
   rmaNo?: string;
   customerId?: string;
   customerName?: string;
+  salesOrderId?: string | null;
+  orderNo?: string | null;
+  invoiceId?: string | null;
+  invoiceNo?: string | null;
   creditNo: string | null;
   status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'POSTED' | 'CANCELLED';
   subtotal: number;
@@ -66,7 +70,9 @@ export interface CreditNote {
   currency: string;
   notes: string | null;
   createdBy: string | null;
+  createdByName?: string | null;
   approvedBy: string | null;
+  approvedByName?: string | null;
   approvedAt: string | null;
   postedAt: string | null;
   externalRef: string | null;

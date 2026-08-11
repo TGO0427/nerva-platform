@@ -249,6 +249,32 @@ export default function CreditNoteDetailPage() {
                 </dd>
               </div>
               <div>
+                <dt className="text-slate-500">Original Order</dt>
+                <dd className="font-medium">
+                  {creditNote.salesOrderId ? (
+                    <Link
+                      href={`/sales/${creditNote.salesOrderId}`}
+                      className="text-primary-600 hover:underline"
+                    >
+                      {creditNote.orderNo || creditNote.salesOrderId.slice(0, 8)}
+                    </Link>
+                  ) : '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">Invoice</dt>
+                <dd className="font-medium">
+                  {creditNote.invoiceId ? (
+                    <Link
+                      href={`/finance/invoices/${creditNote.invoiceId}`}
+                      className="text-primary-600 hover:underline"
+                    >
+                      {creditNote.invoiceNo || creditNote.invoiceId.slice(0, 8)}
+                    </Link>
+                  ) : '-'}
+                </dd>
+              </div>
+              <div>
                 <dt className="text-slate-500">Subtotal</dt>
                 <dd className="font-medium">
                   {formatCurrency(creditNote.subtotal, creditNote.currency)}
@@ -282,7 +308,7 @@ export default function CreditNoteDetailPage() {
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <dt className="text-slate-500">Approved By</dt>
-                <dd className="font-medium">{creditNote.approvedBy || '-'}</dd>
+                <dd className="font-medium">{creditNote.approvedByName || '-'}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">Approved At</dt>
@@ -298,7 +324,7 @@ export default function CreditNoteDetailPage() {
               </div>
               <div>
                 <dt className="text-slate-500">Created By</dt>
-                <dd className="font-medium">{creditNote.createdBy || '-'}</dd>
+                <dd className="font-medium">{creditNote.createdByName || '-'}</dd>
               </div>
             </dl>
           </CardContent>
@@ -334,6 +360,16 @@ export default function CreditNoteDetailPage() {
               description: 'Return authorization linked to this credit note',
               href: `/returns/${creditNote.rmaId}`,
             },
+            ...(creditNote.salesOrderId ? [{
+              label: creditNote.orderNo || 'Sales order',
+              description: 'Original order this return came from',
+              href: `/sales/${creditNote.salesOrderId}`,
+            }] : []),
+            ...(creditNote.invoiceId ? [{
+              label: creditNote.invoiceNo || 'Invoice',
+              description: 'Invoice for the original order',
+              href: `/finance/invoices/${creditNote.invoiceId}`,
+            }] : []),
             {
               label: creditNote.customerName || 'Customer',
               description: 'Customer credited by this note',
