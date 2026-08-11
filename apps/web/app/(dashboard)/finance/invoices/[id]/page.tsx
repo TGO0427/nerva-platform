@@ -308,6 +308,7 @@ export default function InvoiceDetailPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">#</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">SKU</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Description</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Batch/Lot No</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Qty</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Unit Price</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Disc %</th>
@@ -325,6 +326,9 @@ export default function InvoiceDetailPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-500">
                         {line.description || line.itemDescription || '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
+                        {line.batchNo || '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
                         {formatQuantity(line.qty)}

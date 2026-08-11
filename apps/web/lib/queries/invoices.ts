@@ -45,6 +45,7 @@ export interface InvoiceLine {
   createdAt: string;
   sku?: string;
   itemDescription?: string;
+  batchNo?: string | null;
 }
 
 export interface InvoicePayment {

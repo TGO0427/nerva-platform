@@ -22,6 +22,7 @@ import {
   useApproveCreditNote,
   usePostCreditNote,
   useCancelCreditNote,
+  useRmaLines,
 } from '@/lib/queries';
 
 export default function CreditNoteDetailPage() {
@@ -30,6 +31,7 @@ export default function CreditNoteDetailPage() {
   const creditNoteId = params.id as string;
 
   const { data: creditNote, isLoading } = useCreditNote(creditNoteId);
+  const { data: rmaLines } = useRmaLines(creditNote?.rmaId);
 
   const { addToast } = useToast();
   const { confirm } = useConfirm();
@@ -330,6 +332,56 @@ export default function CreditNoteDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {rmaLines && rmaLines.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Line Items</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">SKU</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Description</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Batch/Lot No</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Qty</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Unit Credit</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Line Total</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-slate-200">
+                  {rmaLines.map((line) => (
+                    <tr key={line.id}>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
+                        {line.itemSku || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-500">
+                        {line.itemDescription || '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
+                        {line.batchNo || '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
+                        {line.qtyReceived}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
+                        {line.unitCreditAmount != null ? formatCurrency(line.unitCreditAmount) : '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900 text-right">
+                        {line.unitCreditAmount != null
+                          ? formatCurrency(line.unitCreditAmount * line.qtyReceived)
+                          : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {creditNote.notes && (
         <Card className="mb-6">
