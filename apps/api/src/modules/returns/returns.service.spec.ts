@@ -148,6 +148,7 @@ describe("ReturnsService", () => {
         siteId: "site-123",
         warehouseId: "warehouse-123",
         customerId: "customer-123",
+        salesOrderId: "order-123",
         lines: [{ itemId: "item-123", qtyExpected: 5, reasonCode: "DAMAGED" }],
       });
 
@@ -173,6 +174,7 @@ describe("ReturnsService", () => {
         siteId: "site-123",
         warehouseId: "warehouse-123",
         customerId: "customer-123",
+        salesOrderId: "order-123",
         lines: [
           { itemId: "item-1", qtyExpected: 3, reasonCode: "DAMAGED" },
           { itemId: "item-2", qtyExpected: 2, reasonCode: "WRONG_ITEM" },

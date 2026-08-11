@@ -47,10 +47,11 @@ export class CreateRmaDto {
   @IsUUID()
   customerId: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  // A return is always against something the customer actually bought -
+  // there's no legitimate RMA with no originating order.
+  @ApiProperty()
   @IsUUID()
-  salesOrderId?: string;
+  salesOrderId: string;
 
   @ApiPropertyOptional()
   @IsOptional()

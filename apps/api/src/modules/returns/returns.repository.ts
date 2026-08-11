@@ -76,7 +76,7 @@ export class ReturnsRepository extends BaseRepository {
     siteId: string;
     warehouseId: string;
     customerId: string;
-    salesOrderId?: string;
+    salesOrderId: string;
     shipmentId?: string;
     rmaNo: string;
     returnType?: string;

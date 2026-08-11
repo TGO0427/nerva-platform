@@ -156,6 +156,7 @@ export default function NewRmaPage() {
   const validate = (): string | null => {
     if (!selectedCustomer) return 'Please select a customer';
     if (!warehouseId) return 'Please select a warehouse';
+    if (!salesOrderId) return 'A return must be linked to the original order it came from';
     if (lines.length === 0) return 'Please add at least 1 line item';
     for (const line of lines) {
       if (!line.qtyExpected || line.qtyExpected <= 0) {
@@ -180,7 +181,7 @@ export default function NewRmaPage() {
       const rma = await createRma.mutateAsync({
         warehouseId,
         customerId: selectedCustomer!.id,
-        salesOrderId: salesOrderId || undefined,
+        salesOrderId,
         returnType,
         notes: notes || undefined,
         lines: lines.map((l) => ({
@@ -310,12 +311,12 @@ export default function NewRmaPage() {
                 />
               </div>
               <div>
-                <Label>Original Order</Label>
+                <Label>Original Order<RequiredMark /></Label>
                 <Select
                   value={salesOrderId}
                   onChange={(e) => setSalesOrderId(e.target.value)}
                   disabled={!selectedCustomer}
-                  placeholder={selectedCustomer ? 'Select order (optional)...' : 'Select a customer first'}
+                  placeholder={selectedCustomer ? 'Select the order this return is for...' : 'Select a customer first'}
                   options={orders.map((o) => ({ value: o.id, label: o.orderNo }))}
                 />
               </div>

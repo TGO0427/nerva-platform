@@ -125,7 +125,7 @@ export function useCreateRma() {
     mutationFn: async (data: {
       warehouseId: string;
       customerId: string;
-      salesOrderId?: string;
+      salesOrderId: string;
       shipmentId?: string;
       returnType?: string;
       notes?: string;

@@ -27,7 +27,7 @@ export class ReturnsService {
     siteId: string;
     warehouseId: string;
     customerId: string;
-    salesOrderId?: string;
+    salesOrderId: string;
     shipmentId?: string;
     returnType?: string;
     notes?: string;
