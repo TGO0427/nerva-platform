@@ -79,7 +79,7 @@ export default function RmaDetailPage() {
     setReceiveModalLine(line);
     setReceiveQty(String(line.qtyExpected - line.qtyReceived));
     setReceiveBinId('');
-    setReceiveBatchNo('');
+    setReceiveBatchNo(line.batchNo || '');
     setModalError('');
   };
 
