@@ -34,6 +34,7 @@ import {
   CreateRmaDto,
   ReceiveRmaLineDto,
   SetDispositionDto,
+  UpdateLineCreditAmountDto,
   CancelRmaDto,
 } from "./dto/returns.dto";
 
@@ -156,6 +157,21 @@ export class ReturnsController {
       data.dispositionBinId,
       user.id,
       data.inspectionNotes,
+    );
+  }
+
+  @Post(":id/lines/:lineId/credit-amount")
+  @RequirePermissions("rma.disposition")
+  @ApiOperation({ summary: "Set/correct the credit amount for an RMA line" })
+  async updateLineCreditAmount(
+    @Param("id", UuidValidationPipe) rmaId: string,
+    @Param("lineId", UuidValidationPipe) lineId: string,
+    @Body() data: UpdateLineCreditAmountDto,
+  ) {
+    return this.service.updateLineCreditAmount(
+      rmaId,
+      lineId,
+      data.unitCreditAmount,
     );
   }
 

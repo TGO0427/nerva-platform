@@ -209,6 +209,30 @@ export class ReturnsService {
     return updated!;
   }
 
+  async updateLineCreditAmount(
+    rmaId: string,
+    lineId: string,
+    unitCreditAmount: number,
+  ): Promise<RmaLine> {
+    const rma = await this.getRma(rmaId);
+    const line = await this.repository.findRmaLineById(lineId);
+
+    if (!line || line.rmaId !== rmaId) {
+      throw new NotFoundException("RMA line not found");
+    }
+    if (["CLOSED", "CANCELLED"].includes(rma.status)) {
+      throw new BadRequestException(
+        `Cannot change the credit amount on a ${rma.status} RMA`,
+      );
+    }
+
+    const updated = await this.repository.updateLineCreditAmount(
+      lineId,
+      unitCreditAmount,
+    );
+    return updated!;
+  }
+
   async deleteRma(id: string): Promise<void> {
     const rma = await this.repository.findRmaById(id);
     if (!rma) throw new NotFoundException("RMA not found");
@@ -282,6 +306,19 @@ export class ReturnsService {
       throw new BadRequestException("Only DRAFT credit notes can be deleted");
     }
     await this.repository.deleteCreditNote(id);
+
+    // Deleting the RMA's only credit note leaves it stuck in CREDIT_PENDING
+    // with no way to create a corrected one - revert so it can be redone.
+    const hasOther = await this.repository.hasOtherActiveCreditNote(
+      creditNote.rmaId,
+      id,
+    );
+    if (!hasOther) {
+      await this.repository.updateRmaStatus(
+        creditNote.rmaId,
+        "DISPOSITION_COMPLETE",
+      );
+    }
   }
 
   async submitCreditNote(id: string): Promise<CreditNoteDraft> {
@@ -354,12 +391,31 @@ export class ReturnsService {
   }
 
   async cancelCreditNote(id: string, reason: string): Promise<CreditNoteDraft> {
+    const before = await this.repository.findCreditNoteById(id);
     const creditNote = await this.repository.cancelCreditNote(id, reason);
     if (!creditNote) {
       throw new BadRequestException(
         "Credit note not found or already cancelled",
       );
     }
+
+    // Cancelling a not-yet-posted credit note is "this was wrong, redo it" -
+    // revert the RMA so a corrected one can be created, same as delete.
+    // A POSTED note has already gone to the finance system, so its RMA stays
+    // put; unwinding that is a real accounting reversal, not a redo.
+    if (before && before.status !== "POSTED") {
+      const hasOther = await this.repository.hasOtherActiveCreditNote(
+        creditNote.rmaId,
+        id,
+      );
+      if (!hasOther) {
+        await this.repository.updateRmaStatus(
+          creditNote.rmaId,
+          "DISPOSITION_COMPLETE",
+        );
+      }
+    }
+
     return creditNote;
   }
 

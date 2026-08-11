@@ -18,13 +18,14 @@ import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert } from '@/components/ui/alert';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatCurrency } from '@/lib/format';
 import {
   useRma,
   useRmaLines,
   useDeleteRma,
   useReceiveRmaLine,
   useSetRmaLineDisposition,
+  useUpdateRmaLineCreditAmount,
   useCompleteRmaDisposition,
   useCreateCreditNoteFromRma,
   useCloseRma,
@@ -70,6 +71,7 @@ export default function RmaDetailPage() {
   const deleteRma = useDeleteRma();
   const receiveLine = useReceiveRmaLine();
   const setDisposition = useSetRmaLineDisposition();
+  const updateCreditAmount = useUpdateRmaLineCreditAmount();
   const completeDisposition = useCompleteRmaDisposition();
   const createCreditNote = useCreateCreditNoteFromRma();
   const closeRma = useCloseRma();
@@ -159,6 +161,17 @@ export default function RmaDetailPage() {
     }
   };
 
+  const handleUpdateCreditAmount = async (lineId: string, value: number) => {
+    try {
+      await updateCreditAmount.mutateAsync({ rmaId, lineId, unitCreditAmount: value });
+      addToast('Credit amount updated', 'success');
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Failed to update credit amount', 'error');
+    }
+  };
+
+  const canEditCreditAmount = !!rma && !['CLOSED', 'CANCELLED'].includes(rma.status);
+
   const lineColumns: Column<RmaLine>[] = [
     {
       key: 'itemSku',
@@ -201,6 +214,20 @@ export default function RmaDetailPage() {
       key: 'batchNo',
       header: 'Batch',
       render: (row) => row.batchNo || '-',
+    },
+    {
+      key: 'unitCreditAmount',
+      header: 'Unit Credit',
+      className: 'text-right',
+      render: (row) =>
+        canEditCreditAmount ? (
+          <CreditAmountCell
+            value={row.unitCreditAmount}
+            onSave={(value) => handleUpdateCreditAmount(row.id, value)}
+          />
+        ) : (
+          row.unitCreditAmount != null ? formatCurrency(row.unitCreditAmount) : '-'
+        ),
     },
     {
       key: 'disposition',
@@ -678,6 +705,28 @@ export default function RmaDetailPage() {
       {/* History */}
       <EntityHistory entityType="Rma" entityId={rmaId} />
     </div>
+  );
+}
+
+function CreditAmountCell({ value, onSave }: { value: number | null; onSave: (value: number) => void }) {
+  const [draft, setDraft] = useState(value != null ? String(value) : '');
+
+  return (
+    <Input
+      type="number"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        const parsed = parseFloat(draft);
+        if (!isNaN(parsed) && parsed >= 0 && parsed !== value) {
+          onSave(parsed);
+        }
+      }}
+      placeholder="0.00"
+      min="0"
+      step="0.01"
+      className="w-28 text-right"
+    />
   );
 }
 

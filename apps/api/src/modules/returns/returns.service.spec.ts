@@ -90,6 +90,7 @@ describe("ReturnsService", () => {
             getRmaLines: jest.fn(),
             receiveRmaLine: jest.fn(),
             setLineDisposition: jest.fn(),
+            updateLineCreditAmount: jest.fn(),
             updateRmaStatus: jest.fn(),
             deleteRma: jest.fn(),
             generateCreditNo: jest.fn(),
@@ -102,6 +103,7 @@ describe("ReturnsService", () => {
             postCreditNote: jest.fn(),
             cancelCreditNote: jest.fn(),
             deleteCreditNote: jest.fn(),
+            hasOtherActiveCreditNote: jest.fn(),
           },
         },
         {
@@ -661,13 +663,32 @@ describe("ReturnsService", () => {
   });
 
   describe("deleteCreditNote", () => {
-    it("should delete a DRAFT credit note", async () => {
+    it("should delete a DRAFT credit note and revert the RMA to DISPOSITION_COMPLETE when it was the only one", async () => {
       repository.findCreditNoteById.mockResolvedValue(mockCreditNote);
       repository.deleteCreditNote.mockResolvedValue(true);
+      repository.hasOtherActiveCreditNote.mockResolvedValue(false);
 
       await service.deleteCreditNote("cn-123");
 
       expect(repository.deleteCreditNote).toHaveBeenCalledWith("cn-123");
+      expect(repository.hasOtherActiveCreditNote).toHaveBeenCalledWith(
+        "rma-123",
+        "cn-123",
+      );
+      expect(repository.updateRmaStatus).toHaveBeenCalledWith(
+        "rma-123",
+        "DISPOSITION_COMPLETE",
+      );
+    });
+
+    it("should not revert the RMA if another active credit note still exists", async () => {
+      repository.findCreditNoteById.mockResolvedValue(mockCreditNote);
+      repository.deleteCreditNote.mockResolvedValue(true);
+      repository.hasOtherActiveCreditNote.mockResolvedValue(true);
+
+      await service.deleteCreditNote("cn-123");
+
+      expect(repository.updateRmaStatus).not.toHaveBeenCalled();
     });
 
     it("should throw NotFoundException when credit note not found", async () => {
@@ -746,6 +767,85 @@ describe("ReturnsService", () => {
       await expect(
         service.approveCreditNote("cn-123", "approver-1"),
       ).rejects.toThrow("Credit note not found or not in SUBMITTED status");
+    });
+  });
+
+  describe("cancelCreditNote", () => {
+    it("should cancel a not-yet-posted credit note and revert the RMA to DISPOSITION_COMPLETE", async () => {
+      const cancelled = { ...mockCreditNote, status: "CANCELLED" };
+      repository.findCreditNoteById.mockResolvedValue(mockCreditNote);
+      repository.cancelCreditNote.mockResolvedValue(cancelled);
+      repository.hasOtherActiveCreditNote.mockResolvedValue(false);
+
+      const result = await service.cancelCreditNote("cn-123", "wrong amount");
+
+      expect(result.status).toBe("CANCELLED");
+      expect(repository.updateRmaStatus).toHaveBeenCalledWith(
+        "rma-123",
+        "DISPOSITION_COMPLETE",
+      );
+    });
+
+    it("should not revert the RMA when cancelling an already-POSTED credit note", async () => {
+      const posted = { ...mockCreditNote, status: "POSTED" };
+      const cancelled = { ...posted, status: "CANCELLED" };
+      repository.findCreditNoteById.mockResolvedValue(posted);
+      repository.cancelCreditNote.mockResolvedValue(cancelled);
+
+      await service.cancelCreditNote("cn-123", "reversal");
+
+      expect(repository.updateRmaStatus).not.toHaveBeenCalled();
+    });
+
+    it("should throw BadRequestException when already cancelled", async () => {
+      repository.findCreditNoteById.mockResolvedValue(mockCreditNote);
+      repository.cancelCreditNote.mockResolvedValue(null);
+
+      await expect(
+        service.cancelCreditNote("cn-123", "reason"),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe("updateLineCreditAmount", () => {
+    it("should update the line's credit amount", async () => {
+      repository.findRmaById.mockResolvedValue(mockRma);
+      repository.findRmaLineById.mockResolvedValue(mockRmaLine);
+      const updatedLine = { ...mockRmaLine, unitCreditAmount: 25 };
+      repository.updateLineCreditAmount.mockResolvedValue(updatedLine);
+
+      const result = await service.updateLineCreditAmount(
+        "rma-123",
+        "line-123",
+        25,
+      );
+
+      expect(result.unitCreditAmount).toBe(25);
+      expect(repository.updateLineCreditAmount).toHaveBeenCalledWith(
+        "line-123",
+        25,
+      );
+    });
+
+    it("should throw NotFoundException when the line doesn't belong to this RMA", async () => {
+      repository.findRmaById.mockResolvedValue(mockRma);
+      repository.findRmaLineById.mockResolvedValue({
+        ...mockRmaLine,
+        rmaId: "other-rma",
+      });
+
+      await expect(
+        service.updateLineCreditAmount("rma-123", "line-123", 25),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it("should throw BadRequestException when the RMA is CLOSED", async () => {
+      repository.findRmaById.mockResolvedValue({ ...mockRma, status: "CLOSED" });
+      repository.findRmaLineById.mockResolvedValue(mockRmaLine);
+
+      await expect(
+        service.updateLineCreditAmount("rma-123", "line-123", 25),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

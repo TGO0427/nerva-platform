@@ -232,6 +232,17 @@ export class ReturnsRepository extends BaseRepository {
     return this.mapRmaLine(row!);
   }
 
+  async updateLineCreditAmount(
+    lineId: string,
+    unitCreditAmount: number,
+  ): Promise<RmaLine | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      "UPDATE rma_lines SET unit_credit_amount = $1 WHERE id = $2 RETURNING *",
+      [unitCreditAmount, lineId],
+    );
+    return row ? this.mapRmaLine(row) : null;
+  }
+
   async findRmaLineById(id: string): Promise<RmaLine | null> {
     const row = await this.queryOne<Record<string, unknown>>(
       `SELECT rl.*, i.sku as item_sku, i.description as item_description,
@@ -421,6 +432,18 @@ export class ReturnsRepository extends BaseRepository {
       [id, reason || null],
     );
     return row ? this.mapCreditNote(row) : null;
+  }
+
+  async hasOtherActiveCreditNote(
+    rmaId: string,
+    excludingId: string,
+  ): Promise<boolean> {
+    const result = await this.queryOne<{ count: string }>(
+      `SELECT COUNT(*) as count FROM credit_notes_draft
+       WHERE rma_id = $1 AND id != $2 AND status != 'CANCELLED'`,
+      [rmaId, excludingId],
+    );
+    return parseInt(result?.count || "0", 10) > 0;
   }
 
   async deleteRma(id: string): Promise<boolean> {

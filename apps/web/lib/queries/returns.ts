@@ -192,6 +192,32 @@ export function useReceiveRmaLine() {
   });
 }
 
+export function useUpdateRmaLineCreditAmount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      rmaId,
+      lineId,
+      unitCreditAmount,
+    }: {
+      rmaId: string;
+      lineId: string;
+      unitCreditAmount: number;
+    }) => {
+      const response = await api.post<RmaLine>(
+        `/returns/rmas/${rmaId}/lines/${lineId}/credit-amount`,
+        { unitCreditAmount },
+      );
+      return response.data;
+    },
+    onSuccess: (_, { rmaId }) => {
+      queryClient.invalidateQueries({ queryKey: [RMA_KEY] });
+      queryClient.invalidateQueries({ queryKey: [RMA_KEY, rmaId] });
+    },
+  });
+}
+
 export function useSetRmaLineDisposition() {
   const queryClient = useQueryClient();
 

@@ -124,6 +124,13 @@ export class SetDispositionDto {
   inspectionNotes?: string;
 }
 
+export class UpdateLineCreditAmountDto {
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  unitCreditAmount: number;
+}
+
 export class CancelRmaDto {
   @ApiProperty()
   @IsString()

@@ -141,7 +141,9 @@ export default function NewRmaPage() {
           salesOrderLineId: orderLine.id,
           qtyExpected: orderLine.qtyShipped > 0 ? orderLine.qtyShipped : 1,
           reasonCode: 'DAMAGED',
-          unitCreditAmount: undefined,
+          // Default to what the customer actually paid for it - adjustable
+          // per line, but a return should credit at cost by default, not R0.
+          unitCreditAmount: orderLine.unitPrice ?? undefined,
           batchNo: batchByOrderLine.get(orderLine.id),
         },
       ];
