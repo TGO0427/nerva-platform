@@ -120,13 +120,14 @@ export class InvoicePdfService {
     // Line items table
     y = renderTable(doc, {
       columns: [
-        { key: "lineNo", header: "#", width: 30, align: "center" },
-        { key: "sku", header: "SKU", width: 80 },
-        { key: "description", header: "Description", width: 180 },
-        { key: "qty", header: "Qty", width: 50, align: "right" },
-        { key: "unitPrice", header: "Unit Price", width: 70, align: "right" },
-        { key: "discountPct", header: "Disc %", width: 45, align: "right" },
-        { key: "lineTotal", header: "Line Total", width: 80, align: "right" },
+        { key: "lineNo", header: "#", width: 25, align: "center" },
+        { key: "sku", header: "SKU", width: 70 },
+        { key: "description", header: "Description", width: 140 },
+        { key: "batchNo", header: "Batch/Lot No", width: 75 },
+        { key: "qty", header: "Qty", width: 40, align: "right" },
+        { key: "unitPrice", header: "Unit Price", width: 60, align: "right" },
+        { key: "discountPct", header: "Disc %", width: 40, align: "right" },
+        { key: "lineTotal", header: "Line Total", width: 65, align: "right" },
       ],
       rows: lines.map((line, i) => {
         const item = items.get(line.itemId);
@@ -138,7 +139,8 @@ export class InvoicePdfService {
             line.itemDescription ||
             line.description ||
             "-"
-          ).substring(0, 40),
+          ).substring(0, 28),
+          batchNo: line.batchNo || "-",
           qty: String(line.qty),
           unitPrice: formatCurrency(line.unitPrice),
           discountPct: line.discountPct > 0 ? `${line.discountPct}%` : "-",

@@ -43,6 +43,7 @@ export interface InvoiceLine {
   // joined
   sku?: string;
   itemDescription?: string;
+  batchNo?: string | null;
 }
 
 export interface InvoicePayment {
@@ -251,8 +252,16 @@ export class InvoicingRepository extends BaseRepository {
   }
 
   async getInvoiceLines(invoiceId: string): Promise<InvoiceLine[]> {
+    // Invoice lines don't carry their own batch - they bill a sales order
+    // line, and it's the shipment(s) against that line that record which
+    // batch(es) actually went out. Aggregate in case a line shipped across
+    // more than one batch.
     const rows = await this.queryMany<Record<string, unknown>>(
-      `SELECT il.*, i.sku, i.description as item_description
+      `SELECT il.*, i.sku, i.description as item_description,
+              (SELECT string_agg(DISTINCT sl.batch_no, ', ' ORDER BY sl.batch_no)
+               FROM shipment_lines sl
+               WHERE sl.sales_order_line_id = il.sales_order_line_id
+                 AND sl.batch_no IS NOT NULL) as batch_no
        FROM invoice_lines il
        LEFT JOIN items i ON i.id = il.item_id
        WHERE il.invoice_id = $1
@@ -378,6 +387,7 @@ export class InvoicingRepository extends BaseRepository {
       createdAt: row.created_at as Date,
       sku: row.sku as string | undefined,
       itemDescription: row.item_description as string | undefined,
+      batchNo: row.batch_no as string | null | undefined,
     };
   }
 
