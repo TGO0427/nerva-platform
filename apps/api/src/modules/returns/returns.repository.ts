@@ -212,11 +212,12 @@ export class ReturnsRepository extends BaseRepository {
     qtyExpected: number;
     reasonCode: string;
     unitCreditAmount?: number;
+    batchNo?: string;
   }): Promise<RmaLine> {
     const row = await this.queryOne<Record<string, unknown>>(
       `INSERT INTO rma_lines (
-        tenant_id, rma_id, sales_order_line_id, item_id, qty_expected, reason_code, unit_credit_amount
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        tenant_id, rma_id, sales_order_line_id, item_id, qty_expected, reason_code, unit_credit_amount, batch_no
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
       [
         data.tenantId,
         data.rmaId,
@@ -225,6 +226,7 @@ export class ReturnsRepository extends BaseRepository {
         data.qtyExpected,
         data.reasonCode,
         data.unitCreditAmount || null,
+        data.batchNo || null,
       ],
     );
     return this.mapRmaLine(row!);

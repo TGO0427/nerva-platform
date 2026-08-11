@@ -473,6 +473,22 @@ export class FulfilmentRepository extends BaseRepository {
     return rows.map((row) => this.mapShipmentLine(row));
   }
 
+  // All batches actually shipped for an order, across every shipment it
+  // has - used by Returns to show/prefill which batch a given item was
+  // shipped under when authorizing a return against that order.
+  async findShipmentLinesByOrder(tenantId: string, salesOrderId: string): Promise<ShipmentLine[]> {
+    const rows = await this.queryMany<Record<string, unknown>>(
+      `SELECT sl.*, i.sku AS item_sku, i.description AS item_description
+       FROM shipment_lines sl
+       JOIN items i ON i.id = sl.item_id
+       JOIN shipments s ON s.id = sl.shipment_id
+       WHERE s.sales_order_id = $1 AND sl.tenant_id = $2
+       ORDER BY sl.created_at`,
+      [salesOrderId, tenantId],
+    );
+    return rows.map((row) => this.mapShipmentLine(row));
+  }
+
   async findPickedBatchesByOrderLine(
     salesOrderLineId: string,
   ): Promise<Array<{ batchNo: string | null; qtyPicked: number }>> {

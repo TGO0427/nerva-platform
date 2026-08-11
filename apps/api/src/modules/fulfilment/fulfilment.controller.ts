@@ -347,4 +347,14 @@ export class FulfilmentController {
   ) {
     return this.service.getShipmentsByOrder(orderId);
   }
+
+  @Get("orders/:orderId/shipment-lines")
+  @RequirePermissions("shipment.read")
+  @ApiOperation({ summary: "Get all shipped batches for an order, across its shipments" })
+  async getShipmentLinesByOrder(
+    @TenantId() tenantId: string,
+    @Param("orderId", UuidValidationPipe) orderId: string,
+  ) {
+    return this.service.getShipmentLinesByOrder(tenantId, orderId);
+  }
 }

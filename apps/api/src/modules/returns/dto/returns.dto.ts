@@ -36,6 +36,13 @@ export class CreateRmaLineDto {
   @IsOptional()
   @IsUUID()
   salesOrderLineId?: string;
+
+  // Expected batch, e.g. pre-filled from what was actually shipped for
+  // this order line - confirmed or corrected for real at receive time.
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  batchNo?: string;
 }
 
 export class CreateRmaDto {

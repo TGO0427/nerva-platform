@@ -38,6 +38,7 @@ export class ReturnsService {
       reasonCode: string;
       unitCreditAmount?: number;
       salesOrderLineId?: string;
+      batchNo?: string;
     }>;
   }): Promise<Rma> {
     const rmaNo = await this.repository.generateRmaNo(data.tenantId);

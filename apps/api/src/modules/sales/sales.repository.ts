@@ -30,6 +30,8 @@ export interface SalesOrderLine {
   salesOrderId: string;
   lineNo: number;
   itemId: string;
+  itemSku?: string;
+  itemDescription?: string;
   qtyOrdered: number;
   qtyAllocated: number;
   qtyPicked: number;
@@ -248,7 +250,11 @@ export class SalesRepository extends BaseRepository {
 
   async getOrderLines(salesOrderId: string): Promise<SalesOrderLine[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      "SELECT * FROM sales_order_lines WHERE sales_order_id = $1 ORDER BY line_no",
+      `SELECT sol.*, i.sku as item_sku, i.description as item_description
+       FROM sales_order_lines sol
+       JOIN items i ON i.id = sol.item_id
+       WHERE sol.sales_order_id = $1
+       ORDER BY sol.line_no`,
       [salesOrderId],
     );
     return rows.map(this.mapOrderLine);
@@ -624,6 +630,8 @@ export class SalesRepository extends BaseRepository {
       salesOrderId: row.sales_order_id as string,
       lineNo: row.line_no as number,
       itemId: row.item_id as string,
+      itemSku: row.item_sku as string | undefined,
+      itemDescription: row.item_description as string | undefined,
       qtyOrdered: parseFloat(row.qty_ordered as string),
       qtyAllocated: parseFloat(row.qty_allocated as string),
       qtyPicked: parseFloat(row.qty_picked as string),

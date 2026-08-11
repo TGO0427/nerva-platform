@@ -14,14 +14,16 @@ import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import {
   useCustomers,
-  useItems,
   useWarehouses,
   useOrders,
+  useOrder,
+  useShipmentLinesByOrder,
   useCreateRma,
+  SalesOrderLineWithItem,
 } from '@/lib/queries';
 import { useDebounce } from '@/lib/hooks/use-debounce';
 import { RETURN_REASON_CODES } from '@nerva/shared';
-import type { Customer, Item } from '@nerva/shared';
+import type { Customer } from '@nerva/shared';
 
 const RETURN_TYPE_OPTIONS = [
   { value: 'CUSTOMER', label: 'Customer Return' },
@@ -38,9 +40,11 @@ interface RmaLineDraft {
   itemId?: string;
   itemSku?: string;
   itemDescription?: string;
+  salesOrderLineId?: string;
   qtyExpected: number;
   reasonCode: string;
   unitCreditAmount?: number;
+  batchNo?: string;
 }
 
 function uid() {
@@ -63,10 +67,6 @@ export default function NewRmaPage() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const debouncedCustomerSearch = useDebounce(customerSearch, 300);
 
-  const [itemSearch, setItemSearch] = useState('');
-  const [showItemDropdown, setShowItemDropdown] = useState(false);
-  const debouncedItemSearch = useDebounce(itemSearch, 300);
-
   const [lines, setLines] = useState<RmaLineDraft[]>([]);
 
   const { data: customersData, isLoading: customersLoading } = useCustomers({
@@ -74,21 +74,29 @@ export default function NewRmaPage() {
     limit: 20,
     search: debouncedCustomerSearch || undefined,
   });
-  const { data: itemsData, isLoading: itemsLoading } = useItems({
-    page: 1,
-    limit: 20,
-    search: debouncedItemSearch || undefined,
-  });
   const { data: warehouses, isLoading: warehousesLoading } = useWarehouses();
   const { data: ordersData } = useOrders({
     page: 1,
     limit: 50,
     customerId: selectedCustomer?.id,
   });
+  // The order's own lines - items eligible for this return can only be
+  // items that order actually contained.
+  const { data: selectedOrder, isLoading: orderLinesLoading } = useOrder(salesOrderId || undefined);
+  // What batch each of those lines actually shipped under, so the batch
+  // doesn't have to be re-typed from memory when authorizing the return.
+  const { data: shipmentLines } = useShipmentLinesByOrder(salesOrderId || undefined);
 
   const customers = customersData?.data || [];
-  const items = itemsData?.data || [];
   const orders = selectedCustomer ? ordersData?.data || [] : [];
+  const orderLines = selectedOrder?.lines || [];
+
+  const batchByOrderLine = new Map<string, string>();
+  for (const sl of shipmentLines || []) {
+    if (sl.batchNo && !batchByOrderLine.has(sl.salesOrderLineId)) {
+      batchByOrderLine.set(sl.salesOrderLineId, sl.batchNo);
+    }
+  }
 
   useEffect(() => {
     if (warehouses && warehouses.length === 1 && !warehouseId) {
@@ -96,10 +104,17 @@ export default function NewRmaPage() {
     }
   }, [warehouses, warehouseId]);
 
-  // Original order is customer-specific - clear it if the customer changes.
+  // Original order is customer-specific - clear it (and any lines already
+  // picked from it) if the customer changes.
   useEffect(() => {
     setSalesOrderId('');
+    setLines([]);
   }, [selectedCustomer?.id]);
+
+  // Switching orders invalidates any lines picked from the previous one.
+  useEffect(() => {
+    setLines([]);
+  }, [salesOrderId]);
 
   const handleSelectCustomer = useCallback((customer: Customer) => {
     setSelectedCustomer(customer);
@@ -113,26 +128,26 @@ export default function NewRmaPage() {
     setCustomerSearch('');
   }, []);
 
-  const handleAddItem = useCallback((item: Item) => {
+  const handleAddOrderLine = useCallback((orderLine: SalesOrderLineWithItem) => {
     setLines((prev) => {
-      if (prev.some((l) => l.itemId === item.id)) return prev;
+      if (prev.some((l) => l.salesOrderLineId === orderLine.id)) return prev;
       return [
         ...prev,
         {
           tempId: uid(),
-          itemId: item.id,
-          itemSku: item.sku,
-          itemDescription: item.description,
-          qtyExpected: 1,
+          itemId: orderLine.itemId,
+          itemSku: orderLine.itemSku,
+          itemDescription: orderLine.itemDescription,
+          salesOrderLineId: orderLine.id,
+          qtyExpected: orderLine.qtyShipped > 0 ? orderLine.qtyShipped : 1,
           reasonCode: 'DAMAGED',
           unitCreditAmount: undefined,
+          batchNo: batchByOrderLine.get(orderLine.id),
         },
       ];
     });
-    setItemSearch('');
-    setShowItemDropdown(false);
     setError('');
-  }, []);
+  }, [batchByOrderLine]);
 
   const handleUpdateLine = useCallback(
     (tempId: string, field: 'qtyExpected' | 'unitCreditAmount', value: string) => {
@@ -147,6 +162,10 @@ export default function NewRmaPage() {
 
   const handleUpdateReason = useCallback((tempId: string, reasonCode: string) => {
     setLines((prev) => prev.map((l) => (l.tempId === tempId ? { ...l, reasonCode } : l)));
+  }, []);
+
+  const handleUpdateBatch = useCallback((tempId: string, batchNo: string) => {
+    setLines((prev) => prev.map((l) => (l.tempId === tempId ? { ...l, batchNo: batchNo || undefined } : l)));
   }, []);
 
   const handleRemoveLine = useCallback((tempId: string) => {
@@ -189,6 +208,8 @@ export default function NewRmaPage() {
           qtyExpected: l.qtyExpected,
           reasonCode: l.reasonCode,
           unitCreditAmount: l.unitCreditAmount,
+          salesOrderLineId: l.salesOrderLineId,
+          batchNo: l.batchNo,
         })),
       });
       addToast('RMA created', 'success');
@@ -340,52 +361,52 @@ export default function NewRmaPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="relative mb-4">
-              <Input
-                value={itemSearch}
-                onChange={(e) => {
-                  setItemSearch(e.target.value);
-                  setShowItemDropdown(true);
-                }}
-                onFocus={() => setShowItemDropdown(true)}
-                placeholder="Search items by SKU or description..."
-                className="w-full"
-              />
-              {showItemDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-surface-card dark:bg-surface-dark-card border border-surface-border dark:border-surface-dark-border rounded-lg shadow-lg max-h-64 overflow-auto">
-                  {itemsLoading ? (
-                    <div className="p-4 text-center">
-                      <Spinner size="sm" />
-                    </div>
-                  ) : items.length === 0 ? (
-                    <div className="p-4 text-center text-text-muted dark:text-text-dark-muted text-sm">
-                      No items found
-                    </div>
-                  ) : (
-                    items.map((item) => (
+            {!salesOrderId ? (
+              <div className="text-center py-8 mb-4 border-2 border-dashed border-surface-border dark:border-surface-dark-border rounded-lg">
+                <p className="text-sm text-text-muted dark:text-text-dark-muted">
+                  Select the original order above to see its items
+                </p>
+              </div>
+            ) : orderLinesLoading ? (
+              <div className="text-center py-8 mb-4">
+                <Spinner size="sm" />
+              </div>
+            ) : (
+              (() => {
+                const addableLines = orderLines.filter(
+                  (ol) => !lines.some((l) => l.salesOrderLineId === ol.id),
+                );
+                return addableLines.length === 0 ? null : (
+                  <div className="mb-4 border border-surface-border dark:border-surface-dark-border rounded-lg divide-y divide-surface-border dark:divide-surface-dark-border max-h-64 overflow-auto">
+                    {addableLines.map((ol) => (
                       <button
-                        key={item.id}
+                        key={ol.id}
                         type="button"
-                        className="w-full px-4 py-3 text-left hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary border-b last:border-b-0"
-                        onClick={() => handleAddItem(item)}
+                        className="w-full px-4 py-3 text-left hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary flex items-center justify-between gap-4"
+                        onClick={() => handleAddOrderLine(ol)}
                       >
-                        <div className="flex justify-between">
-                          <span className="font-medium text-text-primary dark:text-text-dark-primary">{item.sku}</span>
-                          <span className="text-sm text-text-muted dark:text-text-dark-muted">{item.uom}</span>
+                        <div>
+                          <div className="font-medium text-text-primary dark:text-text-dark-primary">{ol.itemSku}</div>
+                          <div className="text-sm text-text-secondary dark:text-text-dark-secondary">{ol.itemDescription}</div>
                         </div>
-                        <div className="text-sm text-text-secondary dark:text-text-dark-secondary">{item.description}</div>
+                        <div className="text-right text-sm text-text-muted dark:text-text-dark-muted whitespace-nowrap">
+                          <div>Shipped: {ol.qtyShipped}</div>
+                          {batchByOrderLine.get(ol.id) && <div>Batch: {batchByOrderLine.get(ol.id)}</div>}
+                        </div>
                       </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                );
+              })()
+            )}
 
             {lines.length === 0 ? (
               <div className="text-center py-12 border-2 border-dashed border-surface-border dark:border-surface-dark-border rounded-lg">
                 <BoxIcon className="mx-auto h-12 w-12 text-text-muted dark:text-text-dark-muted mb-3" />
                 <p className="text-text-muted dark:text-text-dark-muted">No items added yet</p>
-                <p className="text-sm text-text-muted dark:text-text-dark-muted">Search and select items above</p>
+                <p className="text-sm text-text-muted dark:text-text-dark-muted">
+                  {salesOrderId ? 'Select items from the original order above' : 'Select an original order above first'}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -393,6 +414,7 @@ export default function NewRmaPage() {
                   <thead>
                     <tr className="border-b border-surface-border dark:border-surface-dark-border">
                       <th className="text-left py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase">Item</th>
+                      <th className="text-left py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase w-36">Batch</th>
                       <th className="text-left py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase">Reason</th>
                       <th className="text-right py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase w-24">Qty</th>
                       <th className="text-right py-3 px-2 text-xs font-medium text-text-muted dark:text-text-dark-muted uppercase w-36">Unit Credit</th>
@@ -405,6 +427,14 @@ export default function NewRmaPage() {
                         <td className="py-3 px-2">
                           <div className="font-medium">{line.itemSku}</div>
                           <div className="text-sm text-text-secondary dark:text-text-dark-secondary">{line.itemDescription}</div>
+                        </td>
+                        <td className="py-3 px-2">
+                          <Input
+                            value={line.batchNo ?? ''}
+                            onChange={(e) => handleUpdateBatch(line.tempId, e.target.value)}
+                            placeholder="Batch #"
+                            className="w-32"
+                          />
                         </td>
                         <td className="py-3 px-2">
                           <Select
@@ -464,13 +494,10 @@ export default function NewRmaPage() {
         </div>
       </div>
 
-      {(showCustomerDropdown || showItemDropdown) && (
+      {showCustomerDropdown && (
         <div
           className="fixed inset-0 z-0"
-          onClick={() => {
-            setShowCustomerDropdown(false);
-            setShowItemDropdown(false);
-          }}
+          onClick={() => setShowCustomerDropdown(false)}
         />
       )}
     </div>

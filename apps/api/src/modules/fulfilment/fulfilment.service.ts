@@ -657,4 +657,8 @@ export class FulfilmentService {
   async getShipmentsByOrder(salesOrderId: string): Promise<Shipment[]> {
     return this.repository.findShipmentsByOrder(salesOrderId);
   }
+
+  async getShipmentLinesByOrder(tenantId: string, salesOrderId: string): Promise<ShipmentLine[]> {
+    return this.repository.findShipmentLinesByOrder(tenantId, salesOrderId);
+  }
 }

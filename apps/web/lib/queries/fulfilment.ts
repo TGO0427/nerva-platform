@@ -302,6 +302,20 @@ export function useShipmentLines(shipmentId: string | undefined) {
   });
 }
 
+// Every batch actually shipped for an order, across all of its shipments -
+// used by Returns to show/prefill which batch a given item was shipped
+// under when authorizing a return against that order.
+export function useShipmentLinesByOrder(orderId: string | undefined) {
+  return useQuery({
+    queryKey: [SHIPMENTS_KEY, 'by-order', orderId, 'lines'],
+    queryFn: async () => {
+      const response = await api.get<ShipmentLine[]>(`/fulfilment/orders/${orderId}/shipment-lines`);
+      return response.data;
+    },
+    enabled: !!orderId,
+  });
+}
+
 export interface ShipmentQualityBlocker {
   itemId: string;
   itemSku: string;

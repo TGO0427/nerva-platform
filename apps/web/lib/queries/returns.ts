@@ -135,6 +135,7 @@ export function useCreateRma() {
         reasonCode: string;
         unitCreditAmount?: number;
         salesOrderLineId?: string;
+        batchNo?: string;
       }>;
     }) => {
       const response = await api.post<Rma>('/returns/rmas', data);
