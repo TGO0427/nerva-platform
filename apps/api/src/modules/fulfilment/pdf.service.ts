@@ -299,7 +299,7 @@ export class PdfService {
          c.billing_city, c.billing_postal_code, c.billing_country,
          c.shipping_address_line1, c.shipping_address_line2,
          c.shipping_city, c.shipping_postal_code, c.shipping_country,
-         c.contact_person, c.phone, c.email, c.vat_no,
+         c.phone, c.email, c.vat_no,
          so.shipping_address_line1 AS order_ship_line1,
          so.shipping_city AS order_ship_city
        FROM shipments s
@@ -354,7 +354,6 @@ export class PdfService {
           postalCode: customer.billing_postal_code || undefined,
           country: customer.billing_country || undefined,
           vatNo: customer.vat_no || undefined,
-          contactPerson: customer.contact_person || undefined,
           phone: customer.phone || undefined,
           email: customer.email || undefined,
         },

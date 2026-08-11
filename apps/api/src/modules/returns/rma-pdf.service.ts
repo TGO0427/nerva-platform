@@ -91,7 +91,6 @@ export class RmaPdfService {
         "Customer:",
         {
           name: customer.name,
-          contactPerson: customer.contact_person || undefined,
           addressLine1: customer.billing_address_line1 || undefined,
           addressLine2: customer.billing_address_line2 || undefined,
           city: customer.billing_city || undefined,
