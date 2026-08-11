@@ -10,15 +10,17 @@ const CREDIT_NOTES_KEY = 'credit-notes';
 export interface Rma {
   id: string;
   tenantId: string;
-  rmaNo: string;
+  siteId: string;
+  warehouseId: string;
   customerId: string;
   customerName?: string;
   customerCode?: string;
   salesOrderId: string | null;
-  orderNo?: string;
+  orderNo?: string | null;
+  shipmentId: string | null;
+  rmaNo: string;
   status: RmaStatus;
-  returnType: 'REFUND' | 'EXCHANGE' | 'REPAIR';
-  reason: string;
+  returnType: string;
   notes: string | null;
   createdBy: string | null;
   createdAt: string;
@@ -27,38 +29,49 @@ export interface Rma {
 
 export interface RmaLine {
   id: string;
+  tenantId: string;
   rmaId: string;
+  salesOrderLineId: string | null;
   itemId: string;
   itemSku?: string;
   itemDescription?: string;
-  qtyRequested: number;
+  qtyExpected: number;
   qtyReceived: number;
-  qtyInspected: number;
-  disposition: Disposition;
-  dispositionNotes: string | null;
-  condition: 'NEW' | 'GOOD' | 'DAMAGED' | 'DEFECTIVE' | null;
   receivingBinId: string | null;
   receivingBinCode?: string;
+  batchNo: string | null;
+  reasonCode: string;
+  disposition: Disposition;
+  dispositionBinId: string | null;
+  dispositionBinCode?: string;
+  inspectionNotes: string | null;
+  inspectedBy: string | null;
+  inspectedAt: string | null;
+  unitCreditAmount: number | null;
+  createdAt: string;
 }
 
 export interface CreditNote {
   id: string;
   tenantId: string;
-  creditNoteNo: string;
   rmaId: string;
   rmaNo?: string;
-  customerId: string;
+  customerId?: string;
   customerName?: string;
-  status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'POSTED' | 'CANCELLED';
-  amount: number;
+  creditNo: string | null;
+  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'POSTED' | 'CANCELLED';
+  subtotal: number;
+  taxAmount: number;
+  totalAmount: number;
   currency: string;
-  reason: string;
   notes: string | null;
+  createdBy: string | null;
   approvedBy: string | null;
   approvedAt: string | null;
   postedAt: string | null;
-  createdBy: string | null;
+  externalRef: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 // RMA queries
@@ -81,26 +94,28 @@ export function useRmas(params: QueryParams & { status?: RmaStatus; customerId?:
   });
 }
 
-export function useRma(id: string | undefined) {
+// GET /returns/rmas/:id returns { rma, lines } together - there's no
+// separate lines endpoint, so both useRma and useRmaLines below share
+// this one request rather than firing two.
+export function useRmaWithLines(id: string | undefined) {
   return useQuery({
     queryKey: [RMA_KEY, id],
     queryFn: async () => {
-      const response = await api.get<Rma>(`/returns/rmas/${id}`);
+      const response = await api.get<{ rma: Rma; lines: RmaLine[] }>(`/returns/rmas/${id}`);
       return response.data;
     },
     enabled: !!id,
   });
 }
 
-export function useRmaLines(rmaId: string | undefined) {
-  return useQuery({
-    queryKey: [RMA_KEY, rmaId, 'lines'],
-    queryFn: async () => {
-      const response = await api.get<RmaLine[]>(`/returns/rmas/${rmaId}/lines`);
-      return response.data;
-    },
-    enabled: !!rmaId,
-  });
+export function useRma(id: string | undefined) {
+  const { data, ...rest } = useRmaWithLines(id);
+  return { data: data?.rma, ...rest };
+}
+
+export function useRmaLines(id: string | undefined) {
+  const { data, ...rest } = useRmaWithLines(id);
+  return { data: data?.lines, ...rest };
 }
 
 export function useCreateRma() {
@@ -108,14 +123,18 @@ export function useCreateRma() {
 
   return useMutation({
     mutationFn: async (data: {
+      warehouseId: string;
       customerId: string;
       salesOrderId?: string;
-      returnType: 'REFUND' | 'EXCHANGE' | 'REPAIR';
-      reason: string;
+      shipmentId?: string;
+      returnType?: string;
       notes?: string;
       lines: Array<{
         itemId: string;
-        qtyRequested: number;
+        qtyExpected: number;
+        reasonCode: string;
+        unitCreditAmount?: number;
+        salesOrderLineId?: string;
       }>;
     }) => {
       const response = await api.post<Rma>('/returns/rmas', data);
@@ -149,29 +168,30 @@ export function useReceiveRmaLine() {
       lineId,
       qtyReceived,
       receivingBinId,
-      condition,
+      batchNo,
     }: {
       rmaId: string;
       lineId: string;
       qtyReceived: number;
       receivingBinId: string;
-      condition: 'NEW' | 'GOOD' | 'DAMAGED' | 'DEFECTIVE';
+      batchNo?: string;
     }) => {
-      const response = await api.post<RmaLine>(`/returns/rmas/${rmaId}/lines/${lineId}/receive`, {
+      const response = await api.post<RmaLine>(`/returns/rmas/${rmaId}/receive`, {
+        lineId,
         qtyReceived,
         receivingBinId,
-        condition,
+        batchNo,
       });
       return response.data;
     },
     onSuccess: (_, { rmaId }) => {
+      queryClient.invalidateQueries({ queryKey: [RMA_KEY] });
       queryClient.invalidateQueries({ queryKey: [RMA_KEY, rmaId] });
-      queryClient.invalidateQueries({ queryKey: [RMA_KEY, rmaId, 'lines'] });
     },
   });
 }
 
-export function useInspectRmaLine() {
+export function useSetRmaLineDisposition() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -179,22 +199,26 @@ export function useInspectRmaLine() {
       rmaId,
       lineId,
       disposition,
-      dispositionNotes,
+      dispositionBinId,
+      inspectionNotes,
     }: {
       rmaId: string;
       lineId: string;
       disposition: Disposition;
-      dispositionNotes?: string;
+      dispositionBinId: string;
+      inspectionNotes?: string;
     }) => {
-      const response = await api.post<RmaLine>(`/returns/rmas/${rmaId}/lines/${lineId}/inspect`, {
+      const response = await api.post<RmaLine>(`/returns/rmas/${rmaId}/disposition`, {
+        lineId,
         disposition,
-        dispositionNotes,
+        dispositionBinId,
+        inspectionNotes,
       });
       return response.data;
     },
     onSuccess: (_, { rmaId }) => {
+      queryClient.invalidateQueries({ queryKey: [RMA_KEY] });
       queryClient.invalidateQueries({ queryKey: [RMA_KEY, rmaId] });
-      queryClient.invalidateQueries({ queryKey: [RMA_KEY, rmaId, 'lines'] });
     },
   });
 }
@@ -274,7 +298,27 @@ export function useCreditNote(id: string | undefined) {
   });
 }
 
-export function useCreateCreditNote() {
+// Create a credit note from an RMA's own received/disposed lines -
+// amount is derived server-side from each line's unitCreditAmount x
+// qtyReceived, not something the caller specifies.
+export function useCreateCreditNoteFromRma() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (rmaId: string) => {
+      const response = await api.post<CreditNote>(`/finance/credits/from-rma/${rmaId}`);
+      return response.data;
+    },
+    onSuccess: (_, rmaId) => {
+      queryClient.invalidateQueries({ queryKey: [CREDIT_NOTES_KEY] });
+      queryClient.invalidateQueries({ queryKey: [RMA_KEY, rmaId] });
+    },
+  });
+}
+
+// Standalone credit note for an arbitrary amount not derived from RMA
+// line totals (e.g. a goodwill credit).
+export function useCreateStandaloneCreditNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -302,6 +346,21 @@ export function useDeleteCreditNote() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CREDIT_NOTES_KEY] });
+    },
+  });
+}
+
+export function useSubmitCreditNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (creditNoteId: string) => {
+      const response = await api.post<CreditNote>(`/finance/credits/${creditNoteId}/submit`);
+      return response.data;
+    },
+    onSuccess: (_, creditNoteId) => {
+      queryClient.invalidateQueries({ queryKey: [CREDIT_NOTES_KEY] });
+      queryClient.invalidateQueries({ queryKey: [CREDIT_NOTES_KEY, creditNoteId] });
     },
   });
 }

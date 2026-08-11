@@ -110,6 +110,13 @@ export class CreditsController {
     return this.service.createStandaloneCreditNote(tenantId, data, user.id);
   }
 
+  @Post(":id/submit")
+  @RequirePermissions("credit.create")
+  @ApiOperation({ summary: "Submit credit note for approval" })
+  async submit(@Param("id", UuidValidationPipe) id: string) {
+    return this.service.submitCreditNote(id);
+  }
+
   @Post(":id/approve")
   @RequirePermissions("credit.approve")
   @ApiOperation({ summary: "Approve credit note" })

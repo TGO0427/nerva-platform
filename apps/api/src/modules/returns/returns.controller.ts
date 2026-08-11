@@ -129,6 +129,7 @@ export class ReturnsController {
       data.qtyReceived,
       data.receivingBinId,
       user.id,
+      data.batchNo,
     );
   }
 

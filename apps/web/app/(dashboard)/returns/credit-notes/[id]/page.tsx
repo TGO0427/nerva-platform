@@ -18,6 +18,7 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import {
   useCreditNote,
   useDeleteCreditNote,
+  useSubmitCreditNote,
   useApproveCreditNote,
   usePostCreditNote,
   useCancelCreditNote,
@@ -35,6 +36,7 @@ export default function CreditNoteDetailPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const deleteCreditNote = useDeleteCreditNote();
+  const submitCreditNote = useSubmitCreditNote();
   const approveCreditNote = useApproveCreditNote();
   const postCreditNote = usePostCreditNote();
   const cancelCreditNote = useCancelCreditNote();
@@ -54,6 +56,22 @@ export default function CreditNoteDetailPage() {
     } catch (error) {
       console.error('Failed to delete credit note:', error);
       addToast('Failed to delete credit note', 'error');
+    }
+  };
+
+  const handleSubmit = async () => {
+    const confirmed = await confirm({
+      title: 'Submit Credit Note',
+      message: 'Submit this credit note for approval?',
+      confirmLabel: 'Submit',
+    });
+    if (!confirmed) return;
+    try {
+      await submitCreditNote.mutateAsync(creditNoteId);
+      addToast('Credit note submitted for approval', 'success');
+    } catch (error) {
+      console.error('Failed to submit credit note:', error);
+      addToast('Failed to submit credit note', 'error');
     }
   };
 
@@ -122,7 +140,8 @@ export default function CreditNoteDetailPage() {
   }
 
   const canDelete = creditNote.status === 'DRAFT';
-  const canApprove = creditNote.status === 'PENDING_APPROVAL';
+  const canSubmit = creditNote.status === 'DRAFT';
+  const canApprove = creditNote.status === 'SUBMITTED';
   const canPost = creditNote.status === 'APPROVED';
   const canCancel = !['POSTED', 'CANCELLED'].includes(creditNote.status);
 
@@ -133,7 +152,7 @@ export default function CreditNoteDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">{creditNote.creditNoteNo}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{creditNote.creditNo || creditNote.id.slice(0, 8)}</h1>
             <Badge variant={getStatusVariant(creditNote.status)}>
               {creditNote.status?.replace(/_/g, ' ')}
             </Badge>
@@ -143,10 +162,16 @@ export default function CreditNoteDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => downloadPdf(`/finance/credits/${creditNoteId}/pdf`, `CN-${creditNote.creditNoteNo}.pdf`)} className="print:hidden">
+          <Button variant="secondary" onClick={() => downloadPdf(`/finance/credits/${creditNoteId}/pdf`, `CN-${creditNote.creditNo || creditNoteId}.pdf`)} className="print:hidden">
             <DownloadIcon />
             Download PDF
           </Button>
+          {canSubmit && (
+            <Button onClick={handleSubmit} isLoading={submitCreditNote.isPending}>
+              <SendIcon />
+              Submit for Approval
+            </Button>
+          )}
           {canApprove && (
             <Button onClick={handleApprove} isLoading={approveCreditNote.isPending}>
               <CheckIcon />
@@ -224,18 +249,26 @@ export default function CreditNoteDetailPage() {
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">Amount</dt>
+                <dt className="text-slate-500">Subtotal</dt>
+                <dd className="font-medium">
+                  {formatCurrency(creditNote.subtotal, creditNote.currency)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">Tax</dt>
+                <dd className="font-medium">
+                  {formatCurrency(creditNote.taxAmount, creditNote.currency)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">Total Amount</dt>
                 <dd className="text-xl font-bold text-slate-900">
-                  {formatCurrency(creditNote.amount, creditNote.currency)}
+                  {formatCurrency(creditNote.totalAmount, creditNote.currency)}
                 </dd>
               </div>
               <div>
                 <dt className="text-slate-500">Currency</dt>
                 <dd className="font-medium">{creditNote.currency}</dd>
-              </div>
-              <div className="col-span-2">
-                <dt className="text-slate-500">Reason</dt>
-                <dd className="font-medium">{creditNote.reason}</dd>
               </div>
             </dl>
           </CardContent>
@@ -287,9 +320,9 @@ export default function CreditNoteDetailPage() {
         <RecordDocumentsPanel
           items={[
             {
-              label: `Credit Note ${creditNote.creditNoteNo}`,
+              label: `Credit Note ${creditNote.creditNo || creditNoteId.slice(0, 8)}`,
               description: 'Credit note PDF',
-              onClick: () => downloadPdf(`/finance/credits/${creditNoteId}/pdf`, `CN-${creditNote.creditNoteNo}.pdf`),
+              onClick: () => downloadPdf(`/finance/credits/${creditNoteId}/pdf`, `CN-${creditNote.creditNo || creditNoteId}.pdf`),
               badge: 'PDF',
             },
           ]}
@@ -332,7 +365,7 @@ function getStatusVariant(status: string): 'default' | 'success' | 'warning' | '
       return 'success';
     case 'APPROVED':
       return 'info';
-    case 'PENDING_APPROVAL':
+    case 'SUBMITTED':
       return 'warning';
     case 'DRAFT':
       return 'default';

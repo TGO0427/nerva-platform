@@ -1103,6 +1103,8 @@ CREATE TABLE IF NOT EXISTS rma_lines (
   item_id uuid NOT NULL REFERENCES items(id) ON DELETE RESTRICT,
   qty_expected numeric(18,6) NOT NULL,
   qty_received numeric(18,6) NOT NULL DEFAULT 0,
+  receiving_bin_id uuid REFERENCES bins(id) ON DELETE SET NULL,
+  batch_no text,
   reason_code text NOT NULL,  -- DAMAGED, DEFECTIVE, WRONG_ITEM, NOT_ORDERED, CHANGE_OF_MIND, OTHER
   disposition text NOT NULL DEFAULT 'PENDING', -- PENDING, RESTOCK, QUARANTINE, SCRAP, RETURN_TO_SUPPLIER
   disposition_bin_id uuid REFERENCES bins(id) ON DELETE SET NULL,
@@ -1337,8 +1339,10 @@ INSERT INTO permissions (code, description) VALUES
   ('rma.create', 'Create return authorizations'),
   ('rma.receive', 'Receive returned goods'),
   ('rma.disposition', 'Set return dispositions'),
+  ('rma.delete', 'Delete open RMAs'),
   ('credit.create', 'Create credit note drafts'),
   ('credit.approve', 'Approve credit notes'),
+  ('credit.delete', 'Delete draft credit notes'),
 
   -- Finance/Integration
   ('integration.manage', 'Manage integrations'),

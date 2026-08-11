@@ -189,6 +189,12 @@ export default function ReturnsPage() {
               Credit Notes
             </Button>
           </Link>
+          <Link href="/returns/new">
+            <Button>
+              <PlusIcon />
+              New RMA
+            </Button>
+          </Link>
         </div>
       }
       stats={[

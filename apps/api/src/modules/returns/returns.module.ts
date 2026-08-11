@@ -6,9 +6,10 @@ import { ReturnsRepository } from "./returns.repository";
 import { RmaPdfService } from "./rma-pdf.service";
 import { CreditNotePdfService } from "./credit-note-pdf.service";
 import { InventoryModule } from "../inventory/inventory.module";
+import { MasterDataModule } from "../masterdata/masterdata.module";
 
 @Module({
-  imports: [InventoryModule],
+  imports: [InventoryModule, MasterDataModule],
   controllers: [ReturnsController, CreditsController],
   providers: [
     ReturnsService,

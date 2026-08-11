@@ -19,7 +19,7 @@ import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
   { value: 'DRAFT', label: 'Draft' },
-  { value: 'PENDING_APPROVAL', label: 'Pending Approval' },
+  { value: 'SUBMITTED', label: 'Submitted' },
   { value: 'APPROVED', label: 'Approved' },
   { value: 'POSTED', label: 'Posted' },
   { value: 'CANCELLED', label: 'Cancelled' },
@@ -42,7 +42,7 @@ export default function CreditNotesPage() {
     if (search) {
       const q = search.toLowerCase();
       filtered = filtered.filter(c =>
-        c.creditNoteNo.toLowerCase().includes(q) ||
+        (c.creditNo && c.creditNo.toLowerCase().includes(q)) ||
         (c.customerName && c.customerName.toLowerCase().includes(q)) ||
         (c.rmaNo && c.rmaNo.toLowerCase().includes(q))
       );
@@ -52,11 +52,11 @@ export default function CreditNotesPage() {
 
   const allColumns: Column<CreditNote>[] = useMemo(() => [
     {
-      key: 'creditNoteNo',
+      key: 'creditNo',
       header: 'Credit Note No.',
       sortable: true,
       render: (row) => (
-        <span className="font-medium text-primary-600">{row.creditNoteNo}</span>
+        <span className="font-medium text-primary-600">{row.creditNo || row.id.slice(0, 8)}</span>
       ),
     },
     {
@@ -77,15 +77,15 @@ export default function CreditNotesPage() {
     {
       key: 'customerName',
       header: 'Customer',
-      render: (row) => row.customerName || row.customerId.slice(0, 8),
+      render: (row) => row.customerName || row.customerId?.slice(0, 8) || '-',
     },
     {
-      key: 'amount',
+      key: 'totalAmount',
       header: 'Amount',
       className: 'text-right',
       render: (row) => (
         <span className="font-medium">
-          {formatCurrency(row.amount, row.currency)}
+          {formatCurrency(row.totalAmount, row.currency)}
         </span>
       ),
     },
@@ -102,7 +102,7 @@ export default function CreditNotesPage() {
     visibleColumns,
     toggle: toggleColumn,
     reset: resetColumns,
-  } = useColumnVisibility(allColumns, { storageKey: 'credit-notes', alwaysVisible: ['creditNoteNo'] });
+  } = useColumnVisibility(allColumns, { storageKey: 'credit-notes', alwaysVisible: ['creditNo'] });
 
   const handleRowClick = (row: CreditNote) => {
     router.push(`/returns/credit-notes/${row.id}`);
@@ -110,12 +110,12 @@ export default function CreditNotesPage() {
 
   const handleExport = () => {
     const exportColumns = [
-      { key: 'creditNoteNo', header: 'Credit Note No.' },
+      { key: 'creditNo', header: 'Credit Note No.' },
       { key: 'status', header: 'Status', getValue: (row: CreditNote) => row.status?.replace(/_/g, ' ') },
       { key: 'rmaNo', header: 'RMA', getValue: (row: CreditNote) => row.rmaNo || row.rmaId.slice(0, 8) },
-      { key: 'customerName', header: 'Customer', getValue: (row: CreditNote) => row.customerName || row.customerId.slice(0, 8) },
+      { key: 'customerName', header: 'Customer', getValue: (row: CreditNote) => row.customerName || row.customerId?.slice(0, 8) || '-' },
       { key: 'currency', header: 'Currency' },
-      { key: 'amount', header: 'Amount', getValue: (row: CreditNote) => formatCurrencyForExport(row.amount) },
+      { key: 'totalAmount', header: 'Amount', getValue: (row: CreditNote) => formatCurrencyForExport(row.totalAmount) },
       { key: 'createdAt', header: 'Created', getValue: (row: CreditNote) => formatDateForExport(row.createdAt) },
     ];
 
@@ -123,9 +123,9 @@ export default function CreditNotesPage() {
   };
 
   const allData = data?.data || [];
-  const pendingApproval = allData.filter(c => c.status === 'PENDING_APPROVAL').length;
+  const pendingApproval = allData.filter(c => c.status === 'SUBMITTED').length;
   const approved = allData.filter(c => c.status === 'APPROVED').length;
-  const totalAmount = allData.reduce((sum, c) => sum + Number(c.amount), 0);
+  const totalAmount = allData.reduce((sum, c) => sum + Number(c.totalAmount), 0);
   const hasActiveFilters = Boolean(status || search);
 
   return (
@@ -189,7 +189,7 @@ export default function CreditNotesPage() {
             visibleKeys={visibleKeys}
             onToggle={toggleColumn}
             onReset={resetColumns}
-            alwaysVisible={['creditNoteNo']}
+            alwaysVisible={['creditNo']}
           />
           <ExportActions onExport={handleExport} />
         </div>
@@ -241,7 +241,7 @@ function getStatusVariant(status: string): 'default' | 'success' | 'warning' | '
   switch (status) {
     case 'POSTED': return 'success';
     case 'APPROVED': return 'info';
-    case 'PENDING_APPROVAL': return 'warning';
+    case 'SUBMITTED': return 'warning';
     case 'DRAFT': return 'default';
     case 'CANCELLED': return 'danger';
     default: return 'default';

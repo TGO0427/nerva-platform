@@ -88,6 +88,11 @@ export class ReceiveRmaLineDto {
   @ApiProperty()
   @IsUUID()
   receivingBinId: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  batchNo?: string;
 }
 
 export class SetDispositionDto {

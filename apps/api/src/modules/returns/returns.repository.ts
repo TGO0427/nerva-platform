@@ -7,7 +7,10 @@ export interface Rma {
   siteId: string;
   warehouseId: string;
   customerId: string;
+  customerName?: string;
+  customerCode?: string;
   salesOrderId: string | null;
+  orderNo?: string | null;
   shipmentId: string | null;
   rmaNo: string;
   status: string;
@@ -24,11 +27,17 @@ export interface RmaLine {
   rmaId: string;
   salesOrderLineId: string | null;
   itemId: string;
+  itemSku?: string;
+  itemDescription?: string;
   qtyExpected: number;
   qtyReceived: number;
+  receivingBinId: string | null;
+  receivingBinCode?: string;
+  batchNo: string | null;
   reasonCode: string;
   disposition: string;
   dispositionBinId: string | null;
+  dispositionBinCode?: string;
   inspectionNotes: string | null;
   inspectedBy: string | null;
   inspectedAt: Date | null;
@@ -40,6 +49,9 @@ export interface CreditNoteDraft {
   id: string;
   tenantId: string;
   rmaId: string;
+  rmaNo?: string;
+  customerId?: string;
+  customerName?: string;
   creditNo: string | null;
   status: string;
   subtotal: number;
@@ -94,7 +106,11 @@ export class ReturnsRepository extends BaseRepository {
 
   async findRmaById(id: string): Promise<Rma | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      "SELECT * FROM rmas WHERE id = $1",
+      `SELECT r.*, c.name as customer_name, c.code as customer_code, so.order_no
+       FROM rmas r
+       LEFT JOIN customers c ON c.id = r.customer_id
+       LEFT JOIN sales_orders so ON so.id = r.sales_order_id
+       WHERE r.id = $1`,
       [id],
     );
     return row ? this.mapRma(row) : null;
@@ -111,7 +127,11 @@ export class ReturnsRepository extends BaseRepository {
     limit = 50,
     offset = 0,
   ): Promise<Rma[]> {
-    let sql = "SELECT r.* FROM rmas r WHERE r.tenant_id = $1";
+    let sql = `SELECT r.*, c.name as customer_name, c.code as customer_code, so.order_no
+               FROM rmas r
+               LEFT JOIN customers c ON c.id = r.customer_id
+               LEFT JOIN sales_orders so ON so.id = r.sales_order_id
+               WHERE r.tenant_id = $1`;
     const params: unknown[] = [tenantId];
     let idx = 2;
 
@@ -212,7 +232,13 @@ export class ReturnsRepository extends BaseRepository {
 
   async findRmaLineById(id: string): Promise<RmaLine | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      "SELECT * FROM rma_lines WHERE id = $1",
+      `SELECT rl.*, i.sku as item_sku, i.description as item_description,
+              rb.code as receiving_bin_code, db.code as disposition_bin_code
+       FROM rma_lines rl
+       JOIN items i ON i.id = rl.item_id
+       LEFT JOIN bins rb ON rb.id = rl.receiving_bin_id
+       LEFT JOIN bins db ON db.id = rl.disposition_bin_id
+       WHERE rl.id = $1`,
       [id],
     );
     return row ? this.mapRmaLine(row) : null;
@@ -220,7 +246,14 @@ export class ReturnsRepository extends BaseRepository {
 
   async getRmaLines(rmaId: string): Promise<RmaLine[]> {
     const rows = await this.queryMany<Record<string, unknown>>(
-      "SELECT * FROM rma_lines WHERE rma_id = $1 ORDER BY created_at",
+      `SELECT rl.*, i.sku as item_sku, i.description as item_description,
+              rb.code as receiving_bin_code, db.code as disposition_bin_code
+       FROM rma_lines rl
+       JOIN items i ON i.id = rl.item_id
+       LEFT JOIN bins rb ON rb.id = rl.receiving_bin_id
+       LEFT JOIN bins db ON db.id = rl.disposition_bin_id
+       WHERE rl.rma_id = $1
+       ORDER BY rl.created_at`,
       [rmaId],
     );
     return rows.map(this.mapRmaLine);
@@ -229,10 +262,12 @@ export class ReturnsRepository extends BaseRepository {
   async receiveRmaLine(
     lineId: string,
     qtyReceived: number,
+    receivingBinId: string,
+    batchNo?: string,
   ): Promise<RmaLine | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      "UPDATE rma_lines SET qty_received = $1 WHERE id = $2 RETURNING *",
-      [qtyReceived, lineId],
+      "UPDATE rma_lines SET qty_received = $1, receiving_bin_id = $2, batch_no = $3 WHERE id = $4 RETURNING *",
+      [qtyReceived, receivingBinId, batchNo || null, lineId],
     );
     return row ? this.mapRmaLine(row) : null;
   }
@@ -293,7 +328,11 @@ export class ReturnsRepository extends BaseRepository {
 
   async findCreditNoteById(id: string): Promise<CreditNoteDraft | null> {
     const row = await this.queryOne<Record<string, unknown>>(
-      "SELECT * FROM credit_notes_draft WHERE id = $1",
+      `SELECT cnd.*, r.rma_no, r.customer_id, c.name as customer_name
+       FROM credit_notes_draft cnd
+       JOIN rmas r ON r.id = cnd.rma_id
+       LEFT JOIN customers c ON c.id = r.customer_id
+       WHERE cnd.id = $1`,
       [id],
     );
     return row ? this.mapCreditNote(row) : null;
@@ -305,11 +344,15 @@ export class ReturnsRepository extends BaseRepository {
     limit = 50,
     offset = 0,
   ): Promise<CreditNoteDraft[]> {
-    let sql = "SELECT * FROM credit_notes_draft WHERE tenant_id = $1";
+    let sql = `SELECT cnd.*, r.rma_no, r.customer_id, c.name as customer_name
+               FROM credit_notes_draft cnd
+               JOIN rmas r ON r.id = cnd.rma_id
+               LEFT JOIN customers c ON c.id = r.customer_id
+               WHERE cnd.tenant_id = $1`;
     const params: unknown[] = [tenantId];
 
     if (status) {
-      sql += " AND status = $2";
+      sql += " AND cnd.status = $2";
       params.push(status);
     }
 
@@ -333,6 +376,15 @@ export class ReturnsRepository extends BaseRepository {
     }
     const result = await this.queryOne<{ count: string }>(sql, params);
     return parseInt(result?.count || "0", 10);
+  }
+
+  async submitCreditNote(id: string): Promise<CreditNoteDraft | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `UPDATE credit_notes_draft SET status = 'SUBMITTED'
+       WHERE id = $1 AND status = 'DRAFT' RETURNING *`,
+      [id],
+    );
+    return row ? this.mapCreditNote(row) : null;
   }
 
   async approveCreditNote(
@@ -407,7 +459,10 @@ export class ReturnsRepository extends BaseRepository {
       siteId: row.site_id as string,
       warehouseId: row.warehouse_id as string,
       customerId: row.customer_id as string,
+      customerName: row.customer_name as string | undefined,
+      customerCode: row.customer_code as string | undefined,
       salesOrderId: row.sales_order_id as string | null,
+      orderNo: row.order_no as string | null | undefined,
       shipmentId: row.shipment_id as string | null,
       rmaNo: row.rma_no as string,
       status: row.status as string,
@@ -426,11 +481,17 @@ export class ReturnsRepository extends BaseRepository {
       rmaId: row.rma_id as string,
       salesOrderLineId: row.sales_order_line_id as string | null,
       itemId: row.item_id as string,
+      itemSku: row.item_sku as string | undefined,
+      itemDescription: row.item_description as string | undefined,
       qtyExpected: parseFloat(row.qty_expected as string),
       qtyReceived: parseFloat(row.qty_received as string),
+      receivingBinId: row.receiving_bin_id as string | null,
+      receivingBinCode: row.receiving_bin_code as string | undefined,
+      batchNo: row.batch_no as string | null,
       reasonCode: row.reason_code as string,
       disposition: row.disposition as string,
       dispositionBinId: row.disposition_bin_id as string | null,
+      dispositionBinCode: row.disposition_bin_code as string | undefined,
       inspectionNotes: row.inspection_notes as string | null,
       inspectedBy: row.inspected_by as string | null,
       inspectedAt: row.inspected_at as Date | null,
@@ -446,6 +507,9 @@ export class ReturnsRepository extends BaseRepository {
       id: row.id as string,
       tenantId: row.tenant_id as string,
       rmaId: row.rma_id as string,
+      rmaNo: row.rma_no as string | undefined,
+      customerId: row.customer_id as string | undefined,
+      customerName: row.customer_name as string | undefined,
       creditNo: row.credit_no as string | null,
       status: row.status as string,
       subtotal: parseFloat(row.subtotal as string) || 0,

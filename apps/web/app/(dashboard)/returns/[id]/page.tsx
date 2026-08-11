@@ -14,17 +14,33 @@ import { downloadPdf } from '@/lib/utils/export';
 import { useState } from 'react';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { Select } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert } from '@/components/ui/alert';
 import { formatDate } from '@/lib/format';
 import {
   useRma,
   useRmaLines,
   useDeleteRma,
+  useReceiveRmaLine,
+  useSetRmaLineDisposition,
   useCompleteRmaDisposition,
+  useCreateCreditNoteFromRma,
   useCloseRma,
   useCancelRma,
+  useBins,
+  useItem,
   RmaLine,
 } from '@/lib/queries';
 import type { RmaStatus, Disposition } from '@nerva/shared';
+
+const DISPOSITION_OPTIONS: { value: Disposition; label: string }[] = [
+  { value: 'RESTOCK', label: 'Restock (return to sellable stock)' },
+  { value: 'QUARANTINE', label: 'Quarantine (hold for review)' },
+  { value: 'SCRAP', label: 'Scrap (remove from inventory)' },
+  { value: 'RETURN_TO_SUPPLIER', label: 'Return to Supplier' },
+];
 
 export default function RmaDetailPage() {
   const params = useParams();
@@ -33,15 +49,115 @@ export default function RmaDetailPage() {
 
   const { data: rma, isLoading: rmaLoading } = useRma(rmaId);
   const { data: lines, isLoading: linesLoading } = useRmaLines(rmaId);
+  const { data: bins } = useBins(rma?.warehouseId);
+  const binOptions = (bins || []).map((b) => ({ value: b.id, label: b.code }));
 
   const { addToast } = useToast();
   const { confirm } = useConfirm();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [receiveModalLine, setReceiveModalLine] = useState<RmaLine | null>(null);
+  const [receiveQty, setReceiveQty] = useState('');
+  const [receiveBinId, setReceiveBinId] = useState('');
+  const [receiveBatchNo, setReceiveBatchNo] = useState('');
+  const { data: receiveModalItem } = useItem(receiveModalLine?.itemId);
+  const [dispositionModalLine, setDispositionModalLine] = useState<RmaLine | null>(null);
+  const [dispositionValue, setDispositionValue] = useState<Disposition>('RESTOCK');
+  const [dispositionBinId, setDispositionBinId] = useState('');
+  const [dispositionNotes, setDispositionNotes] = useState('');
+  const [modalError, setModalError] = useState('');
+
   const deleteRma = useDeleteRma();
+  const receiveLine = useReceiveRmaLine();
+  const setDisposition = useSetRmaLineDisposition();
   const completeDisposition = useCompleteRmaDisposition();
+  const createCreditNote = useCreateCreditNoteFromRma();
   const closeRma = useCloseRma();
   const cancelRma = useCancelRma();
+
+  const openReceiveModal = (line: RmaLine) => {
+    setReceiveModalLine(line);
+    setReceiveQty(String(line.qtyExpected - line.qtyReceived));
+    setReceiveBinId('');
+    setReceiveBatchNo('');
+    setModalError('');
+  };
+
+  const handleReceiveSubmit = async () => {
+    if (!receiveModalLine) return;
+    const qty = parseFloat(receiveQty);
+    if (isNaN(qty) || qty <= 0) {
+      setModalError('Enter a valid quantity');
+      return;
+    }
+    if (!receiveBinId) {
+      setModalError('Select a receiving bin');
+      return;
+    }
+    if (receiveModalItem?.requiresBatchTracking && !receiveBatchNo.trim()) {
+      setModalError('This item requires a batch/lot number');
+      return;
+    }
+    try {
+      await receiveLine.mutateAsync({
+        rmaId,
+        lineId: receiveModalLine.id,
+        qtyReceived: qty,
+        receivingBinId: receiveBinId,
+        batchNo: receiveBatchNo || undefined,
+      });
+      setReceiveModalLine(null);
+      addToast('Return line received', 'success');
+    } catch (error) {
+      setModalError(error instanceof Error ? error.message : 'Failed to receive line');
+    }
+  };
+
+  const openDispositionModal = (line: RmaLine) => {
+    setDispositionModalLine(line);
+    setDispositionValue('RESTOCK');
+    setDispositionBinId('');
+    setDispositionNotes('');
+    setModalError('');
+  };
+
+  const handleDispositionSubmit = async () => {
+    if (!dispositionModalLine) return;
+    if (!dispositionBinId) {
+      setModalError('Select a disposition bin');
+      return;
+    }
+    try {
+      await setDisposition.mutateAsync({
+        rmaId,
+        lineId: dispositionModalLine.id,
+        disposition: dispositionValue,
+        dispositionBinId,
+        inspectionNotes: dispositionNotes || undefined,
+      });
+      setDispositionModalLine(null);
+      addToast('Disposition set', 'success');
+    } catch (error) {
+      setModalError(error instanceof Error ? error.message : 'Failed to set disposition');
+    }
+  };
+
+  const handleCreateCreditNote = async () => {
+    const confirmed = await confirm({
+      title: 'Create Credit Note',
+      message: 'Create a credit note from this RMA\'s received lines?',
+      confirmLabel: 'Create',
+    });
+    if (!confirmed) return;
+    try {
+      const creditNote = await createCreditNote.mutateAsync(rmaId);
+      addToast('Credit note created', 'success');
+      router.push(`/returns/credit-notes/${creditNote.id}`);
+    } catch (error) {
+      console.error('Failed to create credit note:', error);
+      addToast('Failed to create credit note', 'error');
+    }
+  };
 
   const lineColumns: Column<RmaLine>[] = [
     {
@@ -57,8 +173,13 @@ export default function RmaDetailPage() {
       render: (row) => row.itemDescription || '-',
     },
     {
-      key: 'qtyRequested',
-      header: 'Requested',
+      key: 'reasonCode',
+      header: 'Reason',
+      render: (row) => row.reasonCode?.replace(/_/g, ' ') || '-',
+    },
+    {
+      key: 'qtyExpected',
+      header: 'Expected',
       className: 'text-right',
     },
     {
@@ -66,22 +187,20 @@ export default function RmaDetailPage() {
       header: 'Received',
       className: 'text-right',
       render: (row) => (
-        <span className={row.qtyReceived >= row.qtyRequested ? 'text-green-600' : 'text-orange-600'}>
+        <span className={row.qtyReceived >= row.qtyExpected ? 'text-green-600' : 'text-orange-600'}>
           {row.qtyReceived}
         </span>
       ),
     },
     {
-      key: 'qtyInspected',
-      header: 'Inspected',
-      className: 'text-right',
+      key: 'receivingBinCode',
+      header: 'Received Into',
+      render: (row) => row.receivingBinCode || '-',
     },
     {
-      key: 'condition',
-      header: 'Condition',
-      render: (row) => row.condition ? (
-        <Badge variant={getConditionVariant(row.condition)}>{row.condition}</Badge>
-      ) : '-',
+      key: 'batchNo',
+      header: 'Batch',
+      render: (row) => row.batchNo || '-',
     },
     {
       key: 'disposition',
@@ -93,9 +212,37 @@ export default function RmaDetailPage() {
       ),
     },
     {
-      key: 'receivingBinCode',
-      header: 'Bin',
-      render: (row) => row.receivingBinCode || '-',
+      key: 'dispositionBinCode',
+      header: 'Disposition Bin',
+      render: (row) => row.dispositionBinCode || '-',
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (row) => {
+        const canReceive = row.qtyReceived < row.qtyExpected;
+        const canDispose = row.qtyReceived > 0 && row.disposition === 'PENDING';
+        return (
+          <div className="flex gap-2">
+            {canReceive && (
+              <button
+                onClick={() => openReceiveModal(row)}
+                className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              >
+                Receive
+              </button>
+            )}
+            {canDispose && (
+              <button
+                onClick={() => openDispositionModal(row)}
+                className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
+              >
+                Set Disposition
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -181,12 +328,13 @@ export default function RmaDetailPage() {
     );
   }
 
-  const totalRequested = lines?.reduce((sum, l) => sum + l.qtyRequested, 0) || 0;
+  const totalExpected = lines?.reduce((sum, l) => sum + l.qtyExpected, 0) || 0;
   const totalReceived = lines?.reduce((sum, l) => sum + l.qtyReceived, 0) || 0;
-  const totalInspected = lines?.reduce((sum, l) => sum + l.qtyInspected, 0) || 0;
+  const totalDisposed = lines?.filter((l) => l.disposition !== 'PENDING').length || 0;
 
   const canDelete = rma.status === 'OPEN';
   const canCompleteDisposition = rma.status === 'INSPECTING';
+  const canCreateCreditNote = rma.status === 'DISPOSITION_COMPLETE';
   const canClose = ['CREDIT_APPROVED', 'DISPOSITION_COMPLETE'].includes(rma.status);
   const canCancel = !['CLOSED', 'CANCELLED'].includes(rma.status);
   const relatedRecords = [
@@ -230,6 +378,12 @@ export default function RmaDetailPage() {
             <Button onClick={handleCompleteDisposition} isLoading={completeDisposition.isPending}>
               <CheckIcon />
               Complete Disposition
+            </Button>
+          )}
+          {canCreateCreditNote && (
+            <Button onClick={handleCreateCreditNote} isLoading={createCreditNote.isPending}>
+              <CreditIcon />
+              Create Credit Note
             </Button>
           )}
           {canClose && (
@@ -279,17 +433,133 @@ export default function RmaDetailPage() {
         </div>
       )}
 
+      {receiveModalLine && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Receive Return Line</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="text-sm text-slate-600">
+                  <p><span className="font-medium">Item:</span> {receiveModalLine.itemSku || receiveModalLine.itemId.slice(0, 8)}</p>
+                  <p><span className="font-medium">Expected:</span> {receiveModalLine.qtyExpected} (already received: {receiveModalLine.qtyReceived})</p>
+                </div>
+
+                {modalError && <Alert variant="error">{modalError}</Alert>}
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Quantity Received</label>
+                  <Input
+                    type="number"
+                    value={receiveQty}
+                    onChange={(e) => setReceiveQty(e.target.value)}
+                    min={0}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Receiving Bin</label>
+                  <Select
+                    value={receiveBinId}
+                    onChange={(e) => setReceiveBinId(e.target.value)}
+                    options={[{ value: '', label: 'Select a bin...' }, ...binOptions]}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Batch/Lot No{receiveModalItem?.requiresBatchTracking && <span className="text-red-500"> *</span>}
+                  </label>
+                  <Input
+                    value={receiveBatchNo}
+                    onChange={(e) => setReceiveBatchNo(e.target.value)}
+                    placeholder="Batch/lot number on the returned goods"
+                  />
+                  {receiveModalItem?.requiresBatchTracking && (
+                    <p className="text-xs text-amber-600 mt-1">This item requires a batch/lot number</p>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={handleReceiveSubmit} isLoading={receiveLine.isPending} className="flex-1">
+                    Receive
+                  </Button>
+                  <Button variant="secondary" onClick={() => setReceiveModalLine(null)} className="flex-1">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {dispositionModalLine && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Set Disposition</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="text-sm text-slate-600">
+                  <p><span className="font-medium">Item:</span> {dispositionModalLine.itemSku || dispositionModalLine.itemId.slice(0, 8)}</p>
+                  <p><span className="font-medium">Qty Received:</span> {dispositionModalLine.qtyReceived}</p>
+                </div>
+
+                {modalError && <Alert variant="error">{modalError}</Alert>}
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Disposition</label>
+                  <Select
+                    value={dispositionValue}
+                    onChange={(e) => setDispositionValue(e.target.value as Disposition)}
+                    options={DISPOSITION_OPTIONS}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {dispositionValue === 'SCRAP' ? 'Scrap Bin' : 'Destination Bin'}
+                  </label>
+                  <Select
+                    value={dispositionBinId}
+                    onChange={(e) => setDispositionBinId(e.target.value)}
+                    options={[{ value: '', label: 'Select a bin...' }, ...binOptions]}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Inspection Notes</label>
+                  <Textarea
+                    value={dispositionNotes}
+                    onChange={(e) => setDispositionNotes(e.target.value)}
+                    rows={2}
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={handleDispositionSubmit} isLoading={setDisposition.isPending} className="flex-1">
+                    Save Disposition
+                  </Button>
+                  <Button variant="secondary" onClick={() => setDispositionModalLine(null)} className="flex-1">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">{totalRequested}</div>
-            <p className="text-sm text-slate-500">Qty Requested</p>
+            <div className="text-2xl font-bold text-slate-900">{totalExpected}</div>
+            <p className="text-sm text-slate-500">Qty Expected</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className={`text-2xl font-bold ${totalReceived >= totalRequested ? 'text-green-600' : 'text-orange-600'}`}>
+            <div className={`text-2xl font-bold ${totalReceived >= totalExpected ? 'text-green-600' : 'text-orange-600'}`}>
               {totalReceived}
             </div>
             <p className="text-sm text-slate-500">Qty Received</p>
@@ -297,8 +567,8 @@ export default function RmaDetailPage() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">{totalInspected}</div>
-            <p className="text-sm text-slate-500">Qty Inspected</p>
+            <div className="text-2xl font-bold text-blue-600">{totalDisposed}/{lines?.length || 0}</div>
+            <p className="text-sm text-slate-500">Lines Disposed</p>
           </CardContent>
         </Card>
         <Card>
@@ -332,10 +602,6 @@ export default function RmaDetailPage() {
               <div>
                 <dt className="text-slate-500">Return Type</dt>
                 <dd className="font-medium">{rma.returnType}</dd>
-              </div>
-              <div className="col-span-2">
-                <dt className="text-slate-500">Reason</dt>
-                <dd className="font-medium">{rma.reason}</dd>
               </div>
             </dl>
           </CardContent>
@@ -462,21 +728,6 @@ function getStatusVariant(status: RmaStatus): 'default' | 'success' | 'warning' 
   }
 }
 
-function getConditionVariant(condition: string): 'default' | 'success' | 'warning' | 'danger' | 'info' {
-  switch (condition) {
-    case 'NEW':
-      return 'success';
-    case 'GOOD':
-      return 'info';
-    case 'DAMAGED':
-      return 'warning';
-    case 'DEFECTIVE':
-      return 'danger';
-    default:
-      return 'default';
-  }
-}
-
 function getDispositionVariant(disposition: Disposition): 'default' | 'success' | 'warning' | 'danger' | 'info' {
   switch (disposition) {
     case 'RESTOCK':
@@ -521,6 +772,14 @@ function XIcon() {
   return (
     <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function CreditIcon() {
+  return (
+    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
     </svg>
   );
 }

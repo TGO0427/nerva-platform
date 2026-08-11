@@ -8,11 +8,13 @@ import {
   CreditNoteDraft,
 } from "./returns.repository";
 import { StockLedgerService } from "../inventory/stock-ledger.service";
+import { MasterDataService } from "../masterdata/masterdata.service";
 
 describe("ReturnsService", () => {
   let service: ReturnsService;
   let repository: jest.Mocked<ReturnsRepository>;
   let stockLedger: jest.Mocked<StockLedgerService>;
+  let masterDataService: jest.Mocked<MasterDataService>;
 
   const mockRma: Rma = {
     id: "rma-123",
@@ -39,6 +41,8 @@ describe("ReturnsService", () => {
     itemId: "item-123",
     qtyExpected: 5,
     qtyReceived: 0,
+    receivingBinId: null,
+    batchNo: null,
     reasonCode: "DAMAGED",
     disposition: "PENDING",
     dispositionBinId: null,
@@ -93,6 +97,7 @@ describe("ReturnsService", () => {
             findCreditNoteById: jest.fn(),
             findCreditNotesByTenant: jest.fn(),
             countCreditNotesByTenant: jest.fn(),
+            submitCreditNote: jest.fn(),
             approveCreditNote: jest.fn(),
             postCreditNote: jest.fn(),
             cancelCreditNote: jest.fn(),
@@ -105,12 +110,25 @@ describe("ReturnsService", () => {
             recordMovement: jest.fn(),
           },
         },
+        {
+          provide: MasterDataService,
+          useValue: {
+            getItem: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<ReturnsService>(ReturnsService);
     repository = module.get(ReturnsRepository);
     stockLedger = module.get(StockLedgerService);
+    masterDataService = module.get(MasterDataService);
+
+    masterDataService.getItem.mockResolvedValue({
+      id: "item-123",
+      sku: "ITEM-123",
+      requiresBatchTracking: false,
+    } as never);
   });
 
   afterEach(() => {
@@ -250,8 +268,8 @@ describe("ReturnsService", () => {
   });
 
   describe("closeRma", () => {
-    it("should close a DISPOSITIONED RMA", async () => {
-      const dispositionedRma = { ...mockRma, status: "DISPOSITIONED" };
+    it("should close a DISPOSITION_COMPLETE RMA", async () => {
+      const dispositionedRma = { ...mockRma, status: "DISPOSITION_COMPLETE" };
       const closedRma = { ...mockRma, status: "CLOSED" };
       repository.findRmaById.mockResolvedValue(dispositionedRma);
       repository.updateRmaStatus.mockResolvedValue(closedRma);
@@ -396,13 +414,62 @@ describe("ReturnsService", () => {
         service.receiveRmaLine("rma-123", "line-123", 5, "bin-recv"),
       ).rejects.toThrow(NotFoundException);
     });
+
+    it("should throw BadRequestException when the item requires a batch and none was given", async () => {
+      repository.findRmaById.mockResolvedValue(mockRma);
+      repository.findRmaLineById.mockResolvedValue(mockRmaLine);
+      masterDataService.getItem.mockResolvedValue({
+        id: "item-123",
+        sku: "ITEM-123",
+        requiresBatchTracking: true,
+      } as never);
+
+      await expect(
+        service.receiveRmaLine("rma-123", "line-123", 5, "bin-recv"),
+      ).rejects.toThrow("requires a batch/lot number");
+      expect(stockLedger.recordMovement).not.toHaveBeenCalled();
+    });
+
+    it("should record the movement and store the batch when one is given", async () => {
+      repository.findRmaById.mockResolvedValue(mockRma);
+      repository.findRmaLineById.mockResolvedValue(mockRmaLine);
+      masterDataService.getItem.mockResolvedValue({
+        id: "item-123",
+        sku: "ITEM-123",
+        requiresBatchTracking: true,
+      } as never);
+      stockLedger.recordMovement.mockResolvedValue("movement-id");
+      repository.receiveRmaLine.mockResolvedValue({
+        ...mockRmaLine,
+        qtyReceived: 5,
+        batchNo: "BATCH-001",
+      });
+      repository.getRmaLines.mockResolvedValue([]);
+
+      await service.receiveRmaLine("rma-123", "line-123", 5, "bin-recv", "user-123", "BATCH-001");
+
+      expect(stockLedger.recordMovement).toHaveBeenCalledWith(
+        expect.objectContaining({ batchNo: "BATCH-001" }),
+      );
+      expect(repository.receiveRmaLine).toHaveBeenCalledWith(
+        "line-123",
+        5,
+        "bin-recv",
+        "BATCH-001",
+      );
+    });
   });
 
   // --- Disposition ---
 
   describe("setLineDisposition", () => {
-    it("should set disposition and move stock", async () => {
-      const receivedLine = { ...mockRmaLine, qtyReceived: 5 };
+    it("should set disposition and move stock (with its batch) from the receiving bin to the disposition bin", async () => {
+      const receivedLine = {
+        ...mockRmaLine,
+        qtyReceived: 5,
+        receivingBinId: "bin-recv",
+        batchNo: "BATCH-001",
+      };
       const disposedLine = {
         ...receivedLine,
         disposition: "RESTOCK",
@@ -412,11 +479,6 @@ describe("ReturnsService", () => {
       repository.findRmaLineById.mockResolvedValue(receivedLine);
       stockLedger.recordMovement.mockResolvedValue("movement-id");
       repository.setLineDisposition.mockResolvedValue(disposedLine);
-      repository.getRmaLines.mockResolvedValue([disposedLine]);
-      repository.updateRmaStatus.mockResolvedValue({
-        ...mockRma,
-        status: "DISPOSITION_COMPLETE",
-      });
 
       const result = await service.setLineDisposition(
         "rma-123",
@@ -428,16 +490,68 @@ describe("ReturnsService", () => {
       );
 
       expect(result.disposition).toBe("RESTOCK");
+      // A pure relocation out of the bin it was received into - not an
+      // additional receipt on top of what receiveRmaLine already added.
+      // Carries the same batch the stock was actually received under.
       expect(stockLedger.recordMovement).toHaveBeenCalledWith(
         expect.objectContaining({
           reason: "TRANSFER",
+          fromBinId: "bin-recv",
           toBinId: "bin-good",
+          batchNo: "BATCH-001",
         }),
       );
     });
 
-    it("should use SCRAP reason for scrap disposition", async () => {
-      const receivedLine = { ...mockRmaLine, qtyReceived: 5 };
+    it("should move the RMA from RECEIVED to INSPECTING on its first disposition", async () => {
+      const receivedRma = { ...mockRma, status: "RECEIVED" };
+      const receivedLine = { ...mockRmaLine, qtyReceived: 5, receivingBinId: "bin-recv" };
+      repository.findRmaById.mockResolvedValue(receivedRma);
+      repository.findRmaLineById.mockResolvedValue(receivedLine);
+      stockLedger.recordMovement.mockResolvedValue("movement-id");
+      repository.setLineDisposition.mockResolvedValue({
+        ...receivedLine,
+        disposition: "RESTOCK",
+      });
+
+      await service.setLineDisposition(
+        "rma-123",
+        "line-123",
+        "RESTOCK",
+        "bin-good",
+        "inspector-1",
+      );
+
+      expect(repository.updateRmaStatus).toHaveBeenCalledWith(
+        "rma-123",
+        "INSPECTING",
+      );
+    });
+
+    it("should not touch RMA status once it's already past RECEIVED", async () => {
+      const inspectingRma = { ...mockRma, status: "INSPECTING" };
+      const receivedLine = { ...mockRmaLine, qtyReceived: 5, receivingBinId: "bin-recv" };
+      repository.findRmaById.mockResolvedValue(inspectingRma);
+      repository.findRmaLineById.mockResolvedValue(receivedLine);
+      stockLedger.recordMovement.mockResolvedValue("movement-id");
+      repository.setLineDisposition.mockResolvedValue({
+        ...receivedLine,
+        disposition: "RESTOCK",
+      });
+
+      await service.setLineDisposition(
+        "rma-123",
+        "line-123",
+        "RESTOCK",
+        "bin-good",
+        "inspector-1",
+      );
+
+      expect(repository.updateRmaStatus).not.toHaveBeenCalled();
+    });
+
+    it("should use SCRAP reason and remove the stock entirely (no toBinId)", async () => {
+      const receivedLine = { ...mockRmaLine, qtyReceived: 5, receivingBinId: "bin-recv" };
       repository.findRmaById.mockResolvedValue(mockRma);
       repository.findRmaLineById.mockResolvedValue(receivedLine);
       stockLedger.recordMovement.mockResolvedValue("movement-id");
@@ -459,7 +573,11 @@ describe("ReturnsService", () => {
       );
 
       expect(stockLedger.recordMovement).toHaveBeenCalledWith(
-        expect.objectContaining({ reason: "SCRAP" }),
+        expect.objectContaining({
+          reason: "SCRAP",
+          fromBinId: "bin-recv",
+          toBinId: undefined,
+        }),
       );
     });
 
@@ -485,6 +603,23 @@ describe("ReturnsService", () => {
           "inspector-1",
         ),
       ).rejects.toThrow("Line must be received before disposition");
+    });
+
+    it("should throw BadRequestException when the line has no receiving bin on record", async () => {
+      const receivedNoBin = { ...mockRmaLine, qtyReceived: 5, receivingBinId: null };
+      repository.findRmaById.mockResolvedValue(mockRma);
+      repository.findRmaLineById.mockResolvedValue(receivedNoBin);
+
+      await expect(
+        service.setLineDisposition(
+          "rma-123",
+          "line-123",
+          "RESTOCK",
+          "bin-good",
+          "inspector-1",
+        ),
+      ).rejects.toThrow("cannot move its stock");
+      expect(stockLedger.recordMovement).not.toHaveBeenCalled();
     });
   });
 
@@ -554,6 +689,29 @@ describe("ReturnsService", () => {
     });
   });
 
+  describe("submitCreditNote", () => {
+    it("should submit a DRAFT credit note for approval", async () => {
+      const submitted = { ...mockCreditNote, status: "SUBMITTED" };
+      repository.submitCreditNote.mockResolvedValue(submitted);
+
+      const result = await service.submitCreditNote("cn-123");
+
+      expect(result.status).toBe("SUBMITTED");
+      expect(repository.submitCreditNote).toHaveBeenCalledWith("cn-123");
+    });
+
+    it("should throw BadRequestException when not in DRAFT status", async () => {
+      repository.submitCreditNote.mockResolvedValue(null);
+
+      await expect(service.submitCreditNote("cn-123")).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.submitCreditNote("cn-123")).rejects.toThrow(
+        "Credit note not found or not in DRAFT status",
+      );
+    });
+  });
+
   describe("approveCreditNote", () => {
     it("should approve credit note and update RMA status", async () => {
       const approved = {
@@ -592,14 +750,18 @@ describe("ReturnsService", () => {
   describe("completeDisposition", () => {
     it("should complete disposition when all lines disposed", async () => {
       const disposedLine = { ...mockRmaLine, disposition: "RESTOCK" };
-      const dispositionedRma = { ...mockRma, status: "DISPOSITIONED" };
+      const dispositionedRma = { ...mockRma, status: "DISPOSITION_COMPLETE" };
       repository.findRmaById.mockResolvedValue(mockRma);
       repository.getRmaLines.mockResolvedValue([disposedLine]);
       repository.updateRmaStatus.mockResolvedValue(dispositionedRma);
 
       const result = await service.completeDisposition("rma-123");
 
-      expect(result.status).toBe("DISPOSITIONED");
+      expect(result.status).toBe("DISPOSITION_COMPLETE");
+      expect(repository.updateRmaStatus).toHaveBeenCalledWith(
+        "rma-123",
+        "DISPOSITION_COMPLETE",
+      );
     });
 
     it("should throw BadRequestException when no lines", async () => {

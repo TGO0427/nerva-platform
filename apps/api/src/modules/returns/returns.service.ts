@@ -10,6 +10,7 @@ import {
   CreditNoteDraft,
 } from "./returns.repository";
 import { StockLedgerService } from "../inventory/stock-ledger.service";
+import { MasterDataService } from "../masterdata/masterdata.service";
 import { buildPaginatedResult } from "../../common/utils/pagination";
 
 @Injectable()
@@ -17,6 +18,7 @@ export class ReturnsService {
   constructor(
     private readonly repository: ReturnsRepository,
     private readonly stockLedger: StockLedgerService,
+    private readonly masterDataService: MasterDataService,
   ) {}
 
   // RMA
@@ -90,12 +92,24 @@ export class ReturnsService {
     qtyReceived: number,
     receivingBinId: string,
     createdBy?: string,
+    batchNo?: string,
   ): Promise<RmaLine> {
     const rma = await this.getRma(rmaId);
     const line = await this.repository.findRmaLineById(lineId);
 
     if (!line || line.rmaId !== rmaId) {
       throw new NotFoundException("RMA line not found");
+    }
+
+    // Without a batch, a batch-tracked return would silently land in a
+    // phantom "no batch" stock_snapshot row, disconnected from the item's
+    // real batch inventory (the same gap already closed for IBT/Adjustments/
+    // Production output).
+    const item = await this.masterDataService.getItem(rma.tenantId, line.itemId);
+    if (item.requiresBatchTracking && !batchNo) {
+      throw new BadRequestException(
+        `${item.sku} requires a batch/lot number to receive this return`,
+      );
     }
 
     // Record stock receipt
@@ -108,15 +122,25 @@ export class ReturnsService {
       reason: "RETURN",
       refType: "rma",
       refId: rmaId,
+      batchNo,
       createdBy,
     });
 
-    const updated = await this.repository.receiveRmaLine(lineId, qtyReceived);
+    const updated = await this.repository.receiveRmaLine(
+      lineId,
+      qtyReceived,
+      receivingBinId,
+      batchNo,
+    );
 
-    // Update RMA status if all lines received
+    // Update RMA status if all lines received. Nothing in this app ever
+    // moves an RMA to AWAITING_RETURN specifically (there's no separate
+    // "authorize" step before receiving) - OPEN is the real starting
+    // point in practice, so that has to be included here too or every
+    // RMA gets stuck at OPEN forever once fully received.
     const lines = await this.repository.getRmaLines(rmaId);
     const allReceived = lines.every((l) => l.qtyReceived >= l.qtyExpected);
-    if (allReceived && rma.status === "AWAITING_RETURN") {
+    if (allReceived && ["OPEN", "AWAITING_RETURN"].includes(rma.status)) {
       await this.repository.updateRmaStatus(rmaId, "RECEIVED");
     }
 
@@ -141,18 +165,28 @@ export class ReturnsService {
     if (line.qtyReceived <= 0) {
       throw new BadRequestException("Line must be received before disposition");
     }
+    if (!line.receivingBinId) {
+      throw new BadRequestException(
+        "Line has no receiving bin on record - cannot move its stock",
+      );
+    }
 
-    // Move stock based on disposition
-    const reason = disposition === "SCRAP" ? "SCRAP" : "TRANSFER";
+    // The returned qty already sits in receivingBinId (added there at
+    // receive time) - SCRAP removes it from inventory entirely, everything
+    // else (RESTOCK/QUARANTINE/RETURN_TO_SUPPLIER) is a pure relocation to
+    // the disposition bin. Setting only toBinId here (as before) would
+    // double-count the stock: once from the receive, once from this move.
     await this.stockLedger.recordMovement({
       tenantId: rma.tenantId,
       siteId: rma.siteId,
       itemId: line.itemId,
-      toBinId: dispositionBinId,
+      fromBinId: line.receivingBinId,
+      toBinId: disposition === "SCRAP" ? undefined : dispositionBinId,
       qty: line.qtyReceived,
-      reason,
+      reason: disposition === "SCRAP" ? "SCRAP" : "TRANSFER",
       refType: "rma",
       refId: rmaId,
+      batchNo: line.batchNo || undefined,
       createdBy: inspectedBy,
     });
 
@@ -164,11 +198,11 @@ export class ReturnsService {
       inspectionNotes,
     );
 
-    // Update RMA status if all lines disposed
-    const lines = await this.repository.getRmaLines(rmaId);
-    const allDisposed = lines.every((l) => l.disposition !== "PENDING");
-    if (allDisposed) {
-      await this.repository.updateRmaStatus(rmaId, "DISPOSITION_COMPLETE");
+    // Inspection is now in progress - the explicit completeDisposition
+    // action (not this one) is what moves it to DISPOSITION_COMPLETE, once
+    // every line has a disposition set.
+    if (rma.status === "RECEIVED") {
+      await this.repository.updateRmaStatus(rmaId, "INSPECTING");
     }
 
     return updated!;
@@ -247,6 +281,16 @@ export class ReturnsService {
       throw new BadRequestException("Only DRAFT credit notes can be deleted");
     }
     await this.repository.deleteCreditNote(id);
+  }
+
+  async submitCreditNote(id: string): Promise<CreditNoteDraft> {
+    const creditNote = await this.repository.submitCreditNote(id);
+    if (!creditNote) {
+      throw new BadRequestException(
+        "Credit note not found or not in DRAFT status",
+      );
+    }
+    return creditNote;
   }
 
   async approveCreditNote(
@@ -335,7 +379,7 @@ export class ReturnsService {
 
     const updated = await this.repository.updateRmaStatus(
       rmaId,
-      "DISPOSITIONED",
+      "DISPOSITION_COMPLETE",
     );
     if (!updated) {
       throw new BadRequestException("Failed to update RMA status");
@@ -347,7 +391,6 @@ export class ReturnsService {
     const rma = await this.getRma(rmaId);
 
     const closableStatuses = [
-      "DISPOSITIONED",
       "RECEIVED",
       "DISPOSITION_COMPLETE",
       "CREDIT_APPROVED",
