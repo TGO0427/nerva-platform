@@ -64,6 +64,10 @@ export class WorkOrderPdfService {
       [
         { label: "Status", value: wo.status },
         { label: "Priority", value: String(wo.priority) },
+        { label: "Output Batch", value: wo.batchNo || "-" },
+        ...(wo.salesOrderId
+          ? [{ label: "Sales Order", value: wo.salesOrderNo || wo.salesOrderId }]
+          : []),
       ],
       y,
     );
@@ -111,20 +115,22 @@ export class WorkOrderPdfService {
 
       y = renderTable(doc, {
         columns: [
-          { key: "sku", header: "SKU", width: 90 },
-          { key: "description", header: "Description", width: 180 },
+          { key: "sku", header: "SKU", width: 75 },
+          { key: "description", header: "Description", width: 150 },
+          { key: "batchNo", header: "Batch/Lot No", width: 90 },
           {
             key: "qtyRequired",
             header: "Qty Required",
-            width: 75,
+            width: 65,
             align: "right",
           },
-          { key: "qtyIssued", header: "Qty Issued", width: 70, align: "right" },
-          { key: "status", header: "Status", width: 100 },
+          { key: "qtyIssued", header: "Qty Issued", width: 60, align: "right" },
+          { key: "status", header: "Status", width: 75 },
         ],
         rows: materials.map((mat) => ({
           sku: mat.itemSku || "-",
-          description: (mat.itemDescription || "-").substring(0, 35),
+          description: (mat.itemDescription || "-").substring(0, 28),
+          batchNo: mat.batchNo || "-",
           qtyRequired: String(mat.qtyRequired),
           qtyIssued: String(mat.qtyIssued),
           status: mat.status,

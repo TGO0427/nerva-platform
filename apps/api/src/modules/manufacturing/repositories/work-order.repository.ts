@@ -536,10 +536,23 @@ export class WorkOrderRepository extends BaseRepository {
   async getMaterials(
     workOrderId: string,
   ): Promise<
-    (WorkOrderMaterial & { itemSku?: string; itemDescription?: string })[]
+    (WorkOrderMaterial & {
+      itemSku?: string;
+      itemDescription?: string;
+      batchNo?: string | null;
+    })[]
   > {
+    // A material's own row has no batch - it's issued via production_ledger,
+    // possibly across more than one batch if issued in separate partial
+    // draws, so aggregate every distinct batch actually consumed for it.
     const rows = await this.queryMany<Record<string, unknown>>(
-      `SELECT wom.*, i.sku as item_sku, i.description as item_description
+      `SELECT wom.*, i.sku as item_sku, i.description as item_description,
+              (SELECT string_agg(DISTINCT pl.batch_no, ', ' ORDER BY pl.batch_no)
+               FROM production_ledger pl
+               WHERE pl.work_order_id = wom.work_order_id
+                 AND pl.item_id = wom.item_id
+                 AND pl.entry_type = 'MATERIAL_ISSUE'
+                 AND pl.batch_no IS NOT NULL) as batch_no
        FROM work_order_materials wom
        JOIN items i ON i.id = wom.item_id
        WHERE wom.work_order_id = $1
@@ -550,6 +563,7 @@ export class WorkOrderRepository extends BaseRepository {
       ...this.mapMaterial(r),
       itemSku: r.item_sku as string,
       itemDescription: r.item_description as string,
+      batchNo: r.batch_no as string | null,
     }));
   }
 
