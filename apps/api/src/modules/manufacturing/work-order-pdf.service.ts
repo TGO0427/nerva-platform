@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, Inject } from "@nestjs/common";
 import { Pool } from "pg";
 import { DATABASE_POOL } from "../../common/db/database.module";
 import { WorkOrderRepository } from "./repositories/work-order.repository";
+import { ProductionDataRepository } from "./repositories/production-data.repository";
 import { TenantProfileService } from "../../common/pdf/tenant-profile.service";
 import {
   createPdfDocument,
@@ -19,6 +20,7 @@ import {
 export class WorkOrderPdfService {
   constructor(
     private readonly repository: WorkOrderRepository,
+    private readonly productionDataRepo: ProductionDataRepository,
     private readonly tenantProfile: TenantProfileService,
     @Inject(DATABASE_POOL) private readonly pool: Pool,
   ) {}
@@ -29,6 +31,7 @@ export class WorkOrderPdfService {
 
     const materials = await this.repository.getMaterials(workOrderId);
     const operations = await this.repository.getOperations(workOrderId);
+    const checks = await this.productionDataRepo.findChecksByWorkOrder(workOrderId);
     const profile = await this.tenantProfile.getProfile(tenantId);
 
     // Get item details (product being manufactured)
@@ -173,6 +176,53 @@ export class WorkOrderPdfService {
         })),
         startY: y,
       });
+    }
+
+    // Tipping Check Sheet - the yield reconciliation and sign-off captured
+    // when the batch was packed off, so the paper trail includes not just
+    // what was made but whether the count matched what was planned.
+    if (checks) {
+      if (y > 620) {
+        doc.addPage();
+        y = 40;
+      }
+      y += 10;
+
+      doc
+        .fontSize(10)
+        .font("Helvetica-Bold")
+        .fillColor("#000000")
+        .text("Tipping Check Sheet", 40, y);
+      y += 16;
+
+      y = renderDocumentMeta(
+        doc,
+        [
+          { label: "Theoretical Boxes", value: checks.theoreticalBoxes != null ? String(checks.theoreticalBoxes) : "-" },
+          { label: "Actual Boxes", value: checks.actualBoxes != null ? String(checks.actualBoxes) : "-" },
+          { label: "Actual Overs", value: checks.actualOvers != null ? String(checks.actualOvers) : "-" },
+          { label: "Actual Total", value: checks.actualTotal != null ? String(checks.actualTotal) : "-" },
+        ],
+        [
+          { label: "Diff to Theoretical", value: checks.diffToTheoretical != null ? String(checks.diffToTheoretical) : "-" },
+          { label: "Rework Product", value: checks.reworkProduct || "-" },
+          { label: "Rework Qty (kgs)", value: checks.reworkQtyKgs != null ? String(checks.reworkQtyKgs) : "-" },
+        ],
+        y,
+      );
+      y += 5;
+
+      doc
+        .fontSize(9)
+        .font("Helvetica-Bold")
+        .fillColor("#000000")
+        .text("Loader Signature: ", 40, y, { continued: true });
+      doc.font("Helvetica").text(checks.loaderSignature || "-");
+      doc
+        .font("Helvetica-Bold")
+        .text("Operations Manager Signature: ", 300, y, { continued: true });
+      doc.font("Helvetica").text(checks.operationsManagerSignature || "-");
+      y += 18;
     }
 
     // Notes
