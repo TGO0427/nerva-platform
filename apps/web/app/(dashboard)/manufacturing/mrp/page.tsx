@@ -56,14 +56,14 @@ export default function MrpPage() {
     let csvContent = '';
 
     if (activeTab === 'by-item') {
-      csvContent = 'Item SKU,Description,Total Demand,Outstanding,Available Stock,Net Shortage\n';
+      csvContent = 'Item SKU,Description,Warehouse,Total Demand,Outstanding,Available Stock,Net Shortage\n';
       itemSummary.forEach((item) => {
-        csvContent += `"${item.itemSku}","${item.itemDescription}",${item.totalDemand},${item.totalOutstanding},${item.availableStock},${item.netShortage}\n`;
+        csvContent += `"${item.itemSku}","${item.itemDescription}","${item.warehouseName}",${item.totalDemand},${item.totalOutstanding},${item.availableStock},${item.netShortage}\n`;
       });
     } else {
-      csvContent = 'WO#,Status,Item SKU,Required,Issued,Outstanding,Available,Shortage\n';
+      csvContent = 'WO#,Status,Warehouse,Item SKU,Required,Issued,Outstanding,Available,Shortage\n';
       workOrderDemand.forEach((wo) => {
-        csvContent += `"${wo.workOrderNo}","${wo.workOrderStatus}","${wo.itemSku}",${wo.qtyRequired},${wo.qtyIssued},${wo.qtyOutstanding},${wo.availableStock},${wo.shortage}\n`;
+        csvContent += `"${wo.workOrderNo}","${wo.workOrderStatus}","${wo.warehouseName}","${wo.itemSku}",${wo.qtyRequired},${wo.qtyIssued},${wo.qtyOutstanding},${wo.availableStock},${wo.shortage}\n`;
       });
     }
 
@@ -177,6 +177,7 @@ export default function MrpPage() {
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-3 px-4 font-medium text-slate-600">Item SKU</th>
                     <th className="text-left py-3 px-4 font-medium text-slate-600">Description</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">Warehouse</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-600">Total Demand</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-600">Outstanding</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-600">Available Stock</th>
@@ -187,20 +188,21 @@ export default function MrpPage() {
                 <tbody>
                   {itemSummary.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-8 text-slate-500">
+                      <td colSpan={8} className="text-center py-8 text-slate-500">
                         No material requirements found
                       </td>
                     </tr>
                   ) : (
                     itemSummary.map((item) => (
                       <tr
-                        key={item.itemId}
+                        key={`${item.itemId}-${item.warehouseId}`}
                         className={`border-b border-slate-100 ${
                           item.netShortage > 0 ? 'bg-red-50' : 'hover:bg-slate-50'
                         }`}
                       >
                         <td className="py-3 px-4 font-medium text-slate-900">{item.itemSku}</td>
                         <td className="py-3 px-4 text-slate-600">{item.itemDescription}</td>
+                        <td className="py-3 px-4 text-slate-600">{item.warehouseName}</td>
                         <td className="py-3 px-4 text-right">{formatQuantity(item.totalDemand)}</td>
                         <td className="py-3 px-4 text-right">{formatQuantity(item.totalOutstanding)}</td>
                         <td className="py-3 px-4 text-right">{formatQuantity(item.availableStock)}</td>
@@ -225,6 +227,7 @@ export default function MrpPage() {
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-3 px-4 font-medium text-slate-600">WO#</th>
                     <th className="text-left py-3 px-4 font-medium text-slate-600">Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-600">Warehouse</th>
                     <th className="text-left py-3 px-4 font-medium text-slate-600">Item SKU</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-600">Required</th>
                     <th className="text-right py-3 px-4 font-medium text-slate-600">Issued</th>
@@ -237,7 +240,7 @@ export default function MrpPage() {
                 <tbody>
                   {workOrderDemand.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="text-center py-8 text-slate-500">
+                      <td colSpan={10} className="text-center py-8 text-slate-500">
                         No work order demand found
                       </td>
                     </tr>
@@ -262,6 +265,7 @@ export default function MrpPage() {
                             {wo.workOrderStatus.replace(/_/g, ' ')}
                           </Badge>
                         </td>
+                        <td className="py-3 px-4 text-slate-600">{wo.warehouseName}</td>
                         <td className="py-3 px-4 text-slate-900">{wo.itemSku}</td>
                         <td className="py-3 px-4 text-right">{formatQuantity(wo.qtyRequired)}</td>
                         <td className="py-3 px-4 text-right">{formatQuantity(wo.qtyIssued)}</td>

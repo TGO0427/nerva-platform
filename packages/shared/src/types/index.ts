@@ -1058,6 +1058,8 @@ export interface MrpData {
     workOrderId: string;
     workOrderNo: string;
     workOrderStatus: string;
+    warehouseId: string;
+    warehouseName: string;
     itemId: string;
     itemSku: string;
     itemDescription: string;
@@ -1074,6 +1076,8 @@ export interface MrpData {
     itemId: string;
     itemSku: string;
     itemDescription: string;
+    warehouseId: string;
+    warehouseName: string;
     totalDemand: number;
     totalOutstanding: number;
     availableStock: number;

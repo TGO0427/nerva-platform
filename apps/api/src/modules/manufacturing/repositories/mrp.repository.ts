@@ -30,12 +30,17 @@ export class MrpRepository extends BaseRepository {
       )
     `;
 
+    // Stock has to be scoped to the work order's own warehouse, not summed
+    // tenant-wide - stock sitting in a different warehouse can't actually
+    // cover this shortage, and tenant-wide summing would hide that.
     const demandRows = await this.queryMany<Record<string, unknown>>(
       `WITH ${poLookupCte}
       SELECT
         wo.id as work_order_id,
         wo.work_order_no,
         wo.status as work_order_status,
+        wo.warehouse_id,
+        w.name as warehouse_name,
         wom.item_id,
         i.sku as item_sku,
         i.description as item_description,
@@ -49,10 +54,13 @@ export class MrpRepository extends BaseRepository {
         lead_time_lookup.lead_time_days as supplier_lead_time_days
       FROM work_order_materials wom
       JOIN work_orders wo ON wo.id = wom.work_order_id
+      JOIN warehouses w ON w.id = wo.warehouse_id
       JOIN items i ON i.id = wom.item_id
       LEFT JOIN LATERAL (
-        SELECT COALESCE(SUM(qty_available), 0) as qty_available
-        FROM stock_snapshot WHERE item_id = wom.item_id AND tenant_id = $1
+        SELECT COALESCE(SUM(snap.qty_available), 0) as qty_available
+        FROM stock_snapshot snap
+        JOIN bins b ON b.id = snap.bin_id
+        WHERE snap.item_id = wom.item_id AND snap.tenant_id = $1 AND b.warehouse_id = wo.warehouse_id
       ) ss ON true
       LEFT JOIN po_lookup ON po_lookup.item_id = wom.item_id
       LEFT JOIN lead_time_lookup ON lead_time_lookup.item_id = wom.item_id
@@ -63,12 +71,17 @@ export class MrpRepository extends BaseRepository {
       [tenantId],
     );
 
+    // Grain is item+warehouse, not just item - the same item can be short
+    // in one warehouse and fine in another, and netting those together
+    // against a single shared stock figure would mask that.
     const summaryRows = await this.queryMany<Record<string, unknown>>(
       `WITH ${poLookupCte}
       SELECT
         wom.item_id,
         i.sku as item_sku,
         i.description as item_description,
+        wo.warehouse_id,
+        w.name as warehouse_name,
         SUM(wom.qty_required) as total_demand,
         SUM(wom.qty_required - wom.qty_issued) as total_outstanding,
         COALESCE(ss.qty_available, 0) as available_stock,
@@ -78,17 +91,20 @@ export class MrpRepository extends BaseRepository {
         lead_time_lookup.lead_time_days as supplier_lead_time_days
       FROM work_order_materials wom
       JOIN work_orders wo ON wo.id = wom.work_order_id
+      JOIN warehouses w ON w.id = wo.warehouse_id
       JOIN items i ON i.id = wom.item_id
       LEFT JOIN LATERAL (
-        SELECT COALESCE(SUM(qty_available), 0) as qty_available
-        FROM stock_snapshot WHERE item_id = wom.item_id AND tenant_id = $1
+        SELECT COALESCE(SUM(snap.qty_available), 0) as qty_available
+        FROM stock_snapshot snap
+        JOIN bins b ON b.id = snap.bin_id
+        WHERE snap.item_id = wom.item_id AND snap.tenant_id = $1 AND b.warehouse_id = wo.warehouse_id
       ) ss ON true
       LEFT JOIN po_lookup ON po_lookup.item_id = wom.item_id
       LEFT JOIN lead_time_lookup ON lead_time_lookup.item_id = wom.item_id
       WHERE wo.tenant_id = $1
         AND wo.status IN ('DRAFT', 'RELEASED', 'IN_PROGRESS')
         AND wom.qty_required > wom.qty_issued
-      GROUP BY wom.item_id, i.sku, i.description, ss.qty_available, po_lookup.po_no, po_lookup.expected_date, lead_time_lookup.lead_time_days
+      GROUP BY wom.item_id, i.sku, i.description, wo.warehouse_id, w.name, ss.qty_available, po_lookup.po_no, po_lookup.expected_date, lead_time_lookup.lead_time_days
       ORDER BY net_shortage DESC`,
       [tenantId],
     );
@@ -97,6 +113,8 @@ export class MrpRepository extends BaseRepository {
       workOrderId: row.work_order_id as string,
       workOrderNo: row.work_order_no as string,
       workOrderStatus: row.work_order_status as string,
+      warehouseId: row.warehouse_id as string,
+      warehouseName: row.warehouse_name as string,
       itemId: row.item_id as string,
       itemSku: row.item_sku as string,
       itemDescription: row.item_description as string,
@@ -119,6 +137,8 @@ export class MrpRepository extends BaseRepository {
       itemId: row.item_id as string,
       itemSku: row.item_sku as string,
       itemDescription: row.item_description as string,
+      warehouseId: row.warehouse_id as string,
+      warehouseName: row.warehouse_name as string,
       totalDemand: parseFloat((row.total_demand as string) || "0"),
       totalOutstanding: parseFloat((row.total_outstanding as string) || "0"),
       availableStock: parseFloat((row.available_stock as string) || "0"),
