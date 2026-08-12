@@ -221,7 +221,7 @@ export default function NewBomPage() {
                     />
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Scrap %</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Waste %</label>
                     <Input
                       type="number"
                       min="0"

@@ -31,7 +31,7 @@ import type { NonConformanceStatus, NcSeverity, NcDisposition } from '@nerva/sha
 const DISPOSITION_OPTIONS: { value: NcDisposition; label: string }[] = [
   { value: 'USE_AS_IS', label: 'Use As Is' },
   { value: 'REWORK', label: 'Rework' },
-  { value: 'SCRAP', label: 'Scrap' },
+  { value: 'SCRAP', label: 'Waste' },
   { value: 'RETURN_TO_SUPPLIER', label: 'Return to Supplier' },
   { value: 'SORT_AND_INSPECT', label: 'Sort and Inspect' },
 ];

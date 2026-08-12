@@ -815,7 +815,7 @@ export default function WorkOrderDetailPage() {
                           <Input type="number" min="0" step="any" value={opCompletedQty} onChange={(e) => setOpCompletedQty(e.target.value)} />
                         </div>
                         <div>
-                          <label className="block text-xs text-slate-600 mb-1">Qty Scrapped</label>
+                          <label className="block text-xs text-slate-600 mb-1">Qty Waste</label>
                           <Input type="number" min="0" step="any" value={opScrappedQty} onChange={(e) => setOpScrappedQty(e.target.value)} placeholder="0" />
                         </div>
                         <div>

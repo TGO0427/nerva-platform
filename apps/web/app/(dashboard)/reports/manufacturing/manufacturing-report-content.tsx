@@ -37,14 +37,14 @@ export default function ManufacturingReportContent() {
     rows.push('');
     rows.push('SUMMARY');
     rows.push(`Total Output,${report.summary.totalOutput}`);
-    rows.push(`Total Scrap,${report.summary.totalScrap}`);
+    rows.push(`Total Waste,${report.summary.totalScrap}`);
     rows.push(`Yield Rate,${report.summary.yieldRate.toFixed(1)}%`);
     rows.push(`Unique Work Orders,${report.summary.uniqueWorkOrders}`);
     rows.push('');
 
     // Production by Day
     rows.push('DAILY PRODUCTION');
-    rows.push('Date,Output,Scrap');
+    rows.push('Date,Output,Waste');
     report.productionByDay.forEach((d) => {
       rows.push(`${d.date},${d.output},${d.scrap}`);
     });
@@ -52,7 +52,7 @@ export default function ManufacturingReportContent() {
 
     // Yield by Item
     rows.push('YIELD BY ITEM');
-    rows.push('Item SKU,Output,Scrap,Yield Rate');
+    rows.push('Item SKU,Output,Waste,Yield Rate');
     report.yieldByItem.forEach((item) => {
       rows.push(`${item.itemSku},${item.output},${item.scrap},${item.yieldRate.toFixed(1)}%`);
     });
@@ -98,7 +98,7 @@ export default function ManufacturingReportContent() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Manufacturing Report</h1>
-          <p className="text-slate-500 mt-1">Analyze production output, scrap, and efficiency.</p>
+          <p className="text-slate-500 mt-1">Analyze production output, waste, and efficiency.</p>
         </div>
         <div className="flex items-center gap-4">
           <div>
@@ -139,7 +139,7 @@ export default function ManufacturingReportContent() {
           iconColor="blue"
         />
         <StatCard
-          title="Total Scrap"
+          title="Total Waste"
           value={formatQuantity(report?.summary.totalScrap ?? 0)}
           icon={<ScrapIcon />}
           iconColor="red"
@@ -159,7 +159,7 @@ export default function ManufacturingReportContent() {
       </div>
 
       {/* Daily Output vs Scrap Chart */}
-      <ChartCard title="Daily Production" subtitle="Output vs Scrap">
+      <ChartCard title="Daily Production" subtitle="Output vs Waste">
         {report?.productionByDay && report.productionByDay.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={report.productionByDay} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
@@ -206,7 +206,7 @@ export default function ManufacturingReportContent() {
                 strokeWidth={2.5}
                 dot={{ r: 4, fill: ct.dotFill, stroke: '#ef4444', strokeWidth: 2 }}
                 activeDot={{ r: 6, fill: '#ef4444', stroke: ct.activeDotStroke, strokeWidth: 2 }}
-                name="Scrap"
+                name="Waste"
               />
             </LineChart>
           </ResponsiveContainer>
@@ -230,7 +230,7 @@ export default function ManufacturingReportContent() {
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Item SKU</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Output</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Scrap</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Waste</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Yield Rate</th>
                     </tr>
                   </thead>

@@ -188,7 +188,7 @@ export default function BatchTraceabilityPage() {
             </div>
           )}
 
-          {/* Materials, Output, Scrap Tables */}
+          {/* Materials, Output, Waste Tables */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             {/* Materials Used */}
             <Card>
@@ -264,10 +264,10 @@ export default function BatchTraceabilityPage() {
               </CardContent>
             </Card>
 
-            {/* Scrap */}
+            {/* Waste */}
             <Card>
               <CardHeader>
-                <CardTitle>Scrap</CardTitle>
+                <CardTitle>Waste</CardTitle>
               </CardHeader>
               <CardContent>
                 {trace?.scrapEntries && trace.scrapEntries.length > 0 ? (

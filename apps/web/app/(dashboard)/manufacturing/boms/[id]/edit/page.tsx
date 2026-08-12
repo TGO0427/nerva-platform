@@ -141,7 +141,7 @@ export default function EditBomPage() {
     },
     {
       key: 'scrapPct',
-      header: 'Scrap %',
+      header: 'Waste %',
       width: '80px',
       render: (row) => row.scrapPct ? `${row.scrapPct}%` : '-',
     },

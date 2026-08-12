@@ -144,7 +144,7 @@ export default function BomDetailPage() {
     },
     {
       key: 'scrapPct',
-      header: 'Scrap %',
+      header: 'Waste %',
       width: '80px',
       render: (row) => formatPercent(row.scrapPct),
     },

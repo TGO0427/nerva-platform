@@ -131,7 +131,7 @@ export default function ProductionDashboardPage() {
                 />
                 <Legend wrapperStyle={{ fontSize: 13 }} />
                 <Line type="monotone" dataKey="output" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Output" />
-                <Line type="monotone" dataKey="scrap" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} name="Scrap" />
+                <Line type="monotone" dataKey="scrap" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} name="Waste" />
               </LineChart>
             </ResponsiveContainer>
           ) : (

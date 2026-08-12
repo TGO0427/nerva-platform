@@ -29,7 +29,7 @@ const ENTRY_TYPE_OPTIONS = [
   { value: 'MATERIAL_ISSUE', label: 'Material Issue' },
   { value: 'MATERIAL_RETURN', label: 'Material Return' },
   { value: 'PRODUCTION_OUTPUT', label: 'Production Output' },
-  { value: 'SCRAP', label: 'Scrap' },
+  { value: 'SCRAP', label: 'Waste' },
   { value: 'REWORK', label: 'Rework' },
 ];
 
@@ -175,7 +175,7 @@ export default function ProductionLedgerPage() {
           iconColor: 'green',
         },
         {
-          title: 'Scrap',
+          title: 'Waste',
           value: formatNumber(scrapEntries),
           icon: <TrashIcon />,
           iconColor: 'yellow',

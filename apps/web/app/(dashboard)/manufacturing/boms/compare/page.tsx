@@ -172,7 +172,7 @@ export default function CompareBomPage() {
                         <div className="text-slate-500 mb-1">Before</div>
                         <div>Qty: {formatQuantity(item.left.qtyPer)} {item.left.uom}</div>
                         {item.left.scrapPct !== undefined && (
-                          <div>Scrap: {formatPercent(item.left.scrapPct)}</div>
+                          <div>Waste: {formatPercent(item.left.scrapPct)}</div>
                         )}
                       </div>
                       <div className="bg-yellow-50 p-3 rounded">
@@ -186,7 +186,7 @@ export default function CompareBomPage() {
                           )}
                         </div>
                         {item.right.scrapPct !== undefined && (
-                          <div>Scrap: {formatPercent(item.right.scrapPct)}</div>
+                          <div>Waste: {formatPercent(item.right.scrapPct)}</div>
                         )}
                       </div>
                     </div>

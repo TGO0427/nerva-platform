@@ -33,7 +33,7 @@ export default function BomCalculatorPage() {
     { key: 'qtyPer', header: 'Qty/kg', width: '90px', render: (row) => formatNumber(row.qtyPer, { minimumFractionDigits: 4, maximumFractionDigits: 4 }) },
     { key: 'scaledQty', header: 'Scaled Qty', width: '100px', render: (row) => formatNumber(row.scaledQty, { minimumFractionDigits: 3, maximumFractionDigits: 3 }) },
     { key: 'bomPct', header: 'BOM %', width: '80px', render: (row) => formatPercent(row.bomPct) },
-    { key: 'scrapPct', header: 'Scrap %', width: '80px', render: (row) => formatPercent(row.scrapPct) },
+    { key: 'scrapPct', header: 'Waste %', width: '80px', render: (row) => formatPercent(row.scrapPct) },
   ], []);
 
   const packagingColumns: Column<BomExplodedLine>[] = useMemo(() => [
@@ -42,7 +42,7 @@ export default function BomCalculatorPage() {
     { key: 'qtyPer', header: 'Qty/kg', width: '90px', render: (row) => formatNumber(row.qtyPer, { minimumFractionDigits: 4, maximumFractionDigits: 4 }) },
     { key: 'scaledQty', header: 'Scaled Qty', width: '100px', render: (row) => Math.ceil(row.scaledQty).toString() },
     { key: 'bomPct', header: 'BOM %', width: '80px', render: (row) => formatPercent(row.bomPct) },
-    { key: 'scrapPct', header: 'Scrap %', width: '80px', render: (row) => formatPercent(row.scrapPct) },
+    { key: 'scrapPct', header: 'Waste %', width: '80px', render: (row) => formatPercent(row.scrapPct) },
   ], []);
 
   const selectedBom = boms.find(b => b.id === selectedBomId);
