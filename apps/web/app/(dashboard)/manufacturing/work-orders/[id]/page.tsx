@@ -32,6 +32,7 @@ import {
   useSetBatchQualityStatus,
 } from '@/lib/queries/manufacturing';
 import { useBins } from '@/lib/queries/warehouses';
+import { useStockOnHand } from '@/lib/queries/inventory';
 import { useItem } from '@/lib/queries/items';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -40,6 +41,8 @@ import type { WorkOrderStatus, WorkOrderOperation, WorkOrderMaterial } from '@ne
 
 type OperationWithMeta = WorkOrderOperation & { workstationCode?: string; workstationName?: string; assignedUserName?: string };
 type MaterialWithMeta = WorkOrderMaterial & { itemSku?: string; itemDescription?: string };
+
+const NO_BATCH_SENTINEL = '__no_batch__';
 
 export default function WorkOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -56,6 +59,7 @@ export default function WorkOrderDetailPage() {
   const [issueBatchNo, setIssueBatchNo] = useState('');
   const issuingMaterial = workOrder?.materials?.find((m) => m.id === issuingMaterialId);
   const { data: issuingItem } = useItem(issuingMaterial?.itemId);
+  const { data: issueStockOnHand } = useStockOnHand(issuingMaterial?.itemId);
 
   const [showRecordOutput, setShowRecordOutput] = useState(false);
   const [outputQty, setOutputQty] = useState('');
@@ -111,6 +115,25 @@ export default function WorkOrderDetailPage() {
   const completeOperation = useCompleteOperation();
 
   const { data: bins } = useBins(workOrder?.warehouseId);
+
+  // Bins that actually hold this material, and - within the chosen bin -
+  // batches sorted soonest-expiry-first (FEFO), so the picker naturally
+  // steers toward the batch that should be consumed first rather than
+  // letting a free-text field bypass what the system knows is on hand.
+  const binIdsWithMaterialStock = new Set(
+    (issueStockOnHand || []).filter((s) => s.qtyAvailable > 0).map((s) => s.binId),
+  );
+  const issueBinsForMaterial = issuingMaterial
+    ? (bins || []).filter((b) => binIdsWithMaterialStock.has(b.id))
+    : (bins || []);
+  const availableBatchesInIssueBin = (issueStockOnHand || [])
+    .filter((s) => s.binId === issueBinId && s.qtyAvailable > 0)
+    .sort((a, b) => {
+      if (!a.expiryDate && !b.expiryDate) return 0;
+      if (!a.expiryDate) return 1;
+      if (!b.expiryDate) return -1;
+      return new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
+    });
 
   // Populate checks form when data loads
   useEffect(() => {
@@ -720,19 +743,36 @@ export default function WorkOrderDetailPage() {
                         </div>
                         <div>
                           <label className="block text-xs text-slate-600 mb-1">Bin</label>
-                          <Select value={issueBinId} onChange={(e) => setIssueBinId(e.target.value)} options={[{ value: '', label: 'Select bin...' }, ...(bins || []).map(b => ({ value: b.id, label: b.code }))]} />
+                          <Select
+                            value={issueBinId}
+                            onChange={(e) => { setIssueBinId(e.target.value); setIssueBatchNo(''); }}
+                            options={[{ value: '', label: 'Select bin...' }, ...issueBinsForMaterial.map(b => ({ value: b.id, label: b.code }))]}
+                          />
+                          {issueBinsForMaterial.length === 0 && (
+                            <p className="text-xs text-amber-600 mt-1">No stock of this item in any bin</p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-xs text-slate-600 mb-1">
                             Batch No{issuingItem?.requiresBatchTracking && <span className="text-red-500"> *</span>}
                           </label>
-                          <Input
-                            value={issueBatchNo}
-                            onChange={(e) => setIssueBatchNo(e.target.value)}
-                            placeholder={issuingItem?.requiresBatchTracking ? 'Required' : 'Optional'}
-                          />
-                          {issuingItem?.requiresBatchTracking && !issueBatchNo && (
-                            <p className="text-xs text-amber-600 mt-1">This item requires a batch/lot number</p>
+                          {issueBinId ? (
+                            <Select
+                              value={issueBatchNo}
+                              onChange={(e) => setIssueBatchNo(e.target.value)}
+                              options={availableBatchesInIssueBin.map((s) => ({
+                                value: s.batchNo || NO_BATCH_SENTINEL,
+                                label: `${s.batchNo || 'No batch'} (${formatQuantity(s.qtyAvailable)} avail${s.expiryDate ? `, exp ${formatDate(s.expiryDate)}` : ''})`,
+                              }))}
+                              placeholder="Select batch (soonest expiry first)"
+                            />
+                          ) : (
+                            <Input value="" disabled placeholder="Select bin first" />
+                          )}
+                          {issueBinId && availableBatchesInIssueBin.length === 0 && (
+                            <p className="text-xs text-amber-600 mt-1">
+                              No batch-tracked stock recorded in this bin - if physical stock exists, correct it via an Adjustment before issuing
+                            </p>
                           )}
                         </div>
                         <div className="flex items-end gap-2">
@@ -740,7 +780,7 @@ export default function WorkOrderDetailPage() {
                             size="sm"
                             disabled={!issueQty || !issueBinId || (issuingItem?.requiresBatchTracking && !issueBatchNo) || issueMaterial.isPending}
                             onClick={async () => {
-                            try { await issueMaterial.mutateAsync({ workOrderId: id!, materialId: issuingMaterialId, qty: parseFloat(issueQty), binId: issueBinId, batchNo: issueBatchNo || undefined });
+                            try { await issueMaterial.mutateAsync({ workOrderId: id!, materialId: issuingMaterialId, qty: parseFloat(issueQty), binId: issueBinId, batchNo: issueBatchNo && issueBatchNo !== NO_BATCH_SENTINEL ? issueBatchNo : undefined });
                             addToast('Material issued', 'success'); setIssuingMaterialId(null); setIssueQty(''); setIssueBinId(''); setIssueBatchNo('');
                             } catch { addToast('Failed to issue material', 'error'); }
                           }}>
