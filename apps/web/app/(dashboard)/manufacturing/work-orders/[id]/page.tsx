@@ -326,7 +326,7 @@ export default function WorkOrderDetailPage() {
         if (workOrder?.status !== 'IN_PROGRESS') return null;
         if (row.status === 'PENDING') {
           return (
-            <Button variant="secondary" size="sm" onClick={async (e) => { e.stopPropagation(); try { await startOperation.mutateAsync({ workOrderId: id!, operationId: row.id }); addToast('Operation started', 'success'); } catch { addToast('Failed to start operation', 'error'); } }}>
+            <Button variant="secondary" size="sm" onClick={async (e) => { e.stopPropagation(); try { await startOperation.mutateAsync({ workOrderId: id!, operationId: row.id }); addToast('Operation started', 'success'); } catch (error) { addToast(error instanceof Error ? error.message : 'Failed to start operation', 'error'); } }}>
               Start
             </Button>
           );
