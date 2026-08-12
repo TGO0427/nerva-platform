@@ -1009,6 +1009,21 @@ export class ManufacturingService {
         "Operation must be PENDING or READY to start",
       );
     }
+
+    // Operations run in sequence on the shop floor - starting one before
+    // its predecessor is actually finished would let e.g. Filling start
+    // while Pasteurisation is still IN_PROGRESS, which is meaningless for
+    // a real production line even though nothing in the data model itself
+    // would stop it.
+    const ops = await this.workOrderRepo.getOperations(op.workOrderId);
+    const currentIdx = ops.findIndex((o) => o.id === operationId);
+    const predecessor = currentIdx > 0 ? ops[currentIdx - 1] : null;
+    if (predecessor && predecessor.status !== "COMPLETED") {
+      throw new BadRequestException(
+        `Op ${predecessor.operationNo} (${predecessor.name}) must be completed before starting Op ${op.operationNo}`,
+      );
+    }
+
     return this.workOrderRepo.updateOperation(operationId, {
       status: "IN_PROGRESS",
       actualStart: new Date(),

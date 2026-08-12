@@ -439,6 +439,8 @@ describe("ManufacturingService - Production Output", () => {
             getMaterials: jest.fn(),
             findMaterialById: jest.fn(),
             updateMaterial: jest.fn(),
+            findOperationById: jest.fn(),
+            updateOperation: jest.fn(),
             generateBatchNoWithPrefix: jest.fn(),
           },
         },
@@ -755,6 +757,77 @@ describe("ManufacturingService - Production Output", () => {
       expect(workOrderRepo.updateMaterial).toHaveBeenCalledWith(
         "material-123",
         { qtyReturned: 2 },
+      );
+    });
+  });
+
+  describe("startOperation", () => {
+    const op10 = {
+      id: "op-10",
+      tenantId,
+      workOrderId,
+      routingOperationId: null,
+      operationNo: 10,
+      name: "Weighing & Batching",
+      workstationId: null,
+      assignedUserId: null,
+      status: "COMPLETED",
+      plannedStart: null,
+      plannedEnd: null,
+      actualStart: null,
+      actualEnd: null,
+      qtyCompleted: 0,
+      qtyScrapped: 0,
+      setupTimeActual: null,
+      runTimeActual: null,
+      notes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const op20 = { ...op10, id: "op-20", operationNo: 20, name: "Pasteurisation", status: "IN_PROGRESS" };
+    const op30 = { ...op10, id: "op-30", operationNo: 30, name: "Filling", status: "PENDING" };
+
+    it("throws BadRequestException when the predecessor operation hasn't completed", async () => {
+      workOrderRepo.findOperationById.mockResolvedValue(op30 as any);
+      workOrderRepo.getOperations.mockResolvedValue([op10, op20, op30] as any);
+
+      await expect(service.startOperation("op-30")).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.startOperation("op-30")).rejects.toThrow(
+        /Op 20 \(Pasteurisation\) must be completed/,
+      );
+      expect(workOrderRepo.updateOperation).not.toHaveBeenCalled();
+    });
+
+    it("allows starting the first operation with no predecessor", async () => {
+      workOrderRepo.findOperationById.mockResolvedValue({ ...op10, status: "PENDING" } as any);
+      workOrderRepo.getOperations.mockResolvedValue([
+        { ...op10, status: "PENDING" },
+        op20,
+        op30,
+      ] as any);
+      workOrderRepo.updateOperation.mockResolvedValue({ ...op10, status: "IN_PROGRESS" } as any);
+
+      await service.startOperation("op-10");
+
+      expect(workOrderRepo.updateOperation).toHaveBeenCalledWith(
+        "op-10",
+        expect.objectContaining({ status: "IN_PROGRESS" }),
+      );
+    });
+
+    it("allows starting an operation once its predecessor is COMPLETED", async () => {
+      const readyOp20 = { ...op20, status: "READY" };
+      workOrderRepo.findOperationById.mockResolvedValue(readyOp20 as any);
+      workOrderRepo.getOperations.mockResolvedValue([op10, readyOp20, op30] as any);
+      workOrderRepo.updateOperation.mockResolvedValue({ ...readyOp20, status: "IN_PROGRESS" } as any);
+
+      await service.startOperation("op-20");
+
+      expect(workOrderRepo.updateOperation).toHaveBeenCalledWith(
+        "op-20",
+        expect.objectContaining({ status: "IN_PROGRESS" }),
       );
     });
   });
