@@ -67,7 +67,7 @@ export default function MrpPage() {
       align: 'right',
       render: (row) => (
         <span className={`font-medium ${row.netShortage > 0 ? 'text-red-600' : 'text-slate-900'}`}>
-          {row.netShortage > 0 ? `-${formatQuantity(row.netShortage)}` : formatQuantity(row.netShortage)}
+          {formatQuantity(row.netShortage)}
         </span>
       ),
     },
@@ -115,7 +115,7 @@ export default function MrpPage() {
       align: 'right',
       render: (row) => (
         <span className={`font-medium ${row.shortage > 0 ? 'text-red-600' : 'text-slate-900'}`}>
-          {row.shortage > 0 ? `-${formatQuantity(row.shortage)}` : formatQuantity(row.shortage)}
+          {formatQuantity(row.shortage)}
         </span>
       ),
     },
