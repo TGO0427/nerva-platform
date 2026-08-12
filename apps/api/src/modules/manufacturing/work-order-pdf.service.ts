@@ -197,20 +197,18 @@ export class WorkOrderPdfService {
         .text("Production Process", 40, y);
       y += 16;
 
-      y = renderDocumentMeta(
-        doc,
-        [
-          { label: "Operator", value: process.operator || "-" },
-          { label: "Time Started", value: formatDateTime(process.timeStarted) },
-          { label: "Time Flavour Added", value: formatDateTime(process.timeFlavourAdded) },
-        ],
-        [
-          { label: "Pot Used", value: process.potUsed || "-" },
-          { label: "Time 85C", value: formatDateTime(process.time85c) },
-          { label: "Time Completed", value: formatDateTime(process.timeCompleted) },
-        ],
-        y,
-      );
+      // Not every process runs through a heated pot with a flavour stage -
+      // a dry blend has neither, so only show the timestamps that were
+      // actually captured rather than printing "-" for fields this run
+      // never used in the first place.
+      const leftFields = [{ label: "Operator", value: process.operator || "-" }];
+      const rightFields = [{ label: "Vessel/Equipment Used", value: process.potUsed || "-" }];
+      if (process.timeStarted) leftFields.push({ label: "Time Started", value: formatDateTime(process.timeStarted) });
+      if (process.time85c) rightFields.push({ label: "Time 85C", value: formatDateTime(process.time85c) });
+      if (process.timeFlavourAdded) leftFields.push({ label: "Time Flavour Added", value: formatDateTime(process.timeFlavourAdded) });
+      if (process.timeCompleted) rightFields.push({ label: "Time Completed", value: formatDateTime(process.timeCompleted) });
+
+      y = renderDocumentMeta(doc, leftFields, rightFields, y);
       y += 5;
 
       const renderWrappedField = (label: string, value: string | null) => {

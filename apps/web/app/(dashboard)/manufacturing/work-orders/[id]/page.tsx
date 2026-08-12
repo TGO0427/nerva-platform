@@ -954,7 +954,7 @@ export default function WorkOrderDetailPage() {
                       <Input value={processForm.operator} onChange={(e) => setProcessForm(prev => ({ ...prev, operator: e.target.value }))} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Pot Used</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Vessel/Equipment Used</label>
                       <Input value={processForm.potUsed} onChange={(e) => setProcessForm(prev => ({ ...prev, potUsed: e.target.value }))} />
                     </div>
                     <div>
