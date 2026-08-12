@@ -34,6 +34,8 @@ interface DataTableProps<T> {
   sortKey?: string;
   sortOrder?: 'asc' | 'desc';
   onRowClick?: (row: T) => void;
+  /** Extra className applied to a row based on its own data (e.g. highlight shortages) */
+  rowClassName?: (row: T) => string | undefined;
   emptyState?: {
     icon?: React.ReactNode;
     title: string;
@@ -71,6 +73,7 @@ export function DataTable<T extends object>({
   sortKey,
   sortOrder,
   onRowClick,
+  rowClassName,
   emptyState,
   className,
   variant = 'default',
@@ -235,7 +238,8 @@ export function DataTable<T extends object>({
                 className={cn(
                   'hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors',
                   onRowClick && 'cursor-pointer',
-                  selectable && isRowSelected(row) && 'bg-primary-50 dark:bg-primary-900/30'
+                  selectable && isRowSelected(row) && 'bg-primary-50 dark:bg-primary-900/30',
+                  rowClassName?.(row)
                 )}
               >
                 {selectable && (

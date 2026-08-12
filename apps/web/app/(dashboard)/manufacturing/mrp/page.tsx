@@ -8,8 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { DataTable, Column } from '@/components/ui/data-table';
 import { useMrpRequirements } from '@/lib/queries';
 import { formatNumber, formatQuantity, formatDate } from '@/lib/format';
+import type { MrpData } from '@nerva/shared';
+
+type MrpItemRow = MrpData['itemSummary'][number] & { rowId: string };
+type MrpWorkOrderRow = MrpData['workOrderDemand'][number] & { rowId: string };
 
 type TabView = 'by-item' | 'by-work-order';
 
@@ -39,8 +44,87 @@ export default function MrpPage() {
   const [activeTab, setActiveTab] = useState<TabView>('by-item');
   const { data, isLoading, error } = useMrpRequirements();
 
-  const itemSummary = useMemo(() => data?.itemSummary ?? [], [data?.itemSummary]);
-  const workOrderDemand = data?.workOrderDemand ?? [];
+  const itemSummary: MrpItemRow[] = useMemo(
+    () => (data?.itemSummary ?? []).map((row) => ({ ...row, rowId: `${row.itemId}-${row.warehouseId}` })),
+    [data?.itemSummary]
+  );
+  const workOrderDemand: MrpWorkOrderRow[] = useMemo(
+    () => (data?.workOrderDemand ?? []).map((row, idx) => ({ ...row, rowId: `${row.workOrderId}-${row.itemId}-${idx}` })),
+    [data?.workOrderDemand]
+  );
+
+  const itemColumns: Column<MrpItemRow>[] = useMemo(() => [
+    { key: 'itemSku', header: 'Item SKU', sortable: true, className: 'font-medium text-slate-900' },
+    { key: 'itemDescription', header: 'Description', sortable: true },
+    { key: 'warehouseName', header: 'Warehouse', sortable: true },
+    { key: 'totalDemand', header: 'Total Demand', sortable: true, align: 'right', render: (row) => formatQuantity(row.totalDemand) },
+    { key: 'totalOutstanding', header: 'Outstanding', sortable: true, align: 'right', render: (row) => formatQuantity(row.totalOutstanding) },
+    { key: 'availableStock', header: 'Available Stock', sortable: true, align: 'right', render: (row) => formatQuantity(row.availableStock) },
+    {
+      key: 'netShortage',
+      header: 'Net Shortage',
+      sortable: true,
+      align: 'right',
+      render: (row) => (
+        <span className={`font-medium ${row.netShortage > 0 ? 'text-red-600' : 'text-slate-900'}`}>
+          {row.netShortage > 0 ? `-${formatQuantity(row.netShortage)}` : formatQuantity(row.netShortage)}
+        </span>
+      ),
+    },
+    {
+      key: 'resupply',
+      header: 'Resupply',
+      render: (row) => (row.netShortage > 0 ? <ResupplyHint item={row} /> : '-'),
+    },
+  ], []);
+
+  const workOrderColumns: Column<MrpWorkOrderRow>[] = useMemo(() => [
+    {
+      key: 'workOrderNo',
+      header: 'WO#',
+      sortable: true,
+      render: (row) => (
+        <Link
+          href={`/manufacturing/work-orders/${row.workOrderId}`}
+          className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+        >
+          {row.workOrderNo}
+        </Link>
+      ),
+    },
+    {
+      key: 'workOrderStatus',
+      header: 'Status',
+      sortable: true,
+      render: (row) => (
+        <Badge variant={getStatusVariant(row.workOrderStatus)}>
+          {row.workOrderStatus.replace(/_/g, ' ')}
+        </Badge>
+      ),
+    },
+    { key: 'warehouseName', header: 'Warehouse', sortable: true },
+    { key: 'itemSku', header: 'Item SKU', sortable: true, className: 'text-slate-900' },
+    { key: 'qtyRequired', header: 'Required', sortable: true, align: 'right', render: (row) => formatQuantity(row.qtyRequired) },
+    { key: 'qtyIssued', header: 'Issued', sortable: true, align: 'right', render: (row) => formatQuantity(row.qtyIssued) },
+    { key: 'qtyOutstanding', header: 'Outstanding', sortable: true, align: 'right', render: (row) => formatQuantity(row.qtyOutstanding) },
+    { key: 'availableStock', header: 'Available', sortable: true, align: 'right', render: (row) => formatQuantity(row.availableStock) },
+    {
+      key: 'shortage',
+      header: 'Shortage',
+      sortable: true,
+      align: 'right',
+      render: (row) => (
+        <span className={`font-medium ${row.shortage > 0 ? 'text-red-600' : 'text-slate-900'}`}>
+          {row.shortage > 0 ? `-${formatQuantity(row.shortage)}` : formatQuantity(row.shortage)}
+        </span>
+      ),
+    },
+    {
+      key: 'resupply',
+      header: 'Resupply',
+      render: (row) => (row.shortage > 0 ? <ResupplyHint item={row} /> : '-'),
+    },
+  ], []);
 
   const shortageItems = useMemo(
     () => itemSummary.filter((item) => item.netShortage > 0),
@@ -171,120 +255,23 @@ export default function MrpPage() {
         </CardHeader>
         <CardContent>
           {activeTab === 'by-item' ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Item SKU</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Description</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Warehouse</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-600">Total Demand</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-600">Outstanding</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-600">Available Stock</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-600">Net Shortage</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Resupply</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {itemSummary.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="text-center py-8 text-slate-500">
-                        No material requirements found
-                      </td>
-                    </tr>
-                  ) : (
-                    itemSummary.map((item) => (
-                      <tr
-                        key={`${item.itemId}-${item.warehouseId}`}
-                        className={`border-b border-slate-100 ${
-                          item.netShortage > 0 ? 'bg-red-50' : 'hover:bg-slate-50'
-                        }`}
-                      >
-                        <td className="py-3 px-4 font-medium text-slate-900">{item.itemSku}</td>
-                        <td className="py-3 px-4 text-slate-600">{item.itemDescription}</td>
-                        <td className="py-3 px-4 text-slate-600">{item.warehouseName}</td>
-                        <td className="py-3 px-4 text-right">{formatQuantity(item.totalDemand)}</td>
-                        <td className="py-3 px-4 text-right">{formatQuantity(item.totalOutstanding)}</td>
-                        <td className="py-3 px-4 text-right">{formatQuantity(item.availableStock)}</td>
-                        <td className={`py-3 px-4 text-right font-medium ${
-                          item.netShortage > 0 ? 'text-red-600' : 'text-slate-900'
-                        }`}>
-                          {item.netShortage > 0 ? `-${formatQuantity(item.netShortage)}` : formatQuantity(item.netShortage)}
-                        </td>
-                        <td className="py-3 px-4 text-slate-600">
-                          {item.netShortage > 0 ? <ResupplyHint item={item} /> : '-'}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              columns={itemColumns}
+              data={itemSummary}
+              keyField="rowId"
+              variant="embedded"
+              rowClassName={(row) => (row.netShortage > 0 ? 'bg-red-50' : undefined)}
+              emptyState={{ title: 'No material requirements found', description: 'No open work orders currently need materials.' }}
+            />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">WO#</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Warehouse</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Item SKU</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-600">Required</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-600">Issued</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-600">Outstanding</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-600">Available</th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-600">Shortage</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-600">Resupply</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {workOrderDemand.length === 0 ? (
-                    <tr>
-                      <td colSpan={10} className="text-center py-8 text-slate-500">
-                        No work order demand found
-                      </td>
-                    </tr>
-                  ) : (
-                    workOrderDemand.map((wo, idx) => (
-                      <tr
-                        key={`${wo.workOrderId}-${wo.itemId}-${idx}`}
-                        className={`border-b border-slate-100 ${
-                          wo.shortage > 0 ? 'bg-red-50' : 'hover:bg-slate-50'
-                        }`}
-                      >
-                        <td className="py-3 px-4">
-                          <Link
-                            href={`/manufacturing/work-orders/${wo.workOrderId}`}
-                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                          >
-                            {wo.workOrderNo}
-                          </Link>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge variant={getStatusVariant(wo.workOrderStatus)}>
-                            {wo.workOrderStatus.replace(/_/g, ' ')}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-slate-600">{wo.warehouseName}</td>
-                        <td className="py-3 px-4 text-slate-900">{wo.itemSku}</td>
-                        <td className="py-3 px-4 text-right">{formatQuantity(wo.qtyRequired)}</td>
-                        <td className="py-3 px-4 text-right">{formatQuantity(wo.qtyIssued)}</td>
-                        <td className="py-3 px-4 text-right">{formatQuantity(wo.qtyOutstanding)}</td>
-                        <td className="py-3 px-4 text-right">{formatQuantity(wo.availableStock)}</td>
-                        <td className={`py-3 px-4 text-right font-medium ${
-                          wo.shortage > 0 ? 'text-red-600' : 'text-slate-900'
-                        }`}>
-                          {wo.shortage > 0 ? `-${formatQuantity(wo.shortage)}` : formatQuantity(wo.shortage)}
-                        </td>
-                        <td className="py-3 px-4 text-slate-600">
-                          {wo.shortage > 0 ? <ResupplyHint item={wo} /> : '-'}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              columns={workOrderColumns}
+              data={workOrderDemand}
+              keyField="rowId"
+              variant="embedded"
+              rowClassName={(row) => (row.shortage > 0 ? 'bg-red-50' : undefined)}
+              emptyState={{ title: 'No work order demand found', description: 'No open work orders currently need materials.' }}
+            />
           )}
         </CardContent>
       </Card>
