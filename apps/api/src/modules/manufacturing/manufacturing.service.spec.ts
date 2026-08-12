@@ -408,6 +408,20 @@ describe("ManufacturingService - Production Output", () => {
     updatedAt: new Date(),
   };
 
+  const baseMaterial = {
+    id: "material-123",
+    tenantId,
+    workOrderId,
+    bomLineId: null,
+    itemId: "raw-item-123",
+    qtyRequired: 10,
+    qtyIssued: 0,
+    qtyReturned: 0,
+    status: "PENDING",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -423,6 +437,8 @@ describe("ManufacturingService - Production Output", () => {
             update: jest.fn(),
             getOperations: jest.fn(),
             getMaterials: jest.fn(),
+            findMaterialById: jest.fn(),
+            updateMaterial: jest.fn(),
             generateBatchNoWithPrefix: jest.fn(),
           },
         },
@@ -440,7 +456,7 @@ describe("ManufacturingService - Production Output", () => {
         { provide: MrpRepository, useValue: {} },
         {
           provide: StockLedgerService,
-          useValue: { recordMovement: jest.fn() },
+          useValue: { recordMovement: jest.fn(), getStockInBin: jest.fn() },
         },
         {
           provide: BatchQualityRepository,
@@ -466,6 +482,7 @@ describe("ManufacturingService - Production Output", () => {
     productionDataRepo.findProcessByWorkOrder.mockResolvedValue(null);
     masterDataService.getItem.mockResolvedValue(baseItem);
     productionLedgerRepo.getNextRunNo.mockResolvedValue(1);
+    stockLedgerService.getStockInBin.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -580,6 +597,165 @@ describe("ManufacturingService - Production Output", () => {
       );
       expect((result as any).lastOutputRunNo).toBe(3);
       expect((result as any).lastOutputBatchNo).toBe("BATCH-20260218-003");
+    });
+  });
+
+  describe("issueMaterial", () => {
+    beforeEach(() => {
+      workOrderRepo.findById.mockResolvedValue({
+        ...baseWorkOrder,
+        status: "RELEASED",
+      });
+      workOrderRepo.findMaterialById.mockResolvedValue(baseMaterial);
+      workOrderRepo.updateMaterial.mockResolvedValue({
+        ...baseMaterial,
+        qtyIssued: 5,
+        status: "PARTIAL",
+      });
+    });
+
+    it("throws BadRequestException when the material requires a batch and none is given", async () => {
+      masterDataService.getItem.mockResolvedValue({
+        ...baseItem,
+        sku: "RAW-001",
+        requiresBatchTracking: true,
+      });
+
+      await expect(
+        service.issueMaterial(workOrderId, {
+          materialId: "material-123",
+          qty: 5,
+          binId: "bin-123",
+          createdBy: "user-123",
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(stockLedgerService.recordMovement).not.toHaveBeenCalled();
+    });
+
+    it("throws BadRequestException when the requested qty exceeds what's available in that bin/batch", async () => {
+      stockLedgerService.getStockInBin.mockResolvedValue([
+        {
+          itemId: "raw-item-123",
+          binId: "bin-123",
+          batchNo: "BATCH-001",
+          expiryDate: null,
+          qtyOnHand: 3,
+          qtyReserved: 0,
+          qtyAvailable: 3,
+        } as any,
+      ]);
+
+      await expect(
+        service.issueMaterial(workOrderId, {
+          materialId: "material-123",
+          qty: 5,
+          binId: "bin-123",
+          batchNo: "BATCH-001",
+          createdBy: "user-123",
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(stockLedgerService.recordMovement).not.toHaveBeenCalled();
+    });
+
+    it("issues the material and records its batch when stock is available", async () => {
+      masterDataService.getItem.mockResolvedValue({
+        ...baseItem,
+        sku: "RAW-001",
+        requiresBatchTracking: true,
+      });
+      stockLedgerService.getStockInBin.mockResolvedValue([
+        {
+          itemId: "raw-item-123",
+          binId: "bin-123",
+          batchNo: "BATCH-001",
+          expiryDate: null,
+          qtyOnHand: 10,
+          qtyReserved: 0,
+          qtyAvailable: 10,
+        } as any,
+      ]);
+
+      await service.issueMaterial(workOrderId, {
+        materialId: "material-123",
+        qty: 5,
+        binId: "bin-123",
+        batchNo: "BATCH-001",
+        createdBy: "user-123",
+      });
+
+      expect(stockLedgerService.recordMovement).toHaveBeenCalledWith(
+        expect.objectContaining({
+          itemId: "raw-item-123",
+          fromBinId: "bin-123",
+          qty: -5,
+          batchNo: "BATCH-001",
+        }),
+      );
+      expect(workOrderRepo.updateMaterial).toHaveBeenCalledWith(
+        "material-123",
+        { qtyIssued: 5, status: "PARTIAL" },
+      );
+    });
+  });
+
+  describe("returnMaterial", () => {
+    beforeEach(() => {
+      workOrderRepo.findMaterialById.mockResolvedValue({
+        ...baseMaterial,
+        qtyIssued: 5,
+      });
+      workOrderRepo.updateMaterial.mockResolvedValue({
+        ...baseMaterial,
+        qtyIssued: 5,
+        qtyReturned: 2,
+      });
+    });
+
+    it("throws BadRequestException when the material requires a batch and none is given", async () => {
+      masterDataService.getItem.mockResolvedValue({
+        ...baseItem,
+        sku: "RAW-001",
+        requiresBatchTracking: true,
+      });
+
+      await expect(
+        service.returnMaterial(workOrderId, {
+          materialId: "material-123",
+          qty: 2,
+          binId: "bin-123",
+          createdBy: "user-123",
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(stockLedgerService.recordMovement).not.toHaveBeenCalled();
+    });
+
+    it("returns the material with its batch when one is given", async () => {
+      masterDataService.getItem.mockResolvedValue({
+        ...baseItem,
+        sku: "RAW-001",
+        requiresBatchTracking: true,
+      });
+
+      await service.returnMaterial(workOrderId, {
+        materialId: "material-123",
+        qty: 2,
+        binId: "bin-123",
+        batchNo: "BATCH-001",
+        createdBy: "user-123",
+      });
+
+      expect(stockLedgerService.recordMovement).toHaveBeenCalledWith(
+        expect.objectContaining({
+          itemId: "raw-item-123",
+          toBinId: "bin-123",
+          qty: 2,
+          batchNo: "BATCH-001",
+        }),
+      );
+      expect(workOrderRepo.updateMaterial).toHaveBeenCalledWith(
+        "material-123",
+        { qtyReturned: 2 },
+      );
     });
   });
 

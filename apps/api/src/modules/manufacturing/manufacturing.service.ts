@@ -1074,6 +1074,36 @@ export class ManufacturingService {
     const material = await this.workOrderRepo.findMaterialById(data.materialId);
     if (!material) throw new NotFoundException("Material not found");
 
+    // A raw material going into a product needs the same traceability as
+    // everything else in the pipeline: which exact batch was consumed, not
+    // just "some" stock of the item - otherwise the output batch can't be
+    // traced back to what actually went into it.
+    const item = await this.masterDataService.getItem(
+      workOrder.tenantId,
+      material.itemId,
+    );
+    if (item.requiresBatchTracking && !data.batchNo) {
+      throw new BadRequestException(
+        `${item.sku} requires a batch/lot number to be issued`,
+      );
+    }
+
+    const stockInBin = await this.stockLedgerService.getStockInBin(
+      workOrder.tenantId,
+      data.binId,
+    );
+    const batchStock = stockInBin.find(
+      (s) =>
+        s.itemId === material.itemId &&
+        (s.batchNo || null) === (data.batchNo || null),
+    );
+    const availableQty = batchStock?.qtyAvailable ?? 0;
+    if (data.qty > availableQty) {
+      throw new BadRequestException(
+        `Insufficient stock for ${item.sku} in batch ${data.batchNo || "none"} — only ${availableQty} available`,
+      );
+    }
+
     // Create production ledger entry
     await this.productionLedgerRepo.create({
       tenantId: workOrder.tenantId,
@@ -1132,6 +1162,16 @@ export class ManufacturingService {
 
     const material = await this.workOrderRepo.findMaterialById(data.materialId);
     if (!material) throw new NotFoundException("Material not found");
+
+    const item = await this.masterDataService.getItem(
+      workOrder.tenantId,
+      material.itemId,
+    );
+    if (item.requiresBatchTracking && !data.batchNo) {
+      throw new BadRequestException(
+        `${item.sku} requires a batch/lot number to be returned`,
+      );
+    }
 
     // Create production ledger entry
     await this.productionLedgerRepo.create({

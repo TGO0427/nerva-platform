@@ -54,6 +54,8 @@ export default function WorkOrderDetailPage() {
   const [issueQty, setIssueQty] = useState('');
   const [issueBinId, setIssueBinId] = useState('');
   const [issueBatchNo, setIssueBatchNo] = useState('');
+  const issuingMaterial = workOrder?.materials?.find((m) => m.id === issuingMaterialId);
+  const { data: issuingItem } = useItem(issuingMaterial?.itemId);
 
   const [showRecordOutput, setShowRecordOutput] = useState(false);
   const [outputQty, setOutputQty] = useState('');
@@ -721,11 +723,23 @@ export default function WorkOrderDetailPage() {
                           <Select value={issueBinId} onChange={(e) => setIssueBinId(e.target.value)} options={[{ value: '', label: 'Select bin...' }, ...(bins || []).map(b => ({ value: b.id, label: b.code }))]} />
                         </div>
                         <div>
-                          <label className="block text-xs text-slate-600 mb-1">Batch No</label>
-                          <Input value={issueBatchNo} onChange={(e) => setIssueBatchNo(e.target.value)} placeholder="Optional" />
+                          <label className="block text-xs text-slate-600 mb-1">
+                            Batch No{issuingItem?.requiresBatchTracking && <span className="text-red-500"> *</span>}
+                          </label>
+                          <Input
+                            value={issueBatchNo}
+                            onChange={(e) => setIssueBatchNo(e.target.value)}
+                            placeholder={issuingItem?.requiresBatchTracking ? 'Required' : 'Optional'}
+                          />
+                          {issuingItem?.requiresBatchTracking && !issueBatchNo && (
+                            <p className="text-xs text-amber-600 mt-1">This item requires a batch/lot number</p>
+                          )}
                         </div>
                         <div className="flex items-end gap-2">
-                          <Button size="sm" disabled={!issueQty || !issueBinId || issueMaterial.isPending} onClick={async () => {
+                          <Button
+                            size="sm"
+                            disabled={!issueQty || !issueBinId || (issuingItem?.requiresBatchTracking && !issueBatchNo) || issueMaterial.isPending}
+                            onClick={async () => {
                             try { await issueMaterial.mutateAsync({ workOrderId: id!, materialId: issuingMaterialId, qty: parseFloat(issueQty), binId: issueBinId, batchNo: issueBatchNo || undefined });
                             addToast('Material issued', 'success'); setIssuingMaterialId(null); setIssueQty(''); setIssueBinId(''); setIssueBatchNo('');
                             } catch { addToast('Failed to issue material', 'error'); }
