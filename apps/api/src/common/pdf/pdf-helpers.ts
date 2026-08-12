@@ -67,6 +67,18 @@ export function formatDate(date: Date | string | null | undefined): string {
   });
 }
 
+export function formatDateTime(date: Date | string | null | undefined): string {
+  if (!date) return "-";
+  const d = new Date(date);
+  return d.toLocaleString("en-ZA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 // ---- Document Creation ----
 
 export function createPdfDocument(

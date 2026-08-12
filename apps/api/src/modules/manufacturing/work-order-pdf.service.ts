@@ -14,6 +14,7 @@ import {
   renderNotes,
   renderSignatureBlock,
   formatDate,
+  formatDateTime,
 } from "../../common/pdf/pdf-helpers";
 
 @Injectable()
@@ -32,6 +33,7 @@ export class WorkOrderPdfService {
     const materials = await this.repository.getMaterials(workOrderId);
     const operations = await this.repository.getOperations(workOrderId);
     const checks = await this.productionDataRepo.findChecksByWorkOrder(workOrderId);
+    const process = await this.productionDataRepo.findProcessByWorkOrder(workOrderId);
     const profile = await this.tenantProfile.getProfile(tenantId);
 
     // Get item details (product being manufactured)
@@ -176,6 +178,53 @@ export class WorkOrderPdfService {
         })),
         startY: y,
       });
+    }
+
+    // Production Process log - how the batch was actually run (who, which
+    // vessel, and the key process timestamps like reaching 85C), distinct
+    // from the Tipping Check Sheet's end-of-run yield count below.
+    if (process) {
+      if (y > 600) {
+        doc.addPage();
+        y = 40;
+      }
+      y += 10;
+
+      doc
+        .fontSize(10)
+        .font("Helvetica-Bold")
+        .fillColor("#000000")
+        .text("Production Process", 40, y);
+      y += 16;
+
+      y = renderDocumentMeta(
+        doc,
+        [
+          { label: "Operator", value: process.operator || "-" },
+          { label: "Time Started", value: formatDateTime(process.timeStarted) },
+          { label: "Time Flavour Added", value: formatDateTime(process.timeFlavourAdded) },
+        ],
+        [
+          { label: "Pot Used", value: process.potUsed || "-" },
+          { label: "Time 85C", value: formatDateTime(process.time85c) },
+          { label: "Time Completed", value: formatDateTime(process.timeCompleted) },
+        ],
+        y,
+      );
+      y += 5;
+
+      const renderWrappedField = (label: string, value: string | null) => {
+        if (!value) return;
+        doc.fontSize(9).font("Helvetica-Bold").fillColor("#000000").text(`${label}:`, 40, y);
+        y += 12;
+        doc.font("Helvetica").text(value, 40, y, { width: 515 });
+        y += doc.heightOfString(value, { width: 515 }) + 8;
+      };
+      renderWrappedField("Instructions", process.instructions);
+      renderWrappedField("Additions", process.additions);
+      renderWrappedField("Reason for Addition", process.reasonForAddition);
+      renderWrappedField("Comments", process.comments);
+      y += 2;
     }
 
     // Tipping Check Sheet - the yield reconciliation and sign-off captured
