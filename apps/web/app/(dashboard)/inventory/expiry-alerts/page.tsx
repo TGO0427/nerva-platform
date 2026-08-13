@@ -332,6 +332,8 @@ export default function ExpiryAlertsPage() {
             data={filteredStock}
             keyField="binId"
             isLoading={isLoading}
+            stickyHeader
+            maxBodyHeight="65vh"
             emptyState={{
               icon: <CheckIcon />,
               title: 'No expiring stock',

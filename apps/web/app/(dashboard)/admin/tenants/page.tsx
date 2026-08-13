@@ -114,6 +114,8 @@ export default function AdminTenantsPage() {
         isLoading={isLoading}
         variant="embedded"
         onRowClick={handleRowClick}
+        stickyHeader
+        maxBodyHeight="65vh"
         emptyState={{
           icon: <BuildingLgIcon />,
           title: 'No tenants found',

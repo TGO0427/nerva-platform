@@ -348,6 +348,8 @@ export default function WarehousesPage() {
         isAllSelected={isAllSelected}
         isSomeSelected={isSomeSelected}
         onRowClick={handleRowClick}
+        stickyHeader
+        maxBodyHeight="65vh"
         emptyState={{
           icon: <WarehouseIconLarge />,
           title: 'No warehouses found',

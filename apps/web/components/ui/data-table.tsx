@@ -60,7 +60,7 @@ interface DataTableProps<T> {
   isAllSelected?: boolean;
   /** Whether some (but not all) rows are selected */
   isSomeSelected?: boolean;
-  /** Pins the first column in place while the rest of the table scrolls horizontally */
+  /** Pins the first column in place while the rest of the table scrolls horizontally. On by default - pass false to opt out. */
   stickyFirstColumn?: boolean;
   /** Pins the header row in place while the table body scrolls vertically */
   stickyHeader?: boolean;
@@ -91,7 +91,7 @@ export function DataTable<T extends object>({
   onSelectAll,
   isAllSelected = false,
   isSomeSelected = false,
-  stickyFirstColumn = false,
+  stickyFirstColumn = true,
   stickyHeader = false,
   maxBodyHeight,
 }: DataTableProps<T>) {

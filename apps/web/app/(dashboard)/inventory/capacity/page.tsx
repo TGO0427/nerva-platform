@@ -187,6 +187,8 @@ export default function WarehouseCapacityPage() {
             data={rows}
             keyField="warehouseId"
             onRowClick={(row) => router.push(`/inventory/capacity/${row.warehouseId}`)}
+            stickyHeader
+            maxBodyHeight="65vh"
             emptyState={{
               title: 'No warehouse capacity data',
               description: 'Add bins to a warehouse to start tracking capacity.',

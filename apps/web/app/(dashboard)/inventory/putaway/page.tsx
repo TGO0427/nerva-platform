@@ -411,6 +411,8 @@ export default function PutawayPage() {
             keyField="id"
             isLoading={isLoading}
             onRowClick={(row) => router.push(`/inventory/putaway/${row.id}`)}
+            stickyHeader
+            maxBodyHeight="65vh"
             emptyState={{
               title: 'No putaway tasks',
               description: statusFilter

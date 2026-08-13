@@ -141,6 +141,8 @@ export default function CustomerPortalOrders() {
             data={orders}
             keyField="id"
             onRowClick={(row) => router.push(`/sales/${row.id}`)}
+            stickyHeader
+            maxBodyHeight="65vh"
           />
         )}
       </motion.div>
