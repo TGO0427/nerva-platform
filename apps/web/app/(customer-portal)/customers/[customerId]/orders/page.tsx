@@ -143,39 +143,16 @@ export default function CustomerPortalOrders() {
             onRowClick={(row) => router.push(`/sales/${row.id}`)}
             stickyHeader
             maxBodyHeight="65vh"
+            pagination={{
+              page,
+              limit,
+              total: ordersData?.meta?.total || 0,
+              totalPages,
+            }}
+            onPageChange={setPage}
           />
         )}
       </motion.div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <motion.div
-          className="flex items-center justify-between"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2, delay: 0.2 }}
-        >
-          <p className="text-sm text-slate-500">
-            Page {page} of {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-3 py-1.5 text-sm font-medium rounded-xl border border-slate-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 hover:border-slate-300 transition-all"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-3 py-1.5 text-sm font-medium rounded-xl border border-slate-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 hover:border-slate-300 transition-all"
-            >
-              Next
-            </button>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 }

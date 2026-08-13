@@ -263,7 +263,6 @@ export default function PutawayPage() {
     },
   ];
 
-  const totalPages = data?.meta?.totalPages || 0;
   const activeFilterLabels = [
     statusFilter ? `Status: ${STATUS_TABS.find((tab) => tab.value === statusFilter)?.label ?? statusFilter}` : null,
     warehouseFilter ? `Warehouse: ${warehouses?.find((warehouse) => warehouse.id === warehouseFilter)?.name ?? warehouseFilter}` : null,
@@ -413,6 +412,13 @@ export default function PutawayPage() {
             onRowClick={(row) => router.push(`/inventory/putaway/${row.id}`)}
             stickyHeader
             maxBodyHeight="65vh"
+            pagination={data?.meta ? {
+              page: data.meta.page,
+              limit: data.meta.limit,
+              total: data.meta.total,
+              totalPages: data.meta.totalPages,
+            } : undefined}
+            onPageChange={setPage}
             emptyState={{
               title: 'No putaway tasks',
               description: statusFilter
@@ -427,22 +433,6 @@ export default function PutawayPage() {
           />
         </CardContent>
       </Card>
-
-      {data && data.meta.total > 0 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-500">
-            Page {page} of {totalPages} ({data.meta.total} total)
-          </p>
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-              Previous
-            </Button>
-            <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
