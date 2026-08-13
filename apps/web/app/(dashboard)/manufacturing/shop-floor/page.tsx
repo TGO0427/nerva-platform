@@ -532,6 +532,7 @@ function WorkOrderDetail({
       {activeModal === 'issueMaterial' && (
         <IssueMaterialModal
           workOrderId={workOrder.id}
+          warehouseName={workOrder.warehouseName}
           materials={materials}
           bins={bins || []}
           issueMaterial={issueMaterial}
@@ -542,6 +543,7 @@ function WorkOrderDetail({
       {activeModal === 'recordOutput' && (
         <RecordOutputModal
           workOrderId={workOrder.id}
+          warehouseName={workOrder.warehouseName}
           bins={bins || []}
           recordOutput={recordOutput}
           nextOutputBatch={nextOutputBatch}
@@ -664,12 +666,14 @@ function CompleteOperationModal({
 
 function IssueMaterialModal({
   workOrderId,
+  warehouseName,
   materials,
   bins,
   issueMaterial,
   onClose,
 }: {
   workOrderId: string;
+  warehouseName?: string;
   materials: any[];
   bins: any[];
   issueMaterial: ReturnType<typeof useIssueMaterial>;
@@ -799,6 +803,11 @@ function IssueMaterialModal({
 
   return (
     <Modal isOpen title="Issue Material" onClose={onClose}>
+      {warehouseName && (
+        <div className="bg-slate-100 rounded-lg px-4 py-2 mb-4 text-sm text-slate-600">
+          Issuing from <span className="font-semibold text-slate-900">{warehouseName}</span> - bin codes below belong to this warehouse only.
+        </div>
+      )}
       <div className="space-y-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -906,6 +915,7 @@ function IssueMaterialModal({
 
 function RecordOutputModal({
   workOrderId,
+  warehouseName,
   bins,
   recordOutput,
   nextOutputBatch,
@@ -913,6 +923,7 @@ function RecordOutputModal({
   onClose,
 }: {
   workOrderId: string;
+  warehouseName?: string;
   bins: any[];
   recordOutput: ReturnType<typeof useRecordOutput>;
   nextOutputBatch?: { runNo?: number; batchNo?: string | null } | null;
@@ -943,6 +954,11 @@ function RecordOutputModal({
 
   return (
     <Modal isOpen title="Record Output" onClose={onClose}>
+      {warehouseName && (
+        <div className="bg-slate-100 rounded-lg px-4 py-2 mb-4 text-sm text-slate-600">
+          Recording into <span className="font-semibold text-slate-900">{warehouseName}</span> - bin codes below belong to this warehouse only.
+        </div>
+      )}
       {systemAssignedBatch && (
         <div className="bg-green-50 rounded-lg p-4 mb-4">
           <p className="text-sm text-green-700 font-medium">
