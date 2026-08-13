@@ -245,10 +245,16 @@ export class MrpRepository extends BaseRepository {
       linesByHeader.get(headerId)!.push(line);
     }
 
-    // Explode every open line through its item's BOM. An item with no
-    // active BOM can't be exploded into raw materials - it contributes no
-    // rows here (not an error, just outside what this pass can compute).
-    type ExplodedDemand = {
+    // Each open line demands two things: the ordered (assembly) item itself
+    // - do we have/can we build enough finished units? - and, if it has an
+    // active BOM, the raw materials to build more of it. Both are surfaced
+    // as rows here so a shortage of already-built finished stock ("Create
+    // Work Order" on the assembly) is as visible as a shortage of the
+    // materials to make it ("Create PO"/"Create Work Order" on the
+    // component). An item with no active BOM still gets its assembly row -
+    // it just can't be exploded into raw materials, so it contributes no
+    // component rows.
+    type DemandRow = {
       salesOrderId: string;
       orderNo: string;
       customerName: string | null;
@@ -257,14 +263,29 @@ export class MrpRepository extends BaseRepository {
       itemId: string;
       itemSku: string;
       itemDescription: string;
+      demandType: "ASSEMBLY" | "COMPONENT";
       qtyRequired: number;
     };
-    const exploded: ExplodedDemand[] = [];
+    const assemblyRows: DemandRow[] = [];
+    const componentRows: DemandRow[] = [];
     for (const line of openLines) {
+      const qtyOutstanding = parseFloat((line.qty_outstanding as string) || "0");
+      assemblyRows.push({
+        salesOrderId: line.sales_order_id as string,
+        orderNo: line.order_no as string,
+        customerName: (line.customer_name as string) ?? null,
+        warehouseId: line.warehouse_id as string,
+        warehouseName: line.warehouse_name as string,
+        itemId: line.item_id as string,
+        itemSku: line.item_sku as string,
+        itemDescription: line.item_description as string,
+        demandType: "ASSEMBLY",
+        qtyRequired: qtyOutstanding,
+      });
+
       const bomHeader = activeBomByItem.get(line.item_id as string);
       if (!bomHeader) continue;
       const bomLines = linesByHeader.get(bomHeader.id as string) || [];
-      const qtyOutstanding = parseFloat((line.qty_outstanding as string) || "0");
       const baseQty = parseFloat((bomHeader.base_qty as string) || "1") || 1;
 
       for (const bomLine of bomLines) {
@@ -273,7 +294,7 @@ export class MrpRepository extends BaseRepository {
         const qtyRequired = (qtyPer / baseQty) * qtyOutstanding * (1 + scrapPct / 100);
         if (qtyRequired <= 0) continue;
 
-        exploded.push({
+        componentRows.push({
           salesOrderId: line.sales_order_id as string,
           orderNo: line.order_no as string,
           customerName: (line.customer_name as string) ?? null,
@@ -282,18 +303,39 @@ export class MrpRepository extends BaseRepository {
           itemId: bomLine.item_id as string,
           itemSku: bomLine.item_sku as string,
           itemDescription: bomLine.item_description as string,
+          demandType: "COMPONENT",
           qtyRequired,
         });
       }
     }
 
-    if (exploded.length === 0) return [];
+    const allRows = [...assemblyRows, ...componentRows];
+    if (allRows.length === 0) return [];
+
+    // Assembly items' BOM status is already known from activeBomByItem.
+    // Component items (raw materials) need their own check - a raw
+    // material can itself be a manufactured intermediate with its own BOM
+    // (e.g. a sub-assembly), which is what makes "Create Work Order" a
+    // sensible action on a component row too.
+    const componentItemIds = [...new Set(componentRows.map((r) => r.itemId))];
+    const componentBomRows =
+      componentItemIds.length > 0
+        ? await this.queryMany<{ item_id: string }>(
+            `SELECT DISTINCT item_id FROM bom_headers
+             WHERE tenant_id = $1 AND item_id = ANY($2::uuid[]) AND status = 'APPROVED'
+               AND (effective_from IS NULL OR effective_from <= CURRENT_DATE)
+               AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)`,
+            [tenantId, componentItemIds],
+          )
+        : [];
+    const hasActiveBomForItem = new Set<string>(activeBomByItem.keys());
+    for (const row of componentBomRows) hasActiveBomForItem.add(row.item_id);
 
     // One stock/PO/lead-time lookup per distinct (item, warehouse) pair -
     // same per-warehouse scoping as the work-order query above.
     const pairKey = (itemId: string, warehouseId: string) => `${itemId}::${warehouseId}`;
     const distinctPairs = new Map<string, { itemId: string; warehouseId: string }>();
-    for (const row of exploded) {
+    for (const row of allRows) {
       distinctPairs.set(pairKey(row.itemId, row.warehouseId), {
         itemId: row.itemId,
         warehouseId: row.warehouseId,
@@ -334,7 +376,7 @@ export class MrpRepository extends BaseRepository {
       );
     }
 
-    return exploded.map((row) => {
+    return allRows.map((row) => {
       const stock = stockByPair.get(pairKey(row.itemId, row.warehouseId));
       const availableStock = parseFloat((stock?.available_stock as string) || "0");
       return {
@@ -346,6 +388,8 @@ export class MrpRepository extends BaseRepository {
         itemId: row.itemId,
         itemSku: row.itemSku,
         itemDescription: row.itemDescription,
+        demandType: row.demandType,
+        hasActiveBom: hasActiveBomForItem.has(row.itemId),
         qtyRequired: row.qtyRequired,
         availableStock,
         shortage: Math.max(row.qtyRequired - availableStock, 0),

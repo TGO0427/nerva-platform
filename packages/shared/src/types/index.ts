@@ -1081,6 +1081,8 @@ export interface MrpData {
     itemId: string;
     itemSku: string;
     itemDescription: string;
+    demandType: 'ASSEMBLY' | 'COMPONENT';
+    hasActiveBom: boolean;
     qtyRequired: number;
     availableStock: number;
     shortage: number;

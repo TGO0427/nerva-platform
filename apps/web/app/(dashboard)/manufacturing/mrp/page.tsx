@@ -233,6 +233,16 @@ export default function MrpPage() {
     },
     { key: 'customerName', header: 'Customer', sortable: true, render: (row) => row.customerName || '-' },
     { key: 'warehouseName', header: 'Warehouse', sortable: true },
+    {
+      key: 'demandType',
+      header: 'Type',
+      sortable: true,
+      render: (row) => (
+        <Badge variant={row.demandType === 'ASSEMBLY' ? 'info' : 'default'}>
+          {row.demandType === 'ASSEMBLY' ? 'Assembly' : 'Component'}
+        </Badge>
+      ),
+    },
     { key: 'itemSku', header: 'Item SKU', sortable: true, className: 'text-slate-900' },
     { key: 'qtyRequired', header: 'Required', sortable: true, align: 'right', render: (row) => formatQuantity(row.qtyRequired) },
     { key: 'availableStock', header: 'Available', sortable: true, align: 'right', render: (row) => formatQuantity(row.availableStock) },
@@ -258,18 +268,30 @@ export default function MrpPage() {
       render: (row) => {
         if (row.shortage <= 0) return null;
         return (
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={createPo.isPending}
-            onClick={() => handleCreatePo({ itemId: row.itemId, itemSku: row.itemSku, warehouseId: row.warehouseId, qty: row.shortage })}
-          >
-            Create PO
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={createPo.isPending}
+              onClick={() => handleCreatePo({ itemId: row.itemId, itemSku: row.itemSku, warehouseId: row.warehouseId, qty: row.shortage })}
+            >
+              Create PO
+            </Button>
+            {row.hasActiveBom && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={createWo.isPending}
+                onClick={() => handleCreateWo({ itemId: row.itemId, itemSku: row.itemSku, warehouseId: row.warehouseId, qty: row.shortage })}
+              >
+                Create Work Order
+              </Button>
+            )}
+          </div>
         );
       },
     },
-  ], [createPo.isPending]);
+  ], [createPo.isPending, createWo.isPending]);
 
   const shortageItems = useMemo(
     () => itemSummary.filter((item) => item.netShortage > 0),
@@ -295,9 +317,9 @@ export default function MrpPage() {
         csvContent += `"${wo.workOrderNo}","${wo.workOrderStatus}","${wo.warehouseName}","${wo.itemSku}",${wo.qtyRequired},${wo.qtyIssued},${wo.qtyOutstanding},${wo.availableStock},${wo.shortage}\n`;
       });
     } else {
-      csvContent = 'Order #,Customer,Warehouse,Item SKU,Required,Available,Shortage\n';
+      csvContent = 'Order #,Customer,Warehouse,Type,Item SKU,Required,Available,Shortage\n';
       salesOrderDemand.forEach((so) => {
-        csvContent += `"${so.orderNo}","${so.customerName || ''}","${so.warehouseName}","${so.itemSku}",${so.qtyRequired},${so.availableStock},${so.shortage}\n`;
+        csvContent += `"${so.orderNo}","${so.customerName || ''}","${so.warehouseName}","${so.demandType}","${so.itemSku}",${so.qtyRequired},${so.availableStock},${so.shortage}\n`;
       });
     }
 
