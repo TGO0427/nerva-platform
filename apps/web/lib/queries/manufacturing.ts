@@ -680,6 +680,7 @@ export function useAddWorkOrderMaterial() {
       return response.data;
     },
     onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
     },
   });
@@ -699,6 +700,7 @@ export function useIssueMaterial() {
       return response.data;
     },
     onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
       // Issuing consumes stock from the exact bin/batch just picked - without
       // this, a picker showing "available" qty for that item would keep
@@ -724,6 +726,7 @@ export function useRecordOutput() {
       return response.data;
     },
     onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId, 'next-output-batch'] });
     },
@@ -756,6 +759,7 @@ export function useReturnMaterial() {
       return response.data;
     },
     onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
     },
   });
@@ -778,6 +782,7 @@ export function useRecordScrap() {
       return response.data;
     },
     onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
     },
   });
@@ -794,6 +799,7 @@ export function useStartOperation() {
       return response.data;
     },
     onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
     },
   });
@@ -815,6 +821,7 @@ export function useCompleteOperation() {
       return response.data;
     },
     onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
     },
   });
@@ -853,6 +860,7 @@ export function useUpsertWorkOrderChecks() {
     },
     onSuccess: (_, { workOrderId }) => {
       queryClient.invalidateQueries({ queryKey: [WO_CHECKS_KEY, workOrderId] });
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
     },
   });
@@ -891,6 +899,7 @@ export function useUpsertWorkOrderProcess() {
     },
     onSuccess: (_, { workOrderId }) => {
       queryClient.invalidateQueries({ queryKey: [WO_PROCESS_KEY, workOrderId] });
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
     },
   });
