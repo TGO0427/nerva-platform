@@ -62,6 +62,11 @@ interface DataTableProps<T> {
   isSomeSelected?: boolean;
   /** Pins the first column in place while the rest of the table scrolls horizontally */
   stickyFirstColumn?: boolean;
+  /** Pins the header row in place while the table body scrolls vertically */
+  stickyHeader?: boolean;
+  /** Bounds the table to this height with its own vertical scrollbar, so a long
+   *  table's horizontal scrollbar stays reachable without paging past every row */
+  maxBodyHeight?: string;
 }
 
 export function DataTable<T extends object>({
@@ -87,6 +92,8 @@ export function DataTable<T extends object>({
   isAllSelected = false,
   isSomeSelected = false,
   stickyFirstColumn = false,
+  stickyHeader = false,
+  maxBodyHeight,
 }: DataTableProps<T>) {
   const containerClass = variant === 'embedded'
     ? cn(className)
@@ -181,7 +188,10 @@ export function DataTable<T extends object>({
 
   return (
     <div className={containerClass}>
-      <div className="overflow-x-auto">
+      <div
+        className={cn('overflow-x-auto', maxBodyHeight && 'overflow-y-auto')}
+        style={maxBodyHeight ? { maxHeight: maxBodyHeight } : undefined}
+      >
         <table className="min-w-full divide-y divide-surface-border dark:divide-surface-dark-border">
           <thead className="bg-surface-secondary dark:bg-surface-dark-secondary">
             <tr>
@@ -202,7 +212,14 @@ export function DataTable<T extends object>({
                 (() => {
                   const align = getColumnAlign(column);
                   const sortDirection = localSortKey === column.key ? localSortOrder : undefined;
-                  const isSticky = stickyFirstColumn && columnIndex === 0;
+                  const isStickyLeft = stickyFirstColumn && columnIndex === 0;
+                  const stickyHeaderClass = isStickyLeft && stickyHeader
+                    ? 'sticky left-0 top-0 z-30 bg-surface-secondary dark:bg-surface-dark-secondary shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]'
+                    : isStickyLeft
+                    ? 'sticky left-0 z-20 bg-surface-secondary dark:bg-surface-dark-secondary shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]'
+                    : stickyHeader
+                    ? 'sticky top-0 z-20 bg-surface-secondary dark:bg-surface-dark-secondary'
+                    : undefined;
 
                   return (
                     <th
@@ -215,7 +232,7 @@ export function DataTable<T extends object>({
                         'text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-dark-muted',
                         getAlignClass(align),
                         column.sortable && 'cursor-pointer select-none hover:bg-surface-border/60 dark:hover:bg-surface-dark-border/60',
-                        isSticky && 'sticky left-0 z-20 bg-surface-secondary dark:bg-surface-dark-secondary shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]',
+                        stickyHeaderClass,
                         column.className
                       )}
                       onClick={() => column.sortable && handleSort(column.key)}

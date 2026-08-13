@@ -474,6 +474,8 @@ export default function MrpPage() {
               keyField="rowId"
               variant="embedded"
               stickyFirstColumn
+              stickyHeader
+              maxBodyHeight="65vh"
               rowClassName={(row) => (row.netShortage > 0 ? 'bg-red-50' : undefined)}
               emptyState={
                 search
@@ -488,6 +490,8 @@ export default function MrpPage() {
               keyField="rowId"
               variant="embedded"
               stickyFirstColumn
+              stickyHeader
+              maxBodyHeight="65vh"
               rowClassName={(row) => (row.shortage > 0 ? 'bg-red-50' : undefined)}
               emptyState={
                 search
@@ -502,6 +506,8 @@ export default function MrpPage() {
               keyField="rowId"
               variant="embedded"
               stickyFirstColumn
+              stickyHeader
+              maxBodyHeight="65vh"
               rowClassName={(row) => (row.shortage > 0 ? 'bg-red-50' : undefined)}
               emptyState={
                 search
