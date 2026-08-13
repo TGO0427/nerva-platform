@@ -1,8 +1,13 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { Breadcrumbs } from '@/components/layout';
 import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Modal } from '@/components/ui/modal';
+import { DataTable, type Column } from '@/components/ui/data-table';
 import {
   useWorkOrders,
   useWorkOrder,
@@ -11,10 +16,12 @@ import {
   useCompleteOperation,
   useIssueMaterial,
   useRecordOutput,
+  useNextOutputBatch,
+  useItem,
 } from '@/lib/queries';
 import { useBins } from '@/lib/queries/warehouses';
 import { formatNumber, formatPercent, formatQuantity } from '@/lib/format';
-import type { WorkOrderOperationStatus } from '@nerva/shared';
+import type { WorkOrder, WorkOrderOperationStatus } from '@nerva/shared';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,6 +34,8 @@ type ActiveModal =
   | 'completeOperation'
   | 'issueMaterial'
   | 'recordOutput';
+
+type ActiveOrderRow = WorkOrder & { itemSku?: string; itemDescription?: string };
 
 // ---------------------------------------------------------------------------
 // Main Component
@@ -60,9 +69,54 @@ export default function ShopFloorPage() {
     setMobileShowDetail(false);
   };
 
+  const columns: Column<ActiveOrderRow>[] = useMemo(() => [
+    {
+      key: 'workOrderNo',
+      header: 'Work Order',
+      render: (wo) => (
+        <div className="min-w-0">
+          <div className="font-bold text-slate-900 truncate">{wo.workOrderNo}</div>
+          <div className="text-xs text-slate-500 truncate">{wo.itemSku || 'No SKU'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (wo) => <StatusBadge status={wo.status} />,
+    },
+    {
+      key: 'progress',
+      header: 'Progress',
+      render: (wo) => {
+        const pct = wo.qtyOrdered > 0
+          ? Math.round((wo.qtyCompleted / wo.qtyOrdered) * 100)
+          : 0;
+        return (
+          <div className="min-w-[80px]">
+            <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+              <span>{formatQuantity(wo.qtyCompleted)}/{formatQuantity(wo.qtyOrdered)}</span>
+              <span>{formatPercent(pct, 0)}</span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-2">
+              <div
+                className="bg-blue-500 h-2 rounded-full transition-all"
+                style={{ width: `${Math.min(pct, 100)}%` }}
+              />
+            </div>
+          </div>
+        );
+      },
+    },
+  ], []);
+
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden">
-      {/* Left Panel - Work Order Cards */}
+    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
+      <div className="px-4 pt-3">
+        <Breadcrumbs />
+      </div>
+      <div className="flex-1 flex overflow-hidden">
+      {/* Left Panel - Work Order List */}
       <div
         className={`w-full md:w-96 md:min-w-[384px] border-r border-slate-200 bg-slate-50 flex flex-col ${
           mobileShowDetail ? 'hidden md:flex' : 'flex'
@@ -74,61 +128,22 @@ export default function ShopFloorPage() {
             {formatNumber(activeOrders.length)} order{activeOrders.length !== 1 ? 's' : ''} on floor
           </p>
         </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {woLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Spinner size="lg" />
-            </div>
-          ) : activeOrders.length === 0 ? (
-            <div className="text-center py-20 text-slate-400">
-              <p className="text-lg font-medium">No active work orders</p>
-              <p className="text-sm mt-1">Release a work order to see it here</p>
-            </div>
-          ) : (
-            activeOrders.map((wo) => {
-              const pct = wo.qtyOrdered > 0
-                ? Math.round((wo.qtyCompleted / wo.qtyOrdered) * 100)
-                : 0;
-              const isSelected = selectedWoId === wo.id;
-              return (
-                <div
-                  key={wo.id}
-                  onClick={() => handleSelectWo(wo.id)}
-                  className={`min-h-[80px] p-4 rounded-xl border cursor-pointer transition-colors bg-white ${
-                    isSelected
-                      ? 'border-blue-500 border-2 shadow-sm'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="text-lg font-bold text-slate-900 truncate">
-                        {wo.workOrderNo}
-                      </div>
-                      <div className="text-sm text-slate-500 truncate">
-                        {(wo as any).itemSku || 'No SKU'}
-                      </div>
-                    </div>
-                    <StatusBadge status={wo.status} />
-                  </div>
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                      <span>
-                        {formatQuantity(wo.qtyCompleted)} / {formatQuantity(wo.qtyOrdered)}
-                      </span>
-                      <span>{formatPercent(pct, 0)}</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full transition-all"
-                        style={{ width: `${Math.min(pct, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
+        <div className="flex-1 overflow-y-auto">
+          <DataTable
+            columns={columns}
+            data={activeOrders}
+            keyField="id"
+            isLoading={woLoading}
+            variant="embedded"
+            density="compact"
+            stickyHeader
+            onRowClick={(wo) => handleSelectWo(wo.id)}
+            rowClassName={(wo) => (selectedWoId === wo.id ? 'bg-blue-50' : undefined)}
+            emptyState={{
+              title: 'No active work orders',
+              description: 'Release a work order to see it here.',
+            }}
+          />
         </div>
       </div>
 
@@ -173,6 +188,7 @@ export default function ShopFloorPage() {
           </div>
         )}
       </div>
+      </div>
     </div>
   );
 }
@@ -197,6 +213,8 @@ function WorkOrderDetail({
   const recordOutput = useRecordOutput();
 
   const { data: bins } = useBins(workOrder.warehouseId);
+  const { data: nextOutputBatch } = useNextOutputBatch(workOrder.id);
+  const { data: producedItem } = useItem(workOrder.itemId);
 
   const pct = workOrder.qtyOrdered > 0
     ? Math.round((workOrder.qtyCompleted / workOrder.qtyOrdered) * 100)
@@ -209,23 +227,21 @@ function WorkOrderDetail({
   const nextReadyOp = operations.find((op: any) => op.status === 'READY');
   const currentInProgressOp = operations.find((op: any) => op.status === 'IN_PROGRESS');
 
-  const statusColor = workOrder.status === 'IN_PROGRESS'
-    ? 'bg-amber-100 text-amber-800'
-    : 'bg-blue-100 text-blue-800';
-
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-slate-200 bg-white">
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onBack}
-            className="md:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100"
+            className="md:hidden -ml-2 px-2"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-          </button>
+          </Button>
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-bold text-slate-900 truncate">
               {workOrder.workOrderNo}
@@ -235,9 +251,9 @@ function WorkOrderDetail({
               {(workOrder as any).itemDescription || 'Product'}
             </p>
           </div>
-          <div className={`px-4 py-2 rounded-xl text-2xl font-bold ${statusColor}`}>
+          <Badge variant={getStatusVariant(workOrder.status)} className="text-base px-4 py-2">
             {workOrder.status.replace(/_/g, ' ')}
-          </div>
+          </Badge>
         </div>
       </div>
 
@@ -274,44 +290,44 @@ function WorkOrderDetail({
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {workOrder.status === 'RELEASED' && (
-              <button
+              <Button
                 onClick={() => setActiveModal('startWorkOrder')}
-                className="h-14 text-lg rounded-xl font-semibold w-full bg-green-600 text-white hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-50"
+                className="h-14 text-lg rounded-xl w-full bg-green-600 hover:bg-green-700 active:bg-green-800"
               >
                 Start Work Order
-              </button>
+              </Button>
             )}
             {nextReadyOp && (
-              <button
+              <Button
                 onClick={() => setActiveModal('startOperation')}
-                className="h-14 text-lg rounded-xl font-semibold w-full bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors"
+                className="h-14 text-lg rounded-xl w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
               >
                 Start Operation
-              </button>
+              </Button>
             )}
             {currentInProgressOp && (
-              <button
+              <Button
                 onClick={() => setActiveModal('completeOperation')}
-                className="h-14 text-lg rounded-xl font-semibold w-full bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 transition-colors"
+                className="h-14 text-lg rounded-xl w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800"
               >
                 Complete Operation
-              </button>
+              </Button>
             )}
             {(workOrder.status === 'RELEASED' || workOrder.status === 'IN_PROGRESS') && (
-              <button
+              <Button
                 onClick={() => setActiveModal('issueMaterial')}
-                className="h-14 text-lg rounded-xl font-semibold w-full bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800 transition-colors"
+                className="h-14 text-lg rounded-xl w-full bg-purple-600 hover:bg-purple-700 active:bg-purple-800"
               >
                 Issue Material
-              </button>
+              </Button>
             )}
             {workOrder.status === 'IN_PROGRESS' && (
-              <button
+              <Button
                 onClick={() => setActiveModal('recordOutput')}
-                className="h-14 text-lg rounded-xl font-semibold w-full bg-green-600 text-white hover:bg-green-700 active:bg-green-800 transition-colors"
+                className="h-14 text-lg rounded-xl w-full bg-green-600 hover:bg-green-700 active:bg-green-800"
               >
                 Record Output
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -420,6 +436,7 @@ function WorkOrderDetail({
       {/* Modals */}
       {activeModal === 'startWorkOrder' && (
         <Modal
+          isOpen
           title="Start Work Order"
           onClose={() => setActiveModal(null)}
         >
@@ -428,14 +445,15 @@ function WorkOrderDetail({
             This will change the status to In Progress.
           </p>
           <div className="flex gap-3">
-            <button
+            <Button
+              variant="secondary"
               onClick={() => setActiveModal(null)}
-              className="flex-1 h-12 rounded-xl font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 active:bg-slate-400 transition-colors"
+              className="flex-1 h-12 rounded-xl"
             >
               Cancel
-            </button>
-            <button
-              disabled={startWorkOrder.isPending}
+            </Button>
+            <Button
+              isLoading={startWorkOrder.isPending}
               onClick={async () => {
                 try {
                   await startWorkOrder.mutateAsync(workOrder.id);
@@ -444,16 +462,17 @@ function WorkOrderDetail({
                   // error handled by query
                 }
               }}
-              className="flex-1 h-12 rounded-xl font-semibold bg-green-600 text-white hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-50"
+              className="flex-1 h-12 rounded-xl bg-green-600 hover:bg-green-700 active:bg-green-800"
             >
               {startWorkOrder.isPending ? 'Starting...' : 'Confirm Start'}
-            </button>
+            </Button>
           </div>
         </Modal>
       )}
 
       {activeModal === 'startOperation' && nextReadyOp && (
         <Modal
+          isOpen
           title="Start Operation"
           onClose={() => setActiveModal(null)}
         >
@@ -468,14 +487,15 @@ function WorkOrderDetail({
             )}
           </div>
           <div className="flex gap-3">
-            <button
+            <Button
+              variant="secondary"
               onClick={() => setActiveModal(null)}
-              className="flex-1 h-12 rounded-xl font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 active:bg-slate-400 transition-colors"
+              className="flex-1 h-12 rounded-xl"
             >
               Cancel
-            </button>
-            <button
-              disabled={startOperation.isPending}
+            </Button>
+            <Button
+              isLoading={startOperation.isPending}
               onClick={async () => {
                 try {
                   await startOperation.mutateAsync({
@@ -487,10 +507,10 @@ function WorkOrderDetail({
                   // error handled by query
                 }
               }}
-              className="flex-1 h-12 rounded-xl font-semibold bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50"
+              className="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
             >
               {startOperation.isPending ? 'Starting...' : 'Start Operation'}
-            </button>
+            </Button>
           </div>
         </Modal>
       )}
@@ -520,38 +540,11 @@ function WorkOrderDetail({
           workOrderId={workOrder.id}
           bins={bins || []}
           recordOutput={recordOutput}
+          nextOutputBatch={nextOutputBatch}
+          requiresBatchTracking={!!producedItem?.requiresBatchTracking}
           onClose={() => setActiveModal(null)}
         />
       )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Modal Wrapper
-// ---------------------------------------------------------------------------
-
-function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Overlay */}
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-      />
-      {/* Content */}
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
-        <h3 className="text-xl font-bold text-slate-900 mb-4">{title}</h3>
-        {children}
-      </div>
     </div>
   );
 }
@@ -593,7 +586,7 @@ function CompleteOperationModal({
   };
 
   return (
-    <Modal title="Complete Operation" onClose={onClose}>
+    <Modal isOpen title="Complete Operation" onClose={onClose}>
       <div className="bg-emerald-50 rounded-lg p-4 mb-4">
         <p className="text-sm text-emerald-700 font-medium">
           Operation #{operation.operationNo}: {operation.name}
@@ -641,19 +634,21 @@ function CompleteOperationModal({
         </div>
       </div>
       <div className="flex gap-3">
-        <button
+        <Button
+          variant="secondary"
           onClick={onClose}
-          className="flex-1 h-12 rounded-xl font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 active:bg-slate-400 transition-colors"
+          className="flex-1 h-12 rounded-xl"
         >
           Cancel
-        </button>
-        <button
-          disabled={!qtyCompleted || completeOperation.isPending}
+        </Button>
+        <Button
+          disabled={!qtyCompleted}
+          isLoading={completeOperation.isPending}
           onClick={handleSubmit}
-          className="flex-1 h-12 rounded-xl font-semibold bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 transition-colors disabled:opacity-50"
+          className="flex-1 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800"
         >
           {completeOperation.isPending ? 'Completing...' : 'Complete'}
-        </button>
+        </Button>
       </div>
     </Modal>
   );
@@ -720,7 +715,7 @@ function IssueMaterialModal({
   };
 
   return (
-    <Modal title="Issue Material" onClose={onClose}>
+    <Modal isOpen title="Issue Material" onClose={onClose}>
       <div className="space-y-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -785,19 +780,21 @@ function IssueMaterialModal({
         </div>
       </div>
       <div className="flex gap-3">
-        <button
+        <Button
+          variant="secondary"
           onClick={onClose}
-          className="flex-1 h-12 rounded-xl font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 active:bg-slate-400 transition-colors"
+          className="flex-1 h-12 rounded-xl"
         >
           Cancel
-        </button>
-        <button
-          disabled={!selectedMaterialId || !qty || !binId || issueMaterial.isPending}
+        </Button>
+        <Button
+          disabled={!selectedMaterialId || !qty || !binId}
+          isLoading={issueMaterial.isPending}
           onClick={handleSubmit}
-          className="flex-1 h-12 rounded-xl font-semibold bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800 transition-colors disabled:opacity-50"
+          className="flex-1 h-12 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800"
         >
           {issueMaterial.isPending ? 'Issuing...' : 'Issue Material'}
-        </button>
+        </Button>
       </div>
     </Modal>
   );
@@ -811,17 +808,22 @@ function RecordOutputModal({
   workOrderId,
   bins,
   recordOutput,
+  nextOutputBatch,
+  requiresBatchTracking,
   onClose,
 }: {
   workOrderId: string;
   bins: any[];
   recordOutput: ReturnType<typeof useRecordOutput>;
+  nextOutputBatch?: { runNo?: number; batchNo?: string | null } | null;
+  requiresBatchTracking: boolean;
   onClose: () => void;
 }) {
   const [qty, setQty] = useState('');
   const [binId, setBinId] = useState('');
-  const [batchNo, setBatchNo] = useState('');
+  const [batchNo, setBatchNo] = useState(nextOutputBatch?.batchNo || '');
   const [notes, setNotes] = useState('');
+  const systemAssignedBatch = !!nextOutputBatch?.batchNo;
 
   const handleSubmit = async () => {
     if (!qty || !binId) return;
@@ -840,7 +842,14 @@ function RecordOutputModal({
   };
 
   return (
-    <Modal title="Record Output" onClose={onClose}>
+    <Modal isOpen title="Record Output" onClose={onClose}>
+      {systemAssignedBatch && (
+        <div className="bg-green-50 rounded-lg p-4 mb-4">
+          <p className="text-sm text-green-700 font-medium">
+            This will be recorded as Run #{nextOutputBatch?.runNo}, batch {nextOutputBatch?.batchNo}
+          </p>
+        </div>
+      )}
       <div className="space-y-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -875,14 +884,20 @@ function RecordOutputModal({
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Batch #
+            Batch #{requiresBatchTracking && !systemAssignedBatch && <span className="text-red-500"> *</span>}
           </label>
           <Input
             value={batchNo}
             onChange={(e) => setBatchNo(e.target.value)}
-            placeholder="Optional"
+            placeholder={requiresBatchTracking ? 'Required' : 'Optional'}
+            disabled={systemAssignedBatch}
             className="h-12 text-lg"
           />
+          {systemAssignedBatch ? (
+            <p className="text-xs text-slate-500 mt-1">System-assigned for this run</p>
+          ) : requiresBatchTracking && (
+            <p className="text-xs text-amber-600 mt-1">This item requires a batch/lot number</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -898,19 +913,21 @@ function RecordOutputModal({
         </div>
       </div>
       <div className="flex gap-3">
-        <button
+        <Button
+          variant="secondary"
           onClick={onClose}
-          className="flex-1 h-12 rounded-xl font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 active:bg-slate-400 transition-colors"
+          className="flex-1 h-12 rounded-xl"
         >
           Cancel
-        </button>
-        <button
-          disabled={!qty || !binId || recordOutput.isPending}
+        </Button>
+        <Button
+          disabled={!qty || !binId || (requiresBatchTracking && !batchNo)}
+          isLoading={recordOutput.isPending}
           onClick={handleSubmit}
-          className="flex-1 h-12 rounded-xl font-semibold bg-green-600 text-white hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-50"
+          className="flex-1 h-12 rounded-xl bg-green-600 hover:bg-green-700 active:bg-green-800"
         >
           {recordOutput.isPending ? 'Recording...' : 'Record Output'}
-        </button>
+        </Button>
       </div>
     </Modal>
   );
@@ -921,18 +938,27 @@ function RecordOutputModal({
 // ---------------------------------------------------------------------------
 
 function StatusBadge({ status }: { status: string }) {
-  const styles =
-    status === 'IN_PROGRESS'
-      ? 'bg-amber-100 text-amber-800'
-      : status === 'RELEASED'
-      ? 'bg-blue-100 text-blue-800'
-      : 'bg-slate-100 text-slate-700';
-
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${styles}`}>
+    <Badge variant={getStatusVariant(status)} className="whitespace-nowrap">
       {status.replace(/_/g, ' ')}
-    </span>
+    </Badge>
   );
+}
+
+function getStatusVariant(status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' {
+  switch (status) {
+    case 'COMPLETED':
+      return 'success';
+    case 'IN_PROGRESS':
+      return 'warning';
+    case 'RELEASED':
+      return 'info';
+    case 'ON_HOLD':
+    case 'CANCELLED':
+      return 'danger';
+    default:
+      return 'default';
+  }
 }
 
 function getOpStyle(status: WorkOrderOperationStatus) {
