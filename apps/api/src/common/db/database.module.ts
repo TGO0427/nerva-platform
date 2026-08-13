@@ -15,7 +15,9 @@ const databasePoolFactory = {
     const isExternalDb =
       connectionString?.includes("render.com") ||
       connectionString?.includes("neon.tech") ||
-      connectionString?.includes("supabase");
+      connectionString?.includes("supabase") ||
+      connectionString?.includes("rlwy.net") ||
+      connectionString?.includes("railway.app");
 
     const pool = new Pool({
       connectionString,
