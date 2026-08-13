@@ -1053,6 +1053,33 @@ export function useMrpRequirements() {
   });
 }
 
+export function useCreatePoFromShortage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { itemId: string; warehouseId: string; qty: number }) => {
+      const response = await api.post<{ id: string }>('/manufacturing/mrp/create-po', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [MRP_KEY] });
+    },
+  });
+}
+
+export function useCreateWoFromShortage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { itemId: string; warehouseId: string; qty: number }) => {
+      const response = await api.post<{ id: string }>('/manufacturing/mrp/create-work-order', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [MRP_KEY] });
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY] });
+    },
+  });
+}
+
 // ============ Scheduling ============
 export function useRescheduleWorkOrder() {
   const queryClient = useQueryClient();

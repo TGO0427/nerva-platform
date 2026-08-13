@@ -133,7 +133,7 @@ export class MrpRepository extends BaseRepository {
           : null,
     }));
 
-    const itemSummary = summaryRows.map((row) => ({
+    const itemSummaryBase = summaryRows.map((row) => ({
       itemId: row.item_id as string,
       itemSku: row.item_sku as string,
       itemDescription: row.item_description as string,
@@ -142,7 +142,6 @@ export class MrpRepository extends BaseRepository {
       totalDemand: parseFloat((row.total_demand as string) || "0"),
       totalOutstanding: parseFloat((row.total_outstanding as string) || "0"),
       availableStock: parseFloat((row.available_stock as string) || "0"),
-      netShortage: parseFloat((row.net_shortage as string) || "0"),
       nearestPoNo: (row.nearest_po_no as string) ?? null,
       nearestPoExpectedDate: row.nearest_po_expected_date
         ? String(row.nearest_po_expected_date)
@@ -153,6 +152,297 @@ export class MrpRepository extends BaseRepository {
           : null,
     }));
 
-    return { workOrderDemand, itemSummary };
+    const salesOrderDemand = await this.calculateSalesOrderDemand(
+      tenantId,
+      poLookupCte,
+    );
+
+    const { itemSummary, hasActiveBomSet } = await this.mergeItemSummary(
+      tenantId,
+      itemSummaryBase,
+      salesOrderDemand,
+    );
+
+    return {
+      workOrderDemand,
+      salesOrderDemand,
+      itemSummary: itemSummary.map((row) => ({
+        ...row,
+        hasActiveBom: hasActiveBomSet.has(row.itemId),
+      })),
+    };
+  }
+
+  // A sales order demands a FINISHED item, not raw materials directly - so
+  // this explodes each open, uncovered sales order line through that item's
+  // active BOM into raw-material demand. Sales orders that already have a
+  // linked (non-cancelled) work order are excluded entirely, since that
+  // work order's own materials already represent this demand - there's no
+  // line-level link to net partial coverage, so it's all-or-nothing.
+  private async calculateSalesOrderDemand(
+    tenantId: string,
+    poLookupCte: string,
+  ) {
+    const openLines = await this.queryMany<Record<string, unknown>>(
+      `SELECT sol.id as line_id, so.id as sales_order_id, so.order_no,
+              so.warehouse_id, w.name as warehouse_name, c.name as customer_name,
+              sol.item_id, i.sku as item_sku, i.description as item_description,
+              (sol.qty_ordered - sol.qty_allocated) as qty_outstanding
+       FROM sales_order_lines sol
+       JOIN sales_orders so ON so.id = sol.sales_order_id
+       JOIN warehouses w ON w.id = so.warehouse_id
+       LEFT JOIN customers c ON c.id = so.customer_id
+       JOIN items i ON i.id = sol.item_id
+       WHERE so.tenant_id = $1
+         AND so.status NOT IN ('SHIPPED', 'DELIVERED', 'CANCELLED')
+         AND (sol.qty_ordered - sol.qty_allocated) > 0
+         AND NOT EXISTS (
+           SELECT 1 FROM work_orders wo
+           WHERE wo.sales_order_id = so.id AND wo.status != 'CANCELLED'
+         )`,
+      [tenantId],
+    );
+
+    if (openLines.length === 0) return [];
+
+    const finishedItemIds = [
+      ...new Set(openLines.map((r) => r.item_id as string)),
+    ];
+
+    const bomHeaderRows = await this.queryMany<Record<string, unknown>>(
+      `SELECT * FROM bom_headers
+       WHERE tenant_id = $1 AND item_id = ANY($2::uuid[]) AND status = 'APPROVED'
+         AND (effective_from IS NULL OR effective_from <= CURRENT_DATE)
+         AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
+       ORDER BY item_id, version DESC, revision DESC`,
+      [tenantId, finishedItemIds],
+    );
+    // First row per item_id is the active one (already ordered version/revision DESC).
+    const activeBomByItem = new Map<string, Record<string, unknown>>();
+    for (const row of bomHeaderRows) {
+      const itemId = row.item_id as string;
+      if (!activeBomByItem.has(itemId)) activeBomByItem.set(itemId, row);
+    }
+
+    const bomHeaderIds = [...activeBomByItem.values()].map(
+      (h) => h.id as string,
+    );
+    const bomLineRows =
+      bomHeaderIds.length > 0
+        ? await this.queryMany<Record<string, unknown>>(
+            `SELECT bl.*, i.sku as item_sku, i.description as item_description
+             FROM bom_lines bl
+             JOIN items i ON i.id = bl.item_id
+             WHERE bl.bom_header_id = ANY($1::uuid[])
+             ORDER BY bl.bom_header_id, bl.line_no`,
+            [bomHeaderIds],
+          )
+        : [];
+    const linesByHeader = new Map<string, Record<string, unknown>[]>();
+    for (const line of bomLineRows) {
+      const headerId = line.bom_header_id as string;
+      if (!linesByHeader.has(headerId)) linesByHeader.set(headerId, []);
+      linesByHeader.get(headerId)!.push(line);
+    }
+
+    // Explode every open line through its item's BOM. An item with no
+    // active BOM can't be exploded into raw materials - it contributes no
+    // rows here (not an error, just outside what this pass can compute).
+    type ExplodedDemand = {
+      salesOrderId: string;
+      orderNo: string;
+      customerName: string | null;
+      warehouseId: string;
+      warehouseName: string;
+      itemId: string;
+      itemSku: string;
+      itemDescription: string;
+      qtyRequired: number;
+    };
+    const exploded: ExplodedDemand[] = [];
+    for (const line of openLines) {
+      const bomHeader = activeBomByItem.get(line.item_id as string);
+      if (!bomHeader) continue;
+      const bomLines = linesByHeader.get(bomHeader.id as string) || [];
+      const qtyOutstanding = parseFloat((line.qty_outstanding as string) || "0");
+      const baseQty = parseFloat((bomHeader.base_qty as string) || "1") || 1;
+
+      for (const bomLine of bomLines) {
+        const qtyPer = parseFloat((bomLine.qty_per as string) || "0");
+        const scrapPct = parseFloat((bomLine.scrap_pct as string) || "0");
+        const qtyRequired = (qtyPer / baseQty) * qtyOutstanding * (1 + scrapPct / 100);
+        if (qtyRequired <= 0) continue;
+
+        exploded.push({
+          salesOrderId: line.sales_order_id as string,
+          orderNo: line.order_no as string,
+          customerName: (line.customer_name as string) ?? null,
+          warehouseId: line.warehouse_id as string,
+          warehouseName: line.warehouse_name as string,
+          itemId: bomLine.item_id as string,
+          itemSku: bomLine.item_sku as string,
+          itemDescription: bomLine.item_description as string,
+          qtyRequired,
+        });
+      }
+    }
+
+    if (exploded.length === 0) return [];
+
+    // One stock/PO/lead-time lookup per distinct (item, warehouse) pair -
+    // same per-warehouse scoping as the work-order query above.
+    const pairKey = (itemId: string, warehouseId: string) => `${itemId}::${warehouseId}`;
+    const distinctPairs = new Map<string, { itemId: string; warehouseId: string }>();
+    for (const row of exploded) {
+      distinctPairs.set(pairKey(row.itemId, row.warehouseId), {
+        itemId: row.itemId,
+        warehouseId: row.warehouseId,
+      });
+    }
+    const pairsArr = [...distinctPairs.values()];
+
+    const stockRows = await this.queryMany<Record<string, unknown>>(
+      `WITH ${poLookupCte},
+       pairs AS (
+         SELECT * FROM UNNEST($2::uuid[], $3::uuid[]) AS t(item_id, warehouse_id)
+       )
+       SELECT p.item_id, p.warehouse_id,
+         COALESCE(ss.qty_available, 0) as available_stock,
+         po_lookup.po_no as nearest_po_no,
+         po_lookup.expected_date as nearest_po_expected_date,
+         lead_time_lookup.lead_time_days as supplier_lead_time_days
+       FROM pairs p
+       LEFT JOIN LATERAL (
+         SELECT COALESCE(SUM(snap.qty_available), 0) as qty_available
+         FROM stock_snapshot snap
+         JOIN bins b ON b.id = snap.bin_id
+         WHERE snap.item_id = p.item_id AND snap.tenant_id = $1 AND b.warehouse_id = p.warehouse_id
+       ) ss ON true
+       LEFT JOIN po_lookup ON po_lookup.item_id = p.item_id
+       LEFT JOIN lead_time_lookup ON lead_time_lookup.item_id = p.item_id`,
+      [
+        tenantId,
+        pairsArr.map((p) => p.itemId),
+        pairsArr.map((p) => p.warehouseId),
+      ],
+    );
+    const stockByPair = new Map<string, Record<string, unknown>>();
+    for (const row of stockRows) {
+      stockByPair.set(
+        pairKey(row.item_id as string, row.warehouse_id as string),
+        row,
+      );
+    }
+
+    return exploded.map((row) => {
+      const stock = stockByPair.get(pairKey(row.itemId, row.warehouseId));
+      const availableStock = parseFloat((stock?.available_stock as string) || "0");
+      return {
+        salesOrderId: row.salesOrderId,
+        orderNo: row.orderNo,
+        customerName: row.customerName,
+        warehouseId: row.warehouseId,
+        warehouseName: row.warehouseName,
+        itemId: row.itemId,
+        itemSku: row.itemSku,
+        itemDescription: row.itemDescription,
+        qtyRequired: row.qtyRequired,
+        availableStock,
+        shortage: Math.max(row.qtyRequired - availableStock, 0),
+        nearestPoNo: (stock?.nearest_po_no as string) ?? null,
+        nearestPoExpectedDate: stock?.nearest_po_expected_date
+          ? String(stock.nearest_po_expected_date)
+          : null,
+        supplierLeadTimeDays:
+          stock?.supplier_lead_time_days != null
+            ? Number(stock.supplier_lead_time_days)
+            : null,
+      };
+    });
+  }
+
+  // Combines work-order-derived and sales-order-derived demand at the
+  // item+warehouse grain (summing both before computing net shortage), and
+  // flags which items are themselves manufactured (have their own active
+  // BOM) - the frontend needs that to decide whether "Create Work Order"
+  // is a sensible suggested action for a given shortage.
+  private async mergeItemSummary(
+    tenantId: string,
+    base: Array<{
+      itemId: string;
+      itemSku: string;
+      itemDescription: string;
+      warehouseId: string;
+      warehouseName: string;
+      totalDemand: number;
+      totalOutstanding: number;
+      availableStock: number;
+      nearestPoNo: string | null;
+      nearestPoExpectedDate: string | null;
+      supplierLeadTimeDays: number | null;
+    }>,
+    salesOrderDemand: Array<{
+      itemId: string;
+      itemSku: string;
+      itemDescription: string;
+      warehouseId: string;
+      warehouseName: string;
+      qtyRequired: number;
+      availableStock: number;
+      nearestPoNo: string | null;
+      nearestPoExpectedDate: string | null;
+      supplierLeadTimeDays: number | null;
+    }>,
+  ) {
+    const key = (itemId: string, warehouseId: string) => `${itemId}::${warehouseId}`;
+    const merged = new Map<string, (typeof base)[number]>();
+    for (const row of base) {
+      merged.set(key(row.itemId, row.warehouseId), { ...row });
+    }
+
+    for (const row of salesOrderDemand) {
+      const k = key(row.itemId, row.warehouseId);
+      const existing = merged.get(k);
+      if (existing) {
+        existing.totalDemand += row.qtyRequired;
+        existing.totalOutstanding += row.qtyRequired;
+      } else {
+        merged.set(k, {
+          itemId: row.itemId,
+          itemSku: row.itemSku,
+          itemDescription: row.itemDescription,
+          warehouseId: row.warehouseId,
+          warehouseName: row.warehouseName,
+          totalDemand: row.qtyRequired,
+          totalOutstanding: row.qtyRequired,
+          availableStock: row.availableStock,
+          nearestPoNo: row.nearestPoNo,
+          nearestPoExpectedDate: row.nearestPoExpectedDate,
+          supplierLeadTimeDays: row.supplierLeadTimeDays,
+        });
+      }
+    }
+
+    const itemSummary = [...merged.values()]
+      .map((row) => ({
+        ...row,
+        netShortage: Math.max(row.totalOutstanding - row.availableStock, 0),
+      }))
+      .sort((a, b) => b.netShortage - a.netShortage);
+
+    const itemIds = [...new Set(itemSummary.map((r) => r.itemId))];
+    const hasActiveBomSet = new Set<string>();
+    if (itemIds.length > 0) {
+      const bomRows = await this.queryMany<{ item_id: string }>(
+        `SELECT DISTINCT item_id FROM bom_headers
+         WHERE tenant_id = $1 AND item_id = ANY($2::uuid[]) AND status = 'APPROVED'
+           AND (effective_from IS NULL OR effective_from <= CURRENT_DATE)
+           AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)`,
+        [tenantId, itemIds],
+      );
+      for (const row of bomRows) hasActiveBomSet.add(row.item_id);
+    }
+
+    return { itemSummary, hasActiveBomSet };
   }
 }

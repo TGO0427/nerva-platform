@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Breadcrumbs } from '@/components/layout';
 import { StatCard } from '@/components/ui/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,14 +10,17 @@ import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
-import { useMrpRequirements } from '@/lib/queries';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
+import { useMrpRequirements, useCreatePoFromShortage, useCreateWoFromShortage } from '@/lib/queries';
 import { formatNumber, formatQuantity, formatDate } from '@/lib/format';
 import type { MrpData } from '@nerva/shared';
 
 type MrpItemRow = MrpData['itemSummary'][number] & { rowId: string };
 type MrpWorkOrderRow = MrpData['workOrderDemand'][number] & { rowId: string };
+type MrpSalesOrderRow = MrpData['salesOrderDemand'][number] & { rowId: string };
 
-type TabView = 'by-item' | 'by-work-order';
+type TabView = 'by-item' | 'by-work-order' | 'by-sales-order';
 
 function ResupplyHint({ item }: {
   item: {
@@ -41,8 +45,13 @@ function ResupplyHint({ item }: {
 }
 
 export default function MrpPage() {
+  const router = useRouter();
+  const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const [activeTab, setActiveTab] = useState<TabView>('by-item');
   const { data, isLoading, error } = useMrpRequirements();
+  const createPo = useCreatePoFromShortage();
+  const createWo = useCreateWoFromShortage();
 
   const itemSummary: MrpItemRow[] = useMemo(
     () => (data?.itemSummary ?? []).map((row) => ({ ...row, rowId: `${row.itemId}-${row.warehouseId}` })),
@@ -52,6 +61,42 @@ export default function MrpPage() {
     () => (data?.workOrderDemand ?? []).map((row, idx) => ({ ...row, rowId: `${row.workOrderId}-${row.itemId}-${idx}` })),
     [data?.workOrderDemand]
   );
+  const salesOrderDemand: MrpSalesOrderRow[] = useMemo(
+    () => (data?.salesOrderDemand ?? []).map((row, idx) => ({ ...row, rowId: `${row.salesOrderId}-${row.itemId}-${idx}` })),
+    [data?.salesOrderDemand]
+  );
+
+  const handleCreatePo = async (row: { itemId: string; itemSku: string; warehouseId: string; qty: number }) => {
+    const confirmed = await confirm({
+      title: 'Create Purchase Order',
+      message: `Create a draft PO for ${formatQuantity(row.qty)} of ${row.itemSku}? The preferred supplier and unit cost will be applied automatically - review before sending.`,
+      confirmLabel: 'Create PO',
+    });
+    if (!confirmed) return;
+    try {
+      const po = await createPo.mutateAsync({ itemId: row.itemId, warehouseId: row.warehouseId, qty: row.qty });
+      addToast('Draft purchase order created', 'success');
+      router.push(`/procurement/purchase-orders/${po.id}`);
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Failed to create purchase order', 'error');
+    }
+  };
+
+  const handleCreateWo = async (row: { itemId: string; itemSku: string; warehouseId: string; qty: number }) => {
+    const confirmed = await confirm({
+      title: 'Create Work Order',
+      message: `Create a draft work order to manufacture ${formatQuantity(row.qty)} of ${row.itemSku}? Materials will be populated from its approved BOM.`,
+      confirmLabel: 'Create Work Order',
+    });
+    if (!confirmed) return;
+    try {
+      const wo = await createWo.mutateAsync({ itemId: row.itemId, warehouseId: row.warehouseId, qty: row.qty });
+      addToast('Draft work order created', 'success');
+      router.push(`/manufacturing/work-orders/${wo.id}`);
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Failed to create work order', 'error');
+    }
+  };
 
   const itemColumns: Column<MrpItemRow>[] = useMemo(() => [
     { key: 'itemSku', header: 'Item SKU', sortable: true, className: 'font-medium text-slate-900' },
@@ -76,7 +121,36 @@ export default function MrpPage() {
       header: 'Resupply',
       render: (row) => (row.netShortage > 0 ? <ResupplyHint item={row} /> : '-'),
     },
-  ], []);
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (row) => {
+        if (row.netShortage <= 0) return null;
+        return (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={createPo.isPending}
+              onClick={() => handleCreatePo({ itemId: row.itemId, itemSku: row.itemSku, warehouseId: row.warehouseId, qty: row.netShortage })}
+            >
+              Create PO
+            </Button>
+            {row.hasActiveBom && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={createWo.isPending}
+                onClick={() => handleCreateWo({ itemId: row.itemId, itemSku: row.itemSku, warehouseId: row.warehouseId, qty: row.netShortage })}
+              >
+                Create Work Order
+              </Button>
+            )}
+          </div>
+        );
+      },
+    },
+  ], [createPo.isPending, createWo.isPending]);
 
   const workOrderColumns: Column<MrpWorkOrderRow>[] = useMemo(() => [
     {
@@ -124,7 +198,78 @@ export default function MrpPage() {
       header: 'Resupply',
       render: (row) => (row.shortage > 0 ? <ResupplyHint item={row} /> : '-'),
     },
-  ], []);
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (row) => {
+        if (row.shortage <= 0) return null;
+        return (
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={createPo.isPending}
+            onClick={() => handleCreatePo({ itemId: row.itemId, itemSku: row.itemSku, warehouseId: row.warehouseId, qty: row.shortage })}
+          >
+            Create PO
+          </Button>
+        );
+      },
+    },
+  ], [createPo.isPending]);
+
+  const salesOrderColumns: Column<MrpSalesOrderRow>[] = useMemo(() => [
+    {
+      key: 'orderNo',
+      header: 'Order #',
+      sortable: true,
+      render: (row) => (
+        <Link
+          href={`/sales/${row.salesOrderId}`}
+          className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+        >
+          {row.orderNo}
+        </Link>
+      ),
+    },
+    { key: 'customerName', header: 'Customer', sortable: true, render: (row) => row.customerName || '-' },
+    { key: 'warehouseName', header: 'Warehouse', sortable: true },
+    { key: 'itemSku', header: 'Item SKU', sortable: true, className: 'text-slate-900' },
+    { key: 'qtyRequired', header: 'Required', sortable: true, align: 'right', render: (row) => formatQuantity(row.qtyRequired) },
+    { key: 'availableStock', header: 'Available', sortable: true, align: 'right', render: (row) => formatQuantity(row.availableStock) },
+    {
+      key: 'shortage',
+      header: 'Shortage',
+      sortable: true,
+      align: 'right',
+      render: (row) => (
+        <span className={`font-medium ${row.shortage > 0 ? 'text-red-600' : 'text-slate-900'}`}>
+          {formatQuantity(row.shortage)}
+        </span>
+      ),
+    },
+    {
+      key: 'resupply',
+      header: 'Resupply',
+      render: (row) => (row.shortage > 0 ? <ResupplyHint item={row} /> : '-'),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (row) => {
+        if (row.shortage <= 0) return null;
+        return (
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={createPo.isPending}
+            onClick={() => handleCreatePo({ itemId: row.itemId, itemSku: row.itemSku, warehouseId: row.warehouseId, qty: row.shortage })}
+          >
+            Create PO
+          </Button>
+        );
+      },
+    },
+  ], [createPo.isPending]);
 
   const shortageItems = useMemo(
     () => itemSummary.filter((item) => item.netShortage > 0),
@@ -144,10 +289,15 @@ export default function MrpPage() {
       itemSummary.forEach((item) => {
         csvContent += `"${item.itemSku}","${item.itemDescription}","${item.warehouseName}",${item.totalDemand},${item.totalOutstanding},${item.availableStock},${item.netShortage}\n`;
       });
-    } else {
+    } else if (activeTab === 'by-work-order') {
       csvContent = 'WO#,Status,Warehouse,Item SKU,Required,Issued,Outstanding,Available,Shortage\n';
       workOrderDemand.forEach((wo) => {
         csvContent += `"${wo.workOrderNo}","${wo.workOrderStatus}","${wo.warehouseName}","${wo.itemSku}",${wo.qtyRequired},${wo.qtyIssued},${wo.qtyOutstanding},${wo.availableStock},${wo.shortage}\n`;
+      });
+    } else {
+      csvContent = 'Order #,Customer,Warehouse,Item SKU,Required,Available,Shortage\n';
+      salesOrderDemand.forEach((so) => {
+        csvContent += `"${so.orderNo}","${so.customerName || ''}","${so.warehouseName}","${so.itemSku}",${so.qtyRequired},${so.availableStock},${so.shortage}\n`;
       });
     }
 
@@ -250,6 +400,16 @@ export default function MrpPage() {
               >
                 By Work Order
               </button>
+              <button
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  activeTab === 'by-sales-order'
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+                onClick={() => setActiveTab('by-sales-order')}
+              >
+                By Sales Order
+              </button>
             </div>
           </div>
         </CardHeader>
@@ -263,7 +423,7 @@ export default function MrpPage() {
               rowClassName={(row) => (row.netShortage > 0 ? 'bg-red-50' : undefined)}
               emptyState={{ title: 'No material requirements found', description: 'No open work orders currently need materials.' }}
             />
-          ) : (
+          ) : activeTab === 'by-work-order' ? (
             <DataTable
               columns={workOrderColumns}
               data={workOrderDemand}
@@ -271,6 +431,15 @@ export default function MrpPage() {
               variant="embedded"
               rowClassName={(row) => (row.shortage > 0 ? 'bg-red-50' : undefined)}
               emptyState={{ title: 'No work order demand found', description: 'No open work orders currently need materials.' }}
+            />
+          ) : (
+            <DataTable
+              columns={salesOrderColumns}
+              data={salesOrderDemand}
+              keyField="rowId"
+              variant="embedded"
+              rowClassName={(row) => (row.shortage > 0 ? 'bg-red-50' : undefined)}
+              emptyState={{ title: 'No sales order demand found', description: 'No open sales orders currently need raw materials.' }}
             />
           )}
         </CardContent>

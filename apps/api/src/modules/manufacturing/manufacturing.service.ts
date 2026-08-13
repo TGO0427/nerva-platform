@@ -1581,6 +1581,66 @@ export class ManufacturingService {
     return this.mrpRepo.calculateRequirements(tenantId);
   }
 
+  // Suggested action from an MRP shortage row - minimal input (item,
+  // warehouse, qty), server resolves the rest and lands it as a draft for
+  // review, same shape as createCreditNote-from-RMA.
+  async createPurchaseOrderFromShortage(
+    tenantId: string,
+    siteId: string,
+    data: { itemId: string; warehouseId: string; qty: number; createdBy: string },
+  ) {
+    const supplier = await this.masterDataService.findPreferredSupplierForItem(
+      tenantId,
+      data.itemId,
+    );
+    if (!supplier) {
+      throw new BadRequestException(
+        "No active supplier found for this item - add one under Master Data > Suppliers first",
+      );
+    }
+
+    const po = await this.masterDataService.createPurchaseOrder({
+      tenantId,
+      siteId,
+      supplierId: supplier.supplierId,
+      shipToWarehouseId: data.warehouseId,
+      createdBy: data.createdBy,
+    });
+
+    await this.masterDataService.createPurchaseOrderLine({
+      tenantId,
+      purchaseOrderId: po.id,
+      itemId: data.itemId,
+      qtyOrdered: data.qty,
+      unitCost: supplier.unitCost ?? undefined,
+    });
+
+    return this.masterDataService.recalculatePurchaseOrderTotals(po.id);
+  }
+
+  async createWorkOrderFromShortage(
+    tenantId: string,
+    siteId: string,
+    data: { itemId: string; warehouseId: string; qty: number; createdBy: string },
+  ) {
+    const bom = await this.bomRepo.findActiveForItem(tenantId, data.itemId);
+    if (!bom) {
+      throw new BadRequestException(
+        "This item has no approved BOM to manufacture from",
+      );
+    }
+
+    return this.createWorkOrder({
+      tenantId,
+      siteId,
+      warehouseId: data.warehouseId,
+      itemId: data.itemId,
+      bomHeaderId: bom.id,
+      qtyOrdered: data.qty,
+      createdBy: data.createdBy,
+    });
+  }
+
   // ============ Scheduling ============
   async rescheduleWorkOrder(
     id: string,

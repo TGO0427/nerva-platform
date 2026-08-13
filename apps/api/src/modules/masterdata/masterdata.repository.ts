@@ -1848,6 +1848,29 @@ export class MasterDataRepository extends BaseRepository {
     return row ? this.mapSupplierItem(row) : null;
   }
 
+  // For a suggested Purchase Order from an MRP shortage - which supplier
+  // and unit cost to default to, mirroring the same preference order MRP
+  // already uses for its lead-time hint (preferred first, then shortest lead time).
+  async findPreferredSupplierForItem(
+    tenantId: string,
+    itemId: string,
+  ): Promise<{ supplierId: string; unitCost: number | null; leadTimeDays: number | null } | null> {
+    const row = await this.queryOne<Record<string, unknown>>(
+      `SELECT si.supplier_id, si.unit_cost, si.lead_time_days
+       FROM supplier_items si
+       WHERE si.tenant_id = $1 AND si.item_id = $2 AND si.is_active = true
+       ORDER BY si.is_preferred DESC, si.lead_time_days ASC NULLS LAST
+       LIMIT 1`,
+      [tenantId, itemId],
+    );
+    if (!row) return null;
+    return {
+      supplierId: row.supplier_id as string,
+      unitCost: row.unit_cost != null ? parseFloat(row.unit_cost as string) : null,
+      leadTimeDays: row.lead_time_days != null ? Number(row.lead_time_days) : null,
+    };
+  }
+
   async createSupplierItem(data: {
     tenantId: string;
     supplierId: string;

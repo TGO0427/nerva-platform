@@ -735,6 +735,10 @@ export class MasterDataService {
     return item;
   }
 
+  async findPreferredSupplierForItem(tenantId: string, itemId: string) {
+    return this.repository.findPreferredSupplierForItem(tenantId, itemId);
+  }
+
   async createSupplierItem(data: {
     tenantId: string;
     supplierId: string;

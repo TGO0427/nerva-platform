@@ -363,6 +363,7 @@ describe("ManufacturingService - Production Output", () => {
   let stockLedgerService: jest.Mocked<StockLedgerService>;
   let batchQualityRepo: jest.Mocked<BatchQualityRepository>;
   let masterDataService: jest.Mocked<MasterDataService>;
+  let bomRepo: jest.Mocked<BomRepository>;
 
   const tenantId = "tenant-123";
   const workOrderId = "wo-123";
@@ -428,13 +429,22 @@ describe("ManufacturingService - Production Output", () => {
         ManufacturingService,
         { provide: NonConformanceRepository, useValue: {} },
         { provide: WorkstationRepository, useValue: {} },
-        { provide: BomRepository, useValue: {} },
+        {
+          provide: BomRepository,
+          useValue: {
+            findActiveForItem: jest.fn(),
+            getLines: jest.fn(),
+            findHeaderById: jest.fn(),
+          },
+        },
         { provide: RoutingRepository, useValue: {} },
         {
           provide: WorkOrderRepository,
           useValue: {
             findById: jest.fn(),
             update: jest.fn(),
+            create: jest.fn(),
+            generateWorkOrderNo: jest.fn(),
             getOperations: jest.fn(),
             getMaterials: jest.fn(),
             addMaterial: jest.fn(),
@@ -442,6 +452,7 @@ describe("ManufacturingService - Production Output", () => {
             updateMaterial: jest.fn(),
             findOperationById: jest.fn(),
             updateOperation: jest.fn(),
+            addOperation: jest.fn(),
             generateBatchNoWithPrefix: jest.fn(),
           },
         },
@@ -465,7 +476,16 @@ describe("ManufacturingService - Production Output", () => {
           provide: BatchQualityRepository,
           useValue: { ensureStatusRecord: jest.fn() },
         },
-        { provide: MasterDataService, useValue: { getItem: jest.fn() } },
+        {
+          provide: MasterDataService,
+          useValue: {
+            getItem: jest.fn(),
+            findPreferredSupplierForItem: jest.fn(),
+            createPurchaseOrder: jest.fn(),
+            createPurchaseOrderLine: jest.fn(),
+            recalculatePurchaseOrderTotals: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -476,6 +496,7 @@ describe("ManufacturingService - Production Output", () => {
     stockLedgerService = module.get(StockLedgerService);
     batchQualityRepo = module.get(BatchQualityRepository);
     masterDataService = module.get(MasterDataService);
+    bomRepo = module.get(BomRepository);
 
     workOrderRepo.findById.mockResolvedValue(baseWorkOrder);
     workOrderRepo.update.mockResolvedValue({ ...baseWorkOrder, qtyCompleted: 10 });
@@ -943,6 +964,108 @@ describe("ManufacturingService - Production Output", () => {
       expect(workOrderRepo.update).toHaveBeenCalledWith(
         workOrderId,
         expect.objectContaining({ status: "COMPLETED" }),
+      );
+    });
+  });
+
+  describe("createPurchaseOrderFromShortage", () => {
+    const siteId = "site-123";
+
+    it("throws BadRequestException when no active supplier is found for the item", async () => {
+      masterDataService.findPreferredSupplierForItem.mockResolvedValue(null);
+
+      await expect(
+        service.createPurchaseOrderFromShortage(tenantId, siteId, {
+          itemId: "item-999",
+          warehouseId: "wh-1",
+          qty: 50,
+          createdBy: "user-1",
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(masterDataService.createPurchaseOrder).not.toHaveBeenCalled();
+    });
+
+    it("creates a draft PO with the preferred supplier and unit cost, then recalculates totals", async () => {
+      masterDataService.findPreferredSupplierForItem.mockResolvedValue({
+        supplierId: "supplier-1",
+        unitCost: 12.5,
+        leadTimeDays: 7,
+      });
+      masterDataService.createPurchaseOrder.mockResolvedValue({ id: "po-1" } as any);
+      masterDataService.createPurchaseOrderLine.mockResolvedValue({} as any);
+      masterDataService.recalculatePurchaseOrderTotals.mockResolvedValue({ id: "po-1" } as any);
+
+      const result = await service.createPurchaseOrderFromShortage(tenantId, siteId, {
+        itemId: "item-999",
+        warehouseId: "wh-1",
+        qty: 50,
+        createdBy: "user-1",
+      });
+
+      expect(masterDataService.createPurchaseOrder).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId,
+          siteId,
+          supplierId: "supplier-1",
+          shipToWarehouseId: "wh-1",
+          createdBy: "user-1",
+        }),
+      );
+      expect(masterDataService.createPurchaseOrderLine).toHaveBeenCalledWith(
+        expect.objectContaining({
+          purchaseOrderId: "po-1",
+          itemId: "item-999",
+          qtyOrdered: 50,
+          unitCost: 12.5,
+        }),
+      );
+      expect(masterDataService.recalculatePurchaseOrderTotals).toHaveBeenCalledWith("po-1");
+      expect(result).toEqual({ id: "po-1" });
+    });
+  });
+
+  describe("createWorkOrderFromShortage", () => {
+    const siteId = "site-123";
+
+    it("throws BadRequestException when the item has no approved BOM", async () => {
+      bomRepo.findActiveForItem.mockResolvedValue(null);
+
+      await expect(
+        service.createWorkOrderFromShortage(tenantId, siteId, {
+          itemId: "item-999",
+          warehouseId: "wh-1",
+          qty: 25,
+          createdBy: "user-1",
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(workOrderRepo.update).not.toHaveBeenCalled();
+    });
+
+    it("creates a work order from the item's active BOM when one exists", async () => {
+      bomRepo.findActiveForItem.mockResolvedValue({ id: "bom-1", itemId: "item-999", status: "APPROVED" } as any);
+      bomRepo.getLines.mockResolvedValue([]);
+      bomRepo.findHeaderById.mockResolvedValue({ id: "bom-1", itemId: "item-999", status: "APPROVED", baseQty: 1 } as any);
+      workOrderRepo.generateWorkOrderNo.mockResolvedValue("WO-000042");
+      workOrderRepo.create.mockResolvedValue({ ...baseWorkOrder, id: "wo-new" });
+      workOrderRepo.findById.mockResolvedValue({ ...baseWorkOrder, id: "wo-new" });
+
+      await service.createWorkOrderFromShortage(tenantId, siteId, {
+        itemId: "item-999",
+        warehouseId: "wh-1",
+        qty: 25,
+        createdBy: "user-1",
+      });
+
+      expect(workOrderRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId,
+          siteId,
+          warehouseId: "wh-1",
+          itemId: "item-999",
+          bomHeaderId: "bom-1",
+          qtyOrdered: 25,
+          createdBy: "user-1",
+        }),
       );
     });
   });

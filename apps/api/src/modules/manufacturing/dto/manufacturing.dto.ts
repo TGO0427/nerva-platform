@@ -756,6 +756,23 @@ export class RecordScrapDto {
   notes?: string;
 }
 
+// ============ MRP suggested actions ============
+
+export class CreateFromShortageDto {
+  @ApiProperty()
+  @IsUUID()
+  itemId: string;
+
+  @ApiProperty()
+  @IsUUID()
+  warehouseId: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0.01)
+  qty: number;
+}
+
 export class RescheduleWorkOrderDto {
   @ApiPropertyOptional()
   @IsOptional()

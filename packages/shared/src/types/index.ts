@@ -1072,6 +1072,22 @@ export interface MrpData {
     nearestPoExpectedDate?: string | null;
     supplierLeadTimeDays?: number | null;
   }>;
+  salesOrderDemand: Array<{
+    salesOrderId: string;
+    orderNo: string;
+    customerName: string | null;
+    warehouseId: string;
+    warehouseName: string;
+    itemId: string;
+    itemSku: string;
+    itemDescription: string;
+    qtyRequired: number;
+    availableStock: number;
+    shortage: number;
+    nearestPoNo?: string | null;
+    nearestPoExpectedDate?: string | null;
+    supplierLeadTimeDays?: number | null;
+  }>;
   itemSummary: Array<{
     itemId: string;
     itemSku: string;
@@ -1082,6 +1098,7 @@ export interface MrpData {
     totalOutstanding: number;
     availableStock: number;
     netShortage: number;
+    hasActiveBom: boolean;
     nearestPoNo?: string | null;
     nearestPoExpectedDate?: string | null;
     supplierLeadTimeDays?: number | null;

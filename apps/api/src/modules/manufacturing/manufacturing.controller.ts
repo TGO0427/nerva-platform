@@ -54,6 +54,7 @@ import {
   RecordOutputDto,
   RecordScrapDto,
   RescheduleWorkOrderDto,
+  CreateFromShortageDto,
   CreateNonConformanceDto,
   UpdateNonConformanceDto,
   ResolveNonConformanceDto,
@@ -818,6 +819,36 @@ export class ManufacturingController {
   @ApiOperation({ summary: "Calculate MRP requirements" })
   async getMrpRequirements(@TenantId() tenantId: string) {
     return this.service.getMrpRequirements(tenantId);
+  }
+
+  @Post("mrp/create-po")
+  @RequirePermissions("purchase_order.write")
+  @ApiOperation({ summary: "Create a draft Purchase Order from an MRP shortage" })
+  async createPoFromShortage(
+    @TenantId() tenantId: string,
+    @SiteId() siteId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: CreateFromShortageDto,
+  ) {
+    return this.service.createPurchaseOrderFromShortage(tenantId, siteId, {
+      ...data,
+      createdBy: user.id,
+    });
+  }
+
+  @Post("mrp/create-work-order")
+  @RequirePermissions("work_order.create")
+  @ApiOperation({ summary: "Create a draft Work Order from an MRP shortage" })
+  async createWoFromShortage(
+    @TenantId() tenantId: string,
+    @SiteId() siteId: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() data: CreateFromShortageDto,
+  ) {
+    return this.service.createWorkOrderFromShortage(tenantId, siteId, {
+      ...data,
+      createdBy: user.id,
+    });
   }
 
   // ============ Scheduling ============
