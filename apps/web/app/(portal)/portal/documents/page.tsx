@@ -5,6 +5,7 @@ import { usePortalInvoices, useQueryParams } from '@/lib/queries';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { Pagination } from '@/components/ui/pagination';
 import api from '@/lib/api';
 
 function getInvoiceStatusVariant(status: string) {
@@ -94,13 +95,7 @@ export default function PortalDocumentsPage() {
           </table>
 
           {data.meta && data.meta.totalPages > 1 && (
-            <div className="px-6 py-3 border-t border-gray-200 flex items-center justify-between text-sm text-gray-500">
-              <span>Page {data.meta.page} of {data.meta.totalPages}</span>
-              <div className="flex gap-2">
-                <button onClick={() => setPage(data.meta.page - 1)} disabled={data.meta.page <= 1} className="px-3 py-1 rounded border border-gray-300 disabled:opacity-50 hover:bg-gray-50">Previous</button>
-                <button onClick={() => setPage(data.meta.page + 1)} disabled={data.meta.page >= data.meta.totalPages} className="px-3 py-1 rounded border border-gray-300 disabled:opacity-50 hover:bg-gray-50">Next</button>
-              </div>
-            </div>
+            <Pagination meta={data.meta} onPageChange={setPage} />
           )}
         </div>
       )}

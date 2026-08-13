@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { Pagination } from '@/components/ui/pagination';
 import {
   useSupplierDashboardSummary,
   useSupplierPerformanceStats,
@@ -416,29 +417,16 @@ export default function SupplierAnalyticsPage() {
                 </table>
               </div>
 
-              {/* Pagination */}
               {performance.meta && (performance.meta.totalPages ?? 1) > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <p className="text-sm text-slate-500">
-                    Page {performancePage} of {performance.meta.totalPages ?? 1}
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setPerformancePage(p => Math.max(1, p - 1))}
-                      disabled={performancePage <= 1}
-                      className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => setPerformancePage(p => p + 1)}
-                      disabled={performancePage >= (performance.meta.totalPages || 1)}
-                      className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
+                <Pagination
+                  meta={{
+                    page: performancePage,
+                    limit: performance.meta.limit ?? 10,
+                    total: performance.meta.total ?? 0,
+                    totalPages: performance.meta.totalPages ?? 1,
+                  }}
+                  onPageChange={setPerformancePage}
+                />
               )}
             </>
           ) : (

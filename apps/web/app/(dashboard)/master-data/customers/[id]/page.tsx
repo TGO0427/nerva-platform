@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
+import { Pagination } from '@/components/ui/pagination';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/toast';
@@ -708,21 +709,11 @@ function OrdersTab({ customerId }: { customerId: string }) {
             </Card>
           ))}
 
-          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-sm text-slate-500">
-                Page {page} of {totalPages}
-              </p>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-                  Previous
-                </Button>
-                <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-                  Next
-                </Button>
-              </div>
-            </div>
+            <Pagination
+              meta={{ page, limit: 10, total, totalPages }}
+              onPageChange={setPage}
+            />
           )}
         </div>
       ) : (

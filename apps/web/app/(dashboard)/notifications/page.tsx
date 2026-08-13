@@ -6,8 +6,9 @@ import { Breadcrumbs } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { Pagination } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
-import { formatDateTime, formatNumber } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
 import {
   useNotifications,
   useMarkNotificationAsRead,
@@ -131,31 +132,16 @@ export default function NotificationsPage() {
         </CardContent>
       </Card>
 
-      {/* Pagination */}
       {data?.meta && (data.meta.totalPages ?? 1) > 1 && (
-        <div className="flex items-center justify-between mt-6">
-          <p className="text-sm text-slate-500">
-            Page {formatNumber(page)} of {formatNumber(data.meta.totalPages ?? 1)} ({formatNumber(data.meta.total ?? 0)} total)
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page >= (data.meta.totalPages || 1)}
-              onClick={() => setPage(p => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <Pagination
+          meta={{
+            page,
+            limit: data.meta.limit ?? 20,
+            total: data.meta.total ?? 0,
+            totalPages: data.meta.totalPages ?? 1,
+          }}
+          onPageChange={setPage}
+        />
       )}
     </div>
   );
