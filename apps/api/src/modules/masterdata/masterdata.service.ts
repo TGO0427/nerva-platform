@@ -943,6 +943,7 @@ export class MasterDataService {
     id: string,
     data: Partial<{
       status: string;
+      supplierId: string;
       expectedDate: Date;
       shipToWarehouseId: string;
       subtotal: number;
@@ -953,10 +954,15 @@ export class MasterDataService {
     }>,
   ): Promise<PurchaseOrder> {
     let previousStatus: string | undefined;
-    if (data.status !== undefined) {
+    if (data.status !== undefined || data.supplierId !== undefined) {
       const existing = await this.repository.findPurchaseOrderById(id);
       if (!existing) throw new NotFoundException("Purchase order not found");
       previousStatus = existing.status;
+      if (data.supplierId !== undefined && existing.status !== "DRAFT") {
+        throw new BadRequestException(
+          "The supplier can only be changed while the PO is still DRAFT",
+        );
+      }
     }
 
     const order = await this.repository.updatePurchaseOrder(id, data);

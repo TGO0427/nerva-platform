@@ -875,6 +875,46 @@ describe("MasterDataService", () => {
     });
   });
 
+  describe("updatePurchaseOrder — supplier change", () => {
+    it("throws BadRequestException when changing supplier on a non-DRAFT PO", async () => {
+      repository.findPurchaseOrderById.mockResolvedValue({
+        id: "po-1",
+        status: "SENT",
+      } as any);
+
+      await expect(
+        service.updatePurchaseOrder("po-1", { supplierId: "supplier-2" }),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.updatePurchaseOrder("po-1", { supplierId: "supplier-2" }),
+      ).rejects.toThrow(
+        "The supplier can only be changed while the PO is still DRAFT",
+      );
+      expect(repository.updatePurchaseOrder).not.toHaveBeenCalled();
+    });
+
+    it("allows changing supplier on a DRAFT PO", async () => {
+      repository.findPurchaseOrderById.mockResolvedValue({
+        id: "po-1",
+        status: "DRAFT",
+      } as any);
+      repository.updatePurchaseOrder.mockResolvedValue({
+        id: "po-1",
+        status: "DRAFT",
+        supplierId: "supplier-2",
+      } as any);
+
+      const result = await service.updatePurchaseOrder("po-1", {
+        supplierId: "supplier-2",
+      });
+
+      expect(result.supplierId).toBe("supplier-2");
+      expect(repository.updatePurchaseOrder).toHaveBeenCalledWith("po-1", {
+        supplierId: "supplier-2",
+      });
+    });
+  });
+
   describe("supplier NCR workflow", () => {
     const tenantId = "tenant-123";
     const ncrId = "ncr-1";

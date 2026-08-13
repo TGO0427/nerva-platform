@@ -23,9 +23,11 @@ import {
   useUpdatePurchaseOrderLine,
   useDeletePurchaseOrderLine,
   useUpdatePurchaseOrderStatus,
+  useUpdatePurchaseOrder,
   useReopenPurchaseOrder,
   useDeletePurchaseOrder,
   useItems,
+  useSuppliers,
   useImportShipment,
 } from '@/lib/queries';
 import { formatCurrency, formatDate, formatQuantity } from '@/lib/format';
@@ -126,9 +128,7 @@ export default function PurchaseOrderDetailPage() {
             <h1 className="text-2xl font-semibold text-text-primary dark:text-text-dark-primary">{po.poNo}</h1>
             <StatusBadge status={po.status as PurchaseOrderStatus} />
           </div>
-          <p className="text-text-muted dark:text-text-dark-muted mt-1">
-            {po.supplierName}
-          </p>
+          <SupplierField po={po} />
         </div>
         <div className="flex flex-wrap gap-2 items-start print:hidden">
           <Button
@@ -328,6 +328,76 @@ function StatusBadge({ status }: { status: PurchaseOrderStatus }) {
   };
 
   return <Badge variant={variants[status]} className="text-white bg-opacity-30">{status}</Badge>;
+}
+
+function SupplierField({
+  po,
+}: {
+  po: { id: string; status: string; supplierId: string; supplierName?: string };
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedSupplierId, setSelectedSupplierId] = useState(po.supplierId);
+  const { addToast } = useToast();
+  const { data: suppliersData } = useSuppliers({ page: 1, limit: 100 });
+  const updatePurchaseOrder = useUpdatePurchaseOrder();
+
+  if (!isEditing) {
+    return (
+      <div className="flex items-center gap-2 mt-1">
+        <p className="text-text-muted dark:text-text-dark-muted">{po.supplierName}</p>
+        {po.status === 'DRAFT' && (
+          <button
+            type="button"
+            className="text-xs text-primary-600 hover:underline print:hidden"
+            onClick={() => {
+              setSelectedSupplierId(po.supplierId);
+              setIsEditing(true);
+            }}
+          >
+            Change
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const handleSave = async () => {
+    if (!selectedSupplierId || selectedSupplierId === po.supplierId) {
+      setIsEditing(false);
+      return;
+    }
+    try {
+      await updatePurchaseOrder.mutateAsync({ id: po.id, data: { supplierId: selectedSupplierId } });
+      addToast('Supplier updated', 'success');
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update supplier:', error);
+      addToast('Failed to update supplier', 'error');
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2 mt-1 print:hidden">
+      <select
+        value={selectedSupplierId}
+        onChange={(e) => setSelectedSupplierId(e.target.value)}
+        className="px-3 py-1.5 border border-slate-300 rounded-md text-sm"
+        autoFocus
+      >
+        {suppliersData?.data?.map((supplier) => (
+          <option key={supplier.id} value={supplier.id}>
+            {supplier.name}
+          </option>
+        ))}
+      </select>
+      <Button size="sm" onClick={handleSave} disabled={updatePurchaseOrder.isPending}>
+        {updatePurchaseOrder.isPending ? 'Saving...' : 'Save'}
+      </Button>
+      <Button size="sm" variant="secondary" onClick={() => setIsEditing(false)}>
+        Cancel
+      </Button>
+    </div>
+  );
 }
 
 function StatusActions({ po }: { po: { id: string; status: string } }) {

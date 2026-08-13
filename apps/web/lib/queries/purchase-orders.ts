@@ -22,6 +22,7 @@ interface CreatePurchaseOrderData {
 
 interface UpdatePurchaseOrderData {
   status?: string;
+  supplierId?: string;
   expectedDate?: string;
   shipToWarehouseId?: string;
   notes?: string;

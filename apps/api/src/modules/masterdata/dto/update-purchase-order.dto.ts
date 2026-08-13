@@ -16,6 +16,11 @@ export class UpdatePurchaseOrderDto {
   @IsIn(["DRAFT", "SENT", "CONFIRMED", "PARTIAL", "RECEIVED", "CANCELLED"])
   status?: string;
 
+  @ApiPropertyOptional({ description: "Supplier ID - only changeable while the PO is still DRAFT" })
+  @IsOptional()
+  @IsUUID()
+  supplierId?: string;
+
   @ApiPropertyOptional({ description: "Expected delivery date" })
   @IsOptional()
   @IsDateString()

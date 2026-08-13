@@ -2449,6 +2449,7 @@ export class MasterDataRepository extends BaseRepository {
     id: string,
     data: Partial<{
       status: string;
+      supplierId: string;
       expectedDate: Date;
       shipToWarehouseId: string;
       subtotal: number;
@@ -2466,6 +2467,10 @@ export class MasterDataRepository extends BaseRepository {
     if (data.status !== undefined) {
       fields.push(`status = $${idx++}`);
       values.push(data.status);
+    }
+    if (data.supplierId !== undefined) {
+      fields.push(`supplier_id = $${idx++}`);
+      values.push(data.supplierId);
     }
     if (data.expectedDate !== undefined) {
       fields.push(`expected_date = $${idx++}`);
