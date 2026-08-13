@@ -3,6 +3,23 @@ import { BaseRepository } from "../../../common/db/base.repository";
 
 @Injectable()
 export class MrpRepository extends BaseRepository {
+  // Which of these items have an active supplier link - "Create PO" only
+  // makes sense on a row where the exact item code is actually purchasable,
+  // not just any shortage (a manufactured-only item may have no purchasable
+  // equivalent under the same code at all).
+  private async getActiveSupplierItemSet(
+    tenantId: string,
+    itemIds: string[],
+  ): Promise<Set<string>> {
+    if (itemIds.length === 0) return new Set();
+    const rows = await this.queryMany<{ item_id: string }>(
+      `SELECT DISTINCT item_id FROM supplier_items
+       WHERE tenant_id = $1 AND item_id = ANY($2::uuid[]) AND is_active = true`,
+      [tenantId, itemIds],
+    );
+    return new Set(rows.map((r) => r.item_id));
+  }
+
   async calculateRequirements(tenantId: string) {
     // Nearest open PO per item (soonest expected_date among PO statuses that
     // still represent incoming stock), plus a fallback to the preferred
@@ -109,7 +126,7 @@ export class MrpRepository extends BaseRepository {
       [tenantId],
     );
 
-    const workOrderDemand = demandRows.map((row) => ({
+    const workOrderDemandBase = demandRows.map((row) => ({
       workOrderId: row.work_order_id as string,
       workOrderNo: row.work_order_no as string,
       workOrderStatus: row.work_order_status as string,
@@ -131,6 +148,15 @@ export class MrpRepository extends BaseRepository {
         row.supplier_lead_time_days != null
           ? Number(row.supplier_lead_time_days)
           : null,
+    }));
+
+    const workOrderHasSupplierSet = await this.getActiveSupplierItemSet(
+      tenantId,
+      [...new Set(workOrderDemandBase.map((r) => r.itemId))],
+    );
+    const workOrderDemand = workOrderDemandBase.map((row) => ({
+      ...row,
+      hasActiveSupplier: workOrderHasSupplierSet.has(row.itemId),
     }));
 
     const itemSummaryBase = summaryRows.map((row) => ({
@@ -157,11 +183,8 @@ export class MrpRepository extends BaseRepository {
       poLookupCte,
     );
 
-    const { itemSummary, hasActiveBomSet } = await this.mergeItemSummary(
-      tenantId,
-      itemSummaryBase,
-      salesOrderDemand,
-    );
+    const { itemSummary, hasActiveBomSet, hasActiveSupplierSet } =
+      await this.mergeItemSummary(tenantId, itemSummaryBase, salesOrderDemand);
 
     return {
       workOrderDemand,
@@ -169,6 +192,7 @@ export class MrpRepository extends BaseRepository {
       itemSummary: itemSummary.map((row) => ({
         ...row,
         hasActiveBom: hasActiveBomSet.has(row.itemId),
+        hasActiveSupplier: hasActiveSupplierSet.has(row.itemId),
       })),
     };
   }
@@ -331,6 +355,11 @@ export class MrpRepository extends BaseRepository {
     const hasActiveBomForItem = new Set<string>(activeBomByItem.keys());
     for (const row of componentBomRows) hasActiveBomForItem.add(row.item_id);
 
+    const hasActiveSupplierForItem = await this.getActiveSupplierItemSet(
+      tenantId,
+      [...new Set(allRows.map((r) => r.itemId))],
+    );
+
     // One stock/PO/lead-time lookup per distinct (item, warehouse) pair -
     // same per-warehouse scoping as the work-order query above.
     const pairKey = (itemId: string, warehouseId: string) => `${itemId}::${warehouseId}`;
@@ -390,6 +419,7 @@ export class MrpRepository extends BaseRepository {
         itemDescription: row.itemDescription,
         demandType: row.demandType,
         hasActiveBom: hasActiveBomForItem.has(row.itemId),
+        hasActiveSupplier: hasActiveSupplierForItem.has(row.itemId),
         qtyRequired: row.qtyRequired,
         availableStock,
         shortage: Math.max(row.qtyRequired - availableStock, 0),
@@ -486,7 +516,11 @@ export class MrpRepository extends BaseRepository {
       );
       for (const row of bomRows) hasActiveBomSet.add(row.item_id);
     }
+    const hasActiveSupplierSet = await this.getActiveSupplierItemSet(
+      tenantId,
+      itemIds,
+    );
 
-    return { itemSummary, hasActiveBomSet };
+    return { itemSummary, hasActiveBomSet, hasActiveSupplierSet };
   }
 }

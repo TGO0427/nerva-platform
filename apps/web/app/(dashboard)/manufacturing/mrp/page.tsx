@@ -125,17 +125,19 @@ export default function MrpPage() {
       key: 'actions',
       header: 'Actions',
       render: (row) => {
-        if (row.netShortage <= 0) return null;
+        if (row.netShortage <= 0 || (!row.hasActiveSupplier && !row.hasActiveBom)) return null;
         return (
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={createPo.isPending}
-              onClick={() => handleCreatePo({ itemId: row.itemId, itemSku: row.itemSku, warehouseId: row.warehouseId, qty: row.netShortage })}
-            >
-              Create PO
-            </Button>
+            {row.hasActiveSupplier && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={createPo.isPending}
+                onClick={() => handleCreatePo({ itemId: row.itemId, itemSku: row.itemSku, warehouseId: row.warehouseId, qty: row.netShortage })}
+              >
+                Create PO
+              </Button>
+            )}
             {row.hasActiveBom && (
               <Button
                 size="sm"
@@ -202,7 +204,7 @@ export default function MrpPage() {
       key: 'actions',
       header: 'Actions',
       render: (row) => {
-        if (row.shortage <= 0) return null;
+        if (row.shortage <= 0 || !row.hasActiveSupplier) return null;
         return (
           <Button
             size="sm"
@@ -266,17 +268,19 @@ export default function MrpPage() {
       key: 'actions',
       header: 'Actions',
       render: (row) => {
-        if (row.shortage <= 0) return null;
+        if (row.shortage <= 0 || (!row.hasActiveSupplier && !row.hasActiveBom)) return null;
         return (
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={createPo.isPending}
-              onClick={() => handleCreatePo({ itemId: row.itemId, itemSku: row.itemSku, warehouseId: row.warehouseId, qty: row.shortage })}
-            >
-              Create PO
-            </Button>
+            {row.hasActiveSupplier && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={createPo.isPending}
+                onClick={() => handleCreatePo({ itemId: row.itemId, itemSku: row.itemSku, warehouseId: row.warehouseId, qty: row.shortage })}
+              >
+                Create PO
+              </Button>
+            )}
             {row.hasActiveBom && (
               <Button
                 size="sm"

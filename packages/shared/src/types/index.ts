@@ -1068,6 +1068,7 @@ export interface MrpData {
     qtyOutstanding: number;
     availableStock: number;
     shortage: number;
+    hasActiveSupplier: boolean;
     nearestPoNo?: string | null;
     nearestPoExpectedDate?: string | null;
     supplierLeadTimeDays?: number | null;
@@ -1083,6 +1084,7 @@ export interface MrpData {
     itemDescription: string;
     demandType: 'ASSEMBLY' | 'COMPONENT';
     hasActiveBom: boolean;
+    hasActiveSupplier: boolean;
     qtyRequired: number;
     availableStock: number;
     shortage: number;
@@ -1101,6 +1103,7 @@ export interface MrpData {
     availableStock: number;
     netShortage: number;
     hasActiveBom: boolean;
+    hasActiveSupplier: boolean;
     nearestPoNo?: string | null;
     nearestPoExpectedDate?: string | null;
     supplierLeadTimeDays?: number | null;
