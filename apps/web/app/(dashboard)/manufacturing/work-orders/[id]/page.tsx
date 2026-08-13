@@ -59,6 +59,13 @@ export default function WorkOrderDetailPage() {
   const [newMaterialQty, setNewMaterialQty] = useState('');
   const { data: allItemsData } = useItems({ page: 1, limit: 500 });
   const allItems = allItemsData?.data || [];
+  // The material requirement inherits the work order's own warehouse -
+  // there's no separate warehouse picker for it - so show what's actually
+  // on hand there for the chosen item, not just a bare item name.
+  const { data: newMaterialStock } = useStockOnHand(newMaterialItemId || undefined);
+  const newMaterialAvailableInWarehouse = (newMaterialStock || [])
+    .filter((s) => s.warehouseId === workOrder?.warehouseId)
+    .reduce((sum, s) => sum + s.qtyAvailable, 0);
 
   const [issuingMaterialId, setIssuingMaterialId] = useState<string | null>(null);
   const [issueQty, setIssueQty] = useState('');
@@ -747,7 +754,9 @@ export default function WorkOrderDetailPage() {
                   )}
                   {showAddMaterial && (
                     <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <h4 className="text-sm font-medium text-blue-800 mb-3">Add Material</h4>
+                      <h4 className="text-sm font-medium text-blue-800 mb-3">
+                        Add Material <span className="font-normal text-blue-600">(required in {workOrder.warehouseName})</span>
+                      </h4>
                       <div className="grid grid-cols-3 gap-3">
                         <div>
                           <label className="block text-xs text-slate-600 mb-1">Item</label>
@@ -757,6 +766,11 @@ export default function WorkOrderDetailPage() {
                             options={allItems.map((i) => ({ value: i.id, label: `${i.sku} - ${i.description}` }))}
                             placeholder="Select item..."
                           />
+                          {newMaterialItemId && (
+                            <p className="text-xs text-slate-500 mt-1">
+                              Available in {workOrder.warehouseName}: {formatQuantity(newMaterialAvailableInWarehouse)}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-xs text-slate-600 mb-1">Qty Required</label>
