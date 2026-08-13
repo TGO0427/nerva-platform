@@ -21,6 +21,7 @@ import {
   useCompleteWorkOrder,
   useCancelWorkOrder,
   useReopenWorkOrder,
+  useAddWorkOrderMaterial,
   useIssueMaterial,
   useRecordOutput,
   useNextOutputBatch,
@@ -33,7 +34,7 @@ import {
 } from '@/lib/queries/manufacturing';
 import { useBins } from '@/lib/queries/warehouses';
 import { useStockOnHand } from '@/lib/queries/inventory';
-import { useItem } from '@/lib/queries/items';
+import { useItem, useItems } from '@/lib/queries/items';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { formatDate, formatDateTime, formatPercent, formatQuantity } from '@/lib/format';
@@ -52,6 +53,12 @@ export default function WorkOrderDetailPage() {
   const { data: producedItem } = useItem(workOrder?.itemId);
   const { data: nextOutputBatch } = useNextOutputBatch(id);
   const [activeTab, setActiveTab] = useState<'operations' | 'materials' | 'checks' | 'process'>('materials');
+
+  const [showAddMaterial, setShowAddMaterial] = useState(false);
+  const [newMaterialItemId, setNewMaterialItemId] = useState('');
+  const [newMaterialQty, setNewMaterialQty] = useState('');
+  const { data: allItemsData } = useItems({ page: 1, limit: 500 });
+  const allItems = allItemsData?.data || [];
 
   const [issuingMaterialId, setIssuingMaterialId] = useState<string | null>(null);
   const [issueQty, setIssueQty] = useState('');
@@ -109,6 +116,7 @@ export default function WorkOrderDetailPage() {
   const completeWorkOrder = useCompleteWorkOrder();
   const cancelWorkOrder = useCancelWorkOrder();
   const reopenWorkOrder = useReopenWorkOrder();
+  const addWorkOrderMaterial = useAddWorkOrderMaterial();
   const issueMaterial = useIssueMaterial();
   const recordOutput = useRecordOutput();
   const startOperation = useStartOperation();
@@ -722,6 +730,65 @@ export default function WorkOrderDetailPage() {
             <div className="p-4">
               {activeTab === 'materials' && (
                 <>
+                  {!['COMPLETED', 'CANCELLED'].includes(workOrder.status) && (
+                    <div className="flex justify-end mb-3">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddMaterial((v) => !v);
+                          setNewMaterialItemId('');
+                          setNewMaterialQty('');
+                        }}
+                      >
+                        Add Material
+                      </Button>
+                    </div>
+                  )}
+                  {showAddMaterial && (
+                    <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <h4 className="text-sm font-medium text-blue-800 mb-3">Add Material</h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs text-slate-600 mb-1">Item</label>
+                          <Select
+                            value={newMaterialItemId}
+                            onChange={(e) => setNewMaterialItemId(e.target.value)}
+                            options={allItems.map((i) => ({ value: i.id, label: `${i.sku} - ${i.description}` }))}
+                            placeholder="Select item..."
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-600 mb-1">Qty Required</label>
+                          <Input type="number" min="0.01" step="any" value={newMaterialQty} onChange={(e) => setNewMaterialQty(e.target.value)} />
+                        </div>
+                        <div className="flex items-end gap-2">
+                          <Button
+                            size="sm"
+                            disabled={!newMaterialItemId || !newMaterialQty || addWorkOrderMaterial.isPending}
+                            onClick={async () => {
+                              try {
+                                await addWorkOrderMaterial.mutateAsync({
+                                  workOrderId: id!,
+                                  itemId: newMaterialItemId,
+                                  qtyRequired: parseFloat(newMaterialQty),
+                                });
+                                addToast('Material added', 'success');
+                                setShowAddMaterial(false);
+                                setNewMaterialItemId('');
+                                setNewMaterialQty('');
+                              } catch (error) {
+                                addToast(error instanceof Error ? error.message : 'Failed to add material', 'error');
+                              }
+                            }}
+                          >
+                            {addWorkOrderMaterial.isPending ? 'Adding...' : 'Confirm'}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setShowAddMaterial(false)}>Cancel</Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <DataTable
                     columns={materialColumns}
                     data={workOrder.materials || []}

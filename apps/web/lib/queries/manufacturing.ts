@@ -668,6 +668,23 @@ export function useReopenWorkOrder() {
   });
 }
 
+export function useAddWorkOrderMaterial() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ workOrderId, ...data }: {
+      workOrderId: string;
+      itemId: string;
+      qtyRequired: number;
+    }) => {
+      const response = await api.post<WorkOrderMaterial>(`/manufacturing/work-orders/${workOrderId}/materials`, data);
+      return response.data;
+    },
+    onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
+    },
+  });
+}
+
 export function useIssueMaterial() {
   const queryClient = useQueryClient();
   return useMutation({

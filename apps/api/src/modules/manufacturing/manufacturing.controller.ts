@@ -48,6 +48,7 @@ import {
   UpsertWorkOrderChecksDto,
   UpsertWorkOrderProcessDto,
   CompleteOperationDto,
+  AddWorkOrderMaterialDto,
   IssueMaterialDto,
   ReturnMaterialDto,
   RecordOutputDto,
@@ -673,6 +674,16 @@ export class ManufacturingController {
     @Body() data: CompleteOperationDto,
   ) {
     return this.service.completeOperation(opId, data);
+  }
+
+  @Post("work-orders/:id/materials")
+  @RequirePermissions("work_order.edit")
+  @ApiOperation({ summary: "Add a material requirement to a work order" })
+  async addWorkOrderMaterial(
+    @Param("id", UuidValidationPipe) id: string,
+    @Body() data: AddWorkOrderMaterialDto,
+  ) {
+    return this.service.addWorkOrderMaterial(id, data);
   }
 
   // Material Issue/Return

@@ -673,6 +673,17 @@ export class ReturnMaterialDto {
   reasonCode?: string;
 }
 
+export class AddWorkOrderMaterialDto {
+  @ApiProperty()
+  @IsUUID()
+  itemId: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0.01)
+  qtyRequired: number;
+}
+
 export class RecordOutputDto {
   @ApiProperty()
   @IsNumber()

@@ -437,6 +437,7 @@ describe("ManufacturingService - Production Output", () => {
             update: jest.fn(),
             getOperations: jest.fn(),
             getMaterials: jest.fn(),
+            addMaterial: jest.fn(),
             findMaterialById: jest.fn(),
             updateMaterial: jest.fn(),
             findOperationById: jest.fn(),
@@ -599,6 +600,63 @@ describe("ManufacturingService - Production Output", () => {
       );
       expect((result as any).lastOutputRunNo).toBe(3);
       expect((result as any).lastOutputBatchNo).toBe("BATCH-20260218-003");
+    });
+  });
+
+  describe("addWorkOrderMaterial", () => {
+    it("adds a material requirement to a DRAFT work order", async () => {
+      workOrderRepo.findById.mockResolvedValue({ ...baseWorkOrder, status: "DRAFT" });
+      workOrderRepo.addMaterial.mockResolvedValue(baseMaterial);
+
+      const result = await service.addWorkOrderMaterial(workOrderId, {
+        itemId: "raw-item-123",
+        qtyRequired: 100,
+      });
+
+      expect(workOrderRepo.addMaterial).toHaveBeenCalledWith({
+        tenantId,
+        workOrderId,
+        itemId: "raw-item-123",
+        qtyRequired: 100,
+      });
+      expect(result).toEqual(baseMaterial);
+    });
+
+    it("allows adding a material to a RELEASED or IN_PROGRESS work order", async () => {
+      workOrderRepo.findById.mockResolvedValue({ ...baseWorkOrder, status: "IN_PROGRESS" });
+      workOrderRepo.addMaterial.mockResolvedValue(baseMaterial);
+
+      await service.addWorkOrderMaterial(workOrderId, {
+        itemId: "raw-item-123",
+        qtyRequired: 5,
+      });
+
+      expect(workOrderRepo.addMaterial).toHaveBeenCalled();
+    });
+
+    it("throws BadRequestException when the work order is COMPLETED", async () => {
+      workOrderRepo.findById.mockResolvedValue({ ...baseWorkOrder, status: "COMPLETED" });
+
+      await expect(
+        service.addWorkOrderMaterial(workOrderId, { itemId: "raw-item-123", qtyRequired: 5 }),
+      ).rejects.toThrow(BadRequestException);
+      expect(workOrderRepo.addMaterial).not.toHaveBeenCalled();
+    });
+
+    it("throws BadRequestException when the work order is CANCELLED", async () => {
+      workOrderRepo.findById.mockResolvedValue({ ...baseWorkOrder, status: "CANCELLED" });
+
+      await expect(
+        service.addWorkOrderMaterial(workOrderId, { itemId: "raw-item-123", qtyRequired: 5 }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("throws NotFoundException when the work order doesn't exist", async () => {
+      workOrderRepo.findById.mockResolvedValue(null);
+
+      await expect(
+        service.addWorkOrderMaterial("missing-wo", { itemId: "raw-item-123", qtyRequired: 5 }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

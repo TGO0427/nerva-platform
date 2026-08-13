@@ -1066,6 +1066,30 @@ export class ManufacturingService {
     return this.workOrderRepo.findOperationById(operationId);
   }
 
+  // Materials can only ever get onto a work order automatically, by
+  // selecting a BOM at creation time - a work order created without one
+  // (or one that needs a material added after the fact) had no way to
+  // attach a requirement at all, on the frontend or the API.
+  async addWorkOrderMaterial(
+    workOrderId: string,
+    data: { itemId: string; qtyRequired: number },
+  ) {
+    const workOrder = await this.workOrderRepo.findById(workOrderId);
+    if (!workOrder) throw new NotFoundException("Work order not found");
+    if (["COMPLETED", "CANCELLED"].includes(workOrder.status)) {
+      throw new BadRequestException(
+        `Cannot add materials to a ${workOrder.status} work order`,
+      );
+    }
+
+    return this.workOrderRepo.addMaterial({
+      tenantId: workOrder.tenantId,
+      workOrderId,
+      itemId: data.itemId,
+      qtyRequired: data.qtyRequired,
+    });
+  }
+
   // Material Issue/Return
   async issueMaterial(
     workOrderId: string,
