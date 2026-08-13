@@ -3,10 +3,13 @@ import { BaseRepository } from "../../../common/db/base.repository";
 
 @Injectable()
 export class MrpRepository extends BaseRepository {
-  // Which of these items have an active supplier link - "Create PO" only
-  // makes sense on a row where the exact item code is actually purchasable,
-  // not just any shortage (a manufactured-only item may have no purchasable
-  // equivalent under the same code at all).
+  // Which of these items are actually purchasable - "Create PO" only makes
+  // sense on a row where the exact item code can be bought, not just any
+  // shortage (a manufactured-only item may have no purchasable equivalent
+  // under the same code at all). An item counts as purchasable either via
+  // a registered preferred-supplier catalog entry, or because it's already
+  // been bought before - an item can be received against a one-off PO
+  // without ever being formally registered as a supplier's catalog item.
   private async getActiveSupplierItemSet(
     tenantId: string,
     itemIds: string[],
@@ -14,7 +17,11 @@ export class MrpRepository extends BaseRepository {
     if (itemIds.length === 0) return new Set();
     const rows = await this.queryMany<{ item_id: string }>(
       `SELECT DISTINCT item_id FROM supplier_items
-       WHERE tenant_id = $1 AND item_id = ANY($2::uuid[]) AND is_active = true`,
+       WHERE tenant_id = $1 AND item_id = ANY($2::uuid[]) AND is_active = true
+       UNION
+       SELECT DISTINCT pol.item_id FROM purchase_order_lines pol
+       JOIN purchase_orders po ON po.id = pol.purchase_order_id
+       WHERE po.tenant_id = $1 AND pol.item_id = ANY($2::uuid[])`,
       [tenantId, itemIds],
     );
     return new Set(rows.map((r) => r.item_id));

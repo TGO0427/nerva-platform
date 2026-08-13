@@ -1863,11 +1863,31 @@ export class MasterDataRepository extends BaseRepository {
        LIMIT 1`,
       [tenantId, itemId],
     );
-    if (!row) return null;
+    if (row) {
+      return {
+        supplierId: row.supplier_id as string,
+        unitCost: row.unit_cost != null ? parseFloat(row.unit_cost as string) : null,
+        leadTimeDays: row.lead_time_days != null ? Number(row.lead_time_days) : null,
+      };
+    }
+
+    // No catalog entry - an item can be purchased and received without ever
+    // being registered as a preferred supplier link, so fall back to whoever
+    // it was actually bought from most recently.
+    const historyRow = await this.queryOne<Record<string, unknown>>(
+      `SELECT po.supplier_id, pol.unit_cost
+       FROM purchase_order_lines pol
+       JOIN purchase_orders po ON po.id = pol.purchase_order_id
+       WHERE po.tenant_id = $1 AND pol.item_id = $2
+       ORDER BY po.order_date DESC, pol.created_at DESC
+       LIMIT 1`,
+      [tenantId, itemId],
+    );
+    if (!historyRow) return null;
     return {
-      supplierId: row.supplier_id as string,
-      unitCost: row.unit_cost != null ? parseFloat(row.unit_cost as string) : null,
-      leadTimeDays: row.lead_time_days != null ? Number(row.lead_time_days) : null,
+      supplierId: historyRow.supplier_id as string,
+      unitCost: historyRow.unit_cost != null ? parseFloat(historyRow.unit_cost as string) : null,
+      leadTimeDays: null,
     };
   }
 
