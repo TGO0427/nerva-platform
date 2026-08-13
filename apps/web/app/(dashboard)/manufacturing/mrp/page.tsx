@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -49,21 +50,39 @@ export default function MrpPage() {
   const { addToast } = useToast();
   const { confirm } = useConfirm();
   const [activeTab, setActiveTab] = useState<TabView>('by-item');
+  const [search, setSearch] = useState('');
   const { data, isLoading, error } = useMrpRequirements();
   const createPo = useCreatePoFromShortage();
   const createWo = useCreateWoFromShortage();
 
-  const itemSummary: MrpItemRow[] = useMemo(
+  const itemSummaryAll: MrpItemRow[] = useMemo(
     () => (data?.itemSummary ?? []).map((row) => ({ ...row, rowId: `${row.itemId}-${row.warehouseId}` })),
     [data?.itemSummary]
   );
-  const workOrderDemand: MrpWorkOrderRow[] = useMemo(
+  const workOrderDemandAll: MrpWorkOrderRow[] = useMemo(
     () => (data?.workOrderDemand ?? []).map((row, idx) => ({ ...row, rowId: `${row.workOrderId}-${row.itemId}-${idx}` })),
     [data?.workOrderDemand]
   );
-  const salesOrderDemand: MrpSalesOrderRow[] = useMemo(
+  const salesOrderDemandAll: MrpSalesOrderRow[] = useMemo(
     () => (data?.salesOrderDemand ?? []).map((row, idx) => ({ ...row, rowId: `${row.salesOrderId}-${row.itemId}-${idx}` })),
     [data?.salesOrderDemand]
+  );
+
+  const searchTerm = search.trim().toLowerCase();
+  const matchesSearch = (fields: Array<string | null | undefined>) =>
+    searchTerm === '' || fields.some((f) => (f ?? '').toLowerCase().includes(searchTerm));
+
+  const itemSummary = useMemo(
+    () => itemSummaryAll.filter((row) => matchesSearch([row.itemSku, row.itemDescription, row.warehouseName])),
+    [itemSummaryAll, searchTerm]
+  );
+  const workOrderDemand = useMemo(
+    () => workOrderDemandAll.filter((row) => matchesSearch([row.workOrderNo, row.itemSku, row.itemDescription, row.warehouseName])),
+    [workOrderDemandAll, searchTerm]
+  );
+  const salesOrderDemand = useMemo(
+    () => salesOrderDemandAll.filter((row) => matchesSearch([row.orderNo, row.customerName, row.itemSku, row.itemDescription, row.warehouseName])),
+    [salesOrderDemandAll, searchTerm]
   );
 
   const handleCreatePo = async (row: { itemId: string; itemSku: string; warehouseId: string; qty: number }) => {
@@ -298,13 +317,13 @@ export default function MrpPage() {
   ], [createPo.isPending, createWo.isPending]);
 
   const shortageItems = useMemo(
-    () => itemSummary.filter((item) => item.netShortage > 0),
-    [itemSummary]
+    () => itemSummaryAll.filter((item) => item.netShortage > 0),
+    [itemSummaryAll]
   );
 
   const totalShortageQty = useMemo(
-    () => itemSummary.reduce((sum, item) => sum + Math.max(0, item.netShortage), 0),
-    [itemSummary]
+    () => itemSummaryAll.reduce((sum, item) => sum + Math.max(0, item.netShortage), 0),
+    [itemSummaryAll]
   );
 
   const handleExportCsv = () => {
@@ -380,7 +399,7 @@ export default function MrpPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title="Total Items with Demand"
-          value={formatNumber(itemSummary.length)}
+          value={formatNumber(itemSummaryAll.length)}
           icon={<PackageIcon />}
           iconColor="blue"
         />
@@ -438,6 +457,14 @@ export default function MrpPage() {
               </button>
             </div>
           </div>
+          <div className="mt-3">
+            <Input
+              placeholder="Search by item SKU, description, warehouse, order #, WO#, or customer..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
         </CardHeader>
         <CardContent>
           {activeTab === 'by-item' ? (
@@ -446,8 +473,13 @@ export default function MrpPage() {
               data={itemSummary}
               keyField="rowId"
               variant="embedded"
+              stickyFirstColumn
               rowClassName={(row) => (row.netShortage > 0 ? 'bg-red-50' : undefined)}
-              emptyState={{ title: 'No material requirements found', description: 'No open work orders currently need materials.' }}
+              emptyState={
+                search
+                  ? { title: 'No matching items', description: 'Try a different search term.' }
+                  : { title: 'No material requirements found', description: 'No open work orders currently need materials.' }
+              }
             />
           ) : activeTab === 'by-work-order' ? (
             <DataTable
@@ -455,8 +487,13 @@ export default function MrpPage() {
               data={workOrderDemand}
               keyField="rowId"
               variant="embedded"
+              stickyFirstColumn
               rowClassName={(row) => (row.shortage > 0 ? 'bg-red-50' : undefined)}
-              emptyState={{ title: 'No work order demand found', description: 'No open work orders currently need materials.' }}
+              emptyState={
+                search
+                  ? { title: 'No matching work orders', description: 'Try a different search term.' }
+                  : { title: 'No work order demand found', description: 'No open work orders currently need materials.' }
+              }
             />
           ) : (
             <DataTable
@@ -464,8 +501,13 @@ export default function MrpPage() {
               data={salesOrderDemand}
               keyField="rowId"
               variant="embedded"
+              stickyFirstColumn
               rowClassName={(row) => (row.shortage > 0 ? 'bg-red-50' : undefined)}
-              emptyState={{ title: 'No sales order demand found', description: 'No open sales orders currently need raw materials.' }}
+              emptyState={
+                search
+                  ? { title: 'No matching sales orders', description: 'Try a different search term.' }
+                  : { title: 'No sales order demand found', description: 'No open sales orders currently need raw materials.' }
+              }
             />
           )}
         </CardContent>

@@ -60,6 +60,8 @@ interface DataTableProps<T> {
   isAllSelected?: boolean;
   /** Whether some (but not all) rows are selected */
   isSomeSelected?: boolean;
+  /** Pins the first column in place while the rest of the table scrolls horizontally */
+  stickyFirstColumn?: boolean;
 }
 
 export function DataTable<T extends object>({
@@ -84,6 +86,7 @@ export function DataTable<T extends object>({
   onSelectAll,
   isAllSelected = false,
   isSomeSelected = false,
+  stickyFirstColumn = false,
 }: DataTableProps<T>) {
   const containerClass = variant === 'embedded'
     ? cn(className)
@@ -195,10 +198,11 @@ export function DataTable<T extends object>({
                   />
                 </th>
               )}
-              {columns.map((column) => (
+              {columns.map((column, columnIndex) => (
                 (() => {
                   const align = getColumnAlign(column);
                   const sortDirection = localSortKey === column.key ? localSortOrder : undefined;
+                  const isSticky = stickyFirstColumn && columnIndex === 0;
 
                   return (
                     <th
@@ -211,6 +215,7 @@ export function DataTable<T extends object>({
                         'text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-dark-muted',
                         getAlignClass(align),
                         column.sortable && 'cursor-pointer select-none hover:bg-surface-border/60 dark:hover:bg-surface-dark-border/60',
+                        isSticky && 'sticky left-0 z-20 bg-surface-secondary dark:bg-surface-dark-secondary shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]',
                         column.className
                       )}
                       onClick={() => column.sortable && handleSort(column.key)}
@@ -231,43 +236,53 @@ export function DataTable<T extends object>({
             </tr>
           </thead>
           <tbody className="bg-surface-card dark:bg-surface-dark-card divide-y divide-surface-border dark:divide-surface-dark-border">
-            {sortedData.map((row) => (
-              <tr
-                key={String(row[keyField])}
-                onClick={() => onRowClick?.(row)}
-                className={cn(
-                  'hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors',
-                  onRowClick && 'cursor-pointer',
-                  selectable && isRowSelected(row) && 'bg-primary-50 dark:bg-primary-900/30',
-                  rowClassName?.(row)
-                )}
-              >
-                {selectable && (
-                  <td className="w-12 px-4 py-4">
-                    <input
-                      type="checkbox"
-                      checked={isRowSelected(row)}
-                      onChange={() => onSelectionChange?.(getRowId(row))}
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-4 w-4 rounded border-surface-border dark:border-surface-dark-border text-primary-600 focus:ring-primary-500"
-                    />
-                  </td>
-                )}
-                {columns.map((column) => (
-                  <td
-                    key={column.key}
-                    className={cn(
-                      cellPadding,
-                      'whitespace-nowrap text-sm text-text-primary dark:text-text-dark-primary',
-                      getAlignClass(getColumnAlign(column)),
-                      column.className
-                    )}
-                  >
-                    {getCellValue(row, column)}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {sortedData.map((row) => {
+              const rowExtraClass = cn(
+                selectable && isRowSelected(row) && 'bg-primary-50 dark:bg-primary-900/30',
+                rowClassName?.(row)
+              );
+              return (
+                <tr
+                  key={String(row[keyField])}
+                  onClick={() => onRowClick?.(row)}
+                  className={cn(
+                    'hover:bg-surface-secondary dark:hover:bg-surface-dark-secondary transition-colors',
+                    onRowClick && 'cursor-pointer',
+                    rowExtraClass
+                  )}
+                >
+                  {selectable && (
+                    <td className="w-12 px-4 py-4">
+                      <input
+                        type="checkbox"
+                        checked={isRowSelected(row)}
+                        onChange={() => onSelectionChange?.(getRowId(row))}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-4 w-4 rounded border-surface-border dark:border-surface-dark-border text-primary-600 focus:ring-primary-500"
+                      />
+                    </td>
+                  )}
+                  {columns.map((column, columnIndex) => {
+                    const isSticky = stickyFirstColumn && columnIndex === 0;
+                    return (
+                      <td
+                        key={column.key}
+                        className={cn(
+                          cellPadding,
+                          'whitespace-nowrap text-sm text-text-primary dark:text-text-dark-primary',
+                          getAlignClass(getColumnAlign(column)),
+                          isSticky && 'sticky left-0 z-10 bg-surface-card dark:bg-surface-dark-card shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]',
+                          isSticky && rowExtraClass,
+                          column.className
+                        )}
+                      >
+                        {getCellValue(row, column)}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
