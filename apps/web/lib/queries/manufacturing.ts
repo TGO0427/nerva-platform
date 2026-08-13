@@ -700,6 +700,10 @@ export function useIssueMaterial() {
     },
     onSuccess: (_, { workOrderId }) => {
       queryClient.invalidateQueries({ queryKey: [WORK_ORDERS_KEY, workOrderId] });
+      // Issuing consumes stock from the exact bin/batch just picked - without
+      // this, a picker showing "available" qty for that item would keep
+      // showing the pre-issue amount until something else happened to refetch it.
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'stock-on-hand'] });
     },
   });
 }

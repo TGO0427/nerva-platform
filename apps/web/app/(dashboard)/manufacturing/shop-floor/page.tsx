@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
+import { useToast } from '@/components/ui/toast';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import {
   useWorkOrders,
@@ -693,6 +694,7 @@ function IssueMaterialModal({
 
   const { data: issuingItem } = useItem(selectedMaterial?.itemId);
   const { data: stockOnHand } = useStockOnHand(selectedMaterial?.itemId);
+  const { addToast } = useToast();
 
   // Bins that actually hold this material, and - within the chosen bin -
   // batches sorted soonest-expiry-first (FEFO), so picking a bin surfaces
@@ -742,18 +744,58 @@ function IssueMaterialModal({
   const handleSubmit = async () => {
     if (!selectedMaterialId || !qty || !binId) return;
     try {
+      const issuedQty = parseFloat(qty);
       await issueMaterial.mutateAsync({
         workOrderId,
         materialId: selectedMaterialId,
-        qty: parseFloat(qty),
+        qty: issuedQty,
         binId,
         batchNo: batchNo && batchNo !== NO_BATCH_SENTINEL ? batchNo : undefined,
       });
-      onClose();
+      addToast(`Issued ${formatQuantity(issuedQty)} of ${selectedMaterial?.itemSku || 'material'}`, 'success');
+
+      // Advance to the next material that still needs issuing without
+      // waiting for the work order to refetch - simulate this submission's
+      // effect on the local list so a partially-issued material keeps its
+      // updated remaining qty, and a fully-issued one drops out immediately.
+      const updatedPending = pendingMaterials
+        .map((m: any) => (m.id === selectedMaterialId ? { ...m, qtyIssued: m.qtyIssued + issuedQty } : m))
+        .filter((m: any) => m.qtyIssued < m.qtyRequired);
+
+      if (updatedPending.length === 0) {
+        setSelectedMaterialId('');
+        setQty('');
+      } else {
+        const next = updatedPending.find((m: any) => m.id === selectedMaterialId) || updatedPending[0];
+        setSelectedMaterialId(next.id);
+        const rem = next.qtyRequired - next.qtyIssued + (next.qtyReturned || 0);
+        setQty(rem > 0 ? String(rem) : '');
+      }
+      setBinId('');
+      setBatchNo('');
     } catch {
       // error handled by query
     }
   };
+
+  if (!selectedMaterialId) {
+    return (
+      <Modal isOpen title="Issue Material" onClose={onClose}>
+        <div className="text-center py-6">
+          <div className="mx-auto h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
+            <svg className="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </div>
+          <p className="text-lg font-semibold text-slate-900">All materials issued</p>
+          <p className="text-sm text-slate-500 mt-1">Nothing left to issue for this work order.</p>
+        </div>
+        <Button onClick={onClose} className="w-full h-12 rounded-xl">
+          Close
+        </Button>
+      </Modal>
+    );
+  }
 
   return (
     <Modal isOpen title="Issue Material" onClose={onClose}>
@@ -767,9 +809,6 @@ function IssueMaterialModal({
             onChange={(e) => handleMaterialChange(e.target.value)}
             className="block w-full h-12 text-lg rounded-xl border border-slate-300 px-4 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
           >
-            {pendingMaterials.length === 0 && (
-              <option value="">All materials fully issued</option>
-            )}
             {pendingMaterials.map((m: any) => (
               <option key={m.id} value={m.id}>
                 {m.itemSku || m.itemId?.slice(0, 8)} &mdash; need{' '}
