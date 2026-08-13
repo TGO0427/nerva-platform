@@ -20,7 +20,8 @@ import {
   useItem,
 } from '@/lib/queries';
 import { useBins } from '@/lib/queries/warehouses';
-import { formatNumber, formatPercent, formatQuantity } from '@/lib/format';
+import { useStockOnHand } from '@/lib/queries/inventory';
+import { formatNumber, formatPercent, formatQuantity, formatDate } from '@/lib/format';
 import type { WorkOrder, WorkOrderOperationStatus } from '@nerva/shared';
 
 // ---------------------------------------------------------------------------
@@ -36,6 +37,8 @@ type ActiveModal =
   | 'recordOutput';
 
 type ActiveOrderRow = WorkOrder & { itemSku?: string; itemDescription?: string };
+
+const NO_BATCH_SENTINEL = '__no_batch__';
 
 // ---------------------------------------------------------------------------
 // Main Component
@@ -688,7 +691,28 @@ function IssueMaterialModal({
   const [binId, setBinId] = useState('');
   const [batchNo, setBatchNo] = useState('');
 
-  // Update qty when material selection changes
+  const { data: issuingItem } = useItem(selectedMaterial?.itemId);
+  const { data: stockOnHand } = useStockOnHand(selectedMaterial?.itemId);
+
+  // Bins that actually hold this material, and - within the chosen bin -
+  // batches sorted soonest-expiry-first (FEFO), so picking a bin surfaces
+  // exactly what's really there instead of letting free text bypass it.
+  const binIdsWithMaterialStock = new Set(
+    (stockOnHand || []).filter((s: any) => s.qtyAvailable > 0).map((s: any) => s.binId)
+  );
+  const binsForMaterial = selectedMaterial
+    ? bins.filter((b: any) => binIdsWithMaterialStock.has(b.id))
+    : bins;
+  const availableBatchesInBin = (stockOnHand || [])
+    .filter((s: any) => s.binId === binId && s.qtyAvailable > 0)
+    .sort((a: any, b: any) => {
+      if (!a.expiryDate && !b.expiryDate) return 0;
+      if (!a.expiryDate) return 1;
+      if (!b.expiryDate) return -1;
+      return new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
+    });
+
+  // Update qty when material selection changes, and clear the now-stale bin/batch
   const handleMaterialChange = (matId: string) => {
     setSelectedMaterialId(matId);
     const mat = materials.find((m: any) => m.id === matId);
@@ -696,6 +720,23 @@ function IssueMaterialModal({
       const rem = mat.qtyRequired - mat.qtyIssued + (mat.qtyReturned || 0);
       setQty(rem > 0 ? String(rem) : '');
     }
+    setBinId('');
+    setBatchNo('');
+  };
+
+  const handleBinChange = (newBinId: string) => {
+    setBinId(newBinId);
+    const batchesInBin = (stockOnHand || [])
+      .filter((s: any) => s.binId === newBinId && s.qtyAvailable > 0)
+      .sort((a: any, b: any) => {
+        if (!a.expiryDate && !b.expiryDate) return 0;
+        if (!a.expiryDate) return 1;
+        if (!b.expiryDate) return -1;
+        return new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
+      });
+    // Auto-pick the FEFO-first batch in this bin - almost always the right
+    // one, and still overridable below if this bin holds more than one.
+    setBatchNo(batchesInBin[0] ? (batchesInBin[0].batchNo || NO_BATCH_SENTINEL) : '');
   };
 
   const handleSubmit = async () => {
@@ -706,7 +747,7 @@ function IssueMaterialModal({
         materialId: selectedMaterialId,
         qty: parseFloat(qty),
         binId,
-        batchNo: batchNo || undefined,
+        batchNo: batchNo && batchNo !== NO_BATCH_SENTINEL ? batchNo : undefined,
       });
       onClose();
     } catch {
@@ -756,27 +797,47 @@ function IssueMaterialModal({
           </label>
           <select
             value={binId}
-            onChange={(e) => setBinId(e.target.value)}
+            onChange={(e) => handleBinChange(e.target.value)}
             className="block w-full h-12 text-lg rounded-xl border border-slate-300 px-4 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
           >
             <option value="">Select bin...</option>
-            {bins.map((b: any) => (
+            {binsForMaterial.map((b: any) => (
               <option key={b.id} value={b.id}>
                 {b.code}
               </option>
             ))}
           </select>
+          {selectedMaterial && binsForMaterial.length === 0 && (
+            <p className="text-xs text-amber-600 mt-1">No stock of this item in any bin</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Batch #
+            Batch #{issuingItem?.requiresBatchTracking && <span className="text-red-500"> *</span>}
           </label>
-          <Input
-            value={batchNo}
-            onChange={(e) => setBatchNo(e.target.value)}
-            placeholder="Optional"
-            className="h-12 text-lg"
-          />
+          {binId ? (
+            <select
+              value={batchNo}
+              onChange={(e) => setBatchNo(e.target.value)}
+              className="block w-full h-12 text-lg rounded-xl border border-slate-300 px-4 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            >
+              {availableBatchesInBin.length === 0 && (
+                <option value="">No batch-tracked stock in this bin</option>
+              )}
+              {availableBatchesInBin.map((s: any) => (
+                <option key={s.batchNo || NO_BATCH_SENTINEL} value={s.batchNo || NO_BATCH_SENTINEL}>
+                  {s.batchNo || 'No batch'} ({formatQuantity(s.qtyAvailable)} avail{s.expiryDate ? `, exp ${formatDate(s.expiryDate)}` : ''})
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Input value="" disabled placeholder="Select bin first" className="h-12 text-lg" />
+          )}
+          {binId && availableBatchesInBin.length === 0 && (
+            <p className="text-xs text-amber-600 mt-1">
+              No batch-tracked stock recorded in this bin - if physical stock exists, correct it via an Adjustment before issuing
+            </p>
+          )}
         </div>
       </div>
       <div className="flex gap-3">
@@ -788,7 +849,7 @@ function IssueMaterialModal({
           Cancel
         </Button>
         <Button
-          disabled={!selectedMaterialId || !qty || !binId}
+          disabled={!selectedMaterialId || !qty || !binId || (issuingItem?.requiresBatchTracking && !batchNo)}
           isLoading={issueMaterial.isPending}
           onClick={handleSubmit}
           className="flex-1 h-12 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800"
