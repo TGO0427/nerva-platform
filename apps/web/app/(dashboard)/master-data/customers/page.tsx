@@ -203,6 +203,8 @@ export default function CustomersPage() {
         onSelectAll={() => togglePage(tableData)}
         isAllSelected={isAllSelected}
         isSomeSelected={isSomeSelected}
+        stickyHeader
+        maxBodyHeight="65vh"
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,

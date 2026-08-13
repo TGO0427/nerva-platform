@@ -117,6 +117,8 @@ export default function BatchQualityQueuePage() {
         keyField="id"
         isLoading={isLoading}
         variant="embedded"
+        stickyHeader
+        maxBodyHeight="65vh"
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,

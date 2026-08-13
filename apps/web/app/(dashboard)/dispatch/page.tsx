@@ -792,6 +792,8 @@ export default function DispatchPage() {
             data={tripsData?.data || []}
             keyField="id"
             isLoading={tripsLoading}
+            stickyHeader
+            maxBodyHeight="65vh"
             pagination={tripsData?.meta ? {
               page: tripsData.meta.page,
               limit: tripsData.meta.limit,

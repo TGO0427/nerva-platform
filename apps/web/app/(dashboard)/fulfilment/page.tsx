@@ -615,6 +615,8 @@ export default function FulfilmentPage() {
             data={wavesData?.data || []}
             keyField="id"
             isLoading={wavesLoading}
+            stickyHeader
+            maxBodyHeight="65vh"
             pagination={wavesData?.meta ? {
               page: wavesData.meta.page,
               limit: wavesData.meta.limit,
@@ -723,6 +725,8 @@ export default function FulfilmentPage() {
             data={shipmentsData?.data || []}
             keyField="id"
             isLoading={shipmentsLoading}
+            stickyHeader
+            maxBodyHeight="65vh"
             pagination={shipmentsData?.meta ? {
               page: shipmentsData.meta.page,
               limit: shipmentsData.meta.limit,

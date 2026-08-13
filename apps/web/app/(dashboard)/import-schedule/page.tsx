@@ -373,6 +373,8 @@ export default function ImportSchedulePage() {
         onSelectAll={() => selection.togglePage(rows)}
         isAllSelected={selection.isAllSelected}
         isSomeSelected={selection.isSomeSelected}
+        stickyHeader
+        maxBodyHeight="65vh"
         pagination={data?.meta ? {
           page: data.meta.page,
           limit: data.meta.limit,

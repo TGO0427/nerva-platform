@@ -297,6 +297,8 @@ export default function DocumentCentrePage() {
             keyField="id"
             density="compact"
             isLoading={isLoading && !isDocumentsError}
+            stickyHeader
+            maxBodyHeight="65vh"
             pagination={documentResult?.meta}
             onPageChange={setPage}
             emptyState={{

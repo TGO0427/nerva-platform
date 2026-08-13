@@ -275,6 +275,8 @@ export default function InventoryPage() {
         onSelectAll={() => togglePage(tableData)}
         isAllSelected={isAllSelected}
         isSomeSelected={isSomeSelected}
+        stickyHeader
+        maxBodyHeight="65vh"
         pagination={stockData?.meta ? {
           page: stockData.meta.page,
           limit: stockData.meta.limit,

@@ -250,6 +250,8 @@ export default function StockDetailPage() {
             data={ledgerData?.data || []}
             keyField="id"
             isLoading={ledgerLoading}
+            stickyHeader
+            maxBodyHeight="65vh"
             pagination={ledgerData?.meta ? {
               page: ledgerData.meta.page,
               limit: ledgerData.meta.limit,
