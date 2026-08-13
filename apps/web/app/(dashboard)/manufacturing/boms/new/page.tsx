@@ -8,7 +8,9 @@ import { Select } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { PageShell } from '@/components/ui/motion';
 import { PageHeader } from '@/components/ui/page-header';
-import { useItems } from '@/lib/queries';
+import { useToast } from '@/components/ui/toast';
+import { QuickCreateItemModal } from '@/components/quick-create-item-modal';
+import { useItems, useCreateItem } from '@/lib/queries';
 import { useCreateBom } from '@/lib/queries/manufacturing';
 
 interface BomLineForm {
@@ -23,6 +25,7 @@ interface BomLineForm {
 
 export default function NewBomPage() {
   const router = useRouter();
+  const { addToast } = useToast();
   const [formData, setFormData] = useState({
     itemId: '',
     baseQty: '1',
@@ -32,9 +35,23 @@ export default function NewBomPage() {
     notes: '',
   });
   const [lines, setLines] = useState<BomLineForm[]>([]);
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
 
   const { data: itemsData } = useItems({ page: 1, limit: 100 });
   const createBom = useCreateBom();
+  const createItem = useCreateItem();
+
+  const handleQuickCreateItem = async (data: { sku: string; description: string; uom: string }) => {
+    try {
+      const item = await createItem.mutateAsync(data);
+      setFormData((prev) => ({ ...prev, itemId: item.id }));
+      setShowQuickCreate(false);
+      addToast('Product created', 'success');
+    } catch (error) {
+      console.error('Failed to create product:', error);
+      addToast('Failed to create product', 'error');
+    }
+  };
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -93,9 +110,18 @@ export default function NewBomPage() {
           <h3 className="text-lg font-medium mb-4">Product Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Product <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-slate-700">
+                  Product <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  className="text-xs text-primary-600 hover:underline"
+                  onClick={() => setShowQuickCreate(true)}
+                >
+                  + New Product
+                </button>
+              </div>
               <Select
                 value={formData.itemId}
                 onChange={(e) => handleChange('itemId', e.target.value)}
@@ -293,6 +319,13 @@ export default function NewBomPage() {
           </div>
         </Card>
       </form>
+
+      <QuickCreateItemModal
+        isOpen={showQuickCreate}
+        onClose={() => setShowQuickCreate(false)}
+        onSubmit={handleQuickCreateItem}
+        isSubmitting={createItem.isPending}
+      />
     </PageShell>
   );
 }
