@@ -586,7 +586,7 @@ export class ManufacturingService {
     warehouseId: string;
     workOrderNo?: string;
     itemId: string;
-    bomHeaderId?: string;
+    bomHeaderId: string;
     routingId?: string;
     priority?: number;
     qtyOrdered: number;
@@ -596,6 +596,18 @@ export class ManufacturingService {
     notes?: string;
     createdBy: string;
   }) {
+    const bom = await this.bomRepo.findHeaderById(data.bomHeaderId);
+    if (!bom || bom.itemId !== data.itemId) {
+      throw new BadRequestException(
+        "The selected BOM does not exist or does not belong to this item",
+      );
+    }
+    if (bom.status !== "APPROVED") {
+      throw new BadRequestException(
+        "This item's recipe has not been approved yet. A BOM must be approved before it can go into production.",
+      );
+    }
+
     const workOrderNo =
       data.workOrderNo ||
       (await this.workOrderRepo.generateWorkOrderNo(data.tenantId));
@@ -605,24 +617,20 @@ export class ManufacturingService {
       workOrderNo,
     });
 
-    // If BOM is specified, copy materials
-    if (data.bomHeaderId) {
-      const bomLines = await this.bomRepo.getLines(data.bomHeaderId);
-      const bom = await this.bomRepo.findHeaderById(data.bomHeaderId);
-
-      for (const line of bomLines) {
-        const qtyRequired =
-          (line.qtyPer / (bom?.baseQty || 1)) *
-          data.qtyOrdered *
-          (1 + line.scrapPct / 100);
-        await this.workOrderRepo.addMaterial({
-          tenantId: data.tenantId,
-          workOrderId: workOrder.id,
-          bomLineId: line.id,
-          itemId: line.itemId,
-          qtyRequired,
-        });
-      }
+    // Copy materials from the approved BOM
+    const bomLines = await this.bomRepo.getLines(data.bomHeaderId);
+    for (const line of bomLines) {
+      const qtyRequired =
+        (line.qtyPer / (bom.baseQty || 1)) *
+        data.qtyOrdered *
+        (1 + line.scrapPct / 100);
+      await this.workOrderRepo.addMaterial({
+        tenantId: data.tenantId,
+        workOrderId: workOrder.id,
+        bomLineId: line.id,
+        itemId: line.itemId,
+        qtyRequired,
+      });
     }
 
     // If routing is specified, copy operations
@@ -891,13 +899,18 @@ export class ManufacturingService {
 
     for (const row of rows) {
       const itemId = itemMap.get(row.sku.toLowerCase())!;
+      const bomHeaderId = bomMap.get(itemId);
+      if (!bomHeaderId) {
+        skippedCodes.push(row.sku);
+        continue;
+      }
 
       await this.createWorkOrder({
         tenantId,
         siteId,
         warehouseId,
         itemId,
-        bomHeaderId: bomMap.get(itemId),
+        bomHeaderId,
         routingId: routingMap.get(itemId),
         priority: row.priority,
         qtyOrdered: row.qtyOrdered,

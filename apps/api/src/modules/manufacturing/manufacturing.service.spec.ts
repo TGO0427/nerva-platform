@@ -947,3 +947,174 @@ describe("ManufacturingService - Production Output", () => {
     });
   });
 });
+
+describe("ManufacturingService - createWorkOrder", () => {
+  let service: ManufacturingService;
+  let workOrderRepo: jest.Mocked<WorkOrderRepository>;
+  let bomRepo: jest.Mocked<BomRepository>;
+
+  const tenantId = "tenant-123";
+  const itemId = "item-123";
+  const bomHeaderId = "bom-123";
+  const workOrderId = "wo-123";
+
+  const baseBom = {
+    id: bomHeaderId,
+    tenantId,
+    itemId,
+    version: 1,
+    revision: "A",
+    status: "APPROVED",
+    effectiveFrom: null,
+    effectiveTo: null,
+    baseQty: 1,
+    uom: "EA",
+    notes: null,
+    approvedBy: "user-123",
+    approvedAt: new Date(),
+    createdBy: "user-123",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const baseCreatedWorkOrder = {
+    id: workOrderId,
+    tenantId,
+    siteId: "site-123",
+    warehouseId: "warehouse-123",
+    workOrderNo: "WO-000001",
+    itemId,
+    bomHeaderId,
+    routingId: null,
+    status: "DRAFT",
+    priority: 5,
+    qtyOrdered: 100,
+    qtyCompleted: 0,
+    qtyScrapped: 0,
+    plannedStart: null,
+    plannedEnd: null,
+    actualStart: null,
+    actualEnd: null,
+    salesOrderId: null,
+    batchNo: null,
+    notes: null,
+    createdBy: "user-123",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const createData = {
+    tenantId,
+    siteId: "site-123",
+    warehouseId: "warehouse-123",
+    itemId,
+    bomHeaderId,
+    qtyOrdered: 100,
+    createdBy: "user-123",
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ManufacturingService,
+        { provide: NonConformanceRepository, useValue: {} },
+        { provide: WorkstationRepository, useValue: {} },
+        {
+          provide: BomRepository,
+          useValue: {
+            findHeaderById: jest.fn(),
+            getLines: jest.fn().mockResolvedValue([]),
+          },
+        },
+        { provide: RoutingRepository, useValue: {} },
+        {
+          provide: WorkOrderRepository,
+          useValue: {
+            generateWorkOrderNo: jest.fn().mockResolvedValue("WO-000001"),
+            create: jest.fn().mockResolvedValue(baseCreatedWorkOrder),
+            addMaterial: jest.fn(),
+            findById: jest.fn().mockResolvedValue(baseCreatedWorkOrder),
+            getOperations: jest.fn().mockResolvedValue([]),
+            getMaterials: jest.fn().mockResolvedValue([]),
+          },
+        },
+        { provide: ProductionLedgerRepository, useValue: {} },
+        {
+          provide: ProductionDataRepository,
+          useValue: {
+            findChecksByWorkOrder: jest.fn().mockResolvedValue([]),
+            findProcessByWorkOrder: jest.fn().mockResolvedValue(null),
+          },
+        },
+        { provide: MrpRepository, useValue: {} },
+        { provide: StockLedgerService, useValue: {} },
+        { provide: BatchQualityRepository, useValue: {} },
+        { provide: MasterDataService, useValue: {} },
+      ],
+    }).compile();
+
+    service = module.get<ManufacturingService>(ManufacturingService);
+    workOrderRepo = module.get(WorkOrderRepository);
+    bomRepo = module.get(BomRepository);
+  });
+
+  it("throws BadRequestException when the BOM doesn't exist", async () => {
+    bomRepo.findHeaderById.mockResolvedValue(null);
+
+    await expect(service.createWorkOrder(createData)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(workOrderRepo.create).not.toHaveBeenCalled();
+  });
+
+  it("throws BadRequestException when the BOM belongs to a different item", async () => {
+    bomRepo.findHeaderById.mockResolvedValue({ ...baseBom, itemId: "other-item" });
+
+    await expect(service.createWorkOrder(createData)).rejects.toThrow(
+      "The selected BOM does not exist or does not belong to this item",
+    );
+    expect(workOrderRepo.create).not.toHaveBeenCalled();
+  });
+
+  it("throws BadRequestException when the BOM is not yet APPROVED", async () => {
+    bomRepo.findHeaderById.mockResolvedValue({ ...baseBom, status: "DRAFT" });
+
+    await expect(service.createWorkOrder(createData)).rejects.toThrow(
+      "This item's recipe has not been approved yet. A BOM must be approved before it can go into production.",
+    );
+    expect(workOrderRepo.create).not.toHaveBeenCalled();
+  });
+
+  it("creates the work order and copies BOM lines when the BOM is APPROVED", async () => {
+    bomRepo.findHeaderById.mockResolvedValue(baseBom);
+    bomRepo.getLines.mockResolvedValue([
+      {
+        id: "line-1",
+        tenantId,
+        bomHeaderId,
+        lineNo: 1,
+        itemId: "raw-item-1",
+        qtyPer: 2,
+        uom: "EA",
+        scrapPct: 10,
+        isCritical: false,
+        category: "RAW",
+        notes: null,
+        createdAt: new Date(),
+      },
+    ]);
+
+    await service.createWorkOrder(createData);
+
+    expect(workOrderRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ bomHeaderId, itemId, workOrderNo: "WO-000001" }),
+    );
+    expect(workOrderRepo.addMaterial).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workOrderId,
+        itemId: "raw-item-1",
+        qtyRequired: 2 * 100 * 1.1,
+      }),
+    );
+  });
+});

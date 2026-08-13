@@ -65,7 +65,7 @@ export default function NewWorkOrderPage() {
       workOrderNo: formData.workOrderNo || undefined,
       itemId: formData.itemId,
       warehouseId: formData.warehouseId,
-      bomHeaderId: formData.bomHeaderId || undefined,
+      bomHeaderId: formData.bomHeaderId,
       routingId: formData.routingId || undefined,
       qtyOrdered: parseFloat(formData.qtyOrdered),
       priority: parseInt(formData.priority),
@@ -82,7 +82,8 @@ export default function NewWorkOrderPage() {
   const boms = bomsData?.data || [];
   const routings = routingsData?.data || [];
 
-  const isValid = formData.itemId && formData.warehouseId && formData.qtyOrdered && parseFloat(formData.qtyOrdered) > 0;
+  const isValid = formData.itemId && formData.warehouseId && formData.bomHeaderId && formData.qtyOrdered && parseFloat(formData.qtyOrdered) > 0;
+  const hasNoApprovedBom = !!formData.itemId && boms.length === 0;
 
   return (
     <PageShell>
@@ -154,20 +155,28 @@ export default function NewWorkOrderPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Bill of Materials
+                Bill of Materials <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formData.bomHeaderId}
                 onChange={(e) => handleChange('bomHeaderId', e.target.value)}
-                disabled={!formData.itemId}
+                disabled={!formData.itemId || hasNoApprovedBom}
                 options={[
-                  { value: '', label: formData.itemId ? 'Select BOM (optional)...' : 'Select product first' },
+                  { value: '', label: formData.itemId ? 'Select BOM...' : 'Select product first' },
                   ...boms.map((bom) => ({
                     value: bom.id,
                     label: `Version ${bom.version} Rev ${bom.revision}`,
                   })),
                 ]}
               />
+              {hasNoApprovedBom && (
+                <p className="mt-1 text-sm text-red-600">
+                  This item has no approved BOM. A recipe must be approved before it can go into production —{' '}
+                  <a href="/manufacturing/boms/new" className="underline">
+                    create one
+                  </a>.
+                </p>
+              )}
             </div>
 
             <div>

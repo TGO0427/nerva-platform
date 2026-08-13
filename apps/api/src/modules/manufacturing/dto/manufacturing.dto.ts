@@ -402,10 +402,13 @@ export class CreateWorkOrderDto {
   @IsUUID()
   itemId: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty({
+    description:
+      "Approved BOM to manufacture against. A work order cannot be created without one.",
+  })
+  @IsNotEmpty()
   @IsUUID()
-  bomHeaderId?: string;
+  bomHeaderId: string;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -490,7 +490,7 @@ export function useCreateWorkOrder() {
       warehouseId: string;
       workOrderNo?: string;
       itemId: string;
-      bomHeaderId?: string;
+      bomHeaderId: string;
       routingId?: string;
       priority?: number;
       qtyOrdered: number;
