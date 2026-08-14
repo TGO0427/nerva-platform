@@ -736,7 +736,7 @@ export interface BomLine {
   itemDescription?: string;
 }
 
-export type RoutingStatus = 'DRAFT' | 'APPROVED' | 'OBSOLETE';
+export type RoutingStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'OBSOLETE';
 
 export interface Routing {
   id: string;

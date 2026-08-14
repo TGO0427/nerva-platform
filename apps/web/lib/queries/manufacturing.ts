@@ -396,6 +396,20 @@ export function useDeleteRouting() {
   });
 }
 
+export function useSubmitRoutingForApproval() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<Routing>(`/manufacturing/routings/${id}/submit`);
+      return response.data;
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: [ROUTINGS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [ROUTINGS_KEY, id] });
+    },
+  });
+}
+
 export function useApproveRouting() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -420,6 +434,62 @@ export function useObsoleteRouting() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: [ROUTINGS_KEY] });
       queryClient.invalidateQueries({ queryKey: [ROUTINGS_KEY, id] });
+    },
+  });
+}
+
+interface RoutingOperationData {
+  name: string;
+  description?: string;
+  workstationId?: string;
+  setupTimeMins?: number;
+  runTimeMins: number;
+  queueTimeMins?: number;
+  overlapPct?: number;
+  isSubcontracted?: boolean;
+  instructions?: string;
+}
+
+export function useAddRoutingOperation(routingId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: RoutingOperationData) => {
+      const response = await api.post<RoutingOperation>(
+        `/manufacturing/routings/${routingId}/operations`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ROUTINGS_KEY, routingId] });
+    },
+  });
+}
+
+export function useUpdateRoutingOperation(routingId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ operationId, data }: { operationId: string; data: Partial<RoutingOperationData> }) => {
+      const response = await api.patch<RoutingOperation>(
+        `/manufacturing/routings/operations/${operationId}`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ROUTINGS_KEY, routingId] });
+    },
+  });
+}
+
+export function useDeleteRoutingOperation(routingId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (operationId: string) => {
+      await api.delete(`/manufacturing/routings/operations/${operationId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ROUTINGS_KEY, routingId] });
     },
   });
 }

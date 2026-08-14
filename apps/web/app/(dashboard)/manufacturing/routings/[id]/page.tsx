@@ -12,6 +12,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   useRouting,
   useDeleteRouting,
+  useSubmitRoutingForApproval,
   useApproveRouting,
   useObsoleteRouting,
 } from '@/lib/queries/manufacturing';
@@ -28,6 +29,7 @@ export default function RoutingDetailPage() {
   const { addToast } = useToast();
   const { confirm } = useConfirm();
   const deleteRouting = useDeleteRouting();
+  const submitRouting = useSubmitRoutingForApproval();
   const approveRouting = useApproveRouting();
   const obsoleteRouting = useObsoleteRouting();
 
@@ -60,6 +62,16 @@ export default function RoutingDetailPage() {
       router.push('/manufacturing/routings');
     } catch (error) {
       addToast('Failed to delete routing', 'error');
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!id) return;
+    try {
+      await submitRouting.mutateAsync(id);
+      addToast('Routing submitted for approval', 'success');
+    } catch (error) {
+      addToast('Failed to submit routing', 'error');
     }
   };
 
@@ -169,13 +181,18 @@ export default function RoutingDetailPage() {
                 <Button variant="secondary" onClick={() => router.push(`/manufacturing/routings/${id}/edit`)}>
                   Edit
                 </Button>
-                <Button onClick={handleApprove} disabled={approveRouting.isPending}>
-                  {approveRouting.isPending ? 'Approving...' : 'Approve'}
-                </Button>
                 <Button variant="danger" onClick={handleDelete} disabled={deleteRouting.isPending}>
                   {deleteRouting.isPending ? 'Deleting...' : 'Delete'}
                 </Button>
+                <Button onClick={handleSubmit} disabled={submitRouting.isPending}>
+                  {submitRouting.isPending ? 'Submitting...' : 'Submit for Approval'}
+                </Button>
               </>
+            )}
+            {routing.status === 'PENDING_APPROVAL' && (
+              <Button onClick={handleApprove} disabled={approveRouting.isPending}>
+                {approveRouting.isPending ? 'Approving...' : 'Approve'}
+              </Button>
             )}
             {routing.status === 'APPROVED' && (
               <Button variant="danger" onClick={handleObsolete} disabled={obsoleteRouting.isPending}>
@@ -194,7 +211,7 @@ export default function RoutingDetailPage() {
               <div className="text-sm text-slate-500">Status</div>
               <div className="mt-1">
                 <Badge variant={getStatusVariant(routing.status)} >
-                  {routing.status}
+                  {routing.status.replace(/_/g, ' ')}
                 </Badge>
               </div>
             </Card>
@@ -303,6 +320,8 @@ function getStatusVariant(status: RoutingStatus): 'default' | 'success' | 'warni
   switch (status) {
     case 'APPROVED':
       return 'success';
+    case 'PENDING_APPROVAL':
+      return 'warning';
     case 'OBSOLETE':
       return 'danger';
     case 'DRAFT':

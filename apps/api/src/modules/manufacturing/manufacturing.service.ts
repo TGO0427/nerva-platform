@@ -516,11 +516,22 @@ export class ManufacturingService {
     await this.routingRepo.delete(id);
   }
 
-  async approveRouting(id: string, approvedBy: string) {
+  async submitRoutingForApproval(id: string) {
     const routing = await this.routingRepo.findById(id);
     if (!routing) throw new NotFoundException("Routing not found");
     if (routing.status !== "DRAFT") {
-      throw new BadRequestException("Can only approve DRAFT routings");
+      throw new BadRequestException("Can only submit DRAFT routings");
+    }
+    return this.routingRepo.update(id, { status: "PENDING_APPROVAL" });
+  }
+
+  async approveRouting(id: string, approvedBy: string) {
+    const routing = await this.routingRepo.findById(id);
+    if (!routing) throw new NotFoundException("Routing not found");
+    if (routing.status !== "PENDING_APPROVAL") {
+      throw new BadRequestException(
+        "Routing must be PENDING_APPROVAL to approve",
+      );
     }
     return this.routingRepo.update(id, {
       status: "APPROVED",
@@ -536,6 +547,49 @@ export class ManufacturingService {
       throw new BadRequestException("Routing is already obsolete");
     }
     return this.routingRepo.update(id, { status: "OBSOLETE" });
+  }
+
+  async addRoutingOperation(
+    routingId: string,
+    data: Omit<
+      Parameters<RoutingRepository["addOperation"]>[0],
+      "tenantId" | "routingId" | "operationNo"
+    >,
+  ) {
+    const routing = await this.routingRepo.findById(routingId);
+    if (!routing) throw new NotFoundException("Routing not found");
+    if (routing.status !== "DRAFT") {
+      throw new BadRequestException(
+        "Can only add operations to DRAFT routings",
+      );
+    }
+
+    const operations = await this.routingRepo.getOperations(routingId);
+    const maxOperationNo = operations.reduce(
+      (max, op) => Math.max(max, op.operationNo),
+      0,
+    );
+
+    return this.routingRepo.addOperation({
+      tenantId: routing.tenantId,
+      routingId,
+      operationNo: maxOperationNo + 10,
+      ...data,
+    });
+  }
+
+  async updateRoutingOperation(
+    operationId: string,
+    data: Parameters<RoutingRepository["updateOperation"]>[1],
+  ) {
+    const updated = await this.routingRepo.updateOperation(operationId, data);
+    if (!updated) throw new NotFoundException("Routing operation not found");
+    return updated;
+  }
+
+  async deleteRoutingOperation(operationId: string) {
+    const deleted = await this.routingRepo.deleteOperation(operationId);
+    if (!deleted) throw new NotFoundException("Routing operation not found");
   }
 
   // ============ Work Orders ============

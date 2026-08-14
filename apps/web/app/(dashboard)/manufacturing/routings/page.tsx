@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
 import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { useRoutings, useImportRoutings, useQueryParams } from '@/lib/queries';
@@ -25,20 +26,37 @@ type RoutingWithMeta = Routing & { itemSku?: string; itemDescription?: string; o
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
   { value: 'DRAFT', label: 'Draft' },
+  { value: 'PENDING_APPROVAL', label: 'Pending Approval' },
   { value: 'APPROVED', label: 'Approved' },
   { value: 'OBSOLETE', label: 'Obsolete' },
 ];
+const STATUS_VALUES = STATUS_OPTIONS.map((option) => option.value).filter(Boolean);
 
 export default function RoutingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState<RoutingStatus | ''>('');
   const [search, setSearch] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useRoutings({ ...params, status: status || undefined, search: search || undefined });
+  const { data: allRoutingsData } = useRoutings({ page: 1, limit: 1 });
+  const { data: draftRoutingsData } = useRoutings({ page: 1, limit: 1, status: 'DRAFT' });
+  const { data: pendingRoutingsData } = useRoutings({ page: 1, limit: 1, status: 'PENDING_APPROVAL' });
+  const { data: approvedRoutingsData } = useRoutings({ page: 1, limit: 1, status: 'APPROVED' });
   const importMutation = useImportRoutings();
 
   const tableData = data?.data || [];
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam && STATUS_VALUES.includes(statusParam)) {
+      setStatus(statusParam as RoutingStatus);
+    } else {
+      setStatus('');
+    }
+    setPage(1);
+  }, [searchParams, setPage]);
 
   const {
     selectedIds,
@@ -78,7 +96,7 @@ export default function RoutingsPage() {
       width: '120px',
       render: (row) => (
         <Badge variant={getStatusVariant(row.status)}>
-          {row.status}
+          {row.status.replace(/_/g, ' ')}
         </Badge>
       ),
     },
@@ -135,10 +153,28 @@ export default function RoutingsPage() {
     exportToCSV(exportData, exportColumns, generateExportFilename('routings'));
   };
 
-  const totalRoutings = data?.meta?.total || 0;
-  const draftCount = tableData.filter(r => r.status === 'DRAFT').length;
-  const approvedCount = tableData.filter(r => r.status === 'APPROVED').length;
+  const totalRoutings = allRoutingsData?.meta?.total || data?.meta?.total || 0;
+  const draftCount = draftRoutingsData?.meta?.total || 0;
+  const pendingCount = pendingRoutingsData?.meta?.total || 0;
+  const approvedCount = approvedRoutingsData?.meta?.total || 0;
   const hasActiveFilters = Boolean(status || search);
+  const activeFilterLabels = [
+    status ? `Status: ${STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status}` : null,
+    search ? `Search: ${search}` : null,
+  ].filter(Boolean) as string[];
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatus('');
+    setPage(1);
+    router.replace('/manufacturing/routings');
+  };
+
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setSearch(String(values.search ?? ''));
+    setStatus((values.status ?? '') as RoutingStatus | '');
+    setPage(1);
+  };
 
   return (
     <ListPageTemplate
@@ -164,18 +200,28 @@ export default function RoutingsPage() {
           value: formatNumber(totalRoutings),
           icon: <RouteIcon />,
           iconColor: 'gray',
+          href: '/manufacturing/routings',
         },
         {
           title: 'Draft',
           value: formatNumber(draftCount),
           icon: <PencilIcon />,
           iconColor: 'blue',
+          href: '/manufacturing/routings?status=DRAFT',
+        },
+        {
+          title: 'Pending Approval',
+          value: formatNumber(pendingCount),
+          icon: <ClockIcon />,
+          iconColor: 'yellow',
+          href: '/manufacturing/routings?status=PENDING_APPROVAL',
         },
         {
           title: 'Approved',
           value: formatNumber(approvedCount),
           icon: <CheckIcon />,
           iconColor: 'green',
+          href: '/manufacturing/routings?status=APPROVED',
         },
       ]}
       filters={
@@ -188,7 +234,7 @@ export default function RoutingsPage() {
           />
           <Select
             value={status}
-            onChange={(e) => setStatus(e.target.value as RoutingStatus | '')}
+            onChange={(e) => { setStatus(e.target.value as RoutingStatus | ''); setPage(1); }}
             options={STATUS_OPTIONS}
             className="max-w-xs"
           />
@@ -196,6 +242,11 @@ export default function RoutingsPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="routings"
+            currentValues={{ search, status }}
+            onApply={handleApplySavedView}
+          />
           <ExportActions onExport={handleExport} selectedCount={selectedCount} />
           <ColumnToggle
           columns={allColumns}
@@ -207,6 +258,24 @@ export default function RoutingsPage() {
         </div>
       }
     >
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {selectedCount > 0 && (
         <BulkActionBar
           selectedCount={selectedCount}
@@ -247,11 +316,7 @@ export default function RoutingsPage() {
           action: hasActiveFilters ? (
             <Button
               variant="secondary"
-              onClick={() => {
-                setSearch('');
-                setStatus('');
-                setPage(1);
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>
@@ -285,6 +350,8 @@ function getStatusVariant(status: RoutingStatus): 'default' | 'success' | 'warni
   switch (status) {
     case 'APPROVED':
       return 'success';
+    case 'PENDING_APPROVAL':
+      return 'warning';
     case 'OBSOLETE':
       return 'danger';
     case 'DRAFT':
@@ -321,6 +388,14 @@ function CheckIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }

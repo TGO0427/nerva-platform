@@ -1366,3 +1366,163 @@ describe("ManufacturingService - explodeBom", () => {
     expect(result.ingredients[0].rawQty).toBeCloseTo(22);
   });
 });
+
+describe("ManufacturingService - Routing approval and operations", () => {
+  let service: ManufacturingService;
+  let routingRepo: jest.Mocked<RoutingRepository>;
+
+  const routingId = "routing-123";
+  const baseRouting = {
+    id: routingId,
+    tenantId: "tenant-123",
+    itemId: "item-123",
+    version: 1,
+    status: "DRAFT",
+    effectiveFrom: null,
+    effectiveTo: null,
+    notes: null,
+    approvedBy: null,
+    approvedAt: null,
+    createdBy: "user-123",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ManufacturingService,
+        { provide: NonConformanceRepository, useValue: {} },
+        { provide: WorkstationRepository, useValue: {} },
+        { provide: BomRepository, useValue: {} },
+        {
+          provide: RoutingRepository,
+          useValue: {
+            findById: jest.fn(),
+            update: jest.fn(),
+            getOperations: jest.fn().mockResolvedValue([]),
+            addOperation: jest.fn(),
+            updateOperation: jest.fn(),
+            deleteOperation: jest.fn(),
+          },
+        },
+        { provide: WorkOrderRepository, useValue: {} },
+        { provide: ProductionLedgerRepository, useValue: {} },
+        { provide: ProductionDataRepository, useValue: {} },
+        { provide: MrpRepository, useValue: {} },
+        { provide: StockLedgerService, useValue: {} },
+        { provide: BatchQualityRepository, useValue: {} },
+        { provide: MasterDataService, useValue: {} },
+      ],
+    }).compile();
+
+    service = module.get<ManufacturingService>(ManufacturingService);
+    routingRepo = module.get(RoutingRepository);
+  });
+
+  describe("submitRoutingForApproval", () => {
+    it("throws BadRequestException when the routing is not DRAFT", async () => {
+      routingRepo.findById.mockResolvedValue({ ...baseRouting, status: "APPROVED" } as any);
+
+      await expect(service.submitRoutingForApproval(routingId)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(routingRepo.update).not.toHaveBeenCalled();
+    });
+
+    it("moves a DRAFT routing to PENDING_APPROVAL", async () => {
+      routingRepo.findById.mockResolvedValue(baseRouting as any);
+      routingRepo.update.mockResolvedValue({ ...baseRouting, status: "PENDING_APPROVAL" } as any);
+
+      const result = await service.submitRoutingForApproval(routingId);
+
+      expect(result?.status).toBe("PENDING_APPROVAL");
+      expect(routingRepo.update).toHaveBeenCalledWith(routingId, {
+        status: "PENDING_APPROVAL",
+      });
+    });
+  });
+
+  describe("approveRouting", () => {
+    it("throws BadRequestException when the routing is still DRAFT (not yet submitted)", async () => {
+      routingRepo.findById.mockResolvedValue(baseRouting as any);
+
+      await expect(service.approveRouting(routingId, "user-1")).rejects.toThrow(
+        "Routing must be PENDING_APPROVAL to approve",
+      );
+      expect(routingRepo.update).not.toHaveBeenCalled();
+    });
+
+    it("approves a PENDING_APPROVAL routing", async () => {
+      routingRepo.findById.mockResolvedValue({ ...baseRouting, status: "PENDING_APPROVAL" } as any);
+      routingRepo.update.mockResolvedValue({ ...baseRouting, status: "APPROVED" } as any);
+
+      const result = await service.approveRouting(routingId, "user-1");
+
+      expect(result?.status).toBe("APPROVED");
+      expect(routingRepo.update).toHaveBeenCalledWith(
+        routingId,
+        expect.objectContaining({ status: "APPROVED", approvedBy: "user-1" }),
+      );
+    });
+  });
+
+  describe("addRoutingOperation", () => {
+    it("throws BadRequestException when the routing is not DRAFT", async () => {
+      routingRepo.findById.mockResolvedValue({ ...baseRouting, status: "APPROVED" } as any);
+
+      await expect(
+        service.addRoutingOperation(routingId, { name: "Mix", runTimeMins: 10 }),
+      ).rejects.toThrow("Can only add operations to DRAFT routings");
+      expect(routingRepo.addOperation).not.toHaveBeenCalled();
+    });
+
+    it("assigns the next operationNo after the current max", async () => {
+      routingRepo.findById.mockResolvedValue(baseRouting as any);
+      routingRepo.getOperations.mockResolvedValue([
+        { operationNo: 10 } as any,
+        { operationNo: 20 } as any,
+      ]);
+
+      await service.addRoutingOperation(routingId, { name: "Pack", runTimeMins: 5 });
+
+      expect(routingRepo.addOperation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: baseRouting.tenantId,
+          routingId,
+          operationNo: 30,
+          name: "Pack",
+          runTimeMins: 5,
+        }),
+      );
+    });
+  });
+
+  describe("updateRoutingOperation / deleteRoutingOperation", () => {
+    it("throws NotFoundException when updating an operation that doesn't exist", async () => {
+      routingRepo.updateOperation.mockResolvedValue(null);
+
+      await expect(
+        service.updateRoutingOperation("op-1", { name: "New name" }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it("throws NotFoundException when deleting an operation that doesn't exist", async () => {
+      routingRepo.deleteOperation.mockResolvedValue(false);
+
+      await expect(service.deleteRoutingOperation("op-1")).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it("updates and deletes successfully when found", async () => {
+      routingRepo.updateOperation.mockResolvedValue({ id: "op-1", name: "New name" } as any);
+      routingRepo.deleteOperation.mockResolvedValue(true);
+
+      const updated = await service.updateRoutingOperation("op-1", { name: "New name" });
+      expect(updated?.name).toBe("New name");
+
+      await expect(service.deleteRoutingOperation("op-1")).resolves.toBeUndefined();
+    });
+  });
+});

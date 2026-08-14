@@ -43,6 +43,8 @@ import {
   UpdateBomLineDto,
   CreateRoutingDto,
   UpdateRoutingDto,
+  RoutingOperationDto,
+  UpdateRoutingOperationDto,
   CreateWorkOrderDto,
   UpdateWorkOrderDto,
   UpsertWorkOrderChecksDto,
@@ -396,6 +398,13 @@ export class ManufacturingController {
     return { success: true };
   }
 
+  @Post("routings/:id/submit")
+  @RequirePermissions("routing.edit")
+  @ApiOperation({ summary: "Submit routing for approval" })
+  async submitRoutingForApproval(@Param("id", UuidValidationPipe) id: string) {
+    return this.service.submitRoutingForApproval(id);
+  }
+
   @Post("routings/:id/approve")
   @RequirePermissions("routing.approve")
   @ApiOperation({ summary: "Approve routing" })
@@ -411,6 +420,37 @@ export class ManufacturingController {
   @ApiOperation({ summary: "Mark routing as obsolete" })
   async obsoleteRouting(@Param("id", UuidValidationPipe) id: string) {
     return this.service.obsoleteRouting(id);
+  }
+
+  // Routing Operations
+  @Post("routings/:routingId/operations")
+  @RequirePermissions("routing.edit")
+  @ApiOperation({ summary: "Add routing operation" })
+  async addRoutingOperation(
+    @Param("routingId", UuidValidationPipe) routingId: string,
+    @Body() data: RoutingOperationDto,
+  ) {
+    return this.service.addRoutingOperation(routingId, data);
+  }
+
+  @Patch("routings/operations/:operationId")
+  @RequirePermissions("routing.edit")
+  @ApiOperation({ summary: "Update routing operation" })
+  async updateRoutingOperation(
+    @Param("operationId", UuidValidationPipe) operationId: string,
+    @Body() data: UpdateRoutingOperationDto,
+  ) {
+    return this.service.updateRoutingOperation(operationId, data);
+  }
+
+  @Delete("routings/operations/:operationId")
+  @RequirePermissions("routing.edit")
+  @ApiOperation({ summary: "Delete routing operation" })
+  async deleteRoutingOperation(
+    @Param("operationId", UuidValidationPipe) operationId: string,
+  ) {
+    await this.service.deleteRoutingOperation(operationId);
+    return { success: true };
   }
 
   // ============ Work Orders ============
