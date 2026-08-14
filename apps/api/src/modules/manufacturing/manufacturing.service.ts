@@ -516,6 +516,46 @@ export class ManufacturingService {
     await this.routingRepo.delete(id);
   }
 
+  async createNewRoutingVersion(id: string, createdBy: string) {
+    const existing = await this.getRouting(id);
+    if (!existing) throw new NotFoundException("Routing not found");
+
+    const version = await this.routingRepo.getNextVersion(
+      existing.tenantId,
+      existing.itemId,
+    );
+    const routing = await this.routingRepo.create({
+      tenantId: existing.tenantId,
+      itemId: existing.itemId,
+      version,
+      effectiveFrom: existing.effectiveFrom || undefined,
+      effectiveTo: existing.effectiveTo || undefined,
+      notes: existing.notes || undefined,
+      createdBy,
+    });
+
+    const operations: RoutingOperation[] = [];
+    for (const op of existing.operations) {
+      const newOp = await this.routingRepo.addOperation({
+        tenantId: existing.tenantId,
+        routingId: routing.id,
+        operationNo: op.operationNo,
+        name: op.name,
+        description: op.description || undefined,
+        workstationId: op.workstationId || undefined,
+        setupTimeMins: op.setupTimeMins,
+        runTimeMins: op.runTimeMins,
+        queueTimeMins: op.queueTimeMins,
+        overlapPct: op.overlapPct,
+        isSubcontracted: op.isSubcontracted,
+        instructions: op.instructions || undefined,
+      });
+      operations.push(newOp);
+    }
+
+    return { ...routing, operations };
+  }
+
   async submitRoutingForApproval(id: string) {
     const routing = await this.routingRepo.findById(id);
     if (!routing) throw new NotFoundException("Routing not found");

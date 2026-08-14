@@ -15,6 +15,7 @@ import {
   useSubmitRoutingForApproval,
   useApproveRouting,
   useObsoleteRouting,
+  useCreateRoutingVersion,
 } from '@/lib/queries/manufacturing';
 import { formatDate, formatNumber, formatPercent } from '@/lib/format';
 import type { RoutingStatus, RoutingOperation } from '@nerva/shared';
@@ -32,6 +33,7 @@ export default function RoutingDetailPage() {
   const submitRouting = useSubmitRoutingForApproval();
   const approveRouting = useApproveRouting();
   const obsoleteRouting = useObsoleteRouting();
+  const createVersion = useCreateRoutingVersion();
 
   if (error) {
     return (
@@ -99,6 +101,17 @@ export default function RoutingDetailPage() {
       addToast('Routing marked as obsolete', 'success');
     } catch (error) {
       addToast('Failed to mark routing as obsolete', 'error');
+    }
+  };
+
+  const handleNewVersion = async () => {
+    if (!id) return;
+    try {
+      const newRouting = await createVersion.mutateAsync(id);
+      addToast('New routing version created', 'success');
+      router.push(`/manufacturing/routings/${newRouting.id}`);
+    } catch (error) {
+      addToast('Failed to create new version', 'error');
     }
   };
 
@@ -195,9 +208,14 @@ export default function RoutingDetailPage() {
               </Button>
             )}
             {routing.status === 'APPROVED' && (
-              <Button variant="danger" onClick={handleObsolete} disabled={obsoleteRouting.isPending}>
-                Mark Obsolete
-              </Button>
+              <>
+                <Button variant="secondary" onClick={handleNewVersion} disabled={createVersion.isPending}>
+                  {createVersion.isPending ? 'Creating...' : 'Create New Version'}
+                </Button>
+                <Button variant="danger" onClick={handleObsolete} disabled={obsoleteRouting.isPending}>
+                  Mark Obsolete
+                </Button>
+              </>
             )}
           </div>
         )

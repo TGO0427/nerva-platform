@@ -398,6 +398,16 @@ export class ManufacturingController {
     return { success: true };
   }
 
+  @Post("routings/:id/new-version")
+  @RequirePermissions("routing.create")
+  @ApiOperation({ summary: "Create a new DRAFT version copying an approved routing's operations" })
+  async createNewRoutingVersion(
+    @Param("id", UuidValidationPipe) id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.service.createNewRoutingVersion(id, user.id);
+  }
+
   @Post("routings/:id/submit")
   @RequirePermissions("routing.edit")
   @ApiOperation({ summary: "Submit routing for approval" })

@@ -1400,6 +1400,8 @@ describe("ManufacturingService - Routing approval and operations", () => {
           useValue: {
             findById: jest.fn(),
             update: jest.fn(),
+            getNextVersion: jest.fn(),
+            create: jest.fn(),
             getOperations: jest.fn().mockResolvedValue([]),
             addOperation: jest.fn(),
             updateOperation: jest.fn(),
@@ -1418,6 +1420,49 @@ describe("ManufacturingService - Routing approval and operations", () => {
 
     service = module.get<ManufacturingService>(ManufacturingService);
     routingRepo = module.get(RoutingRepository);
+  });
+
+  describe("createNewRoutingVersion", () => {
+    it("creates a new DRAFT version copying the existing routing's operations", async () => {
+      routingRepo.findById.mockResolvedValue({ ...baseRouting, status: "APPROVED" } as any);
+      routingRepo.getOperations.mockResolvedValue([
+        {
+          id: "op-1",
+          operationNo: 10,
+          name: "Mix",
+          description: null,
+          workstationId: "ws-1",
+          setupTimeMins: 5,
+          runTimeMins: 20,
+          queueTimeMins: 0,
+          overlapPct: 0,
+          isSubcontracted: false,
+          instructions: null,
+        } as any,
+      ]);
+      routingRepo.getNextVersion.mockResolvedValue(2);
+      routingRepo.create.mockResolvedValue({ ...baseRouting, id: "routing-456", version: 2, status: "DRAFT" } as any);
+      routingRepo.addOperation.mockResolvedValue({ id: "op-2", operationNo: 10, name: "Mix" } as any);
+
+      const result = await service.createNewRoutingVersion(routingId, "user-1");
+
+      expect(routingRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: baseRouting.tenantId, itemId: baseRouting.itemId, version: 2 }),
+      );
+      expect(routingRepo.addOperation).toHaveBeenCalledWith(
+        expect.objectContaining({ routingId: "routing-456", operationNo: 10, name: "Mix", runTimeMins: 20 }),
+      );
+      expect(result.id).toBe("routing-456");
+      expect(result.operations).toHaveLength(1);
+    });
+
+    it("throws NotFoundException when the routing doesn't exist", async () => {
+      routingRepo.findById.mockResolvedValue(null);
+
+      await expect(
+        service.createNewRoutingVersion(routingId, "user-1"),
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe("submitRoutingForApproval", () => {

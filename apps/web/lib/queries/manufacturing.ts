@@ -396,6 +396,19 @@ export function useDeleteRouting() {
   });
 }
 
+export function useCreateRoutingVersion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post<RoutingWithOperations>(`/manufacturing/routings/${id}/new-version`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ROUTINGS_KEY] });
+    },
+  });
+}
+
 export function useSubmitRoutingForApproval() {
   const queryClient = useQueryClient();
   return useMutation({
