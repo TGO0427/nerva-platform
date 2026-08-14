@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -172,9 +173,9 @@ export default function NewWorkOrderPage() {
               {hasNoApprovedBom && (
                 <p className="mt-1 text-sm text-red-600">
                   This item has no approved BOM. A recipe must be approved before it can go into production —{' '}
-                  <a href="/manufacturing/boms/new" className="underline">
+                  <Link href={`/manufacturing/boms/new?itemId=${formData.itemId}`} className="underline">
                     create one
-                  </a>.
+                  </Link>.
                 </p>
               )}
             </div>

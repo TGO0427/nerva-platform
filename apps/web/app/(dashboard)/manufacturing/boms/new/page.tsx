@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -25,9 +25,11 @@ interface BomLineForm {
 
 export default function NewBomPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefillItemId = searchParams.get('itemId') || '';
   const { addToast } = useToast();
   const [formData, setFormData] = useState({
-    itemId: '',
+    itemId: prefillItemId,
     baseQty: '1',
     uom: 'EA',
     effectiveFrom: '',
