@@ -892,15 +892,20 @@ export interface ProductionLedgerEntry {
   binCode?: string;
 }
 
+export interface BomComparisonLine extends BomLine {
+  itemSku?: string;
+  itemDescription?: string;
+}
+
 export interface BomComparison {
-  left: BomHeader & { lines: BomLine[] };
-  right: BomHeader & { lines: BomLine[] };
+  left: BomHeader & { lines: BomComparisonLine[] };
+  right: BomHeader & { lines: BomComparisonLine[] };
   differences: {
-    added: BomLine[];
-    removed: BomLine[];
+    added: BomComparisonLine[];
+    removed: BomComparisonLine[];
     changed: Array<{
-      left: BomLine;
-      right: BomLine;
+      left: BomComparisonLine;
+      right: BomComparisonLine;
       changedFields: string[];
     }>;
   };

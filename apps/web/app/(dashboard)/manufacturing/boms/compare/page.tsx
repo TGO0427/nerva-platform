@@ -118,7 +118,10 @@ export default function CompareBomPage() {
                 {added.map((item, index) => (
                   <div key={index} className="p-4 flex items-center justify-between">
                     <div>
-                      <div className="font-medium">{item.itemId.slice(0, 8)}</div>
+                      <div className="font-medium">{item.itemSku || item.itemId.slice(0, 8)}</div>
+                      {item.itemDescription && (
+                        <div className="text-sm text-slate-500">{item.itemDescription}</div>
+                      )}
                     </div>
                     <div className="text-right">
                       <Badge variant="success">+ {formatQuantity(item.qtyPer)} {item.uom}</Badge>
@@ -140,7 +143,10 @@ export default function CompareBomPage() {
                 {removed.map((item, index) => (
                   <div key={index} className="p-4 flex items-center justify-between">
                     <div>
-                      <div className="font-medium">{item.itemId.slice(0, 8)}</div>
+                      <div className="font-medium">{item.itemSku || item.itemId.slice(0, 8)}</div>
+                      {item.itemDescription && (
+                        <div className="text-sm text-slate-500">{item.itemDescription}</div>
+                      )}
                     </div>
                     <div className="text-right">
                       <Badge variant="danger">- {formatQuantity(item.qtyPer)} {item.uom}</Badge>
@@ -163,7 +169,10 @@ export default function CompareBomPage() {
                   <div key={index} className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <div className="font-medium">{item.left.itemId.slice(0, 8)}</div>
+                        <div className="font-medium">{item.left.itemSku || item.left.itemId.slice(0, 8)}</div>
+                        {item.left.itemDescription && (
+                          <div className="text-sm text-slate-500">{item.left.itemDescription}</div>
+                        )}
                         <div className="text-sm text-slate-500">Changed: {item.changedFields.join(', ')}</div>
                       </div>
                     </div>
