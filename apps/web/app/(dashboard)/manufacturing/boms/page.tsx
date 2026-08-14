@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { ColumnToggle } from '@/components/ui/column-toggle';
 import { ExportActions } from '@/components/ui/export-actions';
 import { CsvImportDialog } from '@/components/ui/csv-import-dialog';
+import { SavedFilterViews, type SavedFilterValues } from '@/components/ui/saved-filter-views';
 import { ListPageTemplate } from '@/components/templates';
 import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { useBoms, useImportBoms, useQueryParams } from '@/lib/queries';
@@ -29,17 +30,33 @@ const STATUS_OPTIONS = [
   { value: 'APPROVED', label: 'Approved' },
   { value: 'OBSOLETE', label: 'Obsolete' },
 ];
+const STATUS_VALUES = STATUS_OPTIONS.map((option) => option.value).filter(Boolean);
 
 export default function BomsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState<BomStatus | ''>('');
   const [search, setSearch] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const { params, setPage } = useQueryParams();
   const { data, isLoading } = useBoms({ ...params, status: status || undefined, search: search || undefined });
+  const { data: allBomsData } = useBoms({ page: 1, limit: 1 });
+  const { data: draftBomsData } = useBoms({ page: 1, limit: 1, status: 'DRAFT' });
+  const { data: pendingBomsData } = useBoms({ page: 1, limit: 1, status: 'PENDING_APPROVAL' });
+  const { data: approvedBomsData } = useBoms({ page: 1, limit: 1, status: 'APPROVED' });
   const importMutation = useImportBoms();
 
   const tableData = data?.data || [];
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam && STATUS_VALUES.includes(statusParam)) {
+      setStatus(statusParam as BomStatus);
+    } else {
+      setStatus('');
+    }
+    setPage(1);
+  }, [searchParams, setPage]);
 
   const {
     selectedIds,
@@ -173,11 +190,28 @@ export default function BomsPage() {
     exportToCSV(exportData, exportColumns, generateExportFilename('boms'));
   };
 
-  const totalBoms = data?.meta?.total || 0;
-  const draftCount = tableData.filter(b => b.status === 'DRAFT').length;
-  const pendingCount = tableData.filter(b => b.status === 'PENDING_APPROVAL').length;
-  const approvedCount = tableData.filter(b => b.status === 'APPROVED').length;
+  const totalBoms = allBomsData?.meta?.total || data?.meta?.total || 0;
+  const draftCount = draftBomsData?.meta?.total || 0;
+  const pendingCount = pendingBomsData?.meta?.total || 0;
+  const approvedCount = approvedBomsData?.meta?.total || 0;
   const hasActiveFilters = Boolean(status || search);
+  const activeFilterLabels = [
+    status ? `Status: ${STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status}` : null,
+    search ? `Search: ${search}` : null,
+  ].filter(Boolean) as string[];
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatus('');
+    setPage(1);
+    router.replace('/manufacturing/boms');
+  };
+
+  const handleApplySavedView = (values: SavedFilterValues) => {
+    setSearch(String(values.search ?? ''));
+    setStatus((values.status ?? '') as BomStatus | '');
+    setPage(1);
+  };
 
   return (
     <ListPageTemplate
@@ -203,24 +237,28 @@ export default function BomsPage() {
           value: formatNumber(totalBoms),
           icon: <ListIcon />,
           iconColor: 'gray',
+          href: '/manufacturing/boms',
         },
         {
           title: 'Draft',
           value: formatNumber(draftCount),
           icon: <PencilIcon />,
           iconColor: 'blue',
+          href: '/manufacturing/boms?status=DRAFT',
         },
         {
           title: 'Pending Approval',
           value: formatNumber(pendingCount),
           icon: <ClockIcon />,
           iconColor: 'yellow',
+          href: '/manufacturing/boms?status=PENDING_APPROVAL',
         },
         {
           title: 'Approved',
           value: formatNumber(approvedCount),
           icon: <CheckIcon />,
           iconColor: 'green',
+          href: '/manufacturing/boms?status=APPROVED',
         },
       ]}
       filters={
@@ -233,7 +271,7 @@ export default function BomsPage() {
           />
           <Select
             value={status}
-            onChange={(e) => setStatus(e.target.value as BomStatus | '')}
+            onChange={(e) => { setStatus(e.target.value as BomStatus | ''); setPage(1); }}
             options={STATUS_OPTIONS}
             className="max-w-xs"
           />
@@ -241,6 +279,11 @@ export default function BomsPage() {
       }
       filterActions={
         <div className="flex gap-2 print:hidden">
+          <SavedFilterViews
+            storageKey="boms"
+            currentValues={{ search, status }}
+            onApply={handleApplySavedView}
+          />
           <Link href="/manufacturing/boms/compare">
             <Button variant="secondary" size="sm">
               <CompareIcon />
@@ -258,6 +301,24 @@ export default function BomsPage() {
         </div>
       }
     >
+      {activeFilterLabels.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900">
+          <span className="font-medium">Active filters:</span>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="rounded bg-white px-2 py-0.5 text-xs font-medium text-primary-700 shadow-sm">
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="ml-auto text-xs font-medium text-primary-700 hover:text-primary-900"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {selectedCount > 0 && (
         <BulkActionBar
           selectedCount={selectedCount}
@@ -298,11 +359,7 @@ export default function BomsPage() {
           action: hasActiveFilters ? (
             <Button
               variant="secondary"
-              onClick={() => {
-                setSearch('');
-                setStatus('');
-                setPage(1);
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>
