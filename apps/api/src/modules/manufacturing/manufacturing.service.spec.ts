@@ -1241,3 +1241,128 @@ describe("ManufacturingService - createWorkOrder", () => {
     );
   });
 });
+
+describe("ManufacturingService - explodeBom", () => {
+  let service: ManufacturingService;
+  let bomRepo: jest.Mocked<BomRepository>;
+
+  const bomHeaderId = "bom-123";
+  const baseBom = {
+    id: bomHeaderId,
+    tenantId: "tenant-123",
+    itemId: "item-123",
+    version: 1,
+    revision: "A",
+    status: "APPROVED",
+    effectiveFrom: null,
+    effectiveTo: null,
+    baseQty: 10,
+    uom: "KG",
+    notes: null,
+    approvedBy: "user-123",
+    approvedAt: new Date(),
+    createdBy: "user-123",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ManufacturingService,
+        { provide: NonConformanceRepository, useValue: {} },
+        { provide: WorkstationRepository, useValue: {} },
+        {
+          provide: BomRepository,
+          useValue: {
+            findHeaderById: jest.fn(),
+            getLines: jest.fn().mockResolvedValue([]),
+          },
+        },
+        { provide: RoutingRepository, useValue: {} },
+        { provide: WorkOrderRepository, useValue: {} },
+        { provide: ProductionLedgerRepository, useValue: {} },
+        { provide: ProductionDataRepository, useValue: {} },
+        { provide: MrpRepository, useValue: {} },
+        { provide: StockLedgerService, useValue: {} },
+        { provide: BatchQualityRepository, useValue: {} },
+        { provide: MasterDataService, useValue: {} },
+      ],
+    }).compile();
+
+    service = module.get<ManufacturingService>(ManufacturingService);
+    bomRepo = module.get(BomRepository);
+  });
+
+  it("throws NotFoundException when the BOM doesn't exist", async () => {
+    bomRepo.findHeaderById.mockResolvedValue(null);
+
+    await expect(service.explodeBom(bomHeaderId, 100)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it("throws BadRequestException when the BOM is not yet APPROVED", async () => {
+    bomRepo.findHeaderById.mockResolvedValue({ ...baseBom, status: "DRAFT" });
+
+    await expect(service.explodeBom(bomHeaderId, 100)).rejects.toThrow(
+      BadRequestException,
+    );
+    await expect(service.explodeBom(bomHeaderId, 100)).rejects.toThrow(
+      "This BOM has not been approved yet. Only an approved BOM can be exploded.",
+    );
+  });
+
+  it("treats a null scrapPct as 0 instead of producing NaN", async () => {
+    bomRepo.findHeaderById.mockResolvedValue(baseBom);
+    bomRepo.getLines.mockResolvedValue([
+      {
+        id: "line-1",
+        tenantId: "tenant-123",
+        bomHeaderId,
+        lineNo: 1,
+        itemId: "raw-item-1",
+        qtyPer: 2,
+        uom: "KG",
+        scrapPct: null as any,
+        isCritical: false,
+        category: "INGREDIENT",
+        notes: null,
+        createdAt: new Date(),
+      },
+    ]);
+
+    const result = await service.explodeBom(bomHeaderId, 100);
+
+    // baseQty 10, requiredKg 100 -> scaleFactor 10; qtyPer 2 * 10 * (1 + 0/100) = 20
+    expect(result.ingredients[0].rawQty).toBe(20);
+    expect(result.ingredients[0].scaledQty).toBe(20);
+    expect(Number.isNaN(result.ingredients[0].rawQty)).toBe(false);
+  });
+
+  it("scales quantities and applies scrap % using the same formula as createWorkOrder/MRP", async () => {
+    bomRepo.findHeaderById.mockResolvedValue(baseBom);
+    bomRepo.getLines.mockResolvedValue([
+      {
+        id: "line-1",
+        tenantId: "tenant-123",
+        bomHeaderId,
+        lineNo: 1,
+        itemId: "raw-item-1",
+        qtyPer: 2,
+        uom: "KG",
+        scrapPct: 10,
+        isCritical: false,
+        category: "INGREDIENT",
+        notes: null,
+        createdAt: new Date(),
+      },
+    ]);
+
+    const result = await service.explodeBom(bomHeaderId, 100);
+
+    // (qtyPer / baseQty) * requiredKg * (1 + scrapPct/100) = (2/10) * 100 * 1.1 = 22
+    expect(result.scaleFactor).toBe(10);
+    expect(result.ingredients[0].rawQty).toBeCloseTo(22);
+  });
+});

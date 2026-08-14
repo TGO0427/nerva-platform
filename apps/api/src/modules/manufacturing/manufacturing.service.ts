@@ -329,6 +329,11 @@ export class ManufacturingService {
   async explodeBom(bomId: string, requiredKg: number) {
     const header = await this.bomRepo.findHeaderById(bomId);
     if (!header) throw new NotFoundException("BOM not found");
+    if (header.status !== "APPROVED") {
+      throw new BadRequestException(
+        "This BOM has not been approved yet. Only an approved BOM can be exploded.",
+      );
+    }
     const allLines = await this.bomRepo.getLines(bomId);
 
     const scaleFactor = requiredKg / (header.baseQty || 1);
@@ -342,7 +347,7 @@ export class ManufacturingService {
     const packagingTotal = packaging.reduce((sum, l) => sum + l.qtyPer, 0);
 
     const mapLine = (line: BomLine, total: number, isPackaging: boolean) => {
-      const rawQty = line.qtyPer * scaleFactor * (1 + line.scrapPct / 100);
+      const rawQty = line.qtyPer * scaleFactor * (1 + (line.scrapPct || 0) / 100);
       const scaledQty = isPackaging
         ? Math.ceil(rawQty)
         : Math.round(rawQty * 1000) / 1000;
