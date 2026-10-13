@@ -36,6 +36,11 @@ async function bootstrap() {
 
   // Health check endpoint with DB connectivity check (no prefix)
   const expressApp = app.getHttpAdapter().getInstance();
+
+  // Behind Railway's proxy: use X-Forwarded-For so rate limiting is per
+  // client, not one shared bucket for the proxy's IP
+  expressApp.set("trust proxy", 1);
+
   expressApp.get(
     "/health",
     async (
